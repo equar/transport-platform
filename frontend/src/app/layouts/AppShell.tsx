@@ -19,10 +19,13 @@ import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
+import AttachMoneyRoundedIcon from "@mui/icons-material/AttachMoneyRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import ContactPhoneRoundedIcon from "@mui/icons-material/ContactPhoneRounded";
 import DriveEtaRoundedIcon from "@mui/icons-material/DriveEtaRounded";
 import DirectionsCarFilledRoundedIcon from "@mui/icons-material/DirectionsCarFilledRounded";
+import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
+import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
@@ -147,6 +150,32 @@ export function AppShell() {
           description: "Fleet readiness, lifecycle control, and compliance",
           to: "/company/vehicles",
           icon: <DirectionsCarFilledRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Pricing Rules",
+          description: "Rate policies, bill-to models, and service pricing",
+          to: "/company/pricing-rules",
+          icon: <AttachMoneyRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Invoice Management",
+          description: "Drafts, issuance, balances, and billing workflows",
+          to: "/company/invoices",
+          icon: <ReceiptLongRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Payment Management",
+          description:
+            "Manual payment recording, application, and receivable collection traceability",
+          to: "/company/payments",
+          icon: <PaymentsRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Receivables",
+          description:
+            "Aging exposure, overdue balances, and follow-up posture",
+          to: "/company/receivables",
+          icon: <AttachMoneyRoundedIcon fontSize="small" />,
         },
         {
           label: "Role Catalog",

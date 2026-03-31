@@ -8,6 +8,10 @@ import com.transportplatform.tms.features.audit.application.AuditLogService;
 import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
+import com.transportplatform.tms.features.billing.api.response.ReceivablesSummaryResponse;
+import com.transportplatform.tms.features.billing.application.InvoiceService;
+import com.transportplatform.tms.features.billing.application.ReceivablesService;
+import com.transportplatform.tms.features.billing.domain.InvoiceAgingBucket;
 import com.transportplatform.tms.features.driver.application.DriverComplianceSummaryService;
 import com.transportplatform.tms.features.driver.domain.DriverRepository;
 import com.transportplatform.tms.features.driver.domain.DriverStatus;
@@ -53,6 +57,8 @@ public class CompanyDashboardService {
         private final RideRepository rideRepository;
         private final RouteRepository routeRepository;
         private final RecurringRideScheduleRepository recurringRideScheduleRepository;
+        private final InvoiceService invoiceService;
+        private final ReceivablesService receivablesService;
 
         public CompanyDashboardService(AppUserRepository appUserRepository,
                         CurrentAuthenticatedUserService currentAuthenticatedUserService,
@@ -67,7 +73,9 @@ public class CompanyDashboardService {
                         VehicleComplianceSummaryService vehicleComplianceSummaryService,
                         RideRepository rideRepository,
                         RouteRepository routeRepository,
-                        RecurringRideScheduleRepository recurringRideScheduleRepository) {
+                        RecurringRideScheduleRepository recurringRideScheduleRepository,
+                        InvoiceService invoiceService,
+                        ReceivablesService receivablesService) {
                 this.appUserRepository = appUserRepository;
                 this.currentAuthenticatedUserService = currentAuthenticatedUserService;
                 this.auditLogService = auditLogService;
@@ -82,6 +90,8 @@ public class CompanyDashboardService {
                 this.rideRepository = rideRepository;
                 this.routeRepository = routeRepository;
                 this.recurringRideScheduleRepository = recurringRideScheduleRepository;
+                this.invoiceService = invoiceService;
+                this.receivablesService = receivablesService;
         }
 
         @Transactional(readOnly = true)
@@ -108,6 +118,7 @@ public class CompanyDashboardService {
                                 tenantId,
                                 EnumSet.of(RideStatus.DRIVER_EN_ROUTE, RideStatus.ARRIVED, RideStatus.PICKED_UP,
                                                 RideStatus.DROPPED_OFF));
+                ReceivablesSummaryResponse receivablesSummary = receivablesService.getReceivablesSummary(tenantId);
                 long rideExceptions = rideRepository.countByTenantIdAndStatusIn(
                                 tenantId,
                                 EnumSet.of(RideStatus.RIDER_NO_SHOW, RideStatus.MISSED, RideStatus.FAILED));
@@ -176,6 +187,31 @@ public class CompanyDashboardService {
                                 recurringRideScheduleRepository.countByTenantId(tenantId),
                                 recurringRideScheduleRepository.countByTenantIdAndStatus(tenantId,
                                                 RideRecurrenceStatus.ACTIVE),
+                                invoiceService.countTotalInvoices(tenantId),
+                                invoiceService.countDraftInvoices(tenantId),
+                                invoiceService.countIssuedInvoices(tenantId),
+                                invoiceService.countOverdueInvoices(tenantId),
+                                invoiceService.countPaidInvoices(tenantId),
+                                receivablesSummary.totalPaymentsRecorded(),
+                                receivablesSummary.partiallyPaidInvoiceCount(),
+                                invoiceService.calculateTotalBilledAmount(tenantId),
+                                receivablesSummary.totalCollectedAmount(),
+                                invoiceService.calculateOutstandingBalance(tenantId),
+                                receivablesSummary.overdueAmount(),
+                                findBucketAmount(receivablesSummary, InvoiceAgingBucket.CURRENT),
+                                findBucketAmount(receivablesSummary, InvoiceAgingBucket.DAYS_1_TO_30),
+                                findBucketAmount(receivablesSummary, InvoiceAgingBucket.DAYS_31_TO_60),
+                                findBucketAmount(receivablesSummary, InvoiceAgingBucket.DAYS_61_TO_90),
+                                findBucketAmount(receivablesSummary, InvoiceAgingBucket.DAYS_90_PLUS),
                                 auditLogService.getRecentCompanyActivity(8));
+        }
+
+        private java.math.BigDecimal findBucketAmount(ReceivablesSummaryResponse receivablesSummary,
+                        InvoiceAgingBucket bucket) {
+                return receivablesSummary.agingBuckets().stream()
+                                .filter(item -> item.bucket() == bucket)
+                                .map(item -> item.amount())
+                                .findFirst()
+                                .orElse(java.math.BigDecimal.ZERO);
         }
 }

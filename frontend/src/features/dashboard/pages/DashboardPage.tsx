@@ -3,6 +3,7 @@ import { Alert, Box, Button, Skeleton, Stack, Typography } from "@mui/material";
 import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
 import AccessibleRoundedIcon from "@mui/icons-material/AccessibleRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
+import AttachMoneyRoundedIcon from "@mui/icons-material/AttachMoneyRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import ContactPhoneRoundedIcon from "@mui/icons-material/ContactPhoneRounded";
@@ -14,9 +15,11 @@ import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import PersonAddAltRoundedIcon from "@mui/icons-material/PersonAddAltRounded";
 import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
+import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import RouteRoundedIcon from "@mui/icons-material/RouteRounded";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
 import ShieldRoundedIcon from "@mui/icons-material/ShieldRounded";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { Link as RouterLink } from "react-router-dom";
 import { isPlatformAdmin } from "../../auth/access";
 import { useAuth } from "../../auth/context/AuthContext";
@@ -287,7 +290,92 @@ export function DashboardPage() {
       caption:
         "Recurring schedules currently eligible for future ride generation.",
     },
+    {
+      key: "totalInvoices",
+      label: "Total Invoices",
+      icon: <ReceiptLongRoundedIcon color="primary" />,
+      caption:
+        "Draft, issued, paid, and void billing documents managed by your tenant.",
+    },
+    {
+      key: "draftInvoices",
+      label: "Draft Invoices",
+      icon: <AssignmentTurnedInRoundedIcon color="primary" />,
+      caption: "Invoices still being prepared before formal issuance.",
+    },
+    {
+      key: "issuedInvoices",
+      label: "Issued Invoices",
+      icon: <ReceiptLongRoundedIcon color="primary" />,
+      caption: "Billing documents currently recognized as active receivables.",
+    },
+    {
+      key: "overdueInvoices",
+      label: "Overdue Invoices",
+      icon: <CloseRoundedIcon color="primary" />,
+      caption: "Invoices that remain unpaid past the due date threshold.",
+    },
+    {
+      key: "paidInvoices",
+      label: "Paid Invoices",
+      icon: <CheckCircleRoundedIcon color="primary" />,
+      caption: "Invoices already settled and closed for balance tracking.",
+    },
+    {
+      key: "totalPaymentsRecorded",
+      label: "Payments Recorded",
+      icon: <AttachMoneyRoundedIcon color="primary" />,
+      caption:
+        "Manual payments entered and retained in the receivables workflow.",
+    },
+    {
+      key: "partiallyPaidInvoices",
+      label: "Partially Paid Invoices",
+      icon: <WarningAmberRoundedIcon color="primary" />,
+      caption: "Invoices that have collected cash but still require follow-up.",
+    },
+    {
+      key: "totalCollectedAmount",
+      label: "Collected Amount",
+      icon: <AttachMoneyRoundedIcon color="primary" />,
+      caption: "Total cash collected across non-voided payments.",
+    },
+    {
+      key: "outstandingBalance",
+      label: "Outstanding Balance",
+      icon: <AttachMoneyRoundedIcon color="primary" />,
+      caption: "Current unpaid balance across active invoices for the tenant.",
+    },
+    {
+      key: "overdueAmount",
+      label: "Overdue Amount",
+      icon: <WarningAmberRoundedIcon color="primary" />,
+      caption:
+        "Receivable dollars already past due and requiring active collections attention.",
+    },
   ];
+
+  function formatSummaryValue(card: SummaryCard, value: unknown) {
+    if (
+      card.key === "outstandingBalance" ||
+      card.key === "totalBilledAmount" ||
+      card.key === "totalCollectedAmount" ||
+      card.key === "overdueAmount" ||
+      card.key === "currentReceivablesAmount" ||
+      card.key === "aging1To30Amount" ||
+      card.key === "aging31To60Amount" ||
+      card.key === "aging61To90Amount" ||
+      card.key === "aging90PlusAmount"
+    ) {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 2,
+      }).format(Number(value ?? 0));
+    }
+
+    return String(value ?? 0);
+  }
 
   useEffect(() => {
     let active = true;
@@ -339,12 +427,12 @@ export function DashboardPage() {
           <Typography variant="h3">
             {platformAdmin
               ? "Tenant onboarding, identity governance, and company intake are visible in one control surface."
-              : "Your tenant’s access posture is centralized in one company-admin workspace."}
+              : "Operations, fleet, dispatch, and billing controls are centralized in one company-admin workspace."}
           </Typography>
           <Typography variant="body1" color="text.secondary">
             {platformAdmin
               ? "Track application demand, tenant activation, and user lifecycle health across the platform."
-              : "Track user activity, rider readiness, guardian coverage, driver onboarding, vehicle readiness, and administrative changes for your tenant."}
+              : "Track user activity, rider readiness, guardian coverage, driver onboarding, vehicle readiness, billing posture, and administrative changes for your tenant."}
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             {platformAdmin ? (
@@ -393,6 +481,34 @@ export function DashboardPage() {
                   variant="outlined"
                 >
                   Manage Rides
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/pricing-rules"
+                  variant="outlined"
+                >
+                  Manage Pricing Rules
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/invoices"
+                  variant="outlined"
+                >
+                  Manage Invoices
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/payments"
+                  variant="outlined"
+                >
+                  Manage Payments
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/receivables"
+                  variant="outlined"
+                >
+                  Review Receivables
                 </Button>
                 <Button
                   component={RouterLink}
@@ -477,7 +593,10 @@ export function DashboardPage() {
             caption={card.caption}
             value={
               summary ? (
-                String(summary[card.key as keyof typeof summary] ?? 0)
+                formatSummaryValue(
+                  card,
+                  summary[card.key as keyof typeof summary],
+                )
               ) : (
                 <Skeleton width={56} />
               )
@@ -596,6 +715,22 @@ export function DashboardPage() {
                     startIcon={<BadgeRoundedIcon />}
                   >
                     Review Drivers
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/company/pricing-rules"
+                    variant="outlined"
+                    startIcon={<AttachMoneyRoundedIcon />}
+                  >
+                    Create Pricing Rule
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/company/invoices"
+                    variant="outlined"
+                    startIcon={<ReceiptLongRoundedIcon />}
+                  >
+                    Manage Invoices
                   </Button>
                   <Button
                     component={RouterLink}

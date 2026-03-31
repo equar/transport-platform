@@ -11,6 +11,13 @@ import { useAuth } from "../../features/auth/context/AuthContext";
 import { LoginPage } from "../../features/auth/pages/LoginPage";
 import { ProtectedRoute } from "../../features/auth/routes/ProtectedRoute";
 import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
+import { InvoiceDetailsPage } from "../../features/billing/pages/InvoiceDetailsPage";
+import { InvoiceManagementPage } from "../../features/billing/pages/InvoiceManagementPage";
+import { PaymentDetailsPage } from "../../features/billing/pages/PaymentDetailsPage";
+import { PaymentManagementPage } from "../../features/billing/pages/PaymentManagementPage";
+import { PricingRuleDetailsPage } from "../../features/billing/pages/PricingRuleDetailsPage";
+import { PricingRuleManagementPage } from "../../features/billing/pages/PricingRuleManagementPage";
+import { ReceivablesManagementPage } from "../../features/billing/pages/ReceivablesManagementPage";
 import { DispatchBoardPage } from "../../features/dispatch/pages/DispatchBoardPage";
 import { DriverDetailsPage } from "../../features/drivers/pages/DriverDetailsPage";
 import { DriverManagementPage } from "../../features/drivers/pages/DriverManagementPage";
@@ -173,6 +180,34 @@ const router = createBrowserRouter([
       {
         path: "vehicles/:vehicleId",
         element: <VehicleDetailsPage />,
+      },
+      {
+        path: "pricing-rules",
+        element: <PricingRuleManagementPage />,
+      },
+      {
+        path: "pricing-rules/:pricingRuleId",
+        element: <PricingRuleDetailsPage />,
+      },
+      {
+        path: "invoices",
+        element: <InvoiceManagementPage />,
+      },
+      {
+        path: "invoices/:invoiceId",
+        element: <InvoiceDetailsPage />,
+      },
+      {
+        path: "payments",
+        element: <PaymentManagementPage />,
+      },
+      {
+        path: "payments/:paymentId",
+        element: <PaymentDetailsPage />,
+      },
+      {
+        path: "receivables",
+        element: <ReceivablesManagementPage />,
       },
       {
         path: "roles",

@@ -23,6 +23,9 @@ function resolveColor(
       "COMPLIANT",
       "CLEAR",
       "COMPLETED",
+      "PAID",
+      "ISSUED",
+      "APPLIED",
     ].includes(normalized)
   ) {
     return "success";
@@ -45,6 +48,14 @@ function resolveColor(
       "PHONE",
       "SMS",
       "EMAIL",
+      "REMINDER_NOTE",
+      "CHECK",
+      "BANK_TRANSFER",
+      "ACH",
+      "CARD",
+      "ZELLE",
+      "CASH_APP",
+      "VENMO",
       "PARENT",
       "SPOUSE",
       "CHILD",
@@ -54,7 +65,21 @@ function resolveColor(
       "AUTHORIZED_FOR_PICKUP",
       "BILLING_CONTACT",
       "WHEELCHAIR",
+      "FLAT_RATE",
+      "PER_TRIP",
+      "PER_WEEK",
+      "PER_MONTH",
+      "PER_ROUTE",
+      "PER_RIDER",
+      "CUSTOM",
+      "RIDER",
+      "GUARDIAN",
+      "ORGANIZATION",
+      "CONTRACT",
+      "MANUAL",
+      "RECURRING_SERVICE",
       "OTHER",
+      "CURRENT",
     ].includes(normalized)
   ) {
     return "secondary";
@@ -77,6 +102,15 @@ function resolveColor(
       "CONTRACTOR",
       "MAINTENANCE",
       "ESCORT_REQUIRED",
+      "DRAFT",
+      "PARTIALLY_PAID",
+      "OVERDUE",
+      "RECORDED",
+      "PARTIALLY_APPLIED",
+      "DAYS_1_TO_30",
+      "DAYS_31_TO_60",
+      "DAYS_61_TO_90",
+      "DAYS_90_PLUS",
     ].includes(normalized)
   ) {
     return "warning";
@@ -93,6 +127,7 @@ function resolveColor(
       "NON_COMPLIANT",
       "ARCHIVED",
       "OUT_OF_SERVICE",
+      "VOID",
     ].includes(normalized)
   ) {
     return "error";

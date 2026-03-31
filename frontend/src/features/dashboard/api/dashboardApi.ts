@@ -64,6 +64,22 @@ export interface CompanyDashboardSummary {
   routesInProgress: number;
   totalRecurringRideSchedules: number;
   activeRecurringRideSchedules: number;
+  totalInvoices: number;
+  draftInvoices: number;
+  issuedInvoices: number;
+  overdueInvoices: number;
+  paidInvoices: number;
+  totalPaymentsRecorded: number;
+  partiallyPaidInvoices: number;
+  totalBilledAmount: number;
+  totalCollectedAmount: number;
+  outstandingBalance: number;
+  overdueAmount: number;
+  currentReceivablesAmount: number;
+  aging1To30Amount: number;
+  aging31To60Amount: number;
+  aging61To90Amount: number;
+  aging90PlusAmount: number;
   recentActivity: DashboardActivity[];
 }
 

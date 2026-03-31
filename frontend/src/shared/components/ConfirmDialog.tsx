@@ -13,6 +13,7 @@ interface ConfirmDialogProps {
   description: string;
   confirmLabel: string;
   loading?: boolean;
+  children?: React.ReactNode;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -23,6 +24,7 @@ export function ConfirmDialog({
   description,
   confirmLabel,
   loading = false,
+  children,
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
@@ -36,6 +38,7 @@ export function ConfirmDialog({
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <Typography color="text.secondary">{description}</Typography>
+        {children ? <>{children}</> : null}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 3 }}>
         <Button onClick={onCancel} color="inherit" disabled={loading}>
