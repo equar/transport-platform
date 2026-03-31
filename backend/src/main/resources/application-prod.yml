@@ -1,0 +1,11 @@
+server:
+  forward-headers-strategy: framework
+
+spring:
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: WARN
+    "[com.transportplatform.tms]": INFO

@@ -1,0 +1,35 @@
+package com.transportplatform.tms.features.auth.application;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "app.bootstrap.platform-admin")
+public class PlatformAdminBootstrapProperties {
+
+    private boolean enabled;
+    private String email = "platform-admin@transport-platform.local";
+    private String password = "ChangeMe123!";
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+}

@@ -1,0 +1,14 @@
+package com.transportplatform.tms.common.exception;
+
+public enum ErrorCode {
+    BAD_REQUEST,
+    VALIDATION_FAILED,
+    UNAUTHORIZED,
+    FORBIDDEN,
+    INVALID_CREDENTIALS,
+    RESOURCE_NOT_FOUND,
+    RESOURCE_CONFLICT,
+    INVALID_STATUS_TRANSITION,
+    FEATURE_NOT_IMPLEMENTED,
+    INTERNAL_SERVER_ERROR
+}

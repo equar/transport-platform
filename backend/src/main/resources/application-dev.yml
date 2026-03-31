@@ -1,0 +1,12 @@
+spring:
+  jpa:
+    show-sql: false
+
+app:
+  bootstrap:
+    platform-admin:
+      enabled: true
+
+logging:
+  level:
+    "[com.transportplatform.tms]": DEBUG

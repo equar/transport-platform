@@ -1,0 +1,23 @@
+export interface AuthIdentity {
+  id: number;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  tenantId: string | null;
+  status: string;
+  roles: string[];
+}
+
+export interface AuthSession {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresInSeconds: number;
+  identity: AuthIdentity;
+}
+
+export interface LoginPayload {
+  tenantId?: string | null;
+  email: string;
+  password: string;
+}
