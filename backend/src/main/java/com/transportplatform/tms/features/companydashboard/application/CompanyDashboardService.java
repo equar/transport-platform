@@ -11,6 +11,8 @@ import com.transportplatform.tms.features.auth.domain.UserStatus;
 import com.transportplatform.tms.features.driver.application.DriverComplianceSummaryService;
 import com.transportplatform.tms.features.driver.domain.DriverRepository;
 import com.transportplatform.tms.features.driver.domain.DriverStatus;
+import com.transportplatform.tms.features.rider.domain.RiderRepository;
+import com.transportplatform.tms.features.rider.domain.RiderStatus;
 import com.transportplatform.tms.features.vehicle.application.VehicleComplianceSummaryService;
 import com.transportplatform.tms.features.vehicle.domain.Vehicle;
 import com.transportplatform.tms.features.vehicle.domain.VehicleRepository;
@@ -26,6 +28,7 @@ public class CompanyDashboardService {
     private final AppUserRepository appUserRepository;
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final AuditLogService auditLogService;
+    private final RiderRepository riderRepository;
     private final DriverRepository driverRepository;
     private final DriverComplianceSummaryService driverComplianceSummaryService;
     private final VehicleRepository vehicleRepository;
@@ -34,6 +37,7 @@ public class CompanyDashboardService {
     public CompanyDashboardService(AppUserRepository appUserRepository,
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
             AuditLogService auditLogService,
+            RiderRepository riderRepository,
             DriverRepository driverRepository,
             DriverComplianceSummaryService driverComplianceSummaryService,
             VehicleRepository vehicleRepository,
@@ -41,6 +45,7 @@ public class CompanyDashboardService {
         this.appUserRepository = appUserRepository;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.auditLogService = auditLogService;
+        this.riderRepository = riderRepository;
         this.driverRepository = driverRepository;
         this.driverComplianceSummaryService = driverComplianceSummaryService;
         this.vehicleRepository = vehicleRepository;
@@ -68,6 +73,12 @@ public class CompanyDashboardService {
                 appUserRepository.countByTenantIdAndStatus(tenantId, UserStatus.ACTIVE),
                 appUserRepository.countByTenantIdAndStatus(tenantId, UserStatus.SUSPENDED),
                 appUserRepository.countByTenantIdAndStatus(tenantId, UserStatus.INVITED),
+                riderRepository.countByTenantId(tenantId),
+                riderRepository.countByTenantIdAndStatus(tenantId, RiderStatus.ACTIVE),
+                riderRepository.countByTenantIdAndStatus(tenantId, RiderStatus.SUSPENDED),
+                riderRepository.countByTenantIdAndStatus(tenantId, RiderStatus.WAITLISTED),
+                riderRepository.countByTenantIdAndWheelchairRequiredTrue(tenantId),
+                riderRepository.countByTenantIdAndEscortRequiredTrue(tenantId),
                 drivers.size(),
                 driverRepository.countByTenantIdAndStatus(tenantId, DriverStatus.ACTIVE),
                 driverRepository.countByTenantIdAndStatus(tenantId, DriverStatus.SUSPENDED),

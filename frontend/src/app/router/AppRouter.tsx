@@ -13,6 +13,10 @@ import { ProtectedRoute } from "../../features/auth/routes/ProtectedRoute";
 import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
 import { DriverDetailsPage } from "../../features/drivers/pages/DriverDetailsPage";
 import { DriverManagementPage } from "../../features/drivers/pages/DriverManagementPage";
+import { GuardianDetailsPage } from "../../features/guardians/pages/GuardianDetailsPage";
+import { GuardianManagementPage } from "../../features/guardians/pages/GuardianManagementPage";
+import { RiderDetailsPage } from "../../features/riders/pages/RiderDetailsPage";
+import { RiderManagementPage } from "../../features/riders/pages/RiderManagementPage";
 import { VehicleDetailsPage } from "../../features/vehicles/pages/VehicleDetailsPage";
 import { VehicleManagementPage } from "../../features/vehicles/pages/VehicleManagementPage";
 import { TenantManagementPage } from "../../features/tenants/pages/TenantManagementPage";
@@ -102,6 +106,22 @@ const router = createBrowserRouter([
       {
         path: "users",
         element: <UserManagementPage />,
+      },
+      {
+        path: "riders",
+        element: <RiderManagementPage />,
+      },
+      {
+        path: "riders/:riderId",
+        element: <RiderDetailsPage />,
+      },
+      {
+        path: "guardians",
+        element: <GuardianManagementPage />,
+      },
+      {
+        path: "guardians/:guardianId",
+        element: <GuardianDetailsPage />,
       },
       {
         path: "drivers",

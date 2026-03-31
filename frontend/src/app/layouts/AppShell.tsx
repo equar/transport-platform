@@ -19,6 +19,7 @@ import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
+import ContactPhoneRoundedIcon from "@mui/icons-material/ContactPhoneRounded";
 import DriveEtaRoundedIcon from "@mui/icons-material/DriveEtaRounded";
 import DirectionsCarFilledRoundedIcon from "@mui/icons-material/DirectionsCarFilledRounded";
 import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
@@ -26,6 +27,7 @@ import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
+import AccessibleRoundedIcon from "@mui/icons-material/AccessibleRounded";
 import { Link as RouterLink, Outlet, useLocation } from "react-router-dom";
 import { getRoleLabel, isPlatformAdmin } from "../../features/auth/access";
 import { useAuth } from "../../features/auth/context/AuthContext";
@@ -91,6 +93,20 @@ export function AppShell() {
           icon: <BadgeRoundedIcon fontSize="small" />,
         },
         {
+          label: "Rider Management",
+          description:
+            "Rider onboarding, support needs, and guardian visibility",
+          to: "/company/riders",
+          icon: <AccessibleRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Guardian Management",
+          description:
+            "Family contacts, pickup authorization, and billing visibility",
+          to: "/company/guardians",
+          icon: <ContactPhoneRoundedIcon fontSize="small" />,
+        },
+        {
           label: "Driver Management",
           description: "Driver onboarding, readiness, and document control",
           to: "/company/drivers",
@@ -120,7 +136,7 @@ export function AppShell() {
     : "Company Access Control";
   const shellDescription = platformAdmin
     ? "Platform-admin workspace for tenant onboarding, identity governance, and company intake review."
-    : "Company-admin workspace for user lifecycle management and tenant role governance.";
+    : "Company-admin workspace for rider, fleet, user, and tenant governance workflows.";
   const displayName = [session?.identity.firstName, session?.identity.lastName]
     .filter(Boolean)
     .join(" ");

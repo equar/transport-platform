@@ -32,6 +32,12 @@ export interface CompanyDashboardSummary {
   activeUsers: number;
   suspendedUsers: number;
   pendingUsers: number;
+  totalRiders: number;
+  activeRiders: number;
+  suspendedRiders: number;
+  waitlistedRiders: number;
+  ridersRequiringWheelchairSupport: number;
+  ridersRequiringEscort: number;
   totalDrivers: number;
   activeDrivers: number;
   suspendedDrivers: number;

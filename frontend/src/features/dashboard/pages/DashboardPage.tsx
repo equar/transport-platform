@@ -1,8 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Alert, Box, Button, Skeleton, Stack, Typography } from "@mui/material";
 import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
+import AccessibleRoundedIcon from "@mui/icons-material/AccessibleRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
+import ContactPhoneRoundedIcon from "@mui/icons-material/ContactPhoneRounded";
 import DirectionsCarFilledRoundedIcon from "@mui/icons-material/DirectionsCarFilledRounded";
 import BuildCircleRoundedIcon from "@mui/icons-material/BuildCircleRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
@@ -103,6 +105,37 @@ export function DashboardPage() {
       label: "Suspended Users",
       icon: <CloseRoundedIcon color="primary" />,
       caption: "Accounts blocked until reactivated.",
+    },
+    {
+      key: "totalRiders",
+      label: "Total Riders",
+      icon: <AccessibleRoundedIcon color="primary" />,
+      caption: "Rider records currently managed by your tenant.",
+    },
+    {
+      key: "activeRiders",
+      label: "Active Riders",
+      icon: <CheckCircleRoundedIcon color="primary" />,
+      caption:
+        "Riders currently ready for future scheduling and dispatch workflows.",
+    },
+    {
+      key: "waitlistedRiders",
+      label: "Waitlisted Riders",
+      icon: <AssignmentTurnedInRoundedIcon color="primary" />,
+      caption: "Riders intentionally held in a waitlisted onboarding state.",
+    },
+    {
+      key: "ridersRequiringWheelchairSupport",
+      label: "Wheelchair Support Riders",
+      icon: <AccessibleRoundedIcon color="primary" />,
+      caption: "Riders flagged for wheelchair support readiness.",
+    },
+    {
+      key: "ridersRequiringEscort",
+      label: "Escort Support Riders",
+      icon: <ContactPhoneRoundedIcon color="primary" />,
+      caption: "Riders who require an escort for future operations.",
     },
     {
       key: "totalDrivers",
@@ -229,7 +262,7 @@ export function DashboardPage() {
           <Typography variant="body1" color="text.secondary">
             {platformAdmin
               ? "Track application demand, tenant activation, and user lifecycle health across the platform."
-              : "Track user activity, driver onboarding, vehicle readiness, document compliance, and administrative changes for your tenant."}
+              : "Track user activity, rider readiness, guardian coverage, driver onboarding, vehicle readiness, and administrative changes for your tenant."}
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             {platformAdmin ? (
@@ -264,6 +297,20 @@ export function DashboardPage() {
                   variant="contained"
                 >
                   Manage Users
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/riders"
+                  variant="outlined"
+                >
+                  Manage Riders
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/guardians"
+                  variant="text"
+                >
+                  Manage Guardians
                 </Button>
                 <Button
                   component={RouterLink}
@@ -359,7 +406,7 @@ export function DashboardPage() {
               <Typography color="text.secondary">
                 {platformAdmin
                   ? "Use the highest-signal work queues to keep onboarding, access, and compliance moving."
-                  : "Use the highest-signal work queues to keep tenant access and governance current."}
+                  : "Use the highest-signal work queues to keep rider, fleet, and tenant governance current."}
               </Typography>
             </Stack>
             <Stack spacing={1.5}>
@@ -394,8 +441,24 @@ export function DashboardPage() {
                 <>
                   <Button
                     component={RouterLink}
-                    to="/company/users"
+                    to="/company/riders"
                     variant="contained"
+                    startIcon={<AccessibleRoundedIcon />}
+                  >
+                    Create Rider
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/company/guardians"
+                    variant="outlined"
+                    startIcon={<ContactPhoneRoundedIcon />}
+                  >
+                    Manage Guardians
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/company/users"
+                    variant="outlined"
                     startIcon={<GroupsRoundedIcon />}
                   >
                     Review Tenant Users
@@ -406,7 +469,7 @@ export function DashboardPage() {
                     variant="outlined"
                     startIcon={<BadgeRoundedIcon />}
                   >
-                    Create Driver
+                    Review Drivers
                   </Button>
                   <Button
                     component={RouterLink}

@@ -32,6 +32,9 @@ const moduleOptions = [
   "USER",
   "ROLE",
   "COMPANY_APPLICATION",
+  "RIDER",
+  "GUARDIAN",
+  "RIDER_GUARDIAN",
   "DRIVER",
   "DRIVER_DOCUMENT",
   "VEHICLE",
@@ -44,6 +47,7 @@ const actionOptions = [
   "ACTIVATED",
   "SUSPENDED",
   "DEACTIVATED",
+  "WAITLISTED",
   "TERMINATED",
   "MAINTENANCE_MARKED",
   "OUT_OF_SERVICE_MARKED",
@@ -55,6 +59,8 @@ const actionOptions = [
   "APPROVED",
   "REJECTED",
   "VERIFIED",
+  "LINKED",
+  "UNLINKED",
   "ARCHIVED",
 ];
 
