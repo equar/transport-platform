@@ -11,6 +11,7 @@ import com.transportplatform.tms.features.auth.domain.AppUser;
 import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.features.user.api.request.UserUpsertRequest;
 import com.transportplatform.tms.features.user.api.response.UserResponse;
@@ -32,17 +33,20 @@ public class UserManagementService {
     private final PasswordEncoder passwordEncoder;
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final AuditLogService auditLogService;
+    private final NotificationEventService notificationEventService;
 
     public UserManagementService(AppUserRepository appUserRepository,
             TenantRepository tenantRepository,
             PasswordEncoder passwordEncoder,
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            NotificationEventService notificationEventService) {
         this.appUserRepository = appUserRepository;
         this.tenantRepository = tenantRepository;
         this.passwordEncoder = passwordEncoder;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.auditLogService = auditLogService;
+        this.notificationEventService = notificationEventService;
     }
 
     @Transactional(readOnly = true)
@@ -107,6 +111,7 @@ public class UserManagementService {
         applyUserValues(user, request, AdminScope.COMPANY, true);
         AppUser saved = appUserRepository.save(user);
         recordUserCreated(saved);
+        notificationEventService.publishCompanyUserCreated(saved);
         return toResponse(saved);
     }
 
@@ -180,6 +185,7 @@ public class UserManagementService {
 
     private UserResponse updateStatus(AppUser user, UserStatus status) {
         var oldSnapshot = snapshot(user);
+        UserStatus previousStatus = user.getStatus();
         user.setStatus(status);
         AppUser saved = appUserRepository.save(user);
         auditLogService.record(new AuditLogCommand(
@@ -192,6 +198,13 @@ public class UserManagementService {
                 "User " + saved.getEmail() + " status changed to " + saved.getStatus().name() + ".",
                 oldSnapshot,
                 snapshot(saved)));
+        if (saved.getTenantId() != null) {
+            if (previousStatus != UserStatus.ACTIVE && saved.getStatus() == UserStatus.ACTIVE) {
+                notificationEventService.publishCompanyUserActivated(saved);
+            } else if (saved.getStatus() == UserStatus.SUSPENDED) {
+                notificationEventService.publishCompanyUserSuspended(saved);
+            }
+        }
         return toResponse(saved);
     }
 

@@ -1,0 +1,13 @@
+package com.transportplatform.tms.features.incident.domain;
+
+public enum IncidentType {
+    RIDER_COMPLAINT,
+    DRIVER_COMPLAINT,
+    SAFETY_INCIDENT,
+    VEHICLE_INCIDENT,
+    NO_SHOW_ESCALATION,
+    SERVICE_QUALITY_COMPLAINT,
+    CONDUCT_ISSUE,
+    DOCUMENTATION_COMPLIANCE_ISSUE,
+    OTHER_OPERATIONAL_INCIDENT
+}

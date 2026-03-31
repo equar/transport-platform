@@ -1,0 +1,48 @@
+package com.transportplatform.tms.features.settings.api.response;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+
+public record CompanySettingsResponse(
+        String tenantId,
+        String companyName,
+        String legalName,
+        String businessType,
+        String supportEmail,
+        String supportPhone,
+        String addressLine1,
+        String addressLine2,
+        String city,
+        String state,
+        String zipCode,
+        String country,
+        String timezone,
+        String currency,
+        String dateFormat,
+        int defaultRideLeadTimeMinutes,
+        boolean allowManualRideCreation,
+        boolean allowRoundTripRides,
+        boolean dispatchStrictComplianceMode,
+        int defaultInvoiceDueDays,
+        String defaultNotificationPreferencesSummary,
+        boolean requireDriverLicense,
+        boolean requireBackgroundCheck,
+        boolean requireDrugTest,
+        boolean requireVehicleRegistration,
+        boolean requireVehicleInsurance,
+        boolean requireVehicleInspection,
+        int expiringSoonThresholdDays,
+        String invoicePrefix,
+        String paymentPrefix,
+        String pricingRulePrefix,
+        boolean taxEnabled,
+        BigDecimal defaultTaxRate,
+        boolean allowManualInvoiceOverrides,
+        String companyLogoUrl,
+        String primaryColor,
+        int profileCompletenessPercent,
+        String createdBy,
+        Instant createdAt,
+        String updatedBy,
+        Instant updatedAt) {
+}

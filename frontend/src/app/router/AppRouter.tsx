@@ -38,6 +38,12 @@ import { CompanyApplicationsPage } from "../../features/company-applications/pag
 import { PublicCompanyApplicationPage } from "../../features/company-applications/pages/PublicCompanyApplicationPage";
 import { RoleManagementPage } from "../../features/roles/pages/RoleManagementPage";
 import { UserManagementPage } from "../../features/users/pages/UserManagementPage";
+import { NotificationCenterPage } from "../../features/notifications/pages/NotificationCenterPage";
+import { NotificationTemplateManagementPage } from "../../features/notifications/pages/NotificationTemplateManagementPage";
+import { ComplianceDashboardPage } from "../../features/compliance/pages/ComplianceDashboardPage";
+import { IncidentManagementPage } from "../../features/incidents/pages/IncidentManagementPage";
+import { CompanyReportsPage } from "../../features/reports/pages/CompanyReportsPage";
+import { CompanySettingsPage } from "../../features/settings/pages/CompanySettingsPage";
 
 function HomeRedirect() {
   const { isAuthenticated, isLoading, getDefaultRoute } = useAuth();
@@ -120,6 +126,30 @@ const router = createBrowserRouter([
       {
         path: "users",
         element: <UserManagementPage />,
+      },
+      {
+        path: "notifications",
+        element: <NotificationCenterPage />,
+      },
+      {
+        path: "notification-templates",
+        element: <NotificationTemplateManagementPage />,
+      },
+      {
+        path: "compliance",
+        element: <ComplianceDashboardPage />,
+      },
+      {
+        path: "incidents",
+        element: <IncidentManagementPage />,
+      },
+      {
+        path: "reports",
+        element: <CompanyReportsPage />,
+      },
+      {
+        path: "settings",
+        element: <CompanySettingsPage />,
       },
       {
         path: "riders",

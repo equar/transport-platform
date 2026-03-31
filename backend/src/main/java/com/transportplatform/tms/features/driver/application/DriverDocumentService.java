@@ -15,6 +15,7 @@ import com.transportplatform.tms.features.driver.domain.DriverDocumentRepository
 import com.transportplatform.tms.features.driver.domain.DriverDocumentStatus;
 import com.transportplatform.tms.features.driver.domain.DriverDocumentType;
 import com.transportplatform.tms.features.driver.domain.DriverDocumentVerificationStatus;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -34,6 +35,7 @@ public class DriverDocumentService {
     private final DriverDocumentMapper driverDocumentMapper;
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final AuditLogService auditLogService;
+    private final NotificationEventService notificationEventService;
     private final Clock clock;
 
     public DriverDocumentService(DriverDocumentRepository driverDocumentRepository,
@@ -41,12 +43,14 @@ public class DriverDocumentService {
             DriverDocumentMapper driverDocumentMapper,
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
             AuditLogService auditLogService,
+            NotificationEventService notificationEventService,
             Clock clock) {
         this.driverDocumentRepository = driverDocumentRepository;
         this.driverAccessService = driverAccessService;
         this.driverDocumentMapper = driverDocumentMapper;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.auditLogService = auditLogService;
+        this.notificationEventService = notificationEventService;
         this.clock = clock;
     }
 
@@ -114,6 +118,7 @@ public class DriverDocumentService {
         DriverDocument saved = driverDocumentRepository.save(document);
         recordAudit(saved, "VERIFIED", "Driver document " + saved.getDocumentType().name() + " was verified.",
                 oldSnapshot, snapshot(saved));
+        notificationEventService.publishDriverDocumentVerified(saved);
         return driverDocumentMapper.toResponse(saved);
     }
 
@@ -133,6 +138,7 @@ public class DriverDocumentService {
         DriverDocument saved = driverDocumentRepository.save(document);
         recordAudit(saved, "REJECTED", "Driver document " + saved.getDocumentType().name() + " was rejected.",
                 oldSnapshot, snapshot(saved));
+        notificationEventService.publishDriverDocumentRejected(saved);
         return driverDocumentMapper.toResponse(saved);
     }
 

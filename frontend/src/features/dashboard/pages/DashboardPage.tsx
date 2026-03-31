@@ -16,9 +16,11 @@ import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import PersonAddAltRoundedIcon from "@mui/icons-material/PersonAddAltRounded";
 import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
+import ReportProblemRoundedIcon from "@mui/icons-material/ReportProblemRounded";
 import RouteRoundedIcon from "@mui/icons-material/RouteRounded";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
 import ShieldRoundedIcon from "@mui/icons-material/ShieldRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { Link as RouterLink } from "react-router-dom";
 import { isPlatformAdmin } from "../../auth/access";
@@ -111,6 +113,69 @@ export function DashboardPage() {
       label: "Suspended Users",
       icon: <CloseRoundedIcon color="primary" />,
       caption: "Accounts blocked until reactivated.",
+    },
+    {
+      key: "unreadNotifications",
+      label: "Unread Notifications",
+      icon: <WarningAmberRoundedIcon color="primary" />,
+      caption:
+        "Current-user alerts still waiting for review in the notification center.",
+    },
+    {
+      key: "openComplianceIssues",
+      label: "Open Compliance Issues",
+      icon: <ShieldRoundedIcon color="primary" />,
+      caption:
+        "Active driver and vehicle issues that still require an operator action or updated documents.",
+    },
+    {
+      key: "criticalComplianceIssues",
+      label: "Critical Compliance Issues",
+      icon: <WarningAmberRoundedIcon color="primary" />,
+      caption:
+        "Highest-severity issues that threaten assignment readiness across the tenant fleet.",
+    },
+    {
+      key: "documentsExpiringSoon",
+      label: "Documents Expiring Soon",
+      icon: <DescriptionRoundedIcon color="primary" />,
+      caption:
+        "Documents approaching expiry inside the configured early-warning window.",
+    },
+    {
+      key: "openIncidents",
+      label: "Open Incidents",
+      icon: <ReportProblemRoundedIcon color="primary" />,
+      caption:
+        "Operational complaints, safety events, and escalations still moving through the incident workflow.",
+    },
+    {
+      key: "criticalIncidents",
+      label: "Critical Incidents",
+      icon: <WarningAmberRoundedIcon color="primary" />,
+      caption:
+        "Critical-severity incident volume requiring immediate tenant follow-up.",
+    },
+    {
+      key: "resolvedIncidents",
+      label: "Resolved Incidents",
+      icon: <CheckCircleRoundedIcon color="primary" />,
+      caption:
+        "Incidents with documented resolution that may still need close-out review.",
+    },
+    {
+      key: "availableReportsCount",
+      label: "Available Reports",
+      icon: <ReceiptLongRoundedIcon color="primary" />,
+      caption:
+        "Predefined operational and financial reports available inside the company workspace.",
+    },
+    {
+      key: "settingsProfileCompletenessPercent",
+      label: "Settings Completeness",
+      icon: <SettingsRoundedIcon color="primary" />,
+      caption:
+        "Profile and operational configuration completeness for the current tenant.",
     },
     {
       key: "totalRiders",
@@ -512,6 +577,27 @@ export function DashboardPage() {
                 </Button>
                 <Button
                   component={RouterLink}
+                  to="/company/incidents"
+                  variant="outlined"
+                >
+                  Manage Incidents
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/reports"
+                  variant="outlined"
+                >
+                  Run Reports
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/settings"
+                  variant="text"
+                >
+                  Company Settings
+                </Button>
+                <Button
+                  component={RouterLink}
                   to="/company/dispatch"
                   variant="contained"
                 >
@@ -747,6 +833,30 @@ export function DashboardPage() {
                     startIcon={<DescriptionRoundedIcon />}
                   >
                     Manage Vehicle Documents
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/company/incidents"
+                    variant="outlined"
+                    startIcon={<ReportProblemRoundedIcon />}
+                  >
+                    Review Incidents
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/company/reports"
+                    variant="outlined"
+                    startIcon={<ReceiptLongRoundedIcon />}
+                  >
+                    Run Reports
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/company/settings"
+                    variant="outlined"
+                    startIcon={<SettingsRoundedIcon />}
+                  >
+                    Review Settings
                   </Button>
                   <Button
                     component={RouterLink}

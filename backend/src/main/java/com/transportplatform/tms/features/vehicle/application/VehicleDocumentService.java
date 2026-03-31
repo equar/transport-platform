@@ -15,6 +15,7 @@ import com.transportplatform.tms.features.vehicle.domain.VehicleDocumentReposito
 import com.transportplatform.tms.features.vehicle.domain.VehicleDocumentStatus;
 import com.transportplatform.tms.features.vehicle.domain.VehicleDocumentType;
 import com.transportplatform.tms.features.vehicle.domain.VehicleDocumentVerificationStatus;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -34,6 +35,7 @@ public class VehicleDocumentService {
     private final VehicleDocumentMapper vehicleDocumentMapper;
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final AuditLogService auditLogService;
+    private final NotificationEventService notificationEventService;
     private final Clock clock;
 
     public VehicleDocumentService(VehicleDocumentRepository vehicleDocumentRepository,
@@ -41,12 +43,14 @@ public class VehicleDocumentService {
             VehicleDocumentMapper vehicleDocumentMapper,
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
             AuditLogService auditLogService,
+            NotificationEventService notificationEventService,
             Clock clock) {
         this.vehicleDocumentRepository = vehicleDocumentRepository;
         this.vehicleAccessService = vehicleAccessService;
         this.vehicleDocumentMapper = vehicleDocumentMapper;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.auditLogService = auditLogService;
+        this.notificationEventService = notificationEventService;
         this.clock = clock;
     }
 
@@ -114,6 +118,7 @@ public class VehicleDocumentService {
         VehicleDocument saved = vehicleDocumentRepository.save(document);
         recordAudit(saved, "VERIFIED", "Vehicle document " + saved.getDocumentType().name() + " was verified.",
                 oldSnapshot, snapshot(saved));
+        notificationEventService.publishVehicleDocumentVerified(saved);
         return vehicleDocumentMapper.toResponse(saved);
     }
 
@@ -133,6 +138,7 @@ public class VehicleDocumentService {
         VehicleDocument saved = vehicleDocumentRepository.save(document);
         recordAudit(saved, "REJECTED", "Vehicle document " + saved.getDocumentType().name() + " was rejected.",
                 oldSnapshot, snapshot(saved));
+        notificationEventService.publishVehicleDocumentRejected(saved);
         return vehicleDocumentMapper.toResponse(saved);
     }
 

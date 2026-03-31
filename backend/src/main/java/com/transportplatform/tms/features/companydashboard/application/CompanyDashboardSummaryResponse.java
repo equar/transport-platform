@@ -65,5 +65,14 @@ public record CompanyDashboardSummaryResponse(
         BigDecimal aging31To60Amount,
         BigDecimal aging61To90Amount,
         BigDecimal aging90PlusAmount,
+        long unreadNotifications,
+        long openComplianceIssues,
+        long criticalComplianceIssues,
+        long documentsExpiringSoon,
+        long openIncidents,
+        long criticalIncidents,
+        long resolvedIncidents,
+        long availableReportsCount,
+        int settingsProfileCompletenessPercent,
         List<DashboardActivityResponse> recentActivity) {
 }

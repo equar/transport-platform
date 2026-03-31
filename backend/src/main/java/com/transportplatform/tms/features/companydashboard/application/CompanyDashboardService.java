@@ -12,13 +12,17 @@ import com.transportplatform.tms.features.billing.api.response.ReceivablesSummar
 import com.transportplatform.tms.features.billing.application.InvoiceService;
 import com.transportplatform.tms.features.billing.application.ReceivablesService;
 import com.transportplatform.tms.features.billing.domain.InvoiceAgingBucket;
+import com.transportplatform.tms.features.compliance.api.response.ComplianceDashboardSummaryResponse;
+import com.transportplatform.tms.features.compliance.application.ComplianceService;
 import com.transportplatform.tms.features.driver.application.DriverComplianceSummaryService;
 import com.transportplatform.tms.features.driver.domain.DriverRepository;
 import com.transportplatform.tms.features.driver.domain.DriverStatus;
+import com.transportplatform.tms.features.incident.application.IncidentService;
 import com.transportplatform.tms.features.organization.domain.ContractRepository;
 import com.transportplatform.tms.features.organization.domain.ContractStatus;
 import com.transportplatform.tms.features.organization.domain.OrganizationRepository;
 import com.transportplatform.tms.features.organization.domain.OrganizationStatus;
+import com.transportplatform.tms.features.report.application.ReportService;
 import com.transportplatform.tms.features.organization.domain.ServiceAreaRepository;
 import com.transportplatform.tms.features.organization.domain.ServiceAreaStatus;
 import com.transportplatform.tms.features.route.domain.RouteRepository;
@@ -28,7 +32,9 @@ import com.transportplatform.tms.features.ride.domain.RideStatus;
 import com.transportplatform.tms.features.ride.domain.RideRecurrenceStatus;
 import com.transportplatform.tms.features.ride.domain.RideRepository;
 import com.transportplatform.tms.features.rider.domain.RiderRepository;
+import com.transportplatform.tms.features.notification.application.NotificationService;
 import com.transportplatform.tms.features.rider.domain.RiderStatus;
+import com.transportplatform.tms.features.settings.application.CompanySettingsService;
 import com.transportplatform.tms.features.vehicle.application.VehicleComplianceSummaryService;
 import com.transportplatform.tms.features.vehicle.domain.Vehicle;
 import com.transportplatform.tms.features.vehicle.domain.VehicleRepository;
@@ -59,6 +65,11 @@ public class CompanyDashboardService {
         private final RecurringRideScheduleRepository recurringRideScheduleRepository;
         private final InvoiceService invoiceService;
         private final ReceivablesService receivablesService;
+        private final NotificationService notificationService;
+        private final ComplianceService complianceService;
+        private final IncidentService incidentService;
+        private final ReportService reportService;
+        private final CompanySettingsService companySettingsService;
 
         public CompanyDashboardService(AppUserRepository appUserRepository,
                         CurrentAuthenticatedUserService currentAuthenticatedUserService,
@@ -75,7 +86,12 @@ public class CompanyDashboardService {
                         RouteRepository routeRepository,
                         RecurringRideScheduleRepository recurringRideScheduleRepository,
                         InvoiceService invoiceService,
-                        ReceivablesService receivablesService) {
+                        ReceivablesService receivablesService,
+                        NotificationService notificationService,
+                        ComplianceService complianceService,
+                        IncidentService incidentService,
+                        ReportService reportService,
+                        CompanySettingsService companySettingsService) {
                 this.appUserRepository = appUserRepository;
                 this.currentAuthenticatedUserService = currentAuthenticatedUserService;
                 this.auditLogService = auditLogService;
@@ -92,9 +108,14 @@ public class CompanyDashboardService {
                 this.recurringRideScheduleRepository = recurringRideScheduleRepository;
                 this.invoiceService = invoiceService;
                 this.receivablesService = receivablesService;
+                this.notificationService = notificationService;
+                this.complianceService = complianceService;
+                this.incidentService = incidentService;
+                this.reportService = reportService;
+                this.companySettingsService = companySettingsService;
         }
 
-        @Transactional(readOnly = true)
+        @Transactional
         public CompanyDashboardSummaryResponse getSummary() {
                 AuthenticatedUser currentUser = currentAuthenticatedUserService.requireCurrentUser();
                 boolean hasCompanyAdminRole = currentUser.getAuthorities().stream()
@@ -122,6 +143,14 @@ public class CompanyDashboardService {
                 long rideExceptions = rideRepository.countByTenantIdAndStatusIn(
                                 tenantId,
                                 EnumSet.of(RideStatus.RIDER_NO_SHOW, RideStatus.MISSED, RideStatus.FAILED));
+                long unreadNotifications = currentUser.id() == null ? 0
+                                : notificationService.countUnreadNotifications(tenantId, currentUser.id());
+                ComplianceDashboardSummaryResponse complianceSummary = complianceService.getCompanyComplianceSummary();
+                long openIncidents = incidentService.countOpenIncidents(tenantId);
+                long criticalIncidents = incidentService.countCriticalOpenIncidents(tenantId);
+                long resolvedIncidents = incidentService.countResolvedIncidents(tenantId);
+                long availableReportsCount = reportService.getAvailableReportCount();
+                int settingsProfileCompletenessPercent = companySettingsService.calculateProfileCompleteness(tenantId);
                 return new CompanyDashboardSummaryResponse(
                                 appUserRepository.countByTenantId(tenantId),
                                 appUserRepository.countByTenantIdAndStatus(tenantId, UserStatus.ACTIVE),
@@ -203,6 +232,15 @@ public class CompanyDashboardService {
                                 findBucketAmount(receivablesSummary, InvoiceAgingBucket.DAYS_31_TO_60),
                                 findBucketAmount(receivablesSummary, InvoiceAgingBucket.DAYS_61_TO_90),
                                 findBucketAmount(receivablesSummary, InvoiceAgingBucket.DAYS_90_PLUS),
+                                unreadNotifications,
+                                complianceSummary.openComplianceIssues(),
+                                complianceSummary.criticalComplianceIssues(),
+                                complianceSummary.documentsExpiringSoon(),
+                                openIncidents,
+                                criticalIncidents,
+                                resolvedIncidents,
+                                availableReportsCount,
+                                settingsProfileCompletenessPercent,
                                 auditLogService.getRecentCompanyActivity(8));
         }
 

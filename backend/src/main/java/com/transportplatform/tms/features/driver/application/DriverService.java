@@ -14,6 +14,7 @@ import com.transportplatform.tms.features.driver.domain.DriverRepository;
 import com.transportplatform.tms.features.driver.domain.DriverStatus;
 import com.transportplatform.tms.features.driver.domain.DriverTrainingStatus;
 import com.transportplatform.tms.features.driver.domain.DriverType;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -33,6 +34,7 @@ public class DriverService {
     private final DriverCodeGenerator driverCodeGenerator;
     private final DriverComplianceSummaryService driverComplianceSummaryService;
     private final AuditLogService auditLogService;
+    private final NotificationEventService notificationEventService;
     private final Clock clock;
 
     public DriverService(DriverRepository driverRepository,
@@ -41,6 +43,7 @@ public class DriverService {
             DriverCodeGenerator driverCodeGenerator,
             DriverComplianceSummaryService driverComplianceSummaryService,
             AuditLogService auditLogService,
+            NotificationEventService notificationEventService,
             Clock clock) {
         this.driverRepository = driverRepository;
         this.driverMapper = driverMapper;
@@ -48,6 +51,7 @@ public class DriverService {
         this.driverCodeGenerator = driverCodeGenerator;
         this.driverComplianceSummaryService = driverComplianceSummaryService;
         this.auditLogService = auditLogService;
+        this.notificationEventService = notificationEventService;
         this.clock = clock;
     }
 
@@ -169,9 +173,11 @@ public class DriverService {
 
     private DriverResponse updateStatus(Driver driver, DriverStatus status, String action, String summary) {
         Object oldSnapshot = snapshot(driver);
+        DriverStatus previousStatus = driver.getStatus();
         driver.setStatus(status);
         Driver saved = driverRepository.save(driver);
         recordAudit(saved, action, summary, oldSnapshot, snapshot(saved));
+        notificationEventService.publishDriverStatusChanged(saved, previousStatus, saved.getStatus());
         return driverMapper.toResponse(saved, driverComplianceSummaryService.getSummary(saved.getTenantId(), saved));
     }
 

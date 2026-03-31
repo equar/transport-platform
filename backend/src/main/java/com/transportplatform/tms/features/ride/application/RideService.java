@@ -7,6 +7,7 @@ import com.transportplatform.tms.common.security.AuthenticatedUser;
 import com.transportplatform.tms.features.audit.application.AuditLogCommand;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
 import com.transportplatform.tms.features.organization.domain.ServiceType;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import com.transportplatform.tms.features.ride.api.request.CancelRideRequest;
 import com.transportplatform.tms.features.ride.api.request.RideUpsertRequest;
 import com.transportplatform.tms.features.ride.api.response.RideResponse;
@@ -38,6 +39,7 @@ public class RideService {
     private final RideCodeGenerator rideCodeGenerator;
     private final RideEventService rideEventService;
     private final AuditLogService auditLogService;
+    private final NotificationEventService notificationEventService;
     private final Clock clock;
 
     public RideService(RideRepository rideRepository,
@@ -47,6 +49,7 @@ public class RideService {
             RideCodeGenerator rideCodeGenerator,
             RideEventService rideEventService,
             AuditLogService auditLogService,
+            NotificationEventService notificationEventService,
             Clock clock) {
         this.rideRepository = rideRepository;
         this.rideAccessService = rideAccessService;
@@ -55,6 +58,7 @@ public class RideService {
         this.rideCodeGenerator = rideCodeGenerator;
         this.rideEventService = rideEventService;
         this.auditLogService = auditLogService;
+        this.notificationEventService = notificationEventService;
         this.clock = clock;
     }
 
@@ -271,6 +275,7 @@ public class RideService {
         rideEventService.recordStatusChanged(saved, previousStatus, RideStatus.CANCELLED, request.reason().trim());
         recordAudit(saved, "CANCELLED", "Ride " + saved.getRideNumber() + " was cancelled.", oldSnapshot,
                 snapshot(saved));
+        notificationEventService.publishRideStatusChanged(saved, previousStatus, saved.getStatus());
         return rideMapper.toResponse(saved);
     }
 
@@ -286,6 +291,7 @@ public class RideService {
         Ride saved = rideRepository.save(ride);
         rideEventService.recordStatusChanged(saved, previousStatus, targetStatus, summary);
         recordAudit(saved, action, summary, oldSnapshot, snapshot(saved));
+        notificationEventService.publishRideStatusChanged(saved, previousStatus, saved.getStatus());
         return rideMapper.toResponse(saved);
     }
 

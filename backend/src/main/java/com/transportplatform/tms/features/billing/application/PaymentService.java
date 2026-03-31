@@ -17,6 +17,7 @@ import com.transportplatform.tms.features.billing.domain.Payment;
 import com.transportplatform.tms.features.billing.domain.PaymentMethod;
 import com.transportplatform.tms.features.billing.domain.PaymentRepository;
 import com.transportplatform.tms.features.billing.domain.PaymentStatus;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
@@ -39,6 +40,7 @@ public class PaymentService {
     private final PaymentNumberGenerator paymentNumberGenerator;
     private final InvoiceFinancialService invoiceFinancialService;
     private final AuditLogService auditLogService;
+    private final NotificationEventService notificationEventService;
     private final Clock clock;
 
     public PaymentService(PaymentRepository paymentRepository,
@@ -47,6 +49,7 @@ public class PaymentService {
             PaymentNumberGenerator paymentNumberGenerator,
             InvoiceFinancialService invoiceFinancialService,
             AuditLogService auditLogService,
+            NotificationEventService notificationEventService,
             Clock clock) {
         this.paymentRepository = paymentRepository;
         this.billingAccessService = billingAccessService;
@@ -54,6 +57,7 @@ public class PaymentService {
         this.paymentNumberGenerator = paymentNumberGenerator;
         this.invoiceFinancialService = invoiceFinancialService;
         this.auditLogService = auditLogService;
+        this.notificationEventService = notificationEventService;
         this.clock = clock;
     }
 
@@ -144,6 +148,7 @@ public class PaymentService {
                     oldInvoiceSnapshot,
                     snapshot(invoice));
         }
+        notificationEventService.publishPaymentRecorded(saved, applyImmediately);
         return paymentMapper.toDetail(saved,
                 InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, LocalDate.now(clock)));
     }
@@ -182,6 +187,7 @@ public class PaymentService {
                 "Payment " + saved.getPaymentNumber() + " was applied to invoice " + invoice.getInvoiceNumber() + ".",
                 oldInvoiceSnapshot,
                 snapshot(invoice));
+        notificationEventService.publishPaymentApplied(saved);
         return paymentMapper.toDetail(saved,
                 InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, LocalDate.now(clock)));
     }

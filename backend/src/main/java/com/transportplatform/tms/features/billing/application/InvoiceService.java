@@ -26,6 +26,7 @@ import com.transportplatform.tms.features.billing.domain.InvoiceStatus;
 import com.transportplatform.tms.features.billing.domain.PaymentRepository;
 import com.transportplatform.tms.features.billing.domain.PricingRule;
 import com.transportplatform.tms.features.billing.domain.PricingRuleStatus;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import com.transportplatform.tms.features.organization.domain.ContractRepository;
 import com.transportplatform.tms.features.organization.domain.ContractType;
 import com.transportplatform.tms.features.organization.domain.OrganizationRepository;
@@ -68,6 +69,7 @@ public class InvoiceService {
     private final RiderRepository riderRepository;
     private final OrganizationRepository organizationRepository;
     private final ContractRepository contractRepository;
+    private final NotificationEventService notificationEventService;
     private final Clock clock;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
@@ -84,6 +86,7 @@ public class InvoiceService {
             RiderRepository riderRepository,
             OrganizationRepository organizationRepository,
             ContractRepository contractRepository,
+            NotificationEventService notificationEventService,
             Clock clock) {
         this.invoiceRepository = invoiceRepository;
         this.invoiceLineItemRepository = invoiceLineItemRepository;
@@ -99,6 +102,7 @@ public class InvoiceService {
         this.riderRepository = riderRepository;
         this.organizationRepository = organizationRepository;
         this.contractRepository = contractRepository;
+        this.notificationEventService = notificationEventService;
         this.clock = clock;
     }
 
@@ -256,6 +260,7 @@ public class InvoiceService {
         Invoice saved = invoiceRepository.save(invoice);
         recordInvoiceAudit(saved, "ISSUED", "Invoice " + saved.getInvoiceNumber() + " was issued.", oldSnapshot,
                 snapshot(saved));
+        notificationEventService.publishInvoiceIssued(saved);
         return toDetail(saved);
     }
 

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AppBar,
   Avatar,
+  Badge,
   Box,
   Button,
   Chip,
@@ -11,6 +12,8 @@ import {
   List,
   ListItemButton,
   ListItemText,
+  Menu,
+  MenuItem,
   Stack,
   Toolbar,
   Typography,
@@ -30,21 +33,43 @@ import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
+import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
+import ReportProblemRoundedIcon from "@mui/icons-material/ReportProblemRounded";
 import RouteRoundedIcon from "@mui/icons-material/RouteRounded";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import AccessibleRoundedIcon from "@mui/icons-material/AccessibleRounded";
 import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
-import { Link as RouterLink, Outlet, useLocation } from "react-router-dom";
+import AutoAwesomeMotionRoundedIcon from "@mui/icons-material/AutoAwesomeMotionRounded";
+import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
+import AssessmentRoundedIcon from "@mui/icons-material/AssessmentRounded";
+import {
+  Link as RouterLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { getRoleLabel, isPlatformAdmin } from "../../features/auth/access";
 import { useAuth } from "../../features/auth/context/AuthContext";
+import {
+  notificationApi,
+  type NotificationSummaryRecord,
+} from "../../features/notifications/api/notificationApi";
 import { BrandMark } from "../../shared/components/BrandMark";
 
 const drawerWidth = 280;
 
 export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notificationAnchorEl, setNotificationAnchorEl] =
+    useState<HTMLElement | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [latestNotifications, setLatestNotifications] = useState<
+    NotificationSummaryRecord[]
+  >([]);
   const { session, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const platformAdmin = isPlatformAdmin(session);
   const navigationItems = platformAdmin
     ? [
@@ -97,6 +122,46 @@ export function AppShell() {
           description: "Manage company administrators and operators",
           to: "/company/users",
           icon: <BadgeRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Notifications",
+          description: "Current-user inbox for operational and billing alerts",
+          to: "/company/notifications",
+          icon: <NotificationsRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Notification Templates",
+          description: "Tenant-managed rendering for in-app and email hooks",
+          to: "/company/notification-templates",
+          icon: <AutoAwesomeMotionRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Compliance Center",
+          description:
+            "Issue tracking for expiring, missing, and rejected documents",
+          to: "/company/compliance",
+          icon: <FactCheckRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Incident Management",
+          description:
+            "Complaint, safety, and operational issue workflow for company admins",
+          to: "/company/incidents",
+          icon: <ReportProblemRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Company Reports",
+          description:
+            "Operational, billing, compliance, and incident reporting workspace",
+          to: "/company/reports",
+          icon: <AssessmentRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Company Settings",
+          description:
+            "Tenant profile, policy, defaults, and branding controls",
+          to: "/company/settings",
+          icon: <SettingsRoundedIcon fontSize="small" />,
         },
         {
           label: "Rider Management",
@@ -200,6 +265,41 @@ export function AppShell() {
     .filter(Boolean)
     .join(" ");
 
+  useEffect(() => {
+    if (platformAdmin) {
+      setUnreadCount(0);
+      setLatestNotifications([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadNotifications() {
+      try {
+        const [unread, latest] = await Promise.all([
+          notificationApi.getUnreadCount(),
+          notificationApi.getLatestNotifications(5),
+        ]);
+        if (cancelled) {
+          return;
+        }
+        setUnreadCount(unread.unreadCount);
+        setLatestNotifications(latest);
+      } catch {
+        if (!cancelled) {
+          setUnreadCount(0);
+          setLatestNotifications([]);
+        }
+      }
+    }
+
+    void loadNotifications();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname, platformAdmin]);
+
   const drawer = (
     <Stack sx={{ height: "100%" }}>
       <Box sx={{ p: 3 }}>
@@ -294,6 +394,18 @@ export function AppShell() {
             </Typography>
           </Box>
           <Stack direction="row" spacing={1.5} alignItems="center">
+            {!platformAdmin ? (
+              <IconButton
+                color="inherit"
+                onClick={(event) =>
+                  setNotificationAnchorEl(event.currentTarget)
+                }
+              >
+                <Badge color="secondary" badgeContent={unreadCount} max={99}>
+                  <NotificationsRoundedIcon />
+                </Badge>
+              </IconButton>
+            ) : null}
             <Box
               sx={{ textAlign: "right", display: { xs: "none", sm: "block" } }}
             >
@@ -319,6 +431,65 @@ export function AppShell() {
           </Stack>
         </Toolbar>
       </AppBar>
+
+      <Menu
+        anchorEl={notificationAnchorEl}
+        open={Boolean(notificationAnchorEl)}
+        onClose={() => setNotificationAnchorEl(null)}
+        PaperProps={{ sx: { width: 360, maxWidth: "calc(100vw - 24px)" } }}
+      >
+        <Box sx={{ px: 2, py: 1.5 }}>
+          <Typography variant="subtitle1">Notifications</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {unreadCount} unread notification{unreadCount === 1 ? "" : "s"}
+          </Typography>
+        </Box>
+        <Divider />
+        {latestNotifications.length === 0 ? (
+          <MenuItem disabled>
+            <ListItemText
+              primary="No recent notifications"
+              secondary="New operational alerts will appear here."
+            />
+          </MenuItem>
+        ) : (
+          latestNotifications.map((notification) => (
+            <MenuItem
+              key={notification.id}
+              onClick={() => {
+                setNotificationAnchorEl(null);
+                navigate("/company/notifications");
+              }}
+              sx={{ alignItems: "flex-start", whiteSpace: "normal" }}
+            >
+              <ListItemText
+                primary={notification.title}
+                secondary={notification.message}
+                primaryTypographyProps={{
+                  fontWeight: notification.readStatus === "UNREAD" ? 700 : 500,
+                }}
+                secondaryTypographyProps={{
+                  sx: {
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  },
+                }}
+              />
+            </MenuItem>
+          ))
+        )}
+        <Divider />
+        <MenuItem
+          onClick={() => {
+            setNotificationAnchorEl(null);
+            navigate("/company/notifications");
+          }}
+        >
+          View all notifications
+        </MenuItem>
+      </Menu>
 
       <Box
         component="nav"

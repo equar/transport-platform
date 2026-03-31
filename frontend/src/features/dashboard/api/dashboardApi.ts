@@ -38,6 +38,14 @@ export interface CompanyDashboardSummary {
   waitlistedRiders: number;
   ridersRequiringWheelchairSupport: number;
   ridersRequiringEscort: number;
+  totalOrganizations: number;
+  activeOrganizations: number;
+  suspendedOrganizations: number;
+  totalContracts: number;
+  activeContracts: number;
+  expiringContractsSoon: number;
+  totalServiceAreas: number;
+  activeServiceAreas: number;
   totalDrivers: number;
   activeDrivers: number;
   suspendedDrivers: number;
@@ -80,6 +88,15 @@ export interface CompanyDashboardSummary {
   aging31To60Amount: number;
   aging61To90Amount: number;
   aging90PlusAmount: number;
+  unreadNotifications: number;
+  openComplianceIssues: number;
+  criticalComplianceIssues: number;
+  documentsExpiringSoon: number;
+  openIncidents: number;
+  criticalIncidents: number;
+  resolvedIncidents: number;
+  availableReportsCount: number;
+  settingsProfileCompletenessPercent: number;
   recentActivity: DashboardActivity[];
 }
 
