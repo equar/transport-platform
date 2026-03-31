@@ -6,6 +6,12 @@ app:
   bootstrap:
     platform-admin:
       enabled: true
+      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:platform-admin@transport-platform.local}
+      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:ChangeMe123!}
+  security:
+    api-docs-enabled: true
+    jwt:
+      secret: ${APP_SECURITY_JWT_SECRET:dev-jwt-secret-change-before-deployment-1234567890}
 
 logging:
   level:

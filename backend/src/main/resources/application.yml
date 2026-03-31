@@ -43,15 +43,14 @@ app:
   bootstrap:
     platform-admin:
       enabled: false
-      email: platform-admin@transport-platform.local
-      password: ChangeMe123!
+      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:platform-admin@transport-platform.local}
+      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:}
   security:
-    allowed-origins:
-      - http://localhost:3000
-      - http://localhost:5173
+    api-docs-enabled: false
+    allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
     jwt:
       issuer: transport-platform
-      secret: ${APP_SECURITY_JWT_SECRET:change-me-please-change-me-please-change-me-1234}
+      secret: ${APP_SECURITY_JWT_SECRET:}
       access-token-ttl: PT15M
       refresh-token-ttl: P7D
   multi-tenant:

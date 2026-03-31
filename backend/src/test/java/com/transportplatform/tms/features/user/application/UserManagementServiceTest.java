@@ -13,6 +13,8 @@ import com.transportplatform.tms.features.auth.domain.AppUser;
 import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
+import com.transportplatform.tms.features.portalaccess.application.PortalAccessService;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.features.user.api.request.UserUpsertRequest;
 import java.util.List;
@@ -44,6 +46,12 @@ class UserManagementServiceTest {
     @Mock
     private AuditLogService auditLogService;
 
+    @Mock
+    private NotificationEventService notificationEventService;
+
+    @Mock
+    private PortalAccessService portalAccessService;
+
     @InjectMocks
     private UserManagementService userManagementService;
 
@@ -59,7 +67,9 @@ class UserManagementServiceTest {
                         "taylor@example.com",
                         "secret123",
                         UserStatus.ACTIVE,
-                        Set.of(RoleName.ROLE_PLATFORM_ADMIN))));
+                        Set.of(RoleName.ROLE_PLATFORM_ADMIN),
+                        null,
+                        null)));
 
         assertEquals("FORBIDDEN", exception.getErrorCode().name());
     }
@@ -78,7 +88,9 @@ class UserManagementServiceTest {
                 "taylor@example.com",
                 "secret123",
                 UserStatus.ACTIVE,
-                Set.of(RoleName.ROLE_TENANT_ADMIN)));
+                Set.of(RoleName.ROLE_TENANT_ADMIN),
+                null,
+                null));
 
         ArgumentCaptor<AppUser> userCaptor = ArgumentCaptor.forClass(AppUser.class);
         verify(appUserRepository).save(userCaptor.capture());

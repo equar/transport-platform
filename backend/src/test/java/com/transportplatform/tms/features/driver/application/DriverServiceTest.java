@@ -17,6 +17,7 @@ import com.transportplatform.tms.features.driver.domain.DriverRepository;
 import com.transportplatform.tms.features.driver.domain.DriverStatus;
 import com.transportplatform.tms.features.driver.domain.DriverTrainingStatus;
 import com.transportplatform.tms.features.driver.domain.DriverType;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -31,104 +32,111 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DriverServiceTest {
 
-    @Mock
-    private DriverRepository driverRepository;
+        @Mock
+        private DriverRepository driverRepository;
 
-    @Mock
-    private DriverAccessService driverAccessService;
+        @Mock
+        private DriverAccessService driverAccessService;
 
-    @Mock
-    private DriverCodeGenerator driverCodeGenerator;
+        @Mock
+        private DriverCodeGenerator driverCodeGenerator;
 
-    @Mock
-    private DriverComplianceSummaryService driverComplianceSummaryService;
+        @Mock
+        private DriverComplianceSummaryService driverComplianceSummaryService;
 
-    @Mock
-    private AuditLogService auditLogService;
+        @Mock
+        private AuditLogService auditLogService;
 
-    @Test
-    void companyDriverCreationUsesTenantScopeAndPendingReview() {
-        DriverService driverService = new DriverService(
-                driverRepository,
-                new DriverMapper(),
-                driverAccessService,
-                driverCodeGenerator,
-                driverComplianceSummaryService,
-                auditLogService,
-                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
+        @Mock
+        private NotificationEventService notificationEventService;
 
-        when(driverAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
-        when(driverCodeGenerator.generate("tenant-123")).thenReturn("DRV-000123");
-        when(driverRepository.save(any(Driver.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(driverComplianceSummaryService.getSummary(any(), any(Driver.class))).thenReturn(
-                new DriverComplianceSummaryResponse(4, 0, 0, 0, 4, DriverComplianceStatus.NON_COMPLIANT, null,
-                        Set.of()));
+        @Test
+        void companyDriverCreationUsesTenantScopeAndPendingReview() {
+                DriverService driverService = new DriverService(
+                                driverRepository,
+                                new DriverMapper(),
+                                driverAccessService,
+                                driverCodeGenerator,
+                                driverComplianceSummaryService,
+                                auditLogService,
+                                notificationEventService,
+                                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 
-        driverService.createCompanyDriver(new DriverUpsertRequest(
-                "Taylor",
-                null,
-                "Lee",
-                null,
-                "taylor.driver@example.com",
-                "555-0100",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                DriverType.CONTRACTOR,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                DriverQualificationStatus.PENDING,
-                null,
-                DriverQualificationStatus.PENDING,
-                null,
-                DriverTrainingStatus.NOT_STARTED,
-                null,
-                null,
-                null,
-                null,
-                null));
+                when(driverAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
+                when(driverCodeGenerator.generate("tenant-123")).thenReturn("DRV-000123");
+                when(driverRepository.save(any(Driver.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                when(driverComplianceSummaryService.getSummary(any(), any(Driver.class))).thenReturn(
+                                new DriverComplianceSummaryResponse(4, 0, 0, 0, 4, DriverComplianceStatus.NON_COMPLIANT,
+                                                null,
+                                                Set.of()));
 
-        ArgumentCaptor<Driver> driverCaptor = ArgumentCaptor.forClass(Driver.class);
-        verify(driverRepository).save(driverCaptor.capture());
-        assertEquals("tenant-123", driverCaptor.getValue().getTenantId());
-        assertEquals("DRV-000123", driverCaptor.getValue().getDriverCode());
-        assertEquals(DriverStatus.PENDING_REVIEW, driverCaptor.getValue().getStatus());
-    }
+                driverService.createCompanyDriver(new DriverUpsertRequest(
+                                "Taylor",
+                                null,
+                                "Lee",
+                                null,
+                                "taylor.driver@example.com",
+                                "555-0100",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                DriverType.CONTRACTOR,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                DriverQualificationStatus.PENDING,
+                                null,
+                                DriverQualificationStatus.PENDING,
+                                null,
+                                DriverTrainingStatus.NOT_STARTED,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null));
 
-    @Test
-    void activateRejectsNonCompliantDriver() {
-        DriverService driverService = new DriverService(
-                driverRepository,
-                new DriverMapper(),
-                driverAccessService,
-                driverCodeGenerator,
-                driverComplianceSummaryService,
-                auditLogService,
-                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
+                ArgumentCaptor<Driver> driverCaptor = ArgumentCaptor.forClass(Driver.class);
+                verify(driverRepository).save(driverCaptor.capture());
+                assertEquals("tenant-123", driverCaptor.getValue().getTenantId());
+                assertEquals("DRV-000123", driverCaptor.getValue().getDriverCode());
+                assertEquals(DriverStatus.PENDING_REVIEW, driverCaptor.getValue().getStatus());
+        }
 
-        Driver driver = new Driver();
-        driver.setTenantId("tenant-123");
-        driver.setDriverCode("DRV-000123");
-        driver.setStatus(DriverStatus.TRAINING_PENDING);
-        driver.setTrainingStatus(DriverTrainingStatus.COMPLETED);
-        driver.setLicenseNumber("LIC-1000");
-        driver.setLicenseExpiryDate(LocalDate.of(2026, 12, 31));
+        @Test
+        void activateRejectsNonCompliantDriver() {
+                DriverService driverService = new DriverService(
+                                driverRepository,
+                                new DriverMapper(),
+                                driverAccessService,
+                                driverCodeGenerator,
+                                driverComplianceSummaryService,
+                                auditLogService,
+                                notificationEventService,
+                                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 
-        when(driverAccessService.findDriverForCompanyScope(10L)).thenReturn(driver);
-        when(driverComplianceSummaryService.getSummary("tenant-123", driver)).thenReturn(
-                new DriverComplianceSummaryResponse(4, 3, 2, 1, 1, DriverComplianceStatus.NON_COMPLIANT, 15, Set.of()));
+                Driver driver = new Driver();
+                driver.setTenantId("tenant-123");
+                driver.setDriverCode("DRV-000123");
+                driver.setStatus(DriverStatus.TRAINING_PENDING);
+                driver.setTrainingStatus(DriverTrainingStatus.COMPLETED);
+                driver.setLicenseNumber("LIC-1000");
+                driver.setLicenseExpiryDate(LocalDate.of(2026, 12, 31));
 
-        ApiException exception = assertThrows(ApiException.class,
-                () -> driverService.activateCompanyDriver(10L));
+                when(driverAccessService.findDriverForCompanyScope(10L)).thenReturn(driver);
+                when(driverComplianceSummaryService.getSummary("tenant-123", driver)).thenReturn(
+                                new DriverComplianceSummaryResponse(4, 3, 2, 1, 1, DriverComplianceStatus.NON_COMPLIANT,
+                                                15, Set.of()));
 
-        assertEquals("INVALID_STATUS_TRANSITION", exception.getErrorCode().name());
-    }
+                ApiException exception = assertThrows(ApiException.class,
+                                () -> driverService.activateCompanyDriver(10L));
+
+                assertEquals("INVALID_STATUS_TRANSITION", exception.getErrorCode().name());
+        }
 }

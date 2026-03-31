@@ -8,7 +8,10 @@ import {
 import { authApi } from "../api/authApi";
 import { getDefaultRoute as resolveDefaultRoute } from "../access";
 import type { AuthSession, LoginPayload } from "../types";
-import { AUTH_SESSION_STORAGE_KEY } from "../../../shared/config/storage";
+import {
+  AUTH_SESSION_INVALIDATED_EVENT,
+  AUTH_SESSION_STORAGE_KEY,
+} from "../../../shared/config/storage";
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -43,6 +46,31 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     setSession(readStoredSession());
     setIsLoading(false);
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === AUTH_SESSION_STORAGE_KEY) {
+        setSession(readStoredSession());
+      }
+    };
+
+    const handleSessionInvalidated = () => {
+      window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+      setSession(null);
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(
+      AUTH_SESSION_INVALIDATED_EVENT,
+      handleSessionInvalidated,
+    );
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(
+        AUTH_SESSION_INVALIDATED_EVENT,
+        handleSessionInvalidated,
+      );
+    };
   }, []);
 
   const value: AuthContextValue = {

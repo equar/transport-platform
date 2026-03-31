@@ -14,4 +14,4 @@ COPY --from=build /workspace/target/transport-platform-backend-0.1.0-SNAPSHOT.ja
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]

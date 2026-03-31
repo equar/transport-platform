@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.jpa.domain.Specification;
 
 @ExtendWith(MockitoExtension.class)
 class BillingCalculationServiceTest {
@@ -47,13 +48,13 @@ class BillingCalculationServiceTest {
         PricingRule specificRule = pricingRule("RULE-STUDENT", BigDecimal.valueOf(15), 10);
         specificRule.setRiderType(RiderType.STUDENT);
 
-        when(pricingRuleRepository.findAll(any())).thenReturn(List.of(genericRule, specificRule));
+        when(pricingRuleRepository.findAll(any(Specification.class))).thenReturn(List.of(genericRule, specificRule));
 
         PricingRule selectedRule = billingCalculationService.selectApplicableRule(
                 "tenant-123",
                 new BillingCalculationService.CalculationCriteria(
                         BillToType.RIDER,
-                        ServiceType.MEDICAL,
+                        ServiceType.NEMT,
                         RiderType.STUDENT,
                         null,
                         null,
@@ -88,14 +89,14 @@ class BillingCalculationServiceTest {
 
     @Test
     void selectApplicableRuleThrowsWhenNoRuleMatches() {
-        when(pricingRuleRepository.findAll(any())).thenReturn(List.of());
+        when(pricingRuleRepository.findAll(any(Specification.class))).thenReturn(List.of());
 
         ApiException exception = assertThrows(ApiException.class,
                 () -> billingCalculationService.selectApplicableRule(
                         "tenant-123",
                         new BillingCalculationService.CalculationCriteria(
                                 BillToType.ORGANIZATION,
-                                ServiceType.SCHOOL,
+                                ServiceType.SCHOOL_TRANSPORT,
                                 null,
                                 null,
                                 null,
@@ -112,7 +113,7 @@ class BillingCalculationServiceTest {
         pricingRule.setName(code);
         pricingRule.setPricingModel(PricingModel.FLAT_RATE);
         pricingRule.setBillToType(BillToType.RIDER);
-        pricingRule.setServiceType(ServiceType.MEDICAL);
+        pricingRule.setServiceType(ServiceType.NEMT);
         pricingRule.setAmount(amount.setScale(2));
         pricingRule.setCurrency("USD");
         pricingRule.setEffectiveStartDate(LocalDate.of(2026, 1, 1));

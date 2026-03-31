@@ -57,6 +57,17 @@ Set-Location backend
 mvn spring-boot:run
 ```
 
+If test-compilation failures unrelated to runtime startup block local execution, use:
+
+```powershell
+mvn -Dmaven.test.skip=true spring-boot:run
+```
+
+Backend API docs:
+
+- Swagger UI: `http://localhost:8080/api/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8080/api/v3/api-docs`
+
 Frontend:
 
 ```powershell
@@ -64,6 +75,37 @@ Set-Location frontend
 npm install
 npm run dev
 ```
+
+## Environment Variables
+
+Use a local `.env` file or shell environment variables for sensitive settings.
+
+Backend:
+
+- `APP_SECURITY_JWT_SECRET`
+- `APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL`
+- `APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD`
+- `APP_SECURITY_ALLOWED_ORIGINS`
+- `DB_URL`
+- `DB_USERNAME`
+- `DB_PASSWORD`
+
+Frontend:
+
+- `VITE_API_BASE_URL`
+
+Docker Compose:
+
+- `MYSQL_DATABASE`
+- `MYSQL_USER`
+- `MYSQL_PASSWORD`
+- `MYSQL_ROOT_PASSWORD`
+- `SPRING_PROFILES_ACTIVE`
+
+## Troubleshooting
+
+- Swagger UI is available only in `local` and `dev` profiles at `http://localhost:8080/api/swagger-ui/index.html`.
+- Production profile disables Swagger/OpenAPI endpoints by default.
 
 ## Delivery Standards
 

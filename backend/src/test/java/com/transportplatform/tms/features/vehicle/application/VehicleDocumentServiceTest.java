@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.security.CurrentAuthenticatedUserService;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import com.transportplatform.tms.features.vehicle.api.request.VehicleDocumentReviewRequest;
 import com.transportplatform.tms.features.vehicle.domain.Vehicle;
 import com.transportplatform.tms.features.vehicle.domain.VehicleDocument;
@@ -38,6 +39,9 @@ class VehicleDocumentServiceTest {
     @Mock
     private AuditLogService auditLogService;
 
+    @Mock
+    private NotificationEventService notificationEventService;
+
     @Test
     void rejectRequiresNotes() {
         VehicleDocumentService vehicleDocumentService = new VehicleDocumentService(
@@ -46,6 +50,7 @@ class VehicleDocumentServiceTest {
                 new VehicleDocumentMapper(Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC)),
                 currentAuthenticatedUserService,
                 auditLogService,
+                notificationEventService,
                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 
         Vehicle vehicle = new Vehicle();

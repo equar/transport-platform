@@ -68,6 +68,10 @@ import { BrandMark } from "../../shared/components/BrandMark";
 
 const drawerWidth = 280;
 
+function isFeatureEnabled(enabled: boolean | undefined) {
+  return enabled === true;
+}
+
 export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationAnchorEl, setNotificationAnchorEl] =
@@ -285,7 +289,7 @@ export function AppShell() {
                   "Current-user inbox for operational and billing alerts",
                 to: "/company/notifications",
                 icon: <NotificationsRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.notifications ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.notifications),
               },
               {
                 label: "Notification Templates",
@@ -293,7 +297,7 @@ export function AppShell() {
                   "Tenant-managed rendering for in-app and email hooks",
                 to: "/company/notification-templates",
                 icon: <AutoAwesomeMotionRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.notifications ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.notifications),
               },
               {
                 label: "Compliance Center",
@@ -301,7 +305,7 @@ export function AppShell() {
                   "Issue tracking for expiring, missing, and rejected documents",
                 to: "/company/compliance",
                 icon: <FactCheckRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.compliance ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.compliance),
               },
               {
                 label: "Incident Management",
@@ -309,7 +313,7 @@ export function AppShell() {
                   "Complaint, safety, and operational issue workflow for company admins",
                 to: "/company/incidents",
                 icon: <ReportProblemRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.incidents ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.incidents),
               },
               {
                 label: "Company Reports",
@@ -317,7 +321,7 @@ export function AppShell() {
                   "Operational, billing, compliance, and incident reporting workspace",
                 to: "/company/reports",
                 icon: <AssessmentRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.reports ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.reports),
               },
               {
                 label: "Company Settings",
@@ -339,7 +343,7 @@ export function AppShell() {
                   "One-off ride intake, lifecycle control, and scheduling readiness",
                 to: "/company/rides",
                 icon: <CalendarMonthRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.dispatch ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.dispatch),
               },
               {
                 label: "Dispatch Board",
@@ -347,7 +351,7 @@ export function AppShell() {
                   "Assignment coverage, exception handling, and day-of-service control",
                 to: "/company/dispatch",
                 icon: <DirectionsCarFilledRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.dispatch ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.dispatch),
               },
               {
                 label: "Route Management",
@@ -355,7 +359,7 @@ export function AppShell() {
                   "Route manifests, sequencing, and resource readiness",
                 to: "/company/routes",
                 icon: <RouteRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.routes ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.routes),
               },
               {
                 label: "Recurring Rides",
@@ -363,7 +367,7 @@ export function AppShell() {
                   "Recurring service templates and controlled ride generation",
                 to: "/company/recurring-rides",
                 icon: <RepeatRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.recurringRides ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.recurringRides),
               },
               {
                 label: "Guardian Management",
@@ -392,7 +396,7 @@ export function AppShell() {
                   "Rate policies, bill-to models, and service pricing",
                 to: "/company/pricing-rules",
                 icon: <AttachMoneyRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.billing ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.billing),
               },
               {
                 label: "Invoice Management",
@@ -400,7 +404,7 @@ export function AppShell() {
                   "Drafts, issuance, balances, and billing workflows",
                 to: "/company/invoices",
                 icon: <ReceiptLongRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.billing ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.billing),
               },
               {
                 label: "Payment Management",
@@ -408,7 +412,7 @@ export function AppShell() {
                   "Manual payment recording, application, and receivable collection traceability",
                 to: "/company/payments",
                 icon: <PaymentsRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.billing ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.billing),
               },
               {
                 label: "Receivables",
@@ -416,7 +420,7 @@ export function AppShell() {
                   "Aging exposure, overdue balances, and follow-up posture",
                 to: "/company/receivables",
                 icon: <AttachMoneyRoundedIcon fontSize="small" />,
-                enabled: moduleAccess?.billing ?? true,
+                enabled: isFeatureEnabled(moduleAccess?.billing),
               },
               {
                 label: "Role Catalog",

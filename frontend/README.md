@@ -23,9 +23,22 @@ src/
 ## Local Run
 
 ```powershell
-npm install
+npm ci
+npm run typecheck
 npm run dev
 ```
+
+## Environment Variables
+
+```text
+VITE_API_BASE_URL=/api
+```
+
+## Production Notes
+
+- The frontend expects the backend to be served behind `/api`.
+- Route access is role-aware and tenant-scoped routes require a tenant-bound session.
+- Feature-gated tenant navigation now fails closed until runtime capabilities load successfully.
 
 ## Foundation Scope
 

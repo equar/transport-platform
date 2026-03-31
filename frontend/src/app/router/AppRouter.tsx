@@ -10,6 +10,14 @@ import { AuditLogsPage } from "../../features/audit/pages/AuditLogsPage";
 import { useAuth } from "../../features/auth/context/AuthContext";
 import { LoginPage } from "../../features/auth/pages/LoginPage";
 import { ProtectedRoute } from "../../features/auth/routes/ProtectedRoute";
+import {
+  isCompanyAdmin,
+  isDriverPortalUser,
+  isGuardianPortalUser,
+  isOrganizationPortalUser,
+  isPlatformAdmin,
+  isRiderPortalUser,
+} from "../../features/auth/access";
 import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
 import { InvoiceDetailsPage } from "../../features/billing/pages/InvoiceDetailsPage";
 import { InvoiceManagementPage } from "../../features/billing/pages/InvoiceManagementPage";
@@ -99,7 +107,10 @@ const router = createBrowserRouter([
   {
     path: "/platform",
     element: (
-      <ProtectedRoute allowedRoles={["ROLE_PLATFORM_ADMIN"]}>
+      <ProtectedRoute
+        allowedRoles={["ROLE_PLATFORM_ADMIN"]}
+        authorize={(session) => isPlatformAdmin(session)}
+      >
         <AppShell />
       </ProtectedRoute>
     ),
@@ -145,7 +156,12 @@ const router = createBrowserRouter([
   {
     path: "/company",
     element: (
-      <ProtectedRoute allowedRoles={["ROLE_TENANT_ADMIN"]}>
+      <ProtectedRoute
+        allowedRoles={["ROLE_TENANT_ADMIN"]}
+        authorize={(session) =>
+          isCompanyAdmin(session) && Boolean(session?.identity.tenantId)
+        }
+      >
         <AppShell />
       </ProtectedRoute>
     ),
@@ -283,7 +299,12 @@ const router = createBrowserRouter([
   {
     path: "/portal/driver",
     element: (
-      <ProtectedRoute allowedRoles={["ROLE_DRIVER"]}>
+      <ProtectedRoute
+        allowedRoles={["ROLE_DRIVER"]}
+        authorize={(session) =>
+          isDriverPortalUser(session) && Boolean(session?.identity.tenantId)
+        }
+      >
         <AppShell />
       </ProtectedRoute>
     ),
@@ -325,7 +346,13 @@ const router = createBrowserRouter([
   {
     path: "/portal/rider",
     element: (
-      <ProtectedRoute allowedRoles={["ROLE_RIDER", "ROLE_GUARDIAN"]}>
+      <ProtectedRoute
+        allowedRoles={["ROLE_RIDER", "ROLE_GUARDIAN"]}
+        authorize={(session) =>
+          (isRiderPortalUser(session) || isGuardianPortalUser(session)) &&
+          Boolean(session?.identity.tenantId)
+        }
+      >
         <AppShell />
       </ProtectedRoute>
     ),
@@ -355,7 +382,13 @@ const router = createBrowserRouter([
   {
     path: "/portal/organization",
     element: (
-      <ProtectedRoute allowedRoles={["ROLE_ORGANIZATION_USER"]}>
+      <ProtectedRoute
+        allowedRoles={["ROLE_ORGANIZATION_USER"]}
+        authorize={(session) =>
+          isOrganizationPortalUser(session) &&
+          Boolean(session?.identity.tenantId)
+        }
+      >
         <AppShell />
       </ProtectedRoute>
     ),

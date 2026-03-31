@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.security.CurrentAuthenticatedUserService;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import com.transportplatform.tms.features.driver.api.request.DriverDocumentReviewRequest;
 import com.transportplatform.tms.features.driver.domain.Driver;
 import com.transportplatform.tms.features.driver.domain.DriverDocument;
@@ -38,6 +39,9 @@ class DriverDocumentServiceTest {
     @Mock
     private AuditLogService auditLogService;
 
+    @Mock
+    private NotificationEventService notificationEventService;
+
     @Test
     void rejectRequiresNotes() {
         DriverDocumentService driverDocumentService = new DriverDocumentService(
@@ -46,6 +50,7 @@ class DriverDocumentServiceTest {
                 new DriverDocumentMapper(Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC)),
                 currentAuthenticatedUserService,
                 auditLogService,
+                notificationEventService,
                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 
         Driver driver = new Driver();

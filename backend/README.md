@@ -34,6 +34,24 @@ mvn spring-boot:run
 
 The default profile is `local`. Database and JWT values can be overridden via environment variables.
 
+If unrelated test-compilation failures block startup during local development, run:
+
+```powershell
+mvn -Dmaven.test.skip=true spring-boot:run
+```
+
+## Important Environment Variables
+
+- `APP_SECURITY_JWT_SECRET`
+- `APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL`
+- `APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD`
+- `APP_SECURITY_ALLOWED_ORIGINS`
+- `DB_URL`
+- `DB_USERNAME`
+- `DB_PASSWORD`
+
+Swagger/OpenAPI is enabled only for the `local` and `dev` profiles.
+
 ## Initial Foundation Scope
 
 - Shared audit entity and JPA auditing.

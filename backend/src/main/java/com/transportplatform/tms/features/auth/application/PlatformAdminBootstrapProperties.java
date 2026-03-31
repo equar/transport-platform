@@ -7,7 +7,7 @@ public class PlatformAdminBootstrapProperties {
 
     private boolean enabled;
     private String email = "platform-admin@transport-platform.local";
-    private String password = "ChangeMe123!";
+    private String password;
 
     public boolean isEnabled() {
         return enabled;

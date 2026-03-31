@@ -5,6 +5,19 @@ spring:
   jpa:
     show-sql: false
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  bootstrap:
+    platform-admin:
+      enabled: false
+  security:
+    api-docs-enabled: false
+
 logging:
   level:
     root: WARN

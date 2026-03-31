@@ -42,6 +42,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        String[] publicDocumentationEndpoints = securityProperties.isApiDocsEnabled()
+                ? new String[] { "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**" }
+                : new String[0];
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
@@ -51,6 +54,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(restAccessDeniedHandler))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health/**").permitAll()
+                        .requestMatchers(publicDocumentationEndpoints).permitAll()
                         .requestMatchers(HttpMethod.POST, "/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/company-applications").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/auth/**").permitAll()

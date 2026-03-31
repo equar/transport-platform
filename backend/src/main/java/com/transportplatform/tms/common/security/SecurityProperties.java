@@ -8,6 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class SecurityProperties {
 
     private List<String> allowedOrigins = List.of("http://localhost:3000", "http://localhost:5173");
+    private boolean apiDocsEnabled;
     private final Jwt jwt = new Jwt();
 
     public List<String> getAllowedOrigins() {
@@ -18,6 +19,14 @@ public class SecurityProperties {
         this.allowedOrigins = allowedOrigins;
     }
 
+    public boolean isApiDocsEnabled() {
+        return apiDocsEnabled;
+    }
+
+    public void setApiDocsEnabled(boolean apiDocsEnabled) {
+        this.apiDocsEnabled = apiDocsEnabled;
+    }
+
     public Jwt getJwt() {
         return jwt;
     }
@@ -25,7 +34,7 @@ public class SecurityProperties {
     public static class Jwt {
 
         private String issuer = "transport-platform";
-        private String secret = "change-me-please-change-me-please-change-me-1234";
+        private String secret;
         private Duration accessTokenTtl = Duration.ofMinutes(15);
         private Duration refreshTokenTtl = Duration.ofDays(7);
 

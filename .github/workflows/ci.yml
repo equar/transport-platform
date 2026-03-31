@@ -39,3 +39,12 @@ jobs:
         run: |
           npm run typecheck
           npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        run: docker build -t transport-platform-backend ./backend
+      - name: Build frontend image
+        run: docker build -t transport-platform-frontend -f frontend/Dockerfile .
