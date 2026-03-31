@@ -1,0 +1,66 @@
+package com.transportplatform.tms.features.ride.api.response;
+
+import com.transportplatform.tms.features.organization.domain.ServiceType;
+import com.transportplatform.tms.features.ride.domain.RideBillingType;
+import com.transportplatform.tms.features.ride.domain.RidePriorityLevel;
+import com.transportplatform.tms.features.ride.domain.RideStatus;
+import com.transportplatform.tms.features.ride.domain.RideTripType;
+import java.time.Instant;
+import java.time.LocalDateTime;
+
+public record RideResponse(
+        Long id,
+        String tenantId,
+        String rideNumber,
+        Long riderId,
+        String riderCode,
+        String riderName,
+        Long guardianId,
+        String guardianName,
+        Long organizationId,
+        String organizationName,
+        Long contractId,
+        String contractCode,
+        String contractName,
+        Long serviceAreaId,
+        String serviceAreaName,
+        ServiceType serviceType,
+        RideTripType tripType,
+        String pickupAddressLine1,
+        String pickupAddressLine2,
+        String pickupCity,
+        String pickupState,
+        String pickupZipCode,
+        String pickupCountry,
+        String dropoffAddressLine1,
+        String dropoffAddressLine2,
+        String dropoffCity,
+        String dropoffState,
+        String dropoffZipCode,
+        String dropoffCountry,
+        LocalDateTime scheduledPickupAt,
+        LocalDateTime scheduledDropoffAt,
+        LocalDateTime returnPickupAt,
+        LocalDateTime returnDropoffAt,
+        boolean wheelchairRequired,
+        boolean escortRequired,
+        int companionCount,
+        String specialInstructions,
+        String internalNotes,
+        String operationalNotes,
+        RidePriorityLevel priorityLevel,
+        RideBillingType billingType,
+        Long driverId,
+        Long vehicleId,
+        Long routeId,
+        Long recurrenceScheduleId,
+        String recurrenceCode,
+        String cancellationReason,
+        Instant cancelledAt,
+        String cancelledBy,
+        RideStatus status,
+        String createdBy,
+        Instant createdAt,
+        String updatedBy,
+        Instant updatedAt) {
+}

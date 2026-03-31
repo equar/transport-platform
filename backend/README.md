@@ -4,7 +4,7 @@ Spring Boot backend foundation for the transportation management SaaS platform.
 
 ## Stack
 
-- Java 21
+- Java 25
 - Spring Boot 3
 - Spring Security with JWT skeleton
 - Spring Data JPA

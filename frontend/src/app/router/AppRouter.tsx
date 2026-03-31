@@ -15,6 +15,10 @@ import { DriverDetailsPage } from "../../features/drivers/pages/DriverDetailsPag
 import { DriverManagementPage } from "../../features/drivers/pages/DriverManagementPage";
 import { GuardianDetailsPage } from "../../features/guardians/pages/GuardianDetailsPage";
 import { GuardianManagementPage } from "../../features/guardians/pages/GuardianManagementPage";
+import { RecurringRideDetailsPage } from "../../features/rides/pages/RecurringRideDetailsPage";
+import { RecurringRideManagementPage } from "../../features/rides/pages/RecurringRideManagementPage";
+import { RideDetailsPage } from "../../features/rides/pages/RideDetailsPage";
+import { RideManagementPage } from "../../features/rides/pages/RideManagementPage";
 import { RiderDetailsPage } from "../../features/riders/pages/RiderDetailsPage";
 import { RiderManagementPage } from "../../features/riders/pages/RiderManagementPage";
 import { VehicleDetailsPage } from "../../features/vehicles/pages/VehicleDetailsPage";
@@ -114,6 +118,22 @@ const router = createBrowserRouter([
       {
         path: "riders/:riderId",
         element: <RiderDetailsPage />,
+      },
+      {
+        path: "rides",
+        element: <RideManagementPage />,
+      },
+      {
+        path: "rides/:rideId",
+        element: <RideDetailsPage />,
+      },
+      {
+        path: "recurring-rides",
+        element: <RecurringRideManagementPage />,
+      },
+      {
+        path: "recurring-rides/:recurrenceId",
+        element: <RecurringRideDetailsPage />,
       },
       {
         path: "guardians",

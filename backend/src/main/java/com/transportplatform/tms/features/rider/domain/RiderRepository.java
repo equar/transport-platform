@@ -19,5 +19,10 @@ public interface RiderRepository extends JpaRepository<Rider, Long>, JpaSpecific
 
     long countByTenantIdAndEscortRequiredTrue(String tenantId);
 
+    long countByTenantIdAndOrganizationId(String tenantId, Long organizationId);
+
     List<Rider> findAllByTenantId(String tenantId);
+
+    List<Rider> findTop10ByTenantIdAndOrganizationIdOrderByLastNameAscFirstNameAsc(String tenantId,
+            Long organizationId);
 }

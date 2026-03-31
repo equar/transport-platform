@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.transportplatform.tms.features.audit.application.AuditLogService;
+import com.transportplatform.tms.features.organization.application.OrganizationValidationService;
 import com.transportplatform.tms.features.rider.api.request.RiderUpsertRequest;
 import com.transportplatform.tms.features.rider.domain.Rider;
 import com.transportplatform.tms.features.rider.domain.RiderGuardianRepository;
@@ -38,6 +39,9 @@ class RiderServiceTest {
     private RiderCodeGenerator riderCodeGenerator;
 
     @Mock
+    private OrganizationValidationService organizationValidationService;
+
+    @Mock
     private AuditLogService auditLogService;
 
     @Test
@@ -49,6 +53,7 @@ class RiderServiceTest {
                 new RiderGuardianMapper(),
                 riderAccessService,
                 riderCodeGenerator,
+                organizationValidationService,
                 auditLogService,
                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 

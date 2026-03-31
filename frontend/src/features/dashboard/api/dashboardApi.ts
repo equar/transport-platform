@@ -51,6 +51,13 @@ export interface CompanyDashboardSummary {
   vehiclesOutOfService: number;
   vehiclesWithExpiredDocuments: number;
   vehiclesMissingRequiredDocuments: number;
+  totalRides: number;
+  requestedRides: number;
+  scheduledRides: number;
+  cancelledRides: number;
+  completedRides: number;
+  totalRecurringRideSchedules: number;
+  activeRecurringRideSchedules: number;
   recentActivity: DashboardActivity[];
 }
 

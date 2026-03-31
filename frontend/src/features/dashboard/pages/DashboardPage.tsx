@@ -4,6 +4,7 @@ import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
 import AccessibleRoundedIcon from "@mui/icons-material/AccessibleRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
+import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import ContactPhoneRoundedIcon from "@mui/icons-material/ContactPhoneRounded";
 import DirectionsCarFilledRoundedIcon from "@mui/icons-material/DirectionsCarFilledRounded";
 import BuildCircleRoundedIcon from "@mui/icons-material/BuildCircleRounded";
@@ -12,6 +13,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import PersonAddAltRoundedIcon from "@mui/icons-material/PersonAddAltRounded";
+import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
 import ShieldRoundedIcon from "@mui/icons-material/ShieldRounded";
 import { Link as RouterLink } from "react-router-dom";
@@ -205,6 +207,49 @@ export function DashboardPage() {
       caption:
         "Vehicles still missing required registration, insurance, or inspection documents.",
     },
+    {
+      key: "totalRides",
+      label: "Total Rides",
+      icon: <CalendarMonthRoundedIcon color="primary" />,
+      caption: "All ride records currently tracked by your tenant.",
+    },
+    {
+      key: "requestedRides",
+      label: "Requested Rides",
+      icon: <AssignmentTurnedInRoundedIcon color="primary" />,
+      caption: "Rides currently waiting in the request and review funnel.",
+    },
+    {
+      key: "scheduledRides",
+      label: "Scheduled Rides",
+      icon: <CheckCircleRoundedIcon color="primary" />,
+      caption: "Rides already marked ready for future dispatch and assignment.",
+    },
+    {
+      key: "cancelledRides",
+      label: "Cancelled Rides",
+      icon: <CloseRoundedIcon color="primary" />,
+      caption: "Rides cancelled with audit-ready operational traceability.",
+    },
+    {
+      key: "completedRides",
+      label: "Completed Rides",
+      icon: <CheckCircleRoundedIcon color="primary" />,
+      caption: "Rides already closed out as operationally complete.",
+    },
+    {
+      key: "totalRecurringRideSchedules",
+      label: "Recurring Schedules",
+      icon: <RepeatRoundedIcon color="primary" />,
+      caption: "Recurring ride templates configured for automated generation.",
+    },
+    {
+      key: "activeRecurringRideSchedules",
+      label: "Active Recurring Schedules",
+      icon: <RepeatRoundedIcon color="primary" />,
+      caption:
+        "Recurring schedules currently eligible for future ride generation.",
+    },
   ];
 
   useEffect(() => {
@@ -307,10 +352,24 @@ export function DashboardPage() {
                 </Button>
                 <Button
                   component={RouterLink}
+                  to="/company/rides"
+                  variant="outlined"
+                >
+                  Manage Rides
+                </Button>
+                <Button
+                  component={RouterLink}
                   to="/company/guardians"
                   variant="text"
                 >
                   Manage Guardians
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/recurring-rides"
+                  variant="text"
+                >
+                  Manage Recurring Rides
                 </Button>
                 <Button
                   component={RouterLink}

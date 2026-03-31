@@ -5,6 +5,7 @@ import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.response.PageResponse;
 import com.transportplatform.tms.features.audit.application.AuditLogCommand;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
+import com.transportplatform.tms.features.organization.application.OrganizationValidationService;
 import com.transportplatform.tms.features.rider.api.request.RiderUpsertRequest;
 import com.transportplatform.tms.features.rider.api.response.RiderGuardianResponse;
 import com.transportplatform.tms.features.rider.api.response.RiderResponse;
@@ -37,6 +38,7 @@ public class RiderService {
     private final RiderGuardianMapper riderGuardianMapper;
     private final RiderAccessService riderAccessService;
     private final RiderCodeGenerator riderCodeGenerator;
+    private final OrganizationValidationService organizationValidationService;
     private final AuditLogService auditLogService;
     private final Clock clock;
 
@@ -46,6 +48,7 @@ public class RiderService {
             RiderGuardianMapper riderGuardianMapper,
             RiderAccessService riderAccessService,
             RiderCodeGenerator riderCodeGenerator,
+            OrganizationValidationService organizationValidationService,
             AuditLogService auditLogService,
             Clock clock) {
         this.riderRepository = riderRepository;
@@ -54,6 +57,7 @@ public class RiderService {
         this.riderGuardianMapper = riderGuardianMapper;
         this.riderAccessService = riderAccessService;
         this.riderCodeGenerator = riderCodeGenerator;
+        this.organizationValidationService = organizationValidationService;
         this.auditLogService = auditLogService;
         this.clock = clock;
     }
@@ -211,6 +215,7 @@ public class RiderService {
         if (rider.getOrganizationId() != null && rider.getOrganizationId() <= 0) {
             throw validationFailure("Organization reference must be positive when provided.");
         }
+        organizationValidationService.validateRiderOrganizationLink(rider.getTenantId(), rider.getOrganizationId());
     }
 
     private void validateTimeWindow(LocalTime start, LocalTime end, String label) {

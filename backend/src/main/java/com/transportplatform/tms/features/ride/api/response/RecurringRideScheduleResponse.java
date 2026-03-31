@@ -1,0 +1,67 @@
+package com.transportplatform.tms.features.ride.api.response;
+
+import com.transportplatform.tms.features.organization.domain.ServiceType;
+import com.transportplatform.tms.features.ride.domain.RideBillingType;
+import com.transportplatform.tms.features.ride.domain.RideRecurrencePatternType;
+import com.transportplatform.tms.features.ride.domain.RideRecurrenceStatus;
+import com.transportplatform.tms.features.ride.domain.RideTripType;
+import java.time.DayOfWeek;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.Set;
+
+public record RecurringRideScheduleResponse(
+        Long id,
+        String tenantId,
+        String recurrenceCode,
+        Long riderId,
+        String riderCode,
+        String riderName,
+        Long guardianId,
+        String guardianName,
+        Long organizationId,
+        String organizationName,
+        Long contractId,
+        String contractCode,
+        String contractName,
+        Long serviceAreaId,
+        String serviceAreaName,
+        ServiceType serviceType,
+        RideTripType tripType,
+        String pickupAddressLine1,
+        String pickupAddressLine2,
+        String pickupCity,
+        String pickupState,
+        String pickupZipCode,
+        String pickupCountry,
+        String dropoffAddressLine1,
+        String dropoffAddressLine2,
+        String dropoffCity,
+        String dropoffState,
+        String dropoffZipCode,
+        String dropoffCountry,
+        LocalTime scheduledPickupTime,
+        LocalTime scheduledDropoffTime,
+        LocalTime returnPickupTime,
+        LocalTime returnDropoffTime,
+        RideRecurrencePatternType recurrencePatternType,
+        Set<DayOfWeek> daysOfWeek,
+        Integer intervalDays,
+        LocalDate startDate,
+        LocalDate endDate,
+        Integer occurrenceLimit,
+        Set<LocalDate> skipDates,
+        boolean wheelchairRequired,
+        boolean escortRequired,
+        int companionCount,
+        String specialInstructions,
+        String internalNotes,
+        RideBillingType billingType,
+        RideRecurrenceStatus status,
+        String createdBy,
+        Instant createdAt,
+        String updatedBy,
+        Instant updatedAt,
+        long generatedRideCount) {
+}

@@ -23,7 +23,7 @@ Production-ready starter monorepo for a multi-tenant transportation management S
 
 ## Stack
 
-- Backend: Java 21, Spring Boot, Spring Security, Spring Data JPA, Flyway, MySQL
+- Backend: Java 25, Spring Boot, Spring Security, Spring Data JPA, Flyway, MySQL
 - Frontend: React, TypeScript, Vite, Material UI, Axios, React Router
 - Infra: Docker Compose, Nginx, GitHub Actions
 
@@ -31,7 +31,7 @@ Production-ready starter monorepo for a multi-tenant transportation management S
 
 ### Prerequisites
 
-- Java 21
+- Java 25
 - Maven 3.9+
 - Node.js 22+
 - Docker Desktop

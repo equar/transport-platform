@@ -19,6 +19,7 @@ import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
+import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import ContactPhoneRoundedIcon from "@mui/icons-material/ContactPhoneRounded";
 import DriveEtaRoundedIcon from "@mui/icons-material/DriveEtaRounded";
 import DirectionsCarFilledRoundedIcon from "@mui/icons-material/DirectionsCarFilledRounded";
@@ -28,6 +29,7 @@ import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
 import AccessibleRoundedIcon from "@mui/icons-material/AccessibleRounded";
+import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
 import { Link as RouterLink, Outlet, useLocation } from "react-router-dom";
 import { getRoleLabel, isPlatformAdmin } from "../../features/auth/access";
 import { useAuth } from "../../features/auth/context/AuthContext";
@@ -98,6 +100,20 @@ export function AppShell() {
             "Rider onboarding, support needs, and guardian visibility",
           to: "/company/riders",
           icon: <AccessibleRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Ride Management",
+          description:
+            "One-off ride intake, lifecycle control, and scheduling readiness",
+          to: "/company/rides",
+          icon: <CalendarMonthRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Recurring Rides",
+          description:
+            "Recurring service templates and controlled ride generation",
+          to: "/company/recurring-rides",
+          icon: <RepeatRoundedIcon fontSize="small" />,
         },
         {
           label: "Guardian Management",
