@@ -17,7 +17,10 @@ import com.transportplatform.tms.features.organization.domain.OrganizationReposi
 import com.transportplatform.tms.features.organization.domain.OrganizationStatus;
 import com.transportplatform.tms.features.organization.domain.ServiceAreaRepository;
 import com.transportplatform.tms.features.organization.domain.ServiceAreaStatus;
+import com.transportplatform.tms.features.route.domain.RouteRepository;
+import com.transportplatform.tms.features.route.domain.RouteStatus;
 import com.transportplatform.tms.features.ride.domain.RecurringRideScheduleRepository;
+import com.transportplatform.tms.features.ride.domain.RideStatus;
 import com.transportplatform.tms.features.ride.domain.RideRecurrenceStatus;
 import com.transportplatform.tms.features.ride.domain.RideRepository;
 import com.transportplatform.tms.features.rider.domain.RiderRepository;
@@ -27,6 +30,7 @@ import com.transportplatform.tms.features.vehicle.domain.Vehicle;
 import com.transportplatform.tms.features.vehicle.domain.VehicleRepository;
 import com.transportplatform.tms.features.vehicle.domain.VehicleStatus;
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -47,6 +51,7 @@ public class CompanyDashboardService {
         private final VehicleRepository vehicleRepository;
         private final VehicleComplianceSummaryService vehicleComplianceSummaryService;
         private final RideRepository rideRepository;
+        private final RouteRepository routeRepository;
         private final RecurringRideScheduleRepository recurringRideScheduleRepository;
 
         public CompanyDashboardService(AppUserRepository appUserRepository,
@@ -61,6 +66,7 @@ public class CompanyDashboardService {
                         VehicleRepository vehicleRepository,
                         VehicleComplianceSummaryService vehicleComplianceSummaryService,
                         RideRepository rideRepository,
+                        RouteRepository routeRepository,
                         RecurringRideScheduleRepository recurringRideScheduleRepository) {
                 this.appUserRepository = appUserRepository;
                 this.currentAuthenticatedUserService = currentAuthenticatedUserService;
@@ -74,6 +80,7 @@ public class CompanyDashboardService {
                 this.vehicleRepository = vehicleRepository;
                 this.vehicleComplianceSummaryService = vehicleComplianceSummaryService;
                 this.rideRepository = rideRepository;
+                this.routeRepository = routeRepository;
                 this.recurringRideScheduleRepository = recurringRideScheduleRepository;
         }
 
@@ -95,6 +102,15 @@ public class CompanyDashboardService {
                 List<com.transportplatform.tms.features.driver.domain.Driver> drivers = driverRepository
                                 .findAllByTenantId(tenantId);
                 List<Vehicle> vehicles = vehicleRepository.findAllByTenantId(tenantId);
+                long assignedRides = rideRepository.countByTenantIdAndStatusIn(tenantId,
+                                EnumSet.of(RideStatus.ASSIGNED));
+                long ridesInProgress = rideRepository.countByTenantIdAndStatusIn(
+                                tenantId,
+                                EnumSet.of(RideStatus.DRIVER_EN_ROUTE, RideStatus.ARRIVED, RideStatus.PICKED_UP,
+                                                RideStatus.DROPPED_OFF));
+                long rideExceptions = rideRepository.countByTenantIdAndStatusIn(
+                                tenantId,
+                                EnumSet.of(RideStatus.RIDER_NO_SHOW, RideStatus.MISSED, RideStatus.FAILED));
                 return new CompanyDashboardSummaryResponse(
                                 appUserRepository.countByTenantId(tenantId),
                                 appUserRepository.countByTenantIdAndStatus(tenantId, UserStatus.ACTIVE),
@@ -146,10 +162,17 @@ public class CompanyDashboardService {
                                                                 com.transportplatform.tms.features.ride.domain.RideStatus.PENDING_REVIEW),
                                 rideRepository.countByTenantIdAndStatus(tenantId,
                                                 com.transportplatform.tms.features.ride.domain.RideStatus.SCHEDULED),
+                                assignedRides,
+                                ridesInProgress,
+                                rideExceptions,
                                 rideRepository.countByTenantIdAndStatus(tenantId,
                                                 com.transportplatform.tms.features.ride.domain.RideStatus.CANCELLED),
                                 rideRepository.countByTenantIdAndStatus(tenantId,
                                                 com.transportplatform.tms.features.ride.domain.RideStatus.COMPLETED),
+                                routeRepository.countByTenantIdAndStatusIn(tenantId, EnumSet.allOf(RouteStatus.class)),
+                                routeRepository.countByTenantIdAndStatusIn(tenantId, EnumSet.of(RouteStatus.READY)),
+                                routeRepository.countByTenantIdAndStatusIn(tenantId,
+                                                EnumSet.of(RouteStatus.IN_PROGRESS)),
                                 recurringRideScheduleRepository.countByTenantId(tenantId),
                                 recurringRideScheduleRepository.countByTenantIdAndStatus(tenantId,
                                                 RideRecurrenceStatus.ACTIVE),

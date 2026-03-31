@@ -288,6 +288,39 @@ export interface RideGenerationResult {
   summary: string;
 }
 
+export type RideEventType =
+  | "CREATED"
+  | "STATUS_CHANGED"
+  | "DRIVER_ASSIGNED"
+  | "DRIVER_UNASSIGNED"
+  | "VEHICLE_ASSIGNED"
+  | "VEHICLE_UNASSIGNED"
+  | "ROUTE_ASSIGNED"
+  | "ROUTE_UNASSIGNED"
+  | "DRIVER_EN_ROUTE"
+  | "ARRIVED"
+  | "PICKED_UP"
+  | "DROPPED_OFF"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "NO_SHOW"
+  | "MISSED"
+  | "FAILED"
+  | "NOTE_ADDED";
+
+export interface RideEventRecord {
+  id: number;
+  rideId: number;
+  eventType: RideEventType;
+  actorUserId: number | null;
+  actorName: string | null;
+  actorEmail: string | null;
+  previousStatus: RideStatus | null;
+  newStatus: RideStatus | null;
+  notes: string | null;
+  createdAt: string;
+}
+
 export const rideStatusOptions: RideStatus[] = [
   "DRAFT",
   "REQUESTED",
@@ -408,10 +441,54 @@ export const ridesApi = {
     const response = await apiClient.post(`/company/rides/${rideId}/schedule`);
     return unwrapResponse<RideRecord>(response.data);
   },
+  async markAssigned(rideId: number) {
+    const response = await apiClient.post(`/company/rides/${rideId}/mark-assigned`);
+    return unwrapResponse<RideRecord>(response.data);
+  },
+  async markDriverEnRoute(rideId: number) {
+    const response = await apiClient.post(`/company/rides/${rideId}/driver-en-route`);
+    return unwrapResponse<RideRecord>(response.data);
+  },
+  async markArrived(rideId: number) {
+    const response = await apiClient.post(`/company/rides/${rideId}/arrived`);
+    return unwrapResponse<RideRecord>(response.data);
+  },
+  async markPickedUp(rideId: number) {
+    const response = await apiClient.post(`/company/rides/${rideId}/picked-up`);
+    return unwrapResponse<RideRecord>(response.data);
+  },
+  async markDroppedOff(rideId: number) {
+    const response = await apiClient.post(`/company/rides/${rideId}/dropped-off`);
+    return unwrapResponse<RideRecord>(response.data);
+  },
+  async complete(rideId: number) {
+    const response = await apiClient.post(`/company/rides/${rideId}/complete`);
+    return unwrapResponse<RideRecord>(response.data);
+  },
+  async markNoShow(rideId: number) {
+    const response = await apiClient.post(`/company/rides/${rideId}/no-show`);
+    return unwrapResponse<RideRecord>(response.data);
+  },
+  async markMissed(rideId: number) {
+    const response = await apiClient.post(`/company/rides/${rideId}/missed`);
+    return unwrapResponse<RideRecord>(response.data);
+  },
+  async markFailed(rideId: number) {
+    const response = await apiClient.post(`/company/rides/${rideId}/failed`);
+    return unwrapResponse<RideRecord>(response.data);
+  },
   async cancel(rideId: number, reason: string) {
     const response = await apiClient.post(`/company/rides/${rideId}/cancel`, {
       reason,
     });
+    return unwrapResponse<RideRecord>(response.data);
+  },
+  async getEvents(rideId: number) {
+    const response = await apiClient.get(`/company/rides/${rideId}/events`);
+    return unwrapResponse<RideEventRecord[]>(response.data);
+  },
+  async addEventNote(rideId: number, notes: string) {
+    const response = await apiClient.post(`/company/rides/${rideId}/events/notes`, { notes });
     return unwrapResponse<RideRecord>(response.data);
   },
   async searchRecurring(params: RecurringRideSearchParams) {

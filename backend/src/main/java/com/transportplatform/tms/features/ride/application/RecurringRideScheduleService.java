@@ -18,6 +18,7 @@ import com.transportplatform.tms.features.ride.domain.RideRecurrenceStatus;
 import com.transportplatform.tms.features.ride.domain.RideRepository;
 import com.transportplatform.tms.features.ride.domain.RideStatus;
 import com.transportplatform.tms.features.ride.domain.RideTripType;
+import com.transportplatform.tms.features.rideevent.application.RideEventService;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,6 +42,7 @@ public class RecurringRideScheduleService {
     private final RecurringRideScheduleMapper recurringRideScheduleMapper;
     private final RecurringRideCodeGenerator recurringRideCodeGenerator;
     private final RideCodeGenerator rideCodeGenerator;
+    private final RideEventService rideEventService;
     private final AuditLogService auditLogService;
     private final Clock clock;
 
@@ -51,6 +53,7 @@ public class RecurringRideScheduleService {
             RecurringRideScheduleMapper recurringRideScheduleMapper,
             RecurringRideCodeGenerator recurringRideCodeGenerator,
             RideCodeGenerator rideCodeGenerator,
+            RideEventService rideEventService,
             AuditLogService auditLogService,
             Clock clock) {
         this.recurringRideScheduleRepository = recurringRideScheduleRepository;
@@ -60,6 +63,7 @@ public class RecurringRideScheduleService {
         this.recurringRideScheduleMapper = recurringRideScheduleMapper;
         this.recurringRideCodeGenerator = recurringRideCodeGenerator;
         this.rideCodeGenerator = rideCodeGenerator;
+        this.rideEventService = rideEventService;
         this.auditLogService = auditLogService;
         this.clock = clock;
     }
@@ -261,6 +265,8 @@ public class RecurringRideScheduleService {
             ride.setStatus(RideStatus.SCHEDULED);
             validateGeneratedRide(ride);
             Ride saved = rideRepository.save(ride);
+            rideEventService.recordRideCreated(saved,
+                    "Ride generated from recurring schedule " + schedule.getRecurrenceCode() + ".");
             recordGeneratedRideAudit(saved, schedule);
             createdCount++;
         }

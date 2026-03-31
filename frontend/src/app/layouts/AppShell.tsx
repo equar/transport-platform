@@ -27,6 +27,7 @@ import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
+import RouteRoundedIcon from "@mui/icons-material/RouteRounded";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
 import AccessibleRoundedIcon from "@mui/icons-material/AccessibleRounded";
 import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
@@ -107,6 +108,19 @@ export function AppShell() {
             "One-off ride intake, lifecycle control, and scheduling readiness",
           to: "/company/rides",
           icon: <CalendarMonthRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Dispatch Board",
+          description:
+            "Assignment coverage, exception handling, and day-of-service control",
+          to: "/company/dispatch",
+          icon: <DirectionsCarFilledRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Route Management",
+          description: "Route manifests, sequencing, and resource readiness",
+          to: "/company/routes",
+          icon: <RouteRoundedIcon fontSize="small" />,
         },
         {
           label: "Recurring Rides",

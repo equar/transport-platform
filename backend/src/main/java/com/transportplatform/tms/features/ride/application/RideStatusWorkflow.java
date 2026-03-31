@@ -51,6 +51,76 @@ public final class RideStatusWorkflow {
         }
     }
 
+    public static void ensureCanAssignResources(RideStatus currentStatus) {
+        if (currentStatus != RideStatus.SCHEDULED && currentStatus != RideStatus.ASSIGNED) {
+            throw invalidTransition("Only scheduled or assigned rides can update dispatch resources.");
+        }
+    }
+
+    public static void ensureCanUnassignResources(RideStatus currentStatus) {
+        if (currentStatus != RideStatus.SCHEDULED && currentStatus != RideStatus.ASSIGNED) {
+            throw invalidTransition("Only scheduled or assigned rides can remove dispatch resources.");
+        }
+    }
+
+    public static void ensureCanMarkAssigned(RideStatus currentStatus) {
+        if (currentStatus != RideStatus.SCHEDULED) {
+            throw invalidTransition("Only scheduled rides can move to assigned.");
+        }
+    }
+
+    public static void ensureCanMarkDriverEnRoute(RideStatus currentStatus) {
+        if (currentStatus != RideStatus.ASSIGNED) {
+            throw invalidTransition("Only assigned rides can be marked as driver en route.");
+        }
+    }
+
+    public static void ensureCanMarkArrived(RideStatus currentStatus) {
+        if (currentStatus != RideStatus.DRIVER_EN_ROUTE) {
+            throw invalidTransition("Only rides with driver en route can be marked as arrived.");
+        }
+    }
+
+    public static void ensureCanMarkPickedUp(RideStatus currentStatus) {
+        if (currentStatus != RideStatus.ARRIVED) {
+            throw invalidTransition("Only arrived rides can be marked as picked up.");
+        }
+    }
+
+    public static void ensureCanMarkDroppedOff(RideStatus currentStatus) {
+        if (currentStatus != RideStatus.PICKED_UP) {
+            throw invalidTransition("Only picked up rides can be marked as dropped off.");
+        }
+    }
+
+    public static void ensureCanMarkCompleted(RideStatus currentStatus) {
+        if (currentStatus != RideStatus.DROPPED_OFF) {
+            throw invalidTransition("Only dropped off rides can be marked as completed.");
+        }
+    }
+
+    public static void ensureCanMarkNoShow(RideStatus currentStatus) {
+        if (currentStatus != RideStatus.ASSIGNED && currentStatus != RideStatus.ARRIVED) {
+            throw invalidTransition("Only assigned or arrived rides can be marked as rider no show.");
+        }
+    }
+
+    public static void ensureCanMarkMissed(RideStatus currentStatus) {
+        if (currentStatus != RideStatus.SCHEDULED && currentStatus != RideStatus.ASSIGNED) {
+            throw invalidTransition("Only scheduled or assigned rides can be marked as missed.");
+        }
+    }
+
+    public static void ensureCanMarkFailed(RideStatus currentStatus) {
+        if (currentStatus != RideStatus.ASSIGNED
+                && currentStatus != RideStatus.DRIVER_EN_ROUTE
+                && currentStatus != RideStatus.ARRIVED
+                && currentStatus != RideStatus.PICKED_UP
+                && currentStatus != RideStatus.DROPPED_OFF) {
+            throw invalidTransition("Only active operational rides can be marked as failed.");
+        }
+    }
+
     public static void ensureCanCancel(RideStatus currentStatus) {
         if (currentStatus == RideStatus.CANCELLED || currentStatus == RideStatus.COMPLETED) {
             throw invalidTransition("This ride can no longer be cancelled.");

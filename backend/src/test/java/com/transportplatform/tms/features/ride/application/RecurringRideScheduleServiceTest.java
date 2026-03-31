@@ -25,6 +25,7 @@ import com.transportplatform.tms.features.ride.domain.RideRecurrencePatternType;
 import com.transportplatform.tms.features.ride.domain.RideRecurrenceStatus;
 import com.transportplatform.tms.features.ride.domain.RideRepository;
 import com.transportplatform.tms.features.ride.domain.RideTripType;
+import com.transportplatform.tms.features.rideevent.application.RideEventService;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.Instant;
@@ -63,6 +64,9 @@ class RecurringRideScheduleServiceTest {
     @Mock
     private AuditLogService auditLogService;
 
+    @Mock
+    private RideEventService rideEventService;
+
     @Test
     void createRecurringScheduleRejectsWeeklyPatternWithoutCadence() {
         RecurringRideScheduleService service = new RecurringRideScheduleService(
@@ -73,6 +77,7 @@ class RecurringRideScheduleServiceTest {
                 new RecurringRideScheduleMapper(),
                 recurringRideCodeGenerator,
                 rideCodeGenerator,
+                rideEventService,
                 auditLogService,
                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 
@@ -100,6 +105,7 @@ class RecurringRideScheduleServiceTest {
                 new RecurringRideScheduleMapper(),
                 recurringRideCodeGenerator,
                 rideCodeGenerator,
+                rideEventService,
                 auditLogService,
                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 

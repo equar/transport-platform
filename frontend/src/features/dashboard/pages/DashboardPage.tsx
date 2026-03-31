@@ -14,6 +14,7 @@ import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import PersonAddAltRoundedIcon from "@mui/icons-material/PersonAddAltRounded";
 import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
+import RouteRoundedIcon from "@mui/icons-material/RouteRounded";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
 import ShieldRoundedIcon from "@mui/icons-material/ShieldRounded";
 import { Link as RouterLink } from "react-router-dom";
@@ -226,6 +227,24 @@ export function DashboardPage() {
       caption: "Rides already marked ready for future dispatch and assignment.",
     },
     {
+      key: "assignedRides",
+      label: "Assigned Rides",
+      icon: <DirectionsCarFilledRoundedIcon color="primary" />,
+      caption: "Rides with driver and vehicle assignments already in place.",
+    },
+    {
+      key: "ridesInProgress",
+      label: "Rides In Progress",
+      icon: <RouteRoundedIcon color="primary" />,
+      caption: "Operational rides currently moving through field execution.",
+    },
+    {
+      key: "rideExceptions",
+      label: "Ride Exceptions",
+      icon: <CloseRoundedIcon color="primary" />,
+      caption: "No-show, missed, and failed rides requiring follow-up.",
+    },
+    {
       key: "cancelledRides",
       label: "Cancelled Rides",
       icon: <CloseRoundedIcon color="primary" />,
@@ -236,6 +255,24 @@ export function DashboardPage() {
       label: "Completed Rides",
       icon: <CheckCircleRoundedIcon color="primary" />,
       caption: "Rides already closed out as operationally complete.",
+    },
+    {
+      key: "totalRoutes",
+      label: "Total Routes",
+      icon: <RouteRoundedIcon color="primary" />,
+      caption: "Route manifests created for dispatch planning and sequencing.",
+    },
+    {
+      key: "readyRoutes",
+      label: "Ready Routes",
+      icon: <AssignmentTurnedInRoundedIcon color="primary" />,
+      caption: "Routes that are fully staged for active dispatch execution.",
+    },
+    {
+      key: "routesInProgress",
+      label: "Routes In Progress",
+      icon: <DirectionsCarFilledRoundedIcon color="primary" />,
+      caption: "Routes already started and actively running in the field.",
     },
     {
       key: "totalRecurringRideSchedules",
@@ -356,6 +393,20 @@ export function DashboardPage() {
                   variant="outlined"
                 >
                   Manage Rides
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/dispatch"
+                  variant="contained"
+                >
+                  Open Dispatch Board
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/routes"
+                  variant="outlined"
+                >
+                  Manage Routes
                 </Button>
                 <Button
                   component={RouterLink}
@@ -500,8 +551,24 @@ export function DashboardPage() {
                 <>
                   <Button
                     component={RouterLink}
-                    to="/company/riders"
+                    to="/company/dispatch"
                     variant="contained"
+                    startIcon={<DirectionsCarFilledRoundedIcon />}
+                  >
+                    Open Dispatch Board
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/company/routes"
+                    variant="outlined"
+                    startIcon={<RouteRoundedIcon />}
+                  >
+                    Review Routes
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/company/riders"
+                    variant="outlined"
                     startIcon={<AccessibleRoundedIcon />}
                   >
                     Create Rider

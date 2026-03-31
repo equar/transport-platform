@@ -21,6 +21,7 @@ import com.transportplatform.tms.features.ride.domain.RidePriorityLevel;
 import com.transportplatform.tms.features.ride.domain.RideRepository;
 import com.transportplatform.tms.features.ride.domain.RideStatus;
 import com.transportplatform.tms.features.ride.domain.RideTripType;
+import com.transportplatform.tms.features.rideevent.application.RideEventService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -51,6 +52,9 @@ class RideServiceTest {
     @Mock
     private AuditLogService auditLogService;
 
+    @Mock
+    private RideEventService rideEventService;
+
     @Test
     void companyRideCreationUsesTenantScopeAndRequestedDefault() {
         RideService rideService = new RideService(
@@ -59,6 +63,7 @@ class RideServiceTest {
                 rideReferenceValidationService,
                 new RideMapper(),
                 rideCodeGenerator,
+                rideEventService,
                 auditLogService,
                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 
@@ -87,6 +92,7 @@ class RideServiceTest {
                 rideReferenceValidationService,
                 new RideMapper(),
                 rideCodeGenerator,
+                rideEventService,
                 auditLogService,
                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 
@@ -111,6 +117,7 @@ class RideServiceTest {
                 rideReferenceValidationService,
                 new RideMapper(),
                 rideCodeGenerator,
+                rideEventService,
                 auditLogService,
                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 

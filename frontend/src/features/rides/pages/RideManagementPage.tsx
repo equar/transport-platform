@@ -270,16 +270,30 @@ export function RideManagementPage() {
         title="Ride Management"
         description="Manage one-off and recurring-generated rides with lifecycle controls, scheduling context, and operational notes from a single company-admin workspace."
       >
-        <Button
-          variant="contained"
-          startIcon={<AddRoundedIcon />}
-          onClick={() => {
-            setSelectedRide(null);
-            setDialogOpen(true);
-          }}
-        >
-          Create Ride
-        </Button>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+          <Button
+            variant="outlined"
+            onClick={() => navigate("/company/dispatch")}
+          >
+            Open Dispatch Board
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => navigate("/company/routes")}
+          >
+            Manage Routes
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddRoundedIcon />}
+            onClick={() => {
+              setSelectedRide(null);
+              setDialogOpen(true);
+            }}
+          >
+            Create Ride
+          </Button>
+        </Stack>
       </SectionHeader>
 
       <AdminFilterBar stackProps={{ alignItems: { md: "center" } }}>

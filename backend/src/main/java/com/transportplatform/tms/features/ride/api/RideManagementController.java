@@ -104,6 +104,60 @@ public class RideManagementController {
         return ApiResponse.success(rideService.scheduleCompanyRide(rideId));
     }
 
+    @PostMapping("/company/rides/{rideId}/mark-assigned")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<RideResponse> markCompanyRideAssigned(@PathVariable Long rideId) {
+        return ApiResponse.success(rideService.markCompanyRideAssigned(rideId));
+    }
+
+    @PostMapping("/company/rides/{rideId}/driver-en-route")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<RideResponse> markCompanyRideDriverEnRoute(@PathVariable Long rideId) {
+        return ApiResponse.success(rideService.markCompanyRideDriverEnRoute(rideId));
+    }
+
+    @PostMapping("/company/rides/{rideId}/arrived")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<RideResponse> markCompanyRideArrived(@PathVariable Long rideId) {
+        return ApiResponse.success(rideService.markCompanyRideArrived(rideId));
+    }
+
+    @PostMapping("/company/rides/{rideId}/picked-up")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<RideResponse> markCompanyRidePickedUp(@PathVariable Long rideId) {
+        return ApiResponse.success(rideService.markCompanyRidePickedUp(rideId));
+    }
+
+    @PostMapping("/company/rides/{rideId}/dropped-off")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<RideResponse> markCompanyRideDroppedOff(@PathVariable Long rideId) {
+        return ApiResponse.success(rideService.markCompanyRideDroppedOff(rideId));
+    }
+
+    @PostMapping("/company/rides/{rideId}/complete")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<RideResponse> completeCompanyRide(@PathVariable Long rideId) {
+        return ApiResponse.success(rideService.completeCompanyRide(rideId));
+    }
+
+    @PostMapping("/company/rides/{rideId}/no-show")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<RideResponse> markCompanyRideNoShow(@PathVariable Long rideId) {
+        return ApiResponse.success(rideService.markCompanyRideNoShow(rideId));
+    }
+
+    @PostMapping("/company/rides/{rideId}/missed")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<RideResponse> markCompanyRideMissed(@PathVariable Long rideId) {
+        return ApiResponse.success(rideService.markCompanyRideMissed(rideId));
+    }
+
+    @PostMapping("/company/rides/{rideId}/failed")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<RideResponse> markCompanyRideFailed(@PathVariable Long rideId) {
+        return ApiResponse.success(rideService.markCompanyRideFailed(rideId));
+    }
+
     @PostMapping("/company/rides/{rideId}/cancel")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ApiResponse<RideResponse> cancelCompanyRide(@PathVariable Long rideId,

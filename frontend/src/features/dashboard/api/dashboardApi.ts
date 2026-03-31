@@ -54,8 +54,14 @@ export interface CompanyDashboardSummary {
   totalRides: number;
   requestedRides: number;
   scheduledRides: number;
+  assignedRides: number;
+  ridesInProgress: number;
+  rideExceptions: number;
   cancelledRides: number;
   completedRides: number;
+  totalRoutes: number;
+  readyRoutes: number;
+  routesInProgress: number;
   totalRecurringRideSchedules: number;
   activeRecurringRideSchedules: number;
   recentActivity: DashboardActivity[];

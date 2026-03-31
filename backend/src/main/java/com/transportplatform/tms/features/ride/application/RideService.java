@@ -14,6 +14,7 @@ import com.transportplatform.tms.features.ride.domain.Ride;
 import com.transportplatform.tms.features.ride.domain.RideRepository;
 import com.transportplatform.tms.features.ride.domain.RideStatus;
 import com.transportplatform.tms.features.ride.domain.RideTripType;
+import com.transportplatform.tms.features.rideevent.application.RideEventService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -35,6 +36,7 @@ public class RideService {
     private final RideReferenceValidationService rideReferenceValidationService;
     private final RideMapper rideMapper;
     private final RideCodeGenerator rideCodeGenerator;
+    private final RideEventService rideEventService;
     private final AuditLogService auditLogService;
     private final Clock clock;
 
@@ -43,6 +45,7 @@ public class RideService {
             RideReferenceValidationService rideReferenceValidationService,
             RideMapper rideMapper,
             RideCodeGenerator rideCodeGenerator,
+            RideEventService rideEventService,
             AuditLogService auditLogService,
             Clock clock) {
         this.rideRepository = rideRepository;
@@ -50,6 +53,7 @@ public class RideService {
         this.rideReferenceValidationService = rideReferenceValidationService;
         this.rideMapper = rideMapper;
         this.rideCodeGenerator = rideCodeGenerator;
+        this.rideEventService = rideEventService;
         this.auditLogService = auditLogService;
         this.clock = clock;
     }
@@ -112,6 +116,7 @@ public class RideService {
         rideMapper.apply(ride, request, references);
         validateBusinessRules(ride);
         Ride saved = rideRepository.save(ride);
+        rideEventService.recordRideCreated(saved, "Ride created.");
         recordAudit(saved, "CREATED", "Ride " + saved.getRideNumber() + " was created.", null, snapshot(saved));
         return rideMapper.toResponse(saved);
     }
@@ -161,16 +166,109 @@ public class RideService {
     }
 
     @Transactional
+    public RideResponse markCompanyRideAssigned(Long rideId) {
+        Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        RideStatusWorkflow.ensureCanMarkAssigned(ride.getStatus());
+        if (ride.getDriverId() == null || ride.getVehicleId() == null) {
+            throw validationFailure("Both driver and vehicle must be assigned before a ride can be marked assigned.");
+        }
+        return updateStatus(ride, RideStatus.ASSIGNED, "ASSIGNED",
+                "Ride " + ride.getRideNumber() + " was marked assigned.");
+    }
+
+    @Transactional
+    public RideResponse markCompanyRideDriverEnRoute(Long rideId) {
+        Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        RideStatusWorkflow.ensureCanMarkDriverEnRoute(ride.getStatus());
+        return updateStatus(ride, RideStatus.DRIVER_EN_ROUTE, "DRIVER_EN_ROUTE",
+                "Driver is en route for ride " + ride.getRideNumber() + ".");
+    }
+
+    @Transactional
+    public RideResponse markCompanyRideArrived(Long rideId) {
+        Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        RideStatusWorkflow.ensureCanMarkArrived(ride.getStatus());
+        return updateStatus(ride, RideStatus.ARRIVED, "ARRIVED",
+                "Driver arrived for ride " + ride.getRideNumber() + ".");
+    }
+
+    @Transactional
+    public RideResponse markCompanyRidePickedUp(Long rideId) {
+        Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        RideStatusWorkflow.ensureCanMarkPickedUp(ride.getStatus());
+        return updateStatus(ride, RideStatus.PICKED_UP, "PICKED_UP",
+                "Rider was picked up for ride " + ride.getRideNumber() + ".");
+    }
+
+    @Transactional
+    public RideResponse markCompanyRideDroppedOff(Long rideId) {
+        Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        RideStatusWorkflow.ensureCanMarkDroppedOff(ride.getStatus());
+        return updateStatus(ride, RideStatus.DROPPED_OFF, "DROPPED_OFF",
+                "Rider was dropped off for ride " + ride.getRideNumber() + ".");
+    }
+
+    @Transactional
+    public RideResponse completeCompanyRide(Long rideId) {
+        Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        RideStatusWorkflow.ensureCanMarkCompleted(ride.getStatus());
+        return updateStatus(ride, RideStatus.COMPLETED, "COMPLETED",
+                "Ride " + ride.getRideNumber() + " was completed.");
+    }
+
+    @Transactional
+    public RideResponse markCompanyRideNoShow(Long rideId) {
+        Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        RideStatusWorkflow.ensureCanMarkNoShow(ride.getStatus());
+        return updateStatus(ride, RideStatus.RIDER_NO_SHOW, "NO_SHOW",
+                "Ride " + ride.getRideNumber() + " was marked as rider no show.");
+    }
+
+    @Transactional
+    public RideResponse markCompanyRideMissed(Long rideId) {
+        Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        RideStatusWorkflow.ensureCanMarkMissed(ride.getStatus());
+        return updateStatus(ride, RideStatus.MISSED, "MISSED",
+                "Ride " + ride.getRideNumber() + " was marked as missed.");
+    }
+
+    @Transactional
+    public RideResponse markCompanyRideFailed(Long rideId) {
+        Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        RideStatusWorkflow.ensureCanMarkFailed(ride.getStatus());
+        return updateStatus(ride, RideStatus.FAILED, "FAILED",
+                "Ride " + ride.getRideNumber() + " was marked as failed.");
+    }
+
+    @Transactional
+    public RideResponse addCompanyRideNote(Long rideId, String note) {
+        Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        String trimmedNote = trimToNull(note);
+        if (trimmedNote == null) {
+            throw validationFailure("Ride note cannot be blank.");
+        }
+        Object oldSnapshot = snapshot(ride);
+        ride.setOperationalNotes(mergeNotes(ride.getOperationalNotes(), trimmedNote));
+        Ride saved = rideRepository.save(ride);
+        rideEventService.recordNote(saved, trimmedNote);
+        recordAudit(saved, "NOTE_ADDED", "Operational note added to ride " + saved.getRideNumber() + ".",
+                oldSnapshot, snapshot(saved));
+        return rideMapper.toResponse(saved);
+    }
+
+    @Transactional
     public RideResponse cancelCompanyRide(Long rideId, CancelRideRequest request) {
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanCancel(ride.getStatus());
         Object oldSnapshot = snapshot(ride);
+        RideStatus previousStatus = ride.getStatus();
         AuthenticatedUser currentUser = rideAccessService.requireCompanyUser();
         ride.setStatus(RideStatus.CANCELLED);
         ride.setCancellationReason(request.reason().trim());
         ride.setCancelledAt(Instant.now(clock));
         ride.setCancelledBy(currentUser.displayName());
         Ride saved = rideRepository.save(ride);
+        rideEventService.recordStatusChanged(saved, previousStatus, RideStatus.CANCELLED, request.reason().trim());
         recordAudit(saved, "CANCELLED", "Ride " + saved.getRideNumber() + " was cancelled.", oldSnapshot,
                 snapshot(saved));
         return rideMapper.toResponse(saved);
@@ -178,6 +276,7 @@ public class RideService {
 
     private RideResponse updateStatus(Ride ride, RideStatus targetStatus, String action, String summary) {
         Object oldSnapshot = snapshot(ride);
+        RideStatus previousStatus = ride.getStatus();
         ride.setStatus(targetStatus);
         if (targetStatus != RideStatus.CANCELLED) {
             ride.setCancellationReason(null);
@@ -185,6 +284,7 @@ public class RideService {
             ride.setCancelledBy(null);
         }
         Ride saved = rideRepository.save(ride);
+        rideEventService.recordStatusChanged(saved, previousStatus, targetStatus, summary);
         recordAudit(saved, action, summary, oldSnapshot, snapshot(saved));
         return rideMapper.toResponse(saved);
     }
@@ -265,5 +365,17 @@ public class RideService {
                 resolved;
             default -> "updatedAt";
         };
+    }
+
+    private String trimToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String mergeNotes(String existing, String note) {
+        String trimmedExisting = trimToNull(existing);
+        if (trimmedExisting == null) {
+            return note;
+        }
+        return trimmedExisting + System.lineSeparator() + note;
     }
 }

@@ -11,6 +11,7 @@ import { useAuth } from "../../features/auth/context/AuthContext";
 import { LoginPage } from "../../features/auth/pages/LoginPage";
 import { ProtectedRoute } from "../../features/auth/routes/ProtectedRoute";
 import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
+import { DispatchBoardPage } from "../../features/dispatch/pages/DispatchBoardPage";
 import { DriverDetailsPage } from "../../features/drivers/pages/DriverDetailsPage";
 import { DriverManagementPage } from "../../features/drivers/pages/DriverManagementPage";
 import { GuardianDetailsPage } from "../../features/guardians/pages/GuardianDetailsPage";
@@ -24,6 +25,8 @@ import { RiderManagementPage } from "../../features/riders/pages/RiderManagement
 import { VehicleDetailsPage } from "../../features/vehicles/pages/VehicleDetailsPage";
 import { VehicleManagementPage } from "../../features/vehicles/pages/VehicleManagementPage";
 import { TenantManagementPage } from "../../features/tenants/pages/TenantManagementPage";
+import { RouteDetailsPage } from "../../features/routes/pages/RouteDetailsPage";
+import { RouteManagementPage } from "../../features/routes/pages/RouteManagementPage";
 import { CompanyApplicationsPage } from "../../features/company-applications/pages/CompanyApplicationsPage";
 import { PublicCompanyApplicationPage } from "../../features/company-applications/pages/PublicCompanyApplicationPage";
 import { RoleManagementPage } from "../../features/roles/pages/RoleManagementPage";
@@ -122,6 +125,18 @@ const router = createBrowserRouter([
       {
         path: "rides",
         element: <RideManagementPage />,
+      },
+      {
+        path: "dispatch",
+        element: <DispatchBoardPage />,
+      },
+      {
+        path: "routes",
+        element: <RouteManagementPage />,
+      },
+      {
+        path: "routes/:routeId",
+        element: <RouteDetailsPage />,
       },
       {
         path: "rides/:rideId",
