@@ -34,6 +34,8 @@ const moduleOptions = [
   "COMPANY_APPLICATION",
   "DRIVER",
   "DRIVER_DOCUMENT",
+  "VEHICLE",
+  "VEHICLE_DOCUMENT",
 ];
 const actionOptions = [
   "",
@@ -43,6 +45,8 @@ const actionOptions = [
   "SUSPENDED",
   "DEACTIVATED",
   "TERMINATED",
+  "MAINTENANCE_MARKED",
+  "OUT_OF_SERVICE_MARKED",
   "STATUS_CHANGED",
   "ASSIGNMENT_CHANGED",
   "SUBMITTED",

@@ -20,6 +20,7 @@ import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
 import DriveEtaRoundedIcon from "@mui/icons-material/DriveEtaRounded";
+import DirectionsCarFilledRoundedIcon from "@mui/icons-material/DirectionsCarFilledRounded";
 import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
@@ -94,6 +95,12 @@ export function AppShell() {
           description: "Driver onboarding, readiness, and document control",
           to: "/company/drivers",
           icon: <DriveEtaRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Vehicle Management",
+          description: "Fleet readiness, lifecycle control, and compliance",
+          to: "/company/vehicles",
+          icon: <DirectionsCarFilledRoundedIcon fontSize="small" />,
         },
         {
           label: "Role Catalog",

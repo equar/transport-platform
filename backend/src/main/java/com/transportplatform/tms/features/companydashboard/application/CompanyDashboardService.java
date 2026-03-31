@@ -11,6 +11,10 @@ import com.transportplatform.tms.features.auth.domain.UserStatus;
 import com.transportplatform.tms.features.driver.application.DriverComplianceSummaryService;
 import com.transportplatform.tms.features.driver.domain.DriverRepository;
 import com.transportplatform.tms.features.driver.domain.DriverStatus;
+import com.transportplatform.tms.features.vehicle.application.VehicleComplianceSummaryService;
+import com.transportplatform.tms.features.vehicle.domain.Vehicle;
+import com.transportplatform.tms.features.vehicle.domain.VehicleRepository;
+import com.transportplatform.tms.features.vehicle.domain.VehicleStatus;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,17 +28,23 @@ public class CompanyDashboardService {
     private final AuditLogService auditLogService;
     private final DriverRepository driverRepository;
     private final DriverComplianceSummaryService driverComplianceSummaryService;
+    private final VehicleRepository vehicleRepository;
+    private final VehicleComplianceSummaryService vehicleComplianceSummaryService;
 
     public CompanyDashboardService(AppUserRepository appUserRepository,
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
             AuditLogService auditLogService,
             DriverRepository driverRepository,
-            DriverComplianceSummaryService driverComplianceSummaryService) {
+            DriverComplianceSummaryService driverComplianceSummaryService,
+            VehicleRepository vehicleRepository,
+            VehicleComplianceSummaryService vehicleComplianceSummaryService) {
         this.appUserRepository = appUserRepository;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.auditLogService = auditLogService;
         this.driverRepository = driverRepository;
         this.driverComplianceSummaryService = driverComplianceSummaryService;
+        this.vehicleRepository = vehicleRepository;
+        this.vehicleComplianceSummaryService = vehicleComplianceSummaryService;
     }
 
     @Transactional(readOnly = true)
@@ -52,6 +62,7 @@ public class CompanyDashboardService {
         String tenantId = currentUser.tenantId();
         List<com.transportplatform.tms.features.driver.domain.Driver> drivers = driverRepository
                 .findAllByTenantId(tenantId);
+        List<Vehicle> vehicles = vehicleRepository.findAllByTenantId(tenantId);
         return new CompanyDashboardSummaryResponse(
                 appUserRepository.countByTenantId(tenantId),
                 appUserRepository.countByTenantIdAndStatus(tenantId, UserStatus.ACTIVE),
@@ -64,6 +75,13 @@ public class CompanyDashboardService {
                         + driverRepository.countByTenantIdAndStatus(tenantId, DriverStatus.PENDING_REVIEW),
                 driverComplianceSummaryService.countDriversWithExpiredDocuments(tenantId, drivers),
                 driverComplianceSummaryService.countDriversWithMissingRequiredDocuments(tenantId, drivers),
+                vehicles.size(),
+                vehicleRepository.countByTenantIdAndStatus(tenantId, VehicleStatus.ACTIVE),
+                vehicleRepository.countByTenantIdAndStatus(tenantId, VehicleStatus.SUSPENDED),
+                vehicleRepository.countByTenantIdAndStatus(tenantId, VehicleStatus.MAINTENANCE),
+                vehicleRepository.countByTenantIdAndStatus(tenantId, VehicleStatus.OUT_OF_SERVICE),
+                vehicleComplianceSummaryService.countVehiclesWithExpiredDocuments(tenantId, vehicles),
+                vehicleComplianceSummaryService.countVehiclesWithMissingRequiredDocuments(tenantId, vehicles),
                 auditLogService.getRecentCompanyActivity(8));
     }
 }

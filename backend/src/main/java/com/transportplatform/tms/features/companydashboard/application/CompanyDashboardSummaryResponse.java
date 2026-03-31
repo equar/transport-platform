@@ -14,5 +14,12 @@ public record CompanyDashboardSummaryResponse(
         long driversPendingReview,
         long driversWithExpiredDocuments,
         long driversMissingRequiredDocuments,
+        long totalVehicles,
+        long activeVehicles,
+        long suspendedVehicles,
+        long vehiclesInMaintenance,
+        long vehiclesOutOfService,
+        long vehiclesWithExpiredDocuments,
+        long vehiclesMissingRequiredDocuments,
         List<DashboardActivityResponse> recentActivity) {
 }

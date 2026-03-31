@@ -29,6 +29,21 @@ function resolveColor(
   }
   if (
     [
+      "COMPANY_OWNED",
+      "DRIVER_OWNED",
+      "LEASED",
+      "GASOLINE",
+      "DIESEL",
+      "HYBRID",
+      "ELECTRIC",
+      "PROPANE",
+      "OTHER",
+    ].includes(normalized)
+  ) {
+    return "secondary";
+  }
+  if (
+    [
       "PENDING",
       "SUBMITTED",
       "UNDER_REVIEW",
@@ -42,6 +57,7 @@ function resolveColor(
       "IN_PROGRESS",
       "EMPLOYEE",
       "CONTRACTOR",
+      "MAINTENANCE",
     ].includes(normalized)
   ) {
     return "warning";
@@ -57,6 +73,7 @@ function resolveColor(
       "FAILED",
       "NON_COMPLIANT",
       "ARCHIVED",
+      "OUT_OF_SERVICE",
     ].includes(normalized)
   ) {
     return "error";

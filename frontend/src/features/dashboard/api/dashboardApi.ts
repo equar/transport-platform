@@ -38,6 +38,13 @@ export interface CompanyDashboardSummary {
   driversPendingReview: number;
   driversWithExpiredDocuments: number;
   driversMissingRequiredDocuments: number;
+  totalVehicles: number;
+  activeVehicles: number;
+  suspendedVehicles: number;
+  vehiclesInMaintenance: number;
+  vehiclesOutOfService: number;
+  vehiclesWithExpiredDocuments: number;
+  vehiclesMissingRequiredDocuments: number;
   recentActivity: DashboardActivity[];
 }
 

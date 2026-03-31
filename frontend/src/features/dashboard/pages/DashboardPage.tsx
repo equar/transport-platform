@@ -3,6 +3,8 @@ import { Alert, Box, Button, Skeleton, Stack, Typography } from "@mui/material";
 import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
+import DirectionsCarFilledRoundedIcon from "@mui/icons-material/DirectionsCarFilledRounded";
+import BuildCircleRoundedIcon from "@mui/icons-material/BuildCircleRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
@@ -132,6 +134,44 @@ export function DashboardPage() {
       icon: <ShieldRoundedIcon color="primary" />,
       caption: "Drivers still missing required compliance documents.",
     },
+    {
+      key: "totalVehicles",
+      label: "Total Vehicles",
+      icon: <DirectionsCarFilledRoundedIcon color="primary" />,
+      caption: "Vehicle records currently managed by your tenant.",
+    },
+    {
+      key: "activeVehicles",
+      label: "Active Vehicles",
+      icon: <CheckCircleRoundedIcon color="primary" />,
+      caption: "Vehicles currently ready for future operational assignment.",
+    },
+    {
+      key: "vehiclesInMaintenance",
+      label: "Vehicles in Maintenance",
+      icon: <BuildCircleRoundedIcon color="primary" />,
+      caption:
+        "Vehicles intentionally withheld from service for maintenance work.",
+    },
+    {
+      key: "vehiclesOutOfService",
+      label: "Vehicles Out of Service",
+      icon: <CloseRoundedIcon color="primary" />,
+      caption: "Vehicles that are currently excluded from operational use.",
+    },
+    {
+      key: "vehiclesWithExpiredDocuments",
+      label: "Expired Vehicle Documents",
+      icon: <DescriptionRoundedIcon color="primary" />,
+      caption: "Vehicles carrying at least one expired compliance document.",
+    },
+    {
+      key: "vehiclesMissingRequiredDocuments",
+      label: "Vehicles Missing Required Documents",
+      icon: <ShieldRoundedIcon color="primary" />,
+      caption:
+        "Vehicles still missing required registration, insurance, or inspection documents.",
+    },
   ];
 
   useEffect(() => {
@@ -189,7 +229,7 @@ export function DashboardPage() {
           <Typography variant="body1" color="text.secondary">
             {platformAdmin
               ? "Track application demand, tenant activation, and user lifecycle health across the platform."
-              : "Track user activity, driver onboarding, document readiness, and administrative changes for your tenant."}
+              : "Track user activity, driver onboarding, vehicle readiness, document compliance, and administrative changes for your tenant."}
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             {platformAdmin ? (
@@ -234,10 +274,17 @@ export function DashboardPage() {
                 </Button>
                 <Button
                   component={RouterLink}
-                  to="/company/drivers"
+                  to="/company/vehicles"
                   variant="text"
                 >
-                  Manage Driver Documents
+                  Review Vehicles
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/vehicles"
+                  variant="text"
+                >
+                  Manage Vehicle Documents
                 </Button>
                 <Button
                   component={RouterLink}
@@ -363,11 +410,19 @@ export function DashboardPage() {
                   </Button>
                   <Button
                     component={RouterLink}
-                    to="/company/drivers"
+                    to="/company/vehicles"
+                    variant="outlined"
+                    startIcon={<DirectionsCarFilledRoundedIcon />}
+                  >
+                    Create Vehicle
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/company/vehicles"
                     variant="outlined"
                     startIcon={<DescriptionRoundedIcon />}
                   >
-                    Manage Driver Documents
+                    Manage Vehicle Documents
                   </Button>
                   <Button
                     component={RouterLink}

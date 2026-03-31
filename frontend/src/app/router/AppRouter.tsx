@@ -13,6 +13,8 @@ import { ProtectedRoute } from "../../features/auth/routes/ProtectedRoute";
 import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
 import { DriverDetailsPage } from "../../features/drivers/pages/DriverDetailsPage";
 import { DriverManagementPage } from "../../features/drivers/pages/DriverManagementPage";
+import { VehicleDetailsPage } from "../../features/vehicles/pages/VehicleDetailsPage";
+import { VehicleManagementPage } from "../../features/vehicles/pages/VehicleManagementPage";
 import { TenantManagementPage } from "../../features/tenants/pages/TenantManagementPage";
 import { CompanyApplicationsPage } from "../../features/company-applications/pages/CompanyApplicationsPage";
 import { PublicCompanyApplicationPage } from "../../features/company-applications/pages/PublicCompanyApplicationPage";
@@ -76,14 +78,6 @@ const router = createBrowserRouter([
         element: <UserManagementPage />,
       },
       {
-        path: "drivers",
-        element: <DriverManagementPage />,
-      },
-      {
-        path: "drivers/:driverId",
-        element: <DriverDetailsPage />,
-      },
-      {
         path: "roles",
         element: <RoleManagementPage />,
       },
@@ -108,6 +102,22 @@ const router = createBrowserRouter([
       {
         path: "users",
         element: <UserManagementPage />,
+      },
+      {
+        path: "drivers",
+        element: <DriverManagementPage />,
+      },
+      {
+        path: "drivers/:driverId",
+        element: <DriverDetailsPage />,
+      },
+      {
+        path: "vehicles",
+        element: <VehicleManagementPage />,
+      },
+      {
+        path: "vehicles/:vehicleId",
+        element: <VehicleDetailsPage />,
       },
       {
         path: "roles",
