@@ -26,19 +26,32 @@ import { formatDateTime } from "../../../shared/utils/format";
 import { AuditLogDetailsDialog } from "../components/AuditLogDetailsDialog";
 import { auditLogsApi, type AuditLogRecord } from "../api/auditLogsApi";
 
-const moduleOptions = ["", "TENANT", "USER", "ROLE", "COMPANY_APPLICATION"];
+const moduleOptions = [
+  "",
+  "TENANT",
+  "USER",
+  "ROLE",
+  "COMPANY_APPLICATION",
+  "DRIVER",
+  "DRIVER_DOCUMENT",
+];
 const actionOptions = [
   "",
   "CREATED",
   "UPDATED",
   "ACTIVATED",
   "SUSPENDED",
+  "DEACTIVATED",
+  "TERMINATED",
   "STATUS_CHANGED",
   "ASSIGNMENT_CHANGED",
   "SUBMITTED",
   "REVIEWED",
+  "DOCUMENTS_READY",
   "APPROVED",
   "REJECTED",
+  "VERIFIED",
+  "ARCHIVED",
 ];
 
 function formatLabel(value: string) {

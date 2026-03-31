@@ -32,6 +32,12 @@ export interface CompanyDashboardSummary {
   activeUsers: number;
   suspendedUsers: number;
   pendingUsers: number;
+  totalDrivers: number;
+  activeDrivers: number;
+  suspendedDrivers: number;
+  driversPendingReview: number;
+  driversWithExpiredDocuments: number;
+  driversMissingRequiredDocuments: number;
   recentActivity: DashboardActivity[];
 }
 

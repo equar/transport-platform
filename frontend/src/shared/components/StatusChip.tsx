@@ -15,18 +15,49 @@ function resolveColor(
   value: string,
 ): "default" | "primary" | "secondary" | "success" | "warning" | "error" {
   const normalized = value.toUpperCase();
-  if (["ACTIVE", "APPROVED"].includes(normalized)) {
+  if (
+    [
+      "ACTIVE",
+      "APPROVED",
+      "VERIFIED",
+      "COMPLIANT",
+      "CLEAR",
+      "COMPLETED",
+    ].includes(normalized)
+  ) {
     return "success";
   }
   if (
-    ["PENDING", "SUBMITTED", "UNDER_REVIEW", "ONBOARDING", "INVITED"].includes(
-      normalized,
-    )
+    [
+      "PENDING",
+      "SUBMITTED",
+      "UNDER_REVIEW",
+      "ONBOARDING",
+      "INVITED",
+      "APPLIED",
+      "PENDING_REVIEW",
+      "DOCUMENT_PENDING",
+      "TRAINING_PENDING",
+      "ACTION_REQUIRED",
+      "IN_PROGRESS",
+      "EMPLOYEE",
+      "CONTRACTOR",
+    ].includes(normalized)
   ) {
     return "warning";
   }
   if (
-    ["REJECTED", "SUSPENDED", "INACTIVE", "DEACTIVATED"].includes(normalized)
+    [
+      "REJECTED",
+      "SUSPENDED",
+      "INACTIVE",
+      "DEACTIVATED",
+      "TERMINATED",
+      "EXPIRED",
+      "FAILED",
+      "NON_COMPLIANT",
+      "ARCHIVED",
+    ].includes(normalized)
   ) {
     return "error";
   }

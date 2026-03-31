@@ -11,6 +11,8 @@ import { useAuth } from "../../features/auth/context/AuthContext";
 import { LoginPage } from "../../features/auth/pages/LoginPage";
 import { ProtectedRoute } from "../../features/auth/routes/ProtectedRoute";
 import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
+import { DriverDetailsPage } from "../../features/drivers/pages/DriverDetailsPage";
+import { DriverManagementPage } from "../../features/drivers/pages/DriverManagementPage";
 import { TenantManagementPage } from "../../features/tenants/pages/TenantManagementPage";
 import { CompanyApplicationsPage } from "../../features/company-applications/pages/CompanyApplicationsPage";
 import { PublicCompanyApplicationPage } from "../../features/company-applications/pages/PublicCompanyApplicationPage";
@@ -72,6 +74,14 @@ const router = createBrowserRouter([
       {
         path: "users",
         element: <UserManagementPage />,
+      },
+      {
+        path: "drivers",
+        element: <DriverManagementPage />,
+      },
+      {
+        path: "drivers/:driverId",
+        element: <DriverDetailsPage />,
       },
       {
         path: "roles",

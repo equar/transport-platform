@@ -19,6 +19,7 @@ import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
+import DriveEtaRoundedIcon from "@mui/icons-material/DriveEtaRounded";
 import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
@@ -87,6 +88,12 @@ export function AppShell() {
           description: "Manage company administrators and operators",
           to: "/company/users",
           icon: <BadgeRoundedIcon fontSize="small" />,
+        },
+        {
+          label: "Driver Management",
+          description: "Driver onboarding, readiness, and document control",
+          to: "/company/drivers",
+          icon: <DriveEtaRoundedIcon fontSize="small" />,
         },
         {
           label: "Role Catalog",

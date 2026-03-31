@@ -2,8 +2,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Alert, Box, Button, Skeleton, Stack, Typography } from "@mui/material";
 import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
+import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import PersonAddAltRoundedIcon from "@mui/icons-material/PersonAddAltRounded";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
@@ -100,6 +102,36 @@ export function DashboardPage() {
       icon: <CloseRoundedIcon color="primary" />,
       caption: "Accounts blocked until reactivated.",
     },
+    {
+      key: "totalDrivers",
+      label: "Total Drivers",
+      icon: <BadgeRoundedIcon color="primary" />,
+      caption: "Driver records currently managed by your tenant.",
+    },
+    {
+      key: "activeDrivers",
+      label: "Active Drivers",
+      icon: <CheckCircleRoundedIcon color="primary" />,
+      caption: "Drivers currently ready for future operational assignment.",
+    },
+    {
+      key: "driversPendingReview",
+      label: "Drivers Pending Review",
+      icon: <AssignmentTurnedInRoundedIcon color="primary" />,
+      caption: "Drivers still moving through onboarding review.",
+    },
+    {
+      key: "driversWithExpiredDocuments",
+      label: "Expired Driver Documents",
+      icon: <DescriptionRoundedIcon color="primary" />,
+      caption: "Drivers carrying at least one expired compliance document.",
+    },
+    {
+      key: "driversMissingRequiredDocuments",
+      label: "Missing Required Documents",
+      icon: <ShieldRoundedIcon color="primary" />,
+      caption: "Drivers still missing required compliance documents.",
+    },
   ];
 
   useEffect(() => {
@@ -157,7 +189,7 @@ export function DashboardPage() {
           <Typography variant="body1" color="text.secondary">
             {platformAdmin
               ? "Track application demand, tenant activation, and user lifecycle health across the platform."
-              : "Track user activity, invitations, suspensions, and administrative changes for your tenant."}
+              : "Track user activity, driver onboarding, document readiness, and administrative changes for your tenant."}
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             {platformAdmin ? (
@@ -195,10 +227,17 @@ export function DashboardPage() {
                 </Button>
                 <Button
                   component={RouterLink}
-                  to="/company/roles"
+                  to="/company/drivers"
                   variant="outlined"
                 >
-                  Review Role Catalog
+                  Review Drivers
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/company/drivers"
+                  variant="text"
+                >
+                  Manage Driver Documents
                 </Button>
                 <Button
                   component={RouterLink}
@@ -316,11 +355,19 @@ export function DashboardPage() {
                   </Button>
                   <Button
                     component={RouterLink}
-                    to="/company/roles"
+                    to="/company/drivers"
                     variant="outlined"
-                    startIcon={<SecurityRoundedIcon />}
+                    startIcon={<BadgeRoundedIcon />}
                   >
-                    Review Role Catalog
+                    Create Driver
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/company/drivers"
+                    variant="outlined"
+                    startIcon={<DescriptionRoundedIcon />}
+                  >
+                    Manage Driver Documents
                   </Button>
                   <Button
                     component={RouterLink}

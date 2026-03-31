@@ -8,5 +8,11 @@ public record CompanyDashboardSummaryResponse(
         long activeUsers,
         long suspendedUsers,
         long pendingUsers,
+        long totalDrivers,
+        long activeDrivers,
+        long suspendedDrivers,
+        long driversPendingReview,
+        long driversWithExpiredDocuments,
+        long driversMissingRequiredDocuments,
         List<DashboardActivityResponse> recentActivity) {
 }
