@@ -1,0 +1,153 @@
+package com.transportplatform.tms.features.driverportal.api;
+
+import com.transportplatform.tms.common.response.ApiResponse;
+import com.transportplatform.tms.common.response.PageResponse;
+import com.transportplatform.tms.features.driverportal.api.request.DriverPortalProfileUpdateRequest;
+import com.transportplatform.tms.features.driverportal.api.request.DriverPortalRideNoteRequest;
+import com.transportplatform.tms.features.driverportal.api.response.DriverPortalComplianceSummaryResponse;
+import com.transportplatform.tms.features.driverportal.api.response.DriverPortalDashboardResponse;
+import com.transportplatform.tms.features.driverportal.api.response.DriverPortalProfileResponse;
+import com.transportplatform.tms.features.driverportal.api.response.DriverPortalRideDetailResponse;
+import com.transportplatform.tms.features.driverportal.api.response.DriverPortalRideSummaryResponse;
+import com.transportplatform.tms.features.driverportal.api.response.DriverPortalRouteDetailResponse;
+import com.transportplatform.tms.features.driverportal.api.response.DriverPortalRouteSummaryResponse;
+import com.transportplatform.tms.features.driverportal.application.DriverPortalService;
+import com.transportplatform.tms.features.ride.domain.RideStatus;
+import com.transportplatform.tms.features.route.domain.RouteStatus;
+import jakarta.validation.Valid;
+import java.time.LocalDate;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@PreAuthorize("hasRole('DRIVER')")
+public class DriverPortalController {
+
+    private final DriverPortalService driverPortalService;
+
+    public DriverPortalController(DriverPortalService driverPortalService) {
+        this.driverPortalService = driverPortalService;
+    }
+
+    @GetMapping("/portal/driver/dashboard")
+    public ApiResponse<DriverPortalDashboardResponse> getDashboard() {
+        return ApiResponse.success(driverPortalService.getDashboard());
+    }
+
+    @GetMapping("/portal/driver/profile")
+    public ApiResponse<DriverPortalProfileResponse> getProfile() {
+        return ApiResponse.success(driverPortalService.getProfile());
+    }
+
+    @PutMapping("/portal/driver/profile")
+    public ApiResponse<DriverPortalProfileResponse> updateProfile(
+            @Valid @RequestBody DriverPortalProfileUpdateRequest request) {
+        return ApiResponse.success(driverPortalService.updateProfile(request));
+    }
+
+    @GetMapping("/portal/driver/compliance")
+    public ApiResponse<DriverPortalComplianceSummaryResponse> getComplianceSummary() {
+        return ApiResponse.success(driverPortalService.getComplianceSummary());
+    }
+
+    @GetMapping("/portal/driver/rides")
+    public ApiResponse<PageResponse<DriverPortalRideSummaryResponse>> searchMyRides(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(required = false) RideStatus status,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "scheduledPickupAt") String sortBy,
+            @RequestParam(defaultValue = "ASC") Sort.Direction sortDirection) {
+        return ApiResponse.success(driverPortalService.searchMyRides(
+                keyword,
+                status,
+                fromDate,
+                toDate,
+                page,
+                size,
+                sortBy,
+                sortDirection));
+    }
+
+    @GetMapping("/portal/driver/rides/{rideId}")
+    public ApiResponse<DriverPortalRideDetailResponse> getMyRide(@PathVariable Long rideId) {
+        return ApiResponse.success(driverPortalService.getMyRide(rideId));
+    }
+
+    @PostMapping("/portal/driver/rides/{rideId}/actions/driver-en-route")
+    public ApiResponse<DriverPortalRideDetailResponse> markRideDriverEnRoute(@PathVariable Long rideId) {
+        return ApiResponse.success(driverPortalService.markRideDriverEnRoute(rideId));
+    }
+
+    @PostMapping("/portal/driver/rides/{rideId}/actions/arrived")
+    public ApiResponse<DriverPortalRideDetailResponse> markRideArrived(@PathVariable Long rideId) {
+        return ApiResponse.success(driverPortalService.markRideArrived(rideId));
+    }
+
+    @PostMapping("/portal/driver/rides/{rideId}/actions/picked-up")
+    public ApiResponse<DriverPortalRideDetailResponse> markRidePickedUp(@PathVariable Long rideId) {
+        return ApiResponse.success(driverPortalService.markRidePickedUp(rideId));
+    }
+
+    @PostMapping("/portal/driver/rides/{rideId}/actions/dropped-off")
+    public ApiResponse<DriverPortalRideDetailResponse> markRideDroppedOff(@PathVariable Long rideId) {
+        return ApiResponse.success(driverPortalService.markRideDroppedOff(rideId));
+    }
+
+    @PostMapping("/portal/driver/rides/{rideId}/actions/complete")
+    public ApiResponse<DriverPortalRideDetailResponse> completeRide(@PathVariable Long rideId) {
+        return ApiResponse.success(driverPortalService.completeRide(rideId));
+    }
+
+    @PostMapping("/portal/driver/rides/{rideId}/actions/no-show")
+    public ApiResponse<DriverPortalRideDetailResponse> markRideNoShow(@PathVariable Long rideId) {
+        return ApiResponse.success(driverPortalService.markRideNoShow(rideId));
+    }
+
+    @PostMapping("/portal/driver/rides/{rideId}/actions/failed")
+    public ApiResponse<DriverPortalRideDetailResponse> markRideFailed(@PathVariable Long rideId) {
+        return ApiResponse.success(driverPortalService.markRideFailed(rideId));
+    }
+
+    @PostMapping("/portal/driver/rides/{rideId}/notes")
+    public ApiResponse<DriverPortalRideDetailResponse> addRideNote(
+            @PathVariable Long rideId,
+            @Valid @RequestBody DriverPortalRideNoteRequest request) {
+        return ApiResponse.success(driverPortalService.addRideNote(rideId, request.note()));
+    }
+
+    @GetMapping("/portal/driver/routes")
+    public ApiResponse<PageResponse<DriverPortalRouteSummaryResponse>> searchMyRoutes(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(required = false) RouteStatus status,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "routeDate") String sortBy,
+            @RequestParam(defaultValue = "DESC") Sort.Direction sortDirection) {
+        return ApiResponse.success(driverPortalService.searchMyRoutes(
+                keyword,
+                status,
+                fromDate,
+                toDate,
+                page,
+                size,
+                sortBy,
+                sortDirection));
+    }
+
+    @GetMapping("/portal/driver/routes/{routeId}")
+    public ApiResponse<DriverPortalRouteDetailResponse> getMyRoute(@PathVariable Long routeId) {
+        return ApiResponse.success(driverPortalService.getMyRoute(routeId));
+    }
+}

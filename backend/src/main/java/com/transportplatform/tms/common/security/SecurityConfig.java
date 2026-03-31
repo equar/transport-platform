@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/company-applications").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/runtime/tenant-branding").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(tenantContextFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -87,8 +87,15 @@ public class CompanySettingsService {
         settings.setTaxEnabled(request.taxEnabled());
         settings.setDefaultTaxRate(request.defaultTaxRate().setScale(2, java.math.RoundingMode.HALF_UP));
         settings.setAllowManualInvoiceOverrides(request.allowManualInvoiceOverrides());
+        settings.setDisplayName(trimToNull(request.displayName()));
         settings.setCompanyLogoUrl(trimToNull(request.companyLogoUrl()));
+        settings.setFaviconUrl(trimToNull(request.faviconUrl()));
+        settings.setWebsite(trimToNull(request.website()));
+        settings.setCustomLoginWelcomeText(trimToNull(request.customLoginWelcomeText()));
+        settings.setCustomFooterText(trimToNull(request.customFooterText()));
         settings.setPrimaryColor(trimToNull(request.primaryColor()));
+        settings.setSecondaryColor(trimToNull(request.secondaryColor()));
+        settings.setAccentColor(trimToNull(request.accentColor()));
 
         tenantRepository.save(tenant);
         TenantSettings savedSettings = tenantSettingsRepository.save(settings);
@@ -156,8 +163,15 @@ public class CompanySettingsService {
         settings.setTaxEnabled(false);
         settings.setDefaultTaxRate(BigDecimal.ZERO.setScale(2));
         settings.setAllowManualInvoiceOverrides(false);
+        settings.setDisplayName(null);
         settings.setCompanyLogoUrl(null);
+        settings.setFaviconUrl(null);
+        settings.setWebsite(null);
+        settings.setCustomLoginWelcomeText(null);
+        settings.setCustomFooterText(null);
         settings.setPrimaryColor(null);
+        settings.setSecondaryColor(null);
+        settings.setAccentColor(null);
         return settings;
     }
 
@@ -197,8 +211,15 @@ public class CompanySettingsService {
                 settings.isTaxEnabled(),
                 settings.getDefaultTaxRate(),
                 settings.isAllowManualInvoiceOverrides(),
+                settings.getDisplayName(),
                 settings.getCompanyLogoUrl(),
+                settings.getFaviconUrl(),
+                settings.getWebsite(),
+                settings.getCustomLoginWelcomeText(),
+                settings.getCustomFooterText(),
                 settings.getPrimaryColor(),
+                settings.getSecondaryColor(),
+                settings.getAccentColor(),
                 calculateProfileCompleteness(tenant, settings),
                 settings.getCreatedBy(),
                 settings.getCreatedAt(),
@@ -222,7 +243,9 @@ public class CompanySettingsService {
                 hasText(settings.getInvoicePrefix()),
                 hasText(settings.getPaymentPrefix()),
                 hasText(settings.getPricingRulePrefix()),
-                hasText(settings.getDefaultNotificationPreferencesSummary()));
+                hasText(settings.getDefaultNotificationPreferencesSummary()),
+                hasText(settings.getDisplayName()),
+                hasText(settings.getWebsite()));
         long completed = checks.stream().filter(Boolean::booleanValue).count();
         return (int) Math.round((completed * 100.0) / checks.size());
     }
@@ -243,6 +266,12 @@ public class CompanySettingsService {
         values.put("pricingRulePrefix", settings.getPricingRulePrefix());
         values.put("taxEnabled", settings.isTaxEnabled());
         values.put("defaultTaxRate", settings.getDefaultTaxRate());
+        values.put("displayName", settings.getDisplayName());
+        values.put("website", settings.getWebsite());
+        values.put("companyLogoUrl", settings.getCompanyLogoUrl());
+        values.put("primaryColor", settings.getPrimaryColor());
+        values.put("secondaryColor", settings.getSecondaryColor());
+        values.put("accentColor", settings.getAccentColor());
         return values;
     }
 

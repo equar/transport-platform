@@ -1,10 +1,13 @@
 import { Stack, Typography } from "@mui/material";
+import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
 
 interface BrandMarkProps {
   compact?: boolean;
 }
 
 export function BrandMark({ compact = false }: BrandMarkProps) {
+  const { branding } = useRuntimeCapabilities();
+
   return (
     <Stack spacing={compact ? 0 : 0.25}>
       <Typography
@@ -15,10 +18,12 @@ export function BrandMark({ compact = false }: BrandMarkProps) {
           fontWeight: 700,
         }}
       >
-        TRANSPORT PLATFORM
+        {compact
+          ? (branding?.displayName?.toUpperCase() ?? "TRANSPORT PLATFORM")
+          : "TRANSPORT PLATFORM"}
       </Typography>
       <Typography variant={compact ? "body2" : "h4"} sx={{ fontWeight: 700 }}>
-        Multi-tenant TMS foundation
+        {branding?.displayName || "Multi-tenant TMS foundation"}
       </Typography>
     </Stack>
   );

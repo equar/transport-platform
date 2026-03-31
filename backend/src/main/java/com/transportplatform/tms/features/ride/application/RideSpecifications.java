@@ -23,6 +23,22 @@ public final class RideSpecifications {
             LocalDateTime fromDateTime,
             LocalDateTime toDateTime,
             Boolean recurringOnly) {
+        return search(tenantId, keyword, status, serviceType, tripType, riderId, organizationId, contractId,
+                fromDateTime, toDateTime, null, recurringOnly);
+    }
+
+    public static Specification<Ride> search(String tenantId,
+            String keyword,
+            RideStatus status,
+            ServiceType serviceType,
+            RideTripType tripType,
+            Long riderId,
+            Long organizationId,
+            Long contractId,
+            LocalDateTime fromDateTime,
+            LocalDateTime toDateTime,
+            Long driverId,
+            Boolean recurringOnly) {
         return (root, query, builder) -> {
             var predicate = builder.conjunction();
             if (tenantId != null && !tenantId.isBlank()) {
@@ -57,6 +73,9 @@ public final class RideSpecifications {
             }
             if (contractId != null) {
                 predicate = builder.and(predicate, builder.equal(root.get("contract").get("id"), contractId));
+            }
+            if (driverId != null) {
+                predicate = builder.and(predicate, builder.equal(root.get("driverId"), driverId));
             }
             if (fromDateTime != null) {
                 predicate = builder.and(predicate,

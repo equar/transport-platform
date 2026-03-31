@@ -70,6 +70,32 @@ export function DashboardPage() {
       caption: "Companies paused from operational access.",
     },
     {
+      key: "activeSubscriptions",
+      label: "Active Subscriptions",
+      icon: <AttachMoneyRoundedIcon color="primary" />,
+      caption: "Tenants currently running on active commercial subscriptions.",
+    },
+    {
+      key: "trialSubscriptions",
+      label: "Trial Subscriptions",
+      icon: <AssignmentTurnedInRoundedIcon color="primary" />,
+      caption: "Tenants in trial mode and approaching commercial conversion.",
+    },
+    {
+      key: "activeSubscriptionPlans",
+      label: "Active Plans",
+      icon: <ReceiptLongRoundedIcon color="primary" />,
+      caption:
+        "Commercial plan definitions currently available for assignment.",
+    },
+    {
+      key: "activeFeatureFlags",
+      label: "Active Feature Flags",
+      icon: <SecurityRoundedIcon color="primary" />,
+      caption:
+        "Runtime entitlements and staged rollout controls currently enabled.",
+    },
+    {
       key: "pendingApplications",
       label: "Pending Applications",
       icon: <AssignmentTurnedInRoundedIcon color="primary" />,

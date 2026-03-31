@@ -45,6 +45,13 @@ public record CompanySettingsUpdateRequest(
         @NotNull(message = "Tax enabled flag is required.") Boolean taxEnabled,
         @NotNull(message = "Default tax rate is required.") @DecimalMin(value = "0.00", message = "Default tax rate must be zero or greater.") @DecimalMax(value = "100.00", message = "Default tax rate must be 100 or fewer.") BigDecimal defaultTaxRate,
         @NotNull(message = "Allow manual invoice overrides flag is required.") Boolean allowManualInvoiceOverrides,
+        @Size(max = 150, message = "Display name must be 150 characters or fewer.") String displayName,
         @Size(max = 500, message = "Company logo URL must be 500 characters or fewer.") String companyLogoUrl,
-        @Pattern(regexp = "^$|^#[0-9A-Fa-f]{6}$", message = "Primary color must be a 6-digit hex value such as #0055AA.") String primaryColor) {
+        @Size(max = 500, message = "Favicon URL must be 500 characters or fewer.") String faviconUrl,
+        @Size(max = 500, message = "Website must be 500 characters or fewer.") String website,
+        @Size(max = 500, message = "Custom login welcome text must be 500 characters or fewer.") String customLoginWelcomeText,
+        @Size(max = 500, message = "Custom footer text must be 500 characters or fewer.") String customFooterText,
+        @Pattern(regexp = "^$|^#[0-9A-Fa-f]{6}$", message = "Primary color must be a 6-digit hex value such as #0055AA.") String primaryColor,
+        @Pattern(regexp = "^$|^#[0-9A-Fa-f]{6}$", message = "Secondary color must be a 6-digit hex value such as #0055AA.") String secondaryColor,
+        @Pattern(regexp = "^$|^#[0-9A-Fa-f]{6}$", message = "Accent color must be a 6-digit hex value such as #0055AA.") String accentColor) {
 }

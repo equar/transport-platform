@@ -15,6 +15,9 @@ public class TenantSettings extends AuditableEntity {
     @Column(name = "tenant_id", nullable = false, length = 36)
     private String tenantId;
 
+    @Column(name = "display_name", length = 150)
+    private String displayName;
+
     @Column(name = "timezone", nullable = false, length = 80)
     private String timezone;
 
@@ -87,12 +90,38 @@ public class TenantSettings extends AuditableEntity {
     @Column(name = "primary_color", length = 20)
     private String primaryColor;
 
+    @Column(name = "secondary_color", length = 20)
+    private String secondaryColor;
+
+    @Column(name = "accent_color", length = 20)
+    private String accentColor;
+
+    @Column(name = "favicon_url", length = 500)
+    private String faviconUrl;
+
+    @Column(name = "website", length = 500)
+    private String website;
+
+    @Column(name = "custom_login_welcome_text", length = 500)
+    private String customLoginWelcomeText;
+
+    @Column(name = "custom_footer_text", length = 500)
+    private String customFooterText;
+
     public String getTenantId() {
         return tenantId;
     }
 
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public String getTimezone() {
@@ -285,5 +314,53 @@ public class TenantSettings extends AuditableEntity {
 
     public void setPrimaryColor(String primaryColor) {
         this.primaryColor = primaryColor;
+    }
+
+    public String getSecondaryColor() {
+        return secondaryColor;
+    }
+
+    public void setSecondaryColor(String secondaryColor) {
+        this.secondaryColor = secondaryColor;
+    }
+
+    public String getAccentColor() {
+        return accentColor;
+    }
+
+    public void setAccentColor(String accentColor) {
+        this.accentColor = accentColor;
+    }
+
+    public String getFaviconUrl() {
+        return faviconUrl;
+    }
+
+    public void setFaviconUrl(String faviconUrl) {
+        this.faviconUrl = faviconUrl;
+    }
+
+    public String getWebsite() {
+        return website;
+    }
+
+    public void setWebsite(String website) {
+        this.website = website;
+    }
+
+    public String getCustomLoginWelcomeText() {
+        return customLoginWelcomeText;
+    }
+
+    public void setCustomLoginWelcomeText(String customLoginWelcomeText) {
+        this.customLoginWelcomeText = customLoginWelcomeText;
+    }
+
+    public String getCustomFooterText() {
+        return customFooterText;
+    }
+
+    public void setCustomFooterText(String customFooterText) {
+        this.customFooterText = customFooterText;
     }
 }

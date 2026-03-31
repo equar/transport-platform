@@ -1,16 +1,27 @@
 import { createTheme } from '@mui/material/styles';
 
-export const appTheme = createTheme({
+type BrandingThemeOptions = {
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  accentColor?: string | null;
+};
+
+export function createAppTheme(branding?: BrandingThemeOptions | null) {
+  const primaryMain = branding?.primaryColor || '#0f4c5c';
+  const secondaryMain = branding?.secondaryColor || '#c46a22';
+  const accentMain = branding?.accentColor || '#387080';
+
+  return createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#0f4c5c',
+      main: primaryMain,
       dark: '#0b3540',
-      light: '#387080',
+      light: accentMain,
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#c46a22',
+      main: secondaryMain,
       dark: '#8f4c18',
       light: '#da8b4c',
       contrastText: '#ffffff',
@@ -58,4 +69,7 @@ export const appTheme = createTheme({
       },
     },
   },
-});
+  });
+}
+
+export const appTheme = createAppTheme();

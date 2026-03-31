@@ -17,6 +17,11 @@ export interface PlatformDashboardSummary {
   totalTenants: number;
   activeTenants: number;
   suspendedTenants: number;
+  activeSubscriptions: number;
+  trialSubscriptions: number;
+  suspendedSubscriptions: number;
+  activeSubscriptionPlans: number;
+  activeFeatureFlags: number;
   pendingApplications: number;
   approvedApplications: number;
   rejectedApplications: number;

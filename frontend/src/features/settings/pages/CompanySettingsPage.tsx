@@ -16,6 +16,7 @@ import { LoadingState } from "../../../shared/components/LoadingState";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
 import { SectionHeader } from "../../../shared/components/SectionHeader";
+import { useRuntimeCapabilities } from "../../runtime/context/RuntimeCapabilitiesContext";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
 import {
@@ -60,8 +61,15 @@ function toPayload(settings: CompanySettingsRecord): CompanySettingsPayload {
     taxEnabled: settings.taxEnabled,
     defaultTaxRate: settings.defaultTaxRate,
     allowManualInvoiceOverrides: settings.allowManualInvoiceOverrides,
+    displayName: settings.displayName,
     companyLogoUrl: settings.companyLogoUrl,
+    faviconUrl: settings.faviconUrl,
+    website: settings.website,
+    customLoginWelcomeText: settings.customLoginWelcomeText,
+    customFooterText: settings.customFooterText,
     primaryColor: settings.primaryColor,
+    secondaryColor: settings.secondaryColor,
+    accentColor: settings.accentColor,
   };
 }
 
@@ -101,8 +109,15 @@ function emptySettings(): CompanySettingsRecord {
     taxEnabled: false,
     defaultTaxRate: 0,
     allowManualInvoiceOverrides: false,
+    displayName: "",
     companyLogoUrl: "",
+    faviconUrl: "",
+    website: "",
+    customLoginWelcomeText: "",
+    customFooterText: "",
     primaryColor: "#0055AA",
+    secondaryColor: "#16324F",
+    accentColor: "#14B8A6",
     profileCompletenessPercent: 0,
     createdBy: null,
     createdAt: null,
@@ -113,6 +128,7 @@ function emptySettings(): CompanySettingsRecord {
 
 export function CompanySettingsPage() {
   const { showError, showSuccess } = useToast();
+  const { reloadCapabilities } = useRuntimeCapabilities();
   const [settings, setSettings] =
     useState<CompanySettingsRecord>(emptySettings());
   const [loading, setLoading] = useState(true);
@@ -150,6 +166,7 @@ export function CompanySettingsPage() {
         toPayload(settings),
       );
       setSettings(response);
+      await reloadCapabilities();
       showSuccess("Company settings updated successfully.");
     } catch {
       showError("Company settings could not be saved.");
@@ -207,6 +224,14 @@ export function CompanySettingsPage() {
               <Typography variant="h5">Company Profile</Typography>
               <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                 <TextField
+                  label="Display Name"
+                  value={settings.displayName ?? ""}
+                  onChange={(event) =>
+                    setValue("displayName", event.target.value)
+                  }
+                  fullWidth
+                />
+                <TextField
                   label="Company Name"
                   value={settings.companyName}
                   onChange={(event) =>
@@ -232,6 +257,12 @@ export function CompanySettingsPage() {
                 />
               </Stack>
               <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+                <TextField
+                  label="Website"
+                  value={settings.website ?? ""}
+                  onChange={(event) => setValue("website", event.target.value)}
+                  fullWidth
+                />
                 <TextField
                   label="Support Email"
                   value={settings.supportEmail}
@@ -582,6 +613,14 @@ export function CompanySettingsPage() {
                   fullWidth
                 />
                 <TextField
+                  label="Favicon URL"
+                  value={settings.faviconUrl ?? ""}
+                  onChange={(event) =>
+                    setValue("faviconUrl", event.target.value)
+                  }
+                  fullWidth
+                />
+                <TextField
                   label="Primary Color"
                   value={settings.primaryColor ?? ""}
                   onChange={(event) =>
@@ -590,7 +629,45 @@ export function CompanySettingsPage() {
                   placeholder="#0055AA"
                   fullWidth
                 />
+                <TextField
+                  label="Secondary Color"
+                  value={settings.secondaryColor ?? ""}
+                  onChange={(event) =>
+                    setValue("secondaryColor", event.target.value)
+                  }
+                  placeholder="#16324F"
+                  fullWidth
+                />
+                <TextField
+                  label="Accent Color"
+                  value={settings.accentColor ?? ""}
+                  onChange={(event) =>
+                    setValue("accentColor", event.target.value)
+                  }
+                  placeholder="#14B8A6"
+                  fullWidth
+                />
               </Stack>
+              <TextField
+                label="Custom Login Welcome Text"
+                value={settings.customLoginWelcomeText ?? ""}
+                onChange={(event) =>
+                  setValue("customLoginWelcomeText", event.target.value)
+                }
+                fullWidth
+                multiline
+                minRows={2}
+              />
+              <TextField
+                label="Custom Footer Text"
+                value={settings.customFooterText ?? ""}
+                onChange={(event) =>
+                  setValue("customFooterText", event.target.value)
+                }
+                fullWidth
+                multiline
+                minRows={2}
+              />
             </Stack>
           </PageCard>
         </>

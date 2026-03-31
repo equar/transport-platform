@@ -1,8 +1,11 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { Outlet } from "react-router-dom";
+import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
 import { BrandMark } from "../../shared/components/BrandMark";
 
 export function AuthLayout() {
+  const { branding } = useRuntimeCapabilities();
+
   return (
     <Box
       sx={{
@@ -19,17 +22,16 @@ export function AuthLayout() {
         <Stack spacing={1}>
           <BrandMark />
           <Typography variant="h2" sx={{ maxWidth: 640 }}>
-            Transportation operations, tenancy, and security foundations in one
-            platform shell.
+            {branding?.customLoginWelcomeText ||
+              "Transportation operations, tenancy, and security foundations in one platform shell."}
           </Typography>
           <Typography
             variant="body1"
             color="text.secondary"
             sx={{ maxWidth: 720 }}
           >
-            This initial frontend focuses on architecture and delivery
-            scaffolding. Business workflows and authenticated experiences will
-            be added in bounded implementation batches.
+            {branding?.customFooterText ||
+              "This initial frontend focuses on architecture and delivery scaffolding. Business workflows and authenticated experiences will be added in bounded implementation batches."}
           </Typography>
         </Stack>
         <Outlet />

@@ -12,6 +12,8 @@ import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
 import com.transportplatform.tms.features.notification.application.NotificationEventService;
+import com.transportplatform.tms.features.portalaccess.application.PortalAccessService;
+import com.transportplatform.tms.features.portalaccess.domain.PortalSubjectType;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.features.user.api.request.UserUpsertRequest;
 import com.transportplatform.tms.features.user.api.response.UserResponse;
@@ -34,19 +36,22 @@ public class UserManagementService {
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final AuditLogService auditLogService;
     private final NotificationEventService notificationEventService;
+    private final PortalAccessService portalAccessService;
 
     public UserManagementService(AppUserRepository appUserRepository,
             TenantRepository tenantRepository,
             PasswordEncoder passwordEncoder,
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
             AuditLogService auditLogService,
-            NotificationEventService notificationEventService) {
+            NotificationEventService notificationEventService,
+            PortalAccessService portalAccessService) {
         this.appUserRepository = appUserRepository;
         this.tenantRepository = tenantRepository;
         this.passwordEncoder = passwordEncoder;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.auditLogService = auditLogService;
         this.notificationEventService = notificationEventService;
+        this.portalAccessService = portalAccessService;
     }
 
     @Transactional(readOnly = true)
@@ -100,6 +105,7 @@ public class UserManagementService {
         AppUser user = new AppUser();
         applyUserValues(user, request, AdminScope.PLATFORM, true);
         AppUser saved = appUserRepository.save(user);
+        syncPortalScope(saved, request);
         recordUserCreated(saved);
         return toResponse(saved);
     }
@@ -110,6 +116,7 @@ public class UserManagementService {
         AppUser user = new AppUser();
         applyUserValues(user, request, AdminScope.COMPANY, true);
         AppUser saved = appUserRepository.save(user);
+        syncPortalScope(saved, request);
         recordUserCreated(saved);
         notificationEventService.publishCompanyUserCreated(saved);
         return toResponse(saved);
@@ -123,6 +130,7 @@ public class UserManagementService {
         Set<RoleName> previousRoles = new LinkedHashSet<>(user.getRoles());
         applyUserValues(user, request, AdminScope.PLATFORM, false);
         AppUser saved = appUserRepository.save(user);
+        syncPortalScope(saved, request);
         recordUserUpdated(saved, oldSnapshot, previousRoles);
         return toResponse(saved);
     }
@@ -134,6 +142,7 @@ public class UserManagementService {
         Set<RoleName> previousRoles = new LinkedHashSet<>(user.getRoles());
         applyUserValues(user, request, AdminScope.COMPANY, false);
         AppUser saved = appUserRepository.save(user);
+        syncPortalScope(saved, request);
         recordUserUpdated(saved, oldSnapshot, previousRoles);
         return toResponse(saved);
     }
@@ -271,6 +280,46 @@ public class UserManagementService {
         }
 
         return roles;
+    }
+
+    private void syncPortalScope(AppUser user, UserUpsertRequest request) {
+        if (user.getTenantId() == null || user.getTenantId().isBlank()) {
+            portalAccessService.removeScope(user.getId());
+            return;
+        }
+        if (!containsPortalRole(user.getRoles())) {
+            portalAccessService.removeScope(user.getId());
+            return;
+        }
+        if (request.portalSubjectType() == null || request.portalSubjectId() == null) {
+            portalAccessService.removeScope(user.getId());
+            return;
+        }
+        validatePortalScopeCompatibility(user.getRoles(), request.portalSubjectType());
+        portalAccessService.upsertScope(user.getId(), user.getTenantId(), request.portalSubjectType(),
+                request.portalSubjectId());
+    }
+
+    private boolean containsPortalRole(Set<RoleName> roles) {
+        return roles.contains(RoleName.ROLE_DRIVER)
+                || roles.contains(RoleName.ROLE_RIDER)
+                || roles.contains(RoleName.ROLE_GUARDIAN)
+                || roles.contains(RoleName.ROLE_ORGANIZATION_USER);
+    }
+
+    private void validatePortalScopeCompatibility(Set<RoleName> roles, PortalSubjectType portalSubjectType) {
+        boolean valid = switch (portalSubjectType) {
+            case DRIVER -> roles.contains(RoleName.ROLE_DRIVER);
+            case RIDER -> roles.contains(RoleName.ROLE_RIDER);
+            case GUARDIAN -> roles.contains(RoleName.ROLE_GUARDIAN);
+            case ORGANIZATION_CONTACT -> roles.contains(RoleName.ROLE_ORGANIZATION_USER);
+        };
+        if (!valid) {
+            throw new ApiException(
+                    ErrorCode.VALIDATION_FAILED,
+                    HttpStatus.BAD_REQUEST,
+                    "The selected portal scope type is not compatible with the assigned user roles.");
+        }
     }
 
     private String resolveTenantId(AdminScope scope, String requestedTenantId) {

@@ -44,6 +44,25 @@ import { ComplianceDashboardPage } from "../../features/compliance/pages/Complia
 import { IncidentManagementPage } from "../../features/incidents/pages/IncidentManagementPage";
 import { CompanyReportsPage } from "../../features/reports/pages/CompanyReportsPage";
 import { CompanySettingsPage } from "../../features/settings/pages/CompanySettingsPage";
+import { DriverPortalDashboardPage } from "../../features/driver-portal/pages/DriverPortalDashboardPage";
+import { DriverPortalProfilePage } from "../../features/driver-portal/pages/DriverPortalProfilePage";
+import { DriverPortalCompliancePage } from "../../features/driver-portal/pages/DriverPortalCompliancePage";
+import { DriverPortalRidesPage } from "../../features/driver-portal/pages/DriverPortalRidesPage";
+import { DriverPortalRideDetailsPage } from "../../features/driver-portal/pages/DriverPortalRideDetailsPage";
+import { DriverPortalRoutesPage } from "../../features/driver-portal/pages/DriverPortalRoutesPage";
+import { DriverPortalRouteDetailsPage } from "../../features/driver-portal/pages/DriverPortalRouteDetailsPage";
+import { RiderGuardianPortalBillingPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalBillingPage";
+import { RiderGuardianPortalHomePage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalHomePage";
+import { RiderGuardianPortalProfilePage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalProfilePage";
+import { RiderGuardianPortalRidesPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalRidesPage";
+import { OrganizationPortalBillingPage } from "../../features/organization-portal/pages/OrganizationPortalBillingPage";
+import { OrganizationPortalContractsPage } from "../../features/organization-portal/pages/OrganizationPortalContractsPage";
+import { OrganizationPortalHomePage } from "../../features/organization-portal/pages/OrganizationPortalHomePage";
+import { OrganizationPortalProfilePage } from "../../features/organization-portal/pages/OrganizationPortalProfilePage";
+import { OrganizationPortalRosterPage } from "../../features/organization-portal/pages/OrganizationPortalRosterPage";
+import { FeatureFlagManagementPage } from "../../features/saas/pages/FeatureFlagManagementPage";
+import { SubscriptionPlanManagementPage } from "../../features/saas/pages/SubscriptionPlanManagementPage";
+import { TenantSubscriptionManagementPage } from "../../features/saas/pages/TenantSubscriptionManagementPage";
 
 function HomeRedirect() {
   const { isAuthenticated, isLoading, getDefaultRoute } = useAuth();
@@ -100,6 +119,18 @@ const router = createBrowserRouter([
       {
         path: "users",
         element: <UserManagementPage />,
+      },
+      {
+        path: "subscription-plans",
+        element: <SubscriptionPlanManagementPage />,
+      },
+      {
+        path: "tenant-subscriptions",
+        element: <TenantSubscriptionManagementPage />,
+      },
+      {
+        path: "feature-flags",
+        element: <FeatureFlagManagementPage />,
       },
       {
         path: "roles",
@@ -246,6 +277,112 @@ const router = createBrowserRouter([
       {
         path: "audit-logs",
         element: <AuditLogsPage />,
+      },
+    ],
+  },
+  {
+    path: "/portal/driver",
+    element: (
+      <ProtectedRoute allowedRoles={["ROLE_DRIVER"]}>
+        <AppShell />
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <DriverPortalDashboardPage />,
+      },
+      {
+        path: "profile",
+        element: <DriverPortalProfilePage />,
+      },
+      {
+        path: "compliance",
+        element: <DriverPortalCompliancePage />,
+      },
+      {
+        path: "rides",
+        element: <DriverPortalRidesPage />,
+      },
+      {
+        path: "rides/:rideId",
+        element: <DriverPortalRideDetailsPage />,
+      },
+      {
+        path: "routes",
+        element: <DriverPortalRoutesPage />,
+      },
+      {
+        path: "routes/:routeId",
+        element: <DriverPortalRouteDetailsPage />,
+      },
+      {
+        path: "notifications",
+        element: <NotificationCenterPage />,
+      },
+    ],
+  },
+  {
+    path: "/portal/rider",
+    element: (
+      <ProtectedRoute allowedRoles={["ROLE_RIDER", "ROLE_GUARDIAN"]}>
+        <AppShell />
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <RiderGuardianPortalHomePage />,
+      },
+      {
+        path: "profile",
+        element: <RiderGuardianPortalProfilePage />,
+      },
+      {
+        path: "rides",
+        element: <RiderGuardianPortalRidesPage />,
+      },
+      {
+        path: "billing",
+        element: <RiderGuardianPortalBillingPage />,
+      },
+      {
+        path: "notifications",
+        element: <NotificationCenterPage />,
+      },
+    ],
+  },
+  {
+    path: "/portal/organization",
+    element: (
+      <ProtectedRoute allowedRoles={["ROLE_ORGANIZATION_USER"]}>
+        <AppShell />
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <OrganizationPortalHomePage />,
+      },
+      {
+        path: "profile",
+        element: <OrganizationPortalProfilePage />,
+      },
+      {
+        path: "roster",
+        element: <OrganizationPortalRosterPage />,
+      },
+      {
+        path: "contracts",
+        element: <OrganizationPortalContractsPage />,
+      },
+      {
+        path: "billing",
+        element: <OrganizationPortalBillingPage />,
+      },
+      {
+        path: "notifications",
+        element: <NotificationCenterPage />,
       },
     ],
   },

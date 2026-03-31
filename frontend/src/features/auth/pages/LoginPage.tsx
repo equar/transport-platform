@@ -1,8 +1,9 @@
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   Alert,
   Box,
   Button,
+  Divider,
   Link,
   Stack,
   TextField,
@@ -12,6 +13,7 @@ import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { PageCard } from "../../../shared/components/PageCard";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../../../shared/providers/ToastProvider";
+import { runtimeApi, type RuntimeBranding } from "../../runtime/api/runtimeApi";
 
 interface RouterState {
   from?: {
@@ -28,6 +30,8 @@ export function LoginPage() {
   const [email, setEmail] = useState("platform-admin@transport-platform.local");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [brandingPreview, setBrandingPreview] =
+    useState<RuntimeBranding | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const targetPath =
@@ -70,14 +74,37 @@ export function LoginPage() {
     setPassword(event.target.value);
   }
 
+  useEffect(() => {
+    let active = true;
+    const timeout = window.setTimeout(async () => {
+      try {
+        const nextBranding = await runtimeApi.getTenantBranding(
+          tenantId.trim(),
+        );
+        if (active) {
+          setBrandingPreview(nextBranding);
+        }
+      } catch {
+        if (active) {
+          setBrandingPreview(null);
+        }
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
+  }, [tenantId]);
+
   return (
     <PageCard>
       <Stack spacing={3} component="form" onSubmit={handleSubmit}>
         <Box>
           <Typography variant="h4">Administrator Sign In</Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-            Sign in with a platform or company administrator account to manage
-            onboarding, users, role assignments, and operational access.
+            {brandingPreview?.customLoginWelcomeText ||
+              "Sign in with a platform or company administrator account to manage onboarding, users, role assignments, and operational access."}
           </Typography>
         </Box>
 
@@ -123,10 +150,48 @@ export function LoginPage() {
             {submitting ? "Signing in..." : "Sign in"}
           </Button>
           <Typography variant="body2" color="text.secondary">
-            Platform bootstrap remains available for local development if the
-            backend local profile keeps it enabled.
+            {brandingPreview?.displayName
+              ? `Workspace: ${brandingPreview.displayName}`
+              : "Platform bootstrap remains available for local development if the backend local profile keeps it enabled."}
           </Typography>
         </Stack>
+
+        {brandingPreview ? (
+          <>
+            <Divider />
+            <Stack spacing={1.5}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Tenant branding preview
+              </Typography>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <Box
+                  sx={{
+                    width: 72,
+                    height: 72,
+                    borderRadius: 4,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    background: `linear-gradient(135deg, ${brandingPreview.primaryColor || "#0B5FFF"} 0%, ${brandingPreview.secondaryColor || brandingPreview.primaryColor || "#16324F"} 100%)`,
+                  }}
+                />
+                <Stack spacing={0.5}>
+                  <Typography variant="h6">
+                    {brandingPreview.displayName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {brandingPreview.customFooterText ||
+                      "White-label sign-in preview for the selected tenant."}
+                  </Typography>
+                  {brandingPreview.supportEmail ? (
+                    <Typography variant="body2" color="text.secondary">
+                      Support: {brandingPreview.supportEmail}
+                    </Typography>
+                  ) : null}
+                </Stack>
+              </Stack>
+            </Stack>
+          </>
+        ) : null}
 
         <Typography variant="body2" color="text.secondary">
           Transportation companies can submit onboarding requests through the{" "}

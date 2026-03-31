@@ -15,6 +15,15 @@ public interface ComplianceIssueRepository
 
     List<ComplianceIssue> findAllByTenantId(String tenantId);
 
+    List<ComplianceIssue> findAllByTenantIdAndEntityTypeAndEntityId(String tenantId,
+            ComplianceEntityType entityType,
+            Long entityId);
+
     List<ComplianceIssue> findAllByTenantIdAndIssueStatusIn(String tenantId,
+            Collection<ComplianceIssueStatus> statuses);
+
+    long countByTenantIdAndEntityTypeAndEntityIdAndIssueStatusIn(String tenantId,
+            ComplianceEntityType entityType,
+            Long entityId,
             Collection<ComplianceIssueStatus> statuses);
 }

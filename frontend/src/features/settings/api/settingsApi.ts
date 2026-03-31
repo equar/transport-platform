@@ -35,8 +35,15 @@ export interface CompanySettingsRecord {
   taxEnabled: boolean;
   defaultTaxRate: number;
   allowManualInvoiceOverrides: boolean;
+  displayName: string | null;
   companyLogoUrl: string | null;
+  faviconUrl: string | null;
+  website: string | null;
+  customLoginWelcomeText: string | null;
+  customFooterText: string | null;
   primaryColor: string | null;
+  secondaryColor: string | null;
+  accentColor: string | null;
   profileCompletenessPercent: number;
   createdBy: string | null;
   createdAt: string | null;
@@ -78,8 +85,15 @@ export interface CompanySettingsPayload {
   taxEnabled: boolean;
   defaultTaxRate: number;
   allowManualInvoiceOverrides: boolean;
+  displayName?: string | null;
   companyLogoUrl?: string | null;
+  faviconUrl?: string | null;
+  website?: string | null;
+  customLoginWelcomeText?: string | null;
+  customFooterText?: string | null;
   primaryColor?: string | null;
+  secondaryColor?: string | null;
+  accentColor?: string | null;
 }
 
 function cleanText(value?: string | null) {
@@ -110,8 +124,15 @@ function cleanPayload(payload: CompanySettingsPayload) {
     invoicePrefix: payload.invoicePrefix.trim().toUpperCase(),
     paymentPrefix: payload.paymentPrefix.trim().toUpperCase(),
     pricingRulePrefix: payload.pricingRulePrefix.trim().toUpperCase(),
+    displayName: cleanText(payload.displayName),
     companyLogoUrl: cleanText(payload.companyLogoUrl),
+    faviconUrl: cleanText(payload.faviconUrl),
+    website: cleanText(payload.website),
+    customLoginWelcomeText: cleanText(payload.customLoginWelcomeText),
+    customFooterText: cleanText(payload.customFooterText),
     primaryColor: cleanText(payload.primaryColor),
+    secondaryColor: cleanText(payload.secondaryColor),
+    accentColor: cleanText(payload.accentColor),
   };
 }
 
