@@ -1,171 +1,168 @@
 Kirshi Transport Platform — GitHub Copilot Instructions
-Purpose
 
-These instructions guide GitHub Copilot when generating or modifying code for the Transport SaaS Platform.
+## Purpose
 
-The system is:
+These instructions define the default expectations for code generated or modified in the Transport Platform repository.
 
-Multi-tenant SaaS
-Enterprise-grade
-Production-ready
-Modular architecture
+The platform is:
+
+- Multi-tenant SaaS
+- Enterprise-grade
+- Production-ready
+- Modular and feature-oriented
 
 Copilot must:
 
-Review existing implementation first
-Make minimal safe changes
-Maintain architecture consistency
-Avoid demo-style code
-Architecture Principles
-Backend
-Spring Boot
-Package by feature
-DTO-based API layer
-Service layer business logic
-Repository layer persistence
-Global exception handling
-Audit fields on all entities
+- Review the existing implementation before changing code
+- Make the smallest safe change that solves the problem
+- Preserve architecture consistency and naming patterns
+- Prefer production-ready solutions over demo-style shortcuts
 
-All entities must include:
+## Core Principles
 
-id
-tenantId (when applicable)
-status
-createdBy
-createdAt
-updatedBy
-updatedAt
-Multi‑Tenant Requirements
+### Always
 
-Always:
+- Keep business logic in the service layer
+- Use DTOs at the API boundary
+- Enforce tenant isolation in every applicable backend flow
+- Preserve role-based access and scoped visibility
+- Add loading, empty, and error states in frontend experiences
+- Keep changes maintainable, scalable, and consistent with existing patterns
 
-Enforce tenantId filtering
-Prevent cross‑tenant access
-Validate tenant ownership
-Scope queries to tenant
+### Never
 
-Never:
+- Put business logic in controllers
+- Return JPA entities directly from APIs
+- Accept tenant identity from the frontend when it should come from authentication
+- Return cross-tenant data
+- Trust frontend validation alone
+- Leave placeholder or demo-only code in production paths
 
-Return cross‑tenant data
-Accept tenantId from frontend
+## Backend Standards
 
-Tenant must be resolved from:
+### Architecture
 
-Authenticated user
-Security context
-Status Handling
+- Use Spring Boot conventions already established in the repository
+- Keep code organized by feature
+- Maintain a clear separation between controller, service, repository, and domain layers
+- Use global exception handling rather than ad hoc controller error responses
 
-Use enum based status
+### Entities
 
-Examples:
+All persistent entities must follow platform conventions. Include the following where applicable:
 
-ACTIVE
-INACTIVE
-PENDING
-SUSPENDED
-CANCELLED
+- `id`
+- `tenantId`
+- `status`
+- `createdBy`
+- `createdAt`
+- `updatedBy`
+- `updatedAt`
 
-Never use raw strings
+Use enum-based status values such as:
 
-Validation Rules
+- `ACTIVE`
+- `INACTIVE`
+- `PENDING`
+- `SUSPENDED`
+- `CANCELLED`
 
-Use:
+Do not use raw status strings in domain logic.
 
-Bean validation
-Service level validation
+### Multi-Tenant Rules
 
-Validate:
+- Resolve tenant context from the authenticated user or security context
+- Enforce tenant filtering in service and repository logic
+- Validate tenant ownership before reading or mutating tenant-scoped data
+- Prevent cross-tenant access in every endpoint and query path
 
-tenant ownership
-status transitions
-required fields
-numeric ranges
-dates
-API Standards
+### API Design
 
-Controllers:
+- Use RESTful endpoints and proper HTTP status codes
+- Support pagination and filtering where the feature already follows those patterns
+- Use request DTOs for input and response DTOs for output
+- Handle empty `keyword` search input gracefully
 
-RESTful endpoints
-Proper HTTP status
-Pagination support
-Filtering support
+Preferred API patterns:
 
-Naming:
+- `/api/drivers`
+- `/api/rides`
+- `/api/invoices`
 
-/api/drivers
-/api/rides
-/api/invoices
-Pagination Standards
+Preferred pagination parameters:
 
-Use:
+- `page`
+- `size`
+- `sort`
 
-page
-size
-sort
+Preferred paginated response shape:
 
-Return:
+- `content`
+- `totalElements`
+- `totalPages`
 
-content
-totalElements
-totalPages
-Search Standards
+### Validation
 
-Always support:
+- Use Bean Validation for request models
+- Add service-layer validation for business rules
+- Validate tenant ownership, required fields, numeric ranges, dates, and status transitions
 
-keyword
+### Logging
 
-Frontend may send empty keyword
+- Log meaningful create, update, delete, and assignment events
+- Do not log secrets, tokens, or sensitive personal data
 
-Backend must handle gracefully
+## Frontend Standards
 
-Logging
+### Stack
 
-Log:
+- React
+- TypeScript
+- Material UI
 
-creation
-updates
-deletes
-assignments
+### Implementation Rules
 
-Do not log sensitive data
+- Prefer reusable components over repeated page-specific markup
+- Use controlled forms or the existing project form approach consistently
+- Keep routing, layouts, and role-based UI behavior explicit and maintainable
+- Preserve portal-specific boundaries for driver, rider, guardian, and organization experiences
 
-Frontend Standards
+### UX Requirements
 
-React + TypeScript + Material UI
+Every meaningful frontend workflow should account for:
 
-Use:
+- Loading state
+- Empty state
+- Error state
 
-Reusable components
-Tables
-Dialogs
-Forms
-Chips
-UX Requirements
+Use Material UI patterns consistently for:
 
-Always include:
+- Tables
+- Dialogs
+- Forms
+- Chips
+- Layout containers
 
-loading states
-empty states
-error states
-Security Rules
+## Security And Data Handling
 
-Never:
+- Validate all sensitive operations on the backend
+- Avoid exposing internal identifiers unless required by an established API contract
+- Keep authorization and tenant scoping aligned with the user session
+- Ensure frontend role-based visibility does not replace backend access enforcement
 
-expose internal ids unnecessarily
-trust frontend data
+## Quality Bar
 
-Always validate backend
+Generated code must be:
 
-Production Quality
-
-Code must be:
-
-maintainable
-scalable
-clean
-consistent
+- Clean
+- Consistent
+- Maintainable
+- Scalable
+- Production-ready
 
 Avoid:
 
-TODO placeholders
-demo shortcuts
+- Debug code left in production paths
+- Unused imports and dead branches
+- Placeholder comments instead of real behavior
+- Architecture drift from established repository patterns

@@ -1,93 +1,141 @@
-Spring Boot Review Guidelines
+---
+applyTo: "backend/src/main/java/**/*.java,backend/src/test/java/**/*.java"
+description: "Review and generate Spring Boot backend code for architecture, DTOs, services, repositories, tenant isolation, validation, security, performance, and tests."
+---
 
-Copilot must review:
+# Spring Boot Review Guidelines
 
-Architecture
-Controller layer clean
-Service layer logic
-Repository clean
+## Review Goals
 
-Avoid business logic in controllers
+Review backend changes for:
 
-Entity Review
+- Clean architecture boundaries
+- Correct controller, service, and repository responsibilities
+- DTO-based API design
+- Tenant isolation and role-aware security
+- Validation, performance, and production readiness
 
-Check:
-
-audit fields
-status enum
-tenantId
-relationships
-DTO Review
+## Architecture Review
 
 Ensure:
 
-request DTO
-response DTO
+- Controllers stay thin and delegate business logic to services
+- Services contain business rules, validation, and tenant checks
+- Repositories remain focused on persistence and query logic
+- Code stays aligned with the repository's package-by-feature structure
 
-Never return entities directly
+Never place business logic in controllers.
 
-Service Layer
+## Entity Review
 
-Ensure:
+Check entities for:
 
-business logic centralized
-validation included
-tenant checks
-Repository Review
+- Audit fields
+- Status enum usage
+- `tenantId` where applicable
+- Correct relationship mapping and ownership
 
-Check:
+Confirm entity design does not weaken tenant isolation or introduce unnecessary eager loading.
 
-tenant filters
-pagination
-performance
-Security Review
-
-Ensure:
-
-role based access
-tenant isolation
-Exception Handling
-
-Use:
-
-GlobalExceptionHandler
-
-Return:
-
-message
-timestamp
-status
-Logging Review
-
-Add logs for:
-
-create
-update
-delete
-Validation Review
-
-Use:
-
-@NotNull
-@NotBlank
-@Valid
-Performance Review
-
-Check:
-
-pagination
-indexing
-lazy loading
-Test Review
-
-Add tests for:
-
-service logic
-security rules
-
-Production Readiness
+## DTO Review
 
 Ensure:
 
-no debug code
-no unused imports
+- Request DTOs are used for API input
+- Response DTOs are used for API output
+- Validation annotations are applied where appropriate
+
+Never return entities directly from controllers.
+
+## Service Layer Review
+
+Ensure services include:
+
+- Centralized business logic
+- Service-level validation
+- Tenant ownership validation
+- Proper status transition checks
+- Clear, consistent orchestration of repositories and mappers
+
+## Repository Review
+
+Check repositories for:
+
+- Tenant filters on tenant-scoped data
+- Pagination support where expected
+- Query efficiency and readability
+- Avoidance of unnecessary full-table scans or N+1 query patterns
+
+## Security Review
+
+Ensure:
+
+- Role-based access is enforced appropriately
+- Tenant isolation is preserved at every layer
+- Sensitive operations validate access beyond frontend assumptions
+
+## Exception Handling Review
+
+Prefer:
+
+- `GlobalExceptionHandler`
+
+Error responses should consistently include:
+
+- `message`
+- `timestamp`
+- `status`
+
+## Validation Review
+
+Use and verify as appropriate:
+
+- `@NotNull`
+- `@NotBlank`
+- `@Valid`
+
+Also confirm validation covers:
+
+- Required fields
+- Numeric ranges
+- Dates
+- Tenant ownership
+- Status transitions
+
+## Logging Review
+
+Add or verify logs for:
+
+- Create operations
+- Update operations
+- Delete operations
+
+Do not log sensitive data.
+
+## Performance Review
+
+Check for:
+
+- Pagination on list endpoints
+- Index-aware query behavior where relevant
+- Sensible lazy loading behavior
+- Avoidable mapping or query overhead
+
+## Test Review
+
+Add or update tests for:
+
+- Service logic
+- Security rules
+- Tenant isolation when relevant
+- Validation and failure paths when behavior changes
+
+## Production Readiness
+
+Ensure:
+
+- No debug code remains
+- No unused imports remain
+- Naming is consistent
+- Error handling is intentional
+- The final code matches the established backend architecture
