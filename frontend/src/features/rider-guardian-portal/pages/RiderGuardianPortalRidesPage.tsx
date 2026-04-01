@@ -5,7 +5,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   MenuItem,
   Stack,
   TextField,
@@ -16,6 +15,10 @@ import { Link as RouterLink } from "react-router-dom";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
+import {
+  formatStatusLabel,
+  StatusChip,
+} from "../../../shared/components/StatusChip";
 import { formatDateTime } from "../../../shared/utils/format";
 import {
   riderGuardianPortalApi,
@@ -157,7 +160,7 @@ export function RiderGuardianPortalRidesPage() {
           >
             {rideStatuses.map((option) => (
               <MenuItem key={option || "all"} value={option}>
-                {option || "All statuses"}
+                {option ? formatStatusLabel(option) : "All statuses"}
               </MenuItem>
             ))}
           </TextField>
@@ -209,9 +212,8 @@ export function RiderGuardianPortalRidesPage() {
                       Viewing rider: {ride.riderName}
                     </Typography>
                   </Stack>
-                  <Chip
-                    label={ride.status.replaceAll("_", " ")}
-                    color="secondary"
+                  <StatusChip
+                    value={ride.status}
                     sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
                   />
                 </Stack>

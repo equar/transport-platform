@@ -1,7 +1,8 @@
-import { Alert, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { PageCard } from "../../../shared/components/PageCard";
+import { StatusChip } from "../../../shared/components/StatusChip";
 import {
   riderGuardianPortalApi,
   type RiderGuardianPortalPaymentRecord,
@@ -100,9 +101,8 @@ export function RiderGuardianPortalPaymentHistoryPage() {
                     {payment.billToNameSnapshot ?? "Current portal scope"}
                   </Typography>
                 </Stack>
-                <Chip
-                  label={payment.status.replaceAll("_", " ")}
-                  color="secondary"
+                <StatusChip
+                  value={payment.status}
                   sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
                 />
               </Stack>

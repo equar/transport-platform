@@ -1,5 +1,9 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { Link as RouterLink, Outlet } from "react-router-dom";
+import {
+  publicPrimaryCta,
+  publicSecondaryCta,
+} from "../../features/public/content/siteContent";
 import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
 import { BrandMark } from "../../shared/components/BrandMark";
 
@@ -56,21 +60,25 @@ export function AuthLayout() {
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
             <Button
               component={RouterLink}
-              to="/"
+              to={publicSecondaryCta.to}
               variant="outlined"
               size="large"
             >
-              Back to Home
+              {publicSecondaryCta.label}
             </Button>
             <Button
               component={RouterLink}
-              to="/contact#request-demo"
+              to={publicPrimaryCta.to}
               variant="contained"
               size="large"
             >
-              Request Demo
+              {publicPrimaryCta.label}
             </Button>
           </Stack>
+          <Typography variant="body2" color="text.secondary">
+            Need help with access? Contact support or request a guided workspace
+            walkthrough.
+          </Typography>
         </Stack>
 
         <Outlet />

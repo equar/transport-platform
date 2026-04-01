@@ -1,9 +1,10 @@
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import { Alert, Button, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Button, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { PageCard } from "../../../shared/components/PageCard";
+import { StatusChip } from "../../../shared/components/StatusChip";
 import { formatDateTime } from "../../../shared/utils/format";
 import {
   riderGuardianPortalApi,
@@ -95,9 +96,8 @@ export function RiderGuardianPortalRideHistoryPage() {
                     Viewing rider: {ride.riderName}
                   </Typography>
                 </Stack>
-                <Chip
-                  label={ride.status.replaceAll("_", " ")}
-                  color="secondary"
+                <StatusChip
+                  value={ride.status}
                   sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
                 />
               </Stack>

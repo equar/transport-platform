@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { PageCard } from "../../../shared/components/PageCard";
+import { StatusChip } from "../../../shared/components/StatusChip";
 import { formatDateTime } from "../../../shared/utils/format";
 import {
   riderGuardianPortalApi,
@@ -75,10 +76,7 @@ export function RiderGuardianPortalRideDetailsPage() {
                 Viewing rider: {ride.riderName}
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap">
-                <Chip
-                  label={ride.status.replaceAll("_", " ")}
-                  color="secondary"
-                />
+                <StatusChip value={ride.status} />
                 {ride.recurringRide ? (
                   <Chip icon={<RepeatRoundedIcon />} label="Recurring ride" />
                 ) : null}

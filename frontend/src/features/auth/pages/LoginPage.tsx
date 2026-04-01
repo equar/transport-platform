@@ -13,6 +13,7 @@ import { AuthFormShell } from "../components/AuthFormShell";
 import { resolvePostLoginRoute } from "../access";
 import { useAuth } from "../context/AuthContext";
 import { consumeAuthNotice } from "../utils/authNotices";
+import { publicSecondaryCta } from "../../public/content/siteContent";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { runtimeApi, type RuntimeBranding } from "../../runtime/api/runtimeApi";
 
@@ -151,7 +152,7 @@ export function LoginPage() {
         <Typography variant="body2" color="text.secondary">
           Transportation companies can begin onboarding through the{" "}
           <Link component={RouterLink} to="/apply" underline="hover">
-            Apply to Join
+            {publicSecondaryCta.label}
           </Link>{" "}
           page or{" "}
           <Link
@@ -233,6 +234,7 @@ export function LoginPage() {
           onChange={handlePasswordChange}
           required
           error={Boolean(error) && !password.trim()}
+          helperText="Use the password issued for this tenant workspace."
         />
 
         <Stack

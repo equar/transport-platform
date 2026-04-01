@@ -551,7 +551,7 @@ export function AppShell() {
                   component={RouterLink}
                   underline="hover"
                   color="inherit"
-                  to={currentItem?.to ?? location.pathname}
+                  to={workspaceHomePath}
                 >
                   {shellView.scopeLabel}
                 </Link>

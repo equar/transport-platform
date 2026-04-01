@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Button, Stack, TextField, Typography } from "@mui/material";
+import { Button, Link, Stack, TextField, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { AuthFormShell } from "../../auth/components/AuthFormShell";
 import { authApi } from "../../auth/api/authApi";
@@ -54,17 +54,15 @@ export function ForgotPasswordPage() {
       footer={
         <Typography variant="body2" color="text.secondary">
           Remembered your credentials?{" "}
-          <Typography
+          <Link
             component={RouterLink}
             to="/login"
-            sx={{
-              color: "primary.main",
-              textDecoration: "none",
-              fontWeight: 700,
-            }}
+            underline="hover"
+            color="primary"
+            fontWeight={700}
           >
             Back to Login
-          </Typography>
+          </Link>
         </Typography>
       }
       maxWidth={640}

@@ -12,6 +12,10 @@ import { useEffect, useState } from "react";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
+import {
+  formatStatusLabel,
+  StatusChip,
+} from "../../../shared/components/StatusChip";
 import { formatDateTime } from "../../../shared/utils/format";
 import {
   organizationPortalApi,
@@ -124,7 +128,7 @@ export function OrganizationPortalRidesPage() {
         >
           {rideStatuses.map((option) => (
             <MenuItem key={option || "all-rides"} value={option}>
-              {option || "All ride statuses"}
+              {option ? formatStatusLabel(option) : "All ride statuses"}
             </MenuItem>
           ))}
         </TextField>
@@ -140,7 +144,17 @@ export function OrganizationPortalRidesPage() {
           rides.map((ride) => (
             <PageCard key={ride.id}>
               <Stack spacing={1.1}>
-                <Typography variant="h6">{ride.rideNumber}</Typography>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  spacing={1}
+                >
+                  <Typography variant="h6">{ride.rideNumber}</Typography>
+                  <StatusChip
+                    value={ride.status}
+                    sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+                  />
+                </Stack>
                 <Typography variant="body2" color="text.secondary">
                   Pickup: {formatDateTime(ride.scheduledPickupAt)}
                 </Typography>
@@ -152,9 +166,6 @@ export function OrganizationPortalRidesPage() {
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   To: {ride.dropoffAddress || "Dropoff address pending"}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Status: {ride.status.replaceAll("_", " ")}
                 </Typography>
               </Stack>
             </PageCard>

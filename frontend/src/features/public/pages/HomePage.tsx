@@ -11,6 +11,12 @@ import { Box, Button, Chip, Stack, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { PublicCtaBand } from "../components/PublicCtaBand";
 import { PublicSection } from "../components/PublicSection";
+import {
+  publicAuthCta,
+  publicPrimaryCta,
+  publicSecondaryCta,
+  publicTrustHighlights,
+} from "../content/siteContent";
 import { PageCard } from "../../../shared/components/PageCard";
 
 const strategicPillars = [
@@ -165,38 +171,55 @@ export function HomePage() {
               color="text.secondary"
               sx={{ maxWidth: 760, fontWeight: 400 }}
             >
-              Present the platform like an enterprise SaaS product, not a login
-              screen. This shell creates the public website structure for demand
-              generation, onboarding, support entry points, and brand
-              credibility.
+              Bring onboarding, tenant governance, dispatch readiness, billing,
+              and portal access into one polished transportation SaaS experience
+              that buyers, operators, and external users can all trust.
             </Typography>
           </Stack>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
             <Button
               component={RouterLink}
-              to="/apply"
+              to={publicPrimaryCta.to}
               variant="contained"
               size="large"
             >
-              Apply to Join
+              {publicPrimaryCta.label}
             </Button>
             <Button
               component={RouterLink}
-              to="/contact#request-demo"
+              to={publicSecondaryCta.to}
               variant="outlined"
               size="large"
               endIcon={<ArrowOutwardRoundedIcon />}
             >
-              Request Demo
+              {publicSecondaryCta.label}
             </Button>
             <Button
               component={RouterLink}
-              to="/login"
+              to={publicAuthCta.to}
               variant="text"
               size="large"
             >
-              Login
+              {publicAuthCta.label}
             </Button>
+          </Stack>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            useFlexGap
+            flexWrap="wrap"
+          >
+            {publicTrustHighlights.map((item) => (
+              <Chip
+                key={item}
+                label={item}
+                variant="outlined"
+                sx={{
+                  alignSelf: "flex-start",
+                  bgcolor: "rgba(255,255,255,0.6)",
+                }}
+              />
+            ))}
           </Stack>
         </Stack>
 
@@ -209,11 +232,10 @@ export function HomePage() {
           <Stack spacing={3}>
             <Box>
               <Typography variant="overline" color="secondary.main">
-                Launch readiness
+                Trust at launch
               </Typography>
               <Typography variant="h4" sx={{ mt: 1 }}>
-                The public layer is ready to expand with product, sales, and
-                identity workflows.
+                The website and application now speak the same product language.
               </Typography>
             </Box>
             <Stack spacing={1.5}>

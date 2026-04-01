@@ -1,11 +1,12 @@
 import ContactsRoundedIcon from "@mui/icons-material/ContactsRounded";
 import MarkEmailReadRoundedIcon from "@mui/icons-material/MarkEmailReadRounded";
 import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
-import { Alert, Box, Stack, Typography } from "@mui/material";
+import { Alert, Box, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
+import { StatusChip } from "../../../shared/components/StatusChip";
 import { formatDateTime } from "../../../shared/utils/format";
 import {
   organizationPortalApi,
@@ -124,10 +125,17 @@ export function OrganizationPortalContactsPage() {
                   Communication:{" "}
                   {contact.preferredCommunicationMethod || "Not set"}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Status: {contact.status.replaceAll("_", " ")}
-                  {contact.primary ? " • Primary contact" : ""}
-                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <StatusChip value={contact.status} />
+                  {contact.primary ? (
+                    <Chip
+                      label="Primary contact"
+                      color="primary"
+                      variant="outlined"
+                      size="small"
+                    />
+                  ) : null}
+                </Stack>
                 <Typography variant="body2" color="text.secondary">
                   Last updated {formatDateTime(contact.updatedAt)}
                 </Typography>

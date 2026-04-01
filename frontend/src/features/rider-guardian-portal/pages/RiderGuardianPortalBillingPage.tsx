@@ -1,12 +1,13 @@
 import AttachMoneyRoundedIcon from "@mui/icons-material/AttachMoneyRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
-import { Alert, Box, Button, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
+import { StatusChip } from "../../../shared/components/StatusChip";
 import {
   riderGuardianPortalApi,
   type RiderGuardianPortalDashboardRecord,
@@ -157,9 +158,8 @@ export function RiderGuardianPortalBillingPage() {
                       <Typography variant="h6">
                         {invoice.invoiceNumber}
                       </Typography>
-                      <Chip
-                        label={invoice.status.replaceAll("_", " ")}
-                        color="secondary"
+                      <StatusChip
+                        value={invoice.status}
                         sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
                       />
                     </Stack>
@@ -217,9 +217,8 @@ export function RiderGuardianPortalBillingPage() {
                       <Typography variant="h6">
                         {payment.paymentNumber}
                       </Typography>
-                      <Chip
-                        label={payment.status.replaceAll("_", " ")}
-                        color="secondary"
+                      <StatusChip
+                        value={payment.status}
                         sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
                       />
                     </Stack>

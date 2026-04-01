@@ -15,7 +15,12 @@ import {
 } from "@mui/material";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { BrandMark } from "../../../shared/components/BrandMark";
-import { publicNavigationItems } from "../content/siteContent";
+import {
+  publicAuthCta,
+  publicNavigationItems,
+  publicPrimaryCta,
+  publicSecondaryCta,
+} from "../content/siteContent";
 
 function isActivePath(currentPath: string, targetPath: string) {
   if (targetPath === "/") {
@@ -31,19 +36,28 @@ export function PublicHeader() {
 
   const actionButtons = (
     <Stack direction={{ xs: "column", md: "row" }} spacing={1.25}>
-      <Button component={RouterLink} to="/login" variant="text" color="inherit">
-        Login
+      <Button
+        component={RouterLink}
+        to={publicAuthCta.to}
+        variant="text"
+        color="inherit"
+      >
+        {publicAuthCta.label}
       </Button>
       <Button
         component={RouterLink}
-        to="/contact#request-demo"
+        to={publicSecondaryCta.to}
         variant="outlined"
         endIcon={<LaunchRoundedIcon />}
       >
-        Request Demo
+        {publicSecondaryCta.label}
       </Button>
-      <Button component={RouterLink} to="/apply" variant="contained">
-        Apply to Join
+      <Button
+        component={RouterLink}
+        to={publicPrimaryCta.to}
+        variant="contained"
+      >
+        {publicPrimaryCta.label}
       </Button>
     </Stack>
   );
@@ -92,6 +106,7 @@ export function PublicHeader() {
                       px: 1.5,
                       color: active ? "primary.main" : "text.primary",
                       fontWeight: active ? 700 : 600,
+                      position: "relative",
                     }}
                   >
                     {item.label}
