@@ -153,7 +153,7 @@ export function UserManagementPage() {
         description={
           platformAdmin
             ? "Manage platform and tenant users, assign governed roles, and enforce account lifecycle states across the SaaS portfolio."
-            : "Manage your tenant’s administrators and operators while keeping role assignment inside tenant-safe boundaries."
+            : "Manage your company administrators and operators while keeping role assignments clear and controlled."
         }
       >
         <Button

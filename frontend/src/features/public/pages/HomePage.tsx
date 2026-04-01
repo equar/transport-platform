@@ -29,7 +29,7 @@ const strategicPillars = [
   {
     title: "Portal-ready architecture",
     description:
-      "Support drivers, riders, guardians, and organization users from the same product foundation.",
+      "Support drivers, riders, guardians, and organization users from one connected product experience.",
     icon: <HubRoundedIcon color="primary" />,
   },
   {
@@ -90,7 +90,7 @@ const workflowSteps = [
     step: "01",
     title: "Establish the organization",
     description:
-      "Bring tenant setup, branding, onboarding, and access boundaries under a governed SaaS foundation.",
+      "Bring workspace setup, branding, onboarding, and access controls under one governed SaaS platform.",
   },
   {
     step: "02",
@@ -110,7 +110,7 @@ const differentiators = [
   "Multi-tenant design aligned with platform and company ownership boundaries",
   "Role-aware experiences for internal teams and external portal users",
   "Operational architecture that can scale from onboarding into daily execution",
-  "Commercialization foundations for subscriptions, features, and tenant growth",
+  "Subscription controls and feature management that support long-term growth",
 ];
 
 const portalRoles = [

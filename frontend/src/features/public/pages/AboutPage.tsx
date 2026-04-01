@@ -30,7 +30,7 @@ const differentiators = [
   {
     title: "Commercially SaaS-ready",
     description:
-      "Subscription and feature-flag foundations support a credible product strategy as the platform grows across tenants and service lines.",
+      "Subscription controls and feature management support a credible product strategy as the platform grows across customers and service lines.",
   },
 ];
 
@@ -72,7 +72,7 @@ export function AboutPage() {
             The platform is designed to solve that fragmentation. Instead of
             asking teams to assemble a patchwork of admin portals, dispatch
             tools, finance systems, and stakeholder touchpoints, it creates a
-            single SaaS foundation where each role sees the right surface and
+            single SaaS platform where each role sees the right surface and
             leadership keeps the right level of control.
           </Typography>
         </PageCard>

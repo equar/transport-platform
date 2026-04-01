@@ -288,7 +288,8 @@ const companySections: AppShellNavSection[] = [
       },
       {
         label: "Roles",
-        description: "Tenant-safe role definitions and usage visibility.",
+        description:
+          "Role definitions, permissions, and assignment visibility.",
         to: "/company/roles",
         icon: <SecurityRoundedIcon fontSize="small" />,
         audiences: ["company-admin"],

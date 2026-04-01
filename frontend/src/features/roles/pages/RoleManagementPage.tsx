@@ -61,7 +61,7 @@ export function RoleManagementPage() {
         description={
           platformAdmin
             ? "Review the governed access model available across the platform and see how widely each role is assigned."
-            : "Review the tenant-safe role catalog available to your company and see current assignment coverage."
+            : "Review the role catalog available to your company and see how each role is currently assigned."
         }
       />
 

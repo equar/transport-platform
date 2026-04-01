@@ -11,7 +11,7 @@ const pricingTiers = [
     price: "Custom",
     points: [
       "Public website shell, branded login, and onboarding entry points",
-      "Platform administration foundations and tenant-ready setup",
+      "Platform administration tools and workspace-ready setup",
       "Structured implementation planning for initial launch",
     ],
   },
@@ -31,7 +31,7 @@ const pricingTiers = [
     subtitle: "For scaled programs, governance, and commercial expansion",
     price: "Custom",
     points: [
-      "Subscription and feature-flag commercialization foundations",
+      "Subscription controls and feature management for growing programs",
       "Program-specific implementation and integration planning",
       "Environment, security, and rollout alignment for larger organizations",
     ],
@@ -110,8 +110,8 @@ export function PricingPage() {
             Custom pricing is available for organizations that need contract
             transportation workflows, multi-program governance, portal
             expansion, or a deployment plan that spans multiple service lines.
-            Use Contact Sales to shape the right rollout rather than forcing
-            your program into the wrong package.
+            Request a demo to shape the right rollout rather than forcing your
+            program into the wrong package.
           </Typography>
         </PageCard>
       </PublicSection>

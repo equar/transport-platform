@@ -12,6 +12,7 @@ import { useState } from "react";
 import { PublicCtaBand } from "../../public/components/PublicCtaBand";
 import { PublicSection } from "../../public/components/PublicSection";
 import { PageCard } from "../../../shared/components/PageCard";
+import { formatStatusLabel } from "../../../shared/components/StatusChip";
 import {
   companyApplicationsApi,
   type CompanyApplicationSubmissionPayload,
@@ -55,9 +56,9 @@ const initialForm: CompanyApplicationSubmissionPayload = {
 };
 
 const applyBenefits = [
-  "Launch with a public-facing website shell and a branded sign-in experience",
-  "Standardize tenant setup, operational modules, and role-aware access patterns",
-  "Prepare for dispatch, billing, compliance, portal rollout, and SaaS growth",
+  "Launch with branded sign-in, guided onboarding, and a clear implementation path",
+  "Standardize workspace setup, operational modules, and role-based access from day one",
+  "Prepare your team for dispatch, billing, compliance, and stakeholder portals in one rollout",
 ];
 
 const processSteps = [
@@ -72,9 +73,9 @@ const processSteps = [
       "A platform administrator reviews your submission, requested service types, and rollout fit.",
   },
   {
-    title: "Launch planning",
+    title: "Implementation planning",
     description:
-      "Qualified teams move into onboarding, implementation, and workspace activation planning.",
+      "Qualified teams move into onboarding, implementation planning, and workspace activation.",
   },
 ];
 
@@ -115,8 +116,8 @@ export function PublicCompanyApplicationPage() {
     <Stack spacing={{ xs: 4, md: 6 }}>
       <PublicSection
         eyebrow="Apply to Join"
-        title="Start the onboarding conversation with a clear, enterprise-ready application path."
-        description="This page now explains the value of applying, what happens next, and how the form fits into the broader onboarding journey."
+        title="Start the onboarding conversation with a clear, enterprise-ready application."
+        description="Share your operating model, service footprint, and rollout goals so our team can guide the right implementation path."
       >
         <Box
           sx={{
@@ -136,7 +137,7 @@ export function PublicCompanyApplicationPage() {
       <PublicSection
         eyebrow="Process"
         title="A simple three-step path from interest to rollout planning."
-        description="Visitors should understand what happens after they apply, not just what fields they need to fill out."
+        description="Applicants should understand what happens next, not just what fields they need to complete."
       >
         <Box
           sx={{
@@ -175,15 +176,15 @@ export function PublicCompanyApplicationPage() {
             <Typography color="text.secondary" sx={{ mt: 1 }}>
               Provide your company details, operating footprint, and requested
               service capabilities. A platform administrator will review the
-              submission and contact you with the next onboarding steps.
+              submission and contact you with the next steps.
             </Typography>
           </Box>
 
           {submittedNumber ? (
             <Alert severity="success">
               Application submitted successfully. Reference number:{" "}
-              {submittedNumber}. Your team can expect follow-up for onboarding
-              and rollout planning.
+              {submittedNumber}. Our team will follow up with onboarding and
+              rollout guidance.
             </Alert>
           ) : null}
 
@@ -357,7 +358,7 @@ export function PublicCompanyApplicationPage() {
           >
             {serviceTypes.map((option) => (
               <MenuItem key={option} value={option}>
-                {option}
+                {formatStatusLabel(option)}
               </MenuItem>
             ))}
           </TextField>
@@ -407,11 +408,10 @@ export function PublicCompanyApplicationPage() {
               size="large"
               disabled={submitting}
             >
-              {submitting ? "Submitting..." : "Submit Application"}
+              {submitting ? "Sending application..." : "Send application"}
             </Button>
             <Typography color="text.secondary">
-              A platform administrator will review your request and respond with
-              onboarding guidance.
+              We will review your request and reply with onboarding guidance.
             </Typography>
           </Stack>
         </Stack>
@@ -420,7 +420,7 @@ export function PublicCompanyApplicationPage() {
       <PublicCtaBand
         eyebrow="Need a demo first"
         title="You do not have to commit before your team sees the platform."
-        description="Some visitors are ready to apply immediately. Others need a walkthrough. The public shell now supports both paths cleanly."
+        description="Some teams are ready to apply immediately. Others want a guided walkthrough first. Both paths are supported here."
         primaryLabel="Request Demo"
         primaryTo="/contact#request-demo"
         secondaryLabel="Review features"

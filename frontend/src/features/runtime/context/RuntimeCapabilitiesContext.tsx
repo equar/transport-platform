@@ -37,7 +37,7 @@ const defaultBranding: RuntimeBranding = {
   supportPhone: null,
   website: null,
   customLoginWelcomeText:
-    "Transportation operations, tenancy, and security foundations in one platform shell.",
+    "Transportation operations, access control, and security in one connected platform.",
   customFooterText: "Transport Platform SaaS operations",
 };
 

@@ -28,9 +28,9 @@ export const publicAuthCta = {
 };
 
 export const publicTrustHighlights = [
-  "Tenant-safe access controls",
-  "Role-aware portal experiences",
-  "Dispatch, billing, and onboarding foundations",
+  "Built-in access controls for every team",
+  "Dedicated portals for drivers, riders, and organizations",
+  "Dispatch, billing, and onboarding in one platform",
 ];
 
 export const publicNavigationItems: PublicNavigationItem[] = [
