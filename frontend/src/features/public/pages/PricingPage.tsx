@@ -43,8 +43,8 @@ export function PricingPage() {
     <Stack spacing={{ xs: 4, md: 6 }}>
       <PublicSection
         eyebrow="Pricing"
-        title="Create a pricing conversation that feels enterprise-ready from the first visit."
-        description="This page now frames packaging in a way that supports product growth, implementation scoping, and custom program discussions without pretending complex transportation deployments can be reduced to a single fixed plan."
+        title="Simple tiers. Custom pricing. No hidden surprises."
+        description="Transportation programs vary in size, complexity, and scope. Our tiers give you a clear starting point, and our team works with you on the right fit for your program."
       >
         <></>
       </PublicSection>
@@ -117,9 +117,9 @@ export function PricingPage() {
       </PublicSection>
 
       <PublicCtaBand
-        eyebrow="Commercial next step"
-        title="Move from plan comparison into a real sales conversation."
-        description="Visitors now have enough pricing context to decide whether they should request a demo, apply to join, or start a solution review with the team."
+        eyebrow="Not sure which plan fits?"
+        title="Let us help you find the right fit for your program."
+        description="Request a demo and our team will walk you through the platform, answer your questions, and help you map the right rollout for your service model and budget."
         primaryLabel="Request Demo"
         primaryTo="/contact#request-demo"
         secondaryLabel="Apply to Join"

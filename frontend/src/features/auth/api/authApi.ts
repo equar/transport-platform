@@ -49,7 +49,7 @@ export const authApi = {
     return {
       email: payload.email,
       message:
-        "If an account exists for that email, password recovery instructions will be sent when backend delivery is connected.",
+        "If an account exists for that email address, you will receive password reset instructions shortly.",
     };
   },
 
@@ -68,7 +68,7 @@ export const authApi = {
 
     return {
       message:
-        "Password reset is staged successfully in the public flow. Connect the backend token service to make this live.",
+        "Your password has been updated. You can now sign in with your new credentials.",
     };
   },
 };

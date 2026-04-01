@@ -150,7 +150,7 @@ export function HomePage() {
       >
         <Stack spacing={3} justifyContent="center">
           <Chip
-            label="Public SaaS shell"
+            label="Transportation SaaS"
             color="secondary"
             sx={{ alignSelf: "flex-start", fontWeight: 700 }}
           />
@@ -232,10 +232,10 @@ export function HomePage() {
           <Stack spacing={3}>
             <Box>
               <Typography variant="overline" color="secondary.main">
-                Trust at launch
+                Why teams choose us
               </Typography>
               <Typography variant="h4" sx={{ mt: 1 }}>
-                The website and application now speak the same product language.
+                Purpose-built for transportation teams that need more than basic scheduling.
               </Typography>
             </Box>
             <Stack spacing={1.5}>
@@ -281,7 +281,7 @@ export function HomePage() {
       <PublicSection
         eyebrow="Who we serve"
         title="Designed for transportation programs that need structure across people, service, and accountability."
-        description="The public site now explains the product in terms decision-makers understand: operational complexity, stakeholder coordination, and the need for a governed system instead of scattered tools."
+        description="From school districts and care programs to commercial fleets and contracted mobility services, the platform adapts to the operating models you actually manage."
       >
         <Box
           sx={{
@@ -306,7 +306,7 @@ export function HomePage() {
       <PublicSection
         eyebrow="Key capabilities"
         title="One platform surface for the operational modules transportation teams actually need to connect."
-        description="Instead of presenting isolated features, the home page now frames the platform around the core capabilities that drive execution and growth."
+        description="Each module is purpose-built for transportation operations and designed to work seamlessly with the rest of the platform."
       >
         <Box
           sx={{
@@ -332,7 +332,7 @@ export function HomePage() {
       <PublicSection
         eyebrow="How it works"
         title="Move from onboarding to execution in a sequence that makes sense operationally."
-        description="The product story now maps to a real implementation journey, giving visitors a clearer sense of how the platform grows with them."
+        description="Getting up and running is straightforward. Most teams are fully operational within weeks, with a clear path from setup to day-of-service execution."
       >
         <Box
           sx={{
@@ -360,7 +360,7 @@ export function HomePage() {
       <PublicSection
         eyebrow="Why choose us"
         title="Built to support serious transportation operations, not just a marketing promise."
-        description="The website should make clear why the platform is different: it is designed around governance, execution, and long-term extensibility."
+        description="Transport Platform is not a generic workflow tool adapted for transportation. It is built from the ground up for multi-tenant, multi-role operations that require governance, accountability, and scale."
       >
         <PageCard>
           <Box
@@ -415,7 +415,7 @@ export function HomePage() {
       <PublicSection
         eyebrow="Role and portal overview"
         title="Give every role a clear path without forcing everyone into the same interface."
-        description="The public story now reflects the role-specific access model already established in the application architecture."
+        description="Drivers, riders, guardians, and organization users each get a dedicated portal experience. Internal teams get the admin tools they need. Everyone stays in their lane."
       >
         <Box
           sx={{
@@ -441,7 +441,7 @@ export function HomePage() {
       <PublicCtaBand
         eyebrow="Ready to evaluate"
         title="See the platform in context before your team signs in."
-        description="Use the public site to understand the operating model, then move directly into a demo, application, or product conversation."
+        description="Schedule a demo with our team to see the platform in action, or apply to join and get started today."
         primaryLabel="Request Demo"
         primaryTo="/contact#request-demo"
         secondaryLabel="Apply to Join"

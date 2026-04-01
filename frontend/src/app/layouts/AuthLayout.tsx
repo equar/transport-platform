@@ -43,14 +43,14 @@ export function AuthLayout() {
           </Typography>
           <Typography variant="body1" color="text.secondary">
             {branding?.customFooterText ||
-              "The public website now leads naturally into authentication, onboarding, and account recovery without breaking the product experience."}
+              "Sign in to manage your transportation operations, or use the links below to request a demo or apply to join the platform."}
           </Typography>
           <Stack spacing={1.25}>
             <Typography color="text.secondary">
               Tenant-aware sign-in for platform and company access
             </Typography>
             <Typography color="text.secondary">
-              Recovery flows structured cleanly for future backend wiring
+              Secure password recovery for your workspace account
             </Typography>
             <Typography color="text.secondary">
               Public-to-private navigation that stays aligned with the SaaS

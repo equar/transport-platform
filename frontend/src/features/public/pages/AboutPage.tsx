@@ -81,7 +81,7 @@ export function AboutPage() {
       <PublicSection
         eyebrow="How we differ"
         title="The difference is not just features. It is the operating model behind them."
-        description="The public site now explains what makes the platform distinct for enterprise buyers and implementation stakeholders."
+        description="Most transportation software is built around individual modules. We built the platform around the operating model first, so every module connects the way your team actually works."
       >
         <Box
           sx={{
@@ -106,7 +106,7 @@ export function AboutPage() {
       <PublicCtaBand
         eyebrow="Next step"
         title="Understand the platform story, then move into a demo or pricing conversation."
-        description="This page gives first-time visitors the context they need before logging in or entering a formal onboarding path."
+        description="Ready to see how the platform works in practice? Schedule a demo or start your application."
         primaryLabel="Request Demo"
         primaryTo="/contact#request-demo"
         secondaryLabel="See Pricing"

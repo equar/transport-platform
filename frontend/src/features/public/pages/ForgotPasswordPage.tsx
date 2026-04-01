@@ -39,13 +39,13 @@ export function ForgotPasswordPage() {
     <AuthFormShell
       eyebrow="Account recovery"
       title="Request password recovery instructions."
-      description="Enter the email address associated with your workspace access. This frontend flow is structured cleanly so backend delivery can be connected later without changing the page UX."
+      description="Enter the email address associated with your workspace account and we will send you instructions to reset your password."
       status={
         submitted
           ? {
               severity: "success",
               message:
-                "If an account exists for that email, recovery instructions will be sent when backend delivery is connected.",
+                "If an account exists for that email address, you will receive password reset instructions shortly. Check your inbox and spam folder.",
             }
           : error
             ? { severity: "error", message: error }

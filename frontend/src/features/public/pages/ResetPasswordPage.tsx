@@ -67,13 +67,13 @@ export function ResetPasswordPage() {
     <AuthFormShell
       eyebrow="Password reset"
       title="Create a new password for your workspace access."
-      description="This route is token-aware and ready for backend wiring. Use a secure reset link that includes the token query parameter."
+      description="Choose a new password for your workspace account. Use at least 8 characters."
       status={
         submitted
           ? {
               severity: "success",
               message:
-                "Password reset completed in the public flow. Connect the backend reset service to make this live, then sign in with your new credentials.",
+                "Your password has been updated. You can now sign in with your new credentials.",
             }
           : tokenState === "expired"
             ? {

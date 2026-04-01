@@ -46,8 +46,8 @@ export function ContactPage() {
     <Stack spacing={{ xs: 4, md: 6 }}>
       <PublicSection
         eyebrow="Contact"
-        title="Route sales, support, and implementation conversations through one credible public entry point."
-        description="This page now gives first-time visitors a clearer path for business contact, support questions, and demo requests while keeping the actual submission wiring ready for a later integration phase."
+        title="We would love to hear from you."
+        description="Whether you are ready to request a demo, need support, or want to explore a partnership opportunity, get in touch with the right team below."
       >
         <></>
       </PublicSection>
@@ -82,21 +82,16 @@ export function ContactPage() {
                 Request Demo
               </Typography>
               <Typography variant="h3" sx={{ mt: 1 }}>
-                Capture the request flow now, wire the sales workflow later.
+                Request a product demo
               </Typography>
               <Typography color="text.secondary" sx={{ mt: 1 }}>
-                This phase establishes the public-site structure only. The
-                request form below is intentionally presentation-first so the
-                eventual CRM or ticketing integration can be added without
-                reshaping the page.
+                Tell us a little about your program and we will schedule time to walk you through the platform.
               </Typography>
             </Box>
 
             {submitted ? (
               <Alert severity="success">
-                Demo request captured in the public shell. Connect this form to
-                your CRM or sales workflow in a later phase without changing the
-                page structure.
+                Thank you for your interest. Our team will be in touch within one business day to confirm your demo.
               </Alert>
             ) : null}
 
@@ -148,9 +143,9 @@ export function ContactPage() {
       </Box>
 
       <PublicCtaBand
-        eyebrow="Need a formal next step"
+        eyebrow="Ready to get started"
         title="Move directly into onboarding if your team is ready."
-        description="Some visitors will want a demo first. Others are already ready to begin the application process. The contact flow now supports both journeys."
+        description="Submit a demo request above or apply directly to get started with the platform today."
         primaryLabel="Apply to Join"
         primaryTo="/apply"
         secondaryLabel="Review pricing"

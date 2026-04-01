@@ -36,8 +36,8 @@ export function SolutionsPage() {
     <Stack spacing={{ xs: 5, md: 7 }}>
       <PublicSection
         eyebrow="Solutions"
-        title="Position the platform for real operating models across transportation segments."
-        description="This page now speaks directly to the program types most likely to evaluate the platform, using language that maps to real service environments instead of generic SaaS categories."
+        title="Built for the programs you run, not just the trips you schedule."
+        description="Whether you operate student routes, NEMT trips, elderly transportation, or contracted mobility programs, Transport Platform is designed around the service models you actually manage."
       >
         <Box
           sx={{
@@ -76,7 +76,7 @@ export function SolutionsPage() {
       <PublicCtaBand
         eyebrow="Discuss your program"
         title="Map the platform to your transportation model before rollout begins."
-        description="Use the solutions page as the bridge from general interest to a targeted evaluation conversation."
+        description="Tell us about your service type and we will show you exactly how the platform supports your specific workflows and compliance needs."
         primaryLabel="Request Demo"
         primaryTo="/contact#request-demo"
         secondaryLabel="Apply to Join"
