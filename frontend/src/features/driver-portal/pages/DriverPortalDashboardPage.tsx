@@ -3,7 +3,8 @@ import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import RouteRoundedIcon from "@mui/icons-material/RouteRounded";
 import TwoWheelerRoundedIcon from "@mui/icons-material/TwoWheelerRounded";
-import { Alert, Box, Stack, Typography } from "@mui/material";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import {
@@ -13,7 +14,6 @@ import {
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
-import { SectionHeader } from "../../../shared/components/SectionHeader";
 
 export function DriverPortalDashboardPage() {
   const [dashboard, setDashboard] =
@@ -52,11 +52,21 @@ export function DriverPortalDashboardPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <SectionHeader
-        title="Driver Dashboard"
-        description="Today’s work queue, route readiness, compliance visibility, and account alerts."
-      />
+    <Stack spacing={2.5}>
+      <PageCard>
+        <Stack spacing={1.5}>
+          <Typography variant="overline" color="secondary.main">
+            Driver workspace
+          </Typography>
+          <Typography variant="h3">
+            Stay on top of today’s assignments.
+          </Typography>
+          <Typography color="text.secondary">
+            Your portal keeps rides, routes, compliance, and notifications in
+            one focused mobile-friendly workspace.
+          </Typography>
+        </Stack>
+      </PageCard>
       {error ? <Alert severity="error">{error}</Alert> : null}
       {dashboard ? (
         <Box
@@ -64,9 +74,8 @@ export function DriverPortalDashboardPage() {
             display: "grid",
             gap: 2,
             gridTemplateColumns: {
-              xs: "1fr",
+              xs: "repeat(2, minmax(0, 1fr))",
               md: "repeat(3, minmax(0, 1fr))",
-              xl: "repeat(6, minmax(0, 1fr))",
             },
           }}
         >
@@ -114,49 +123,71 @@ export function DriverPortalDashboardPage() {
           </Box>
         </Box>
       ) : null}
-      <PageCard>
-        <Stack spacing={1.5}>
-          <Typography variant="h5">Quick Links</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Jump directly into your current operating areas.
-          </Typography>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-            <Typography
+      <Box
+        sx={{
+          display: "grid",
+          gap: 2,
+          gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
+        }}
+      >
+        <PageCard>
+          <Stack spacing={1.5}>
+            <Typography variant="h5">Priority actions</Typography>
+            <Typography color="text.secondary">
+              Open the areas most likely to need attention before you head into
+              service.
+            </Typography>
+            <Button
               component={RouterLink}
               to="/portal/driver/rides"
-              sx={{
-                color: "primary.main",
-                textDecoration: "none",
-                fontWeight: 700,
-              }}
+              variant="contained"
+              endIcon={<ArrowForwardRoundedIcon />}
             >
-              Review assigned rides
-            </Typography>
-            <Typography
+              Review my rides
+            </Button>
+            <Button
               component={RouterLink}
               to="/portal/driver/routes"
-              sx={{
-                color: "primary.main",
-                textDecoration: "none",
-                fontWeight: 700,
-              }}
+              variant="outlined"
+              endIcon={<ArrowForwardRoundedIcon />}
             >
-              Open today’s routes
-            </Typography>
-            <Typography
+              Open my routes
+            </Button>
+            <Button
               component={RouterLink}
               to="/portal/driver/compliance"
-              sx={{
-                color: "primary.main",
-                textDecoration: "none",
-                fontWeight: 700,
-              }}
+              variant="outlined"
+              endIcon={<ArrowForwardRoundedIcon />}
             >
-              Check compliance status
+              Check compliance
+            </Button>
+          </Stack>
+        </PageCard>
+        <PageCard>
+          <Stack spacing={1.5}>
+            <Typography variant="h5">Readiness summary</Typography>
+            <Typography color="text.secondary">
+              Keep an eye on document expirations and unread alerts before
+              starting a route.
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Assigned rides: {dashboard?.assignedRides ?? 0}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Active route:{" "}
+              {(dashboard?.activeRoutesToday ?? 0) > 0
+                ? "Available"
+                : "No active route yet"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Compliance issues: {dashboard?.unresolvedComplianceIssues ?? 0}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Unread notifications: {dashboard?.unreadNotifications ?? 0}
             </Typography>
           </Stack>
-        </Stack>
-      </PageCard>
+        </PageCard>
+      </Box>
     </Stack>
   );
 }

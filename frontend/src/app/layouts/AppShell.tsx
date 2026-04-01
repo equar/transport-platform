@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
+import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
 import {
   AppBar,
   Avatar,
   Badge,
   Box,
+  Breadcrumbs,
   Button,
   Chip,
+  Container,
   Divider,
   Drawer,
   IconButton,
+  Link,
   List,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
   Menu,
   MenuItem,
@@ -18,64 +23,57 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
-import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
-import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
-import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
-import AttachMoneyRoundedIcon from "@mui/icons-material/AttachMoneyRounded";
-import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
-import ContactPhoneRoundedIcon from "@mui/icons-material/ContactPhoneRounded";
-import DriveEtaRoundedIcon from "@mui/icons-material/DriveEtaRounded";
-import DirectionsCarFilledRoundedIcon from "@mui/icons-material/DirectionsCarFilledRounded";
-import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
-import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
-import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
-import ReportProblemRoundedIcon from "@mui/icons-material/ReportProblemRounded";
-import RouteRoundedIcon from "@mui/icons-material/RouteRounded";
-import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import AccessibleRoundedIcon from "@mui/icons-material/AccessibleRounded";
-import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
-import AutoAwesomeMotionRoundedIcon from "@mui/icons-material/AutoAwesomeMotionRounded";
-import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
-import AssessmentRoundedIcon from "@mui/icons-material/AssessmentRounded";
 import {
   Link as RouterLink,
   Outlet,
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
 import {
-  getRoleLabel,
-  isCompanyAdmin,
-  isDriverPortalUser,
-  isPlatformAdmin,
-  isGuardianPortalUser,
-  isOrganizationPortalUser,
-  isRiderPortalUser,
-} from "../../features/auth/access";
+  buildAppShellView,
+  findAppShellNavItemForPath,
+  getAppShellHomePath,
+  getAppShellProfilePath,
+} from "./appShellNavigation";
+import { getRoleLabel } from "../../features/auth/access";
 import { useAuth } from "../../features/auth/context/AuthContext";
 import {
   notificationApi,
   type NotificationSummaryRecord,
 } from "../../features/notifications/api/notificationApi";
+import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
 import { BrandMark } from "../../shared/components/BrandMark";
 
 const drawerWidth = 280;
 
-function isFeatureEnabled(enabled: boolean | undefined) {
-  return enabled === true;
+function isRouteActive(currentPath: string, targetPath: string) {
+  return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
+}
+
+function getDisplayName(firstName?: string | null, lastName?: string | null) {
+  return [firstName, lastName].filter(Boolean).join(" ");
+}
+
+function getInitials(label: string) {
+  return label
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationAnchorEl, setNotificationAnchorEl] =
     useState<HTMLElement | null>(null);
+  const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<HTMLElement | null>(
+    null,
+  );
   const [unreadCount, setUnreadCount] = useState(0);
   const [latestNotifications, setLatestNotifications] = useState<
     NotificationSummaryRecord[]
@@ -84,12 +82,26 @@ export function AppShell() {
   const { branding, capabilities, moduleAccess } = useRuntimeCapabilities();
   const location = useLocation();
   const navigate = useNavigate();
-  const platformAdmin = isPlatformAdmin(session);
-  const companyAdmin = isCompanyAdmin(session);
-  const driverPortal = isDriverPortalUser(session);
-  const riderPortal =
-    isRiderPortalUser(session) || isGuardianPortalUser(session);
-  const organizationPortal = isOrganizationPortalUser(session);
+  const shellView = buildAppShellView(session, moduleAccess);
+  const visibleSections = shellView.sections;
+  const currentItem = findAppShellNavItemForPath(
+    location.pathname,
+    visibleSections,
+  );
+  const displayName =
+    getDisplayName(session?.identity.firstName, session?.identity.lastName) ||
+    session?.identity.email ||
+    "Unknown user";
+  const workspaceLabel =
+    shellView.scope === "platform"
+      ? "Platform scope"
+      : branding?.displayName || session?.identity.tenantId || "Workspace";
+  const driverPortal = shellView.scope === "driver";
+  const riderPortal = shellView.scope === "rider";
+  const organizationPortal = shellView.scope === "organization";
+  const platformAdmin = shellView.scope === "platform";
+  const workspaceHomePath = getAppShellHomePath(session, moduleAccess);
+  const profilePath = getAppShellProfilePath(session, moduleAccess);
   const notificationTarget = driverPortal
     ? "/portal/driver/notifications"
     : riderPortal
@@ -97,368 +109,6 @@ export function AppShell() {
       : organizationPortal
         ? "/portal/organization/notifications"
         : "/company/notifications";
-  const navigationItems = platformAdmin
-    ? [
-        {
-          label: "Platform Dashboard",
-          description: "Portfolio health, onboarding, and user signals",
-          to: "/platform",
-          icon: <DashboardRoundedIcon fontSize="small" />,
-        },
-        {
-          label: "Tenant Management",
-          description: "Provisioned customer organizations",
-          to: "/platform/tenants",
-          icon: <ApartmentRoundedIcon fontSize="small" />,
-        },
-        {
-          label: "Company Applications",
-          description: "Public intake and review queue",
-          to: "/platform/company-applications",
-          icon: <AssignmentTurnedInRoundedIcon fontSize="small" />,
-        },
-        {
-          label: "User Management",
-          description: "Cross-tenant user administration",
-          to: "/platform/users",
-          icon: <BadgeRoundedIcon fontSize="small" />,
-        },
-        {
-          label: "Subscription Plans",
-          description: "Commercial packaging, limits, and entitlement bundles",
-          to: "/platform/subscription-plans",
-          icon: <AttachMoneyRoundedIcon fontSize="small" />,
-        },
-        {
-          label: "Tenant Subscriptions",
-          description: "Assignments, trials, lifecycle controls, and renewals",
-          to: "/platform/tenant-subscriptions",
-          icon: <ReceiptLongRoundedIcon fontSize="small" />,
-        },
-        {
-          label: "Feature Flags",
-          description: "Rollouts, entitlements, and tenant-specific overrides",
-          to: "/platform/feature-flags",
-          icon: <AutoAwesomeMotionRoundedIcon fontSize="small" />,
-        },
-        {
-          label: "Role Catalog",
-          description: "Governed access model and assignments",
-          to: "/platform/roles",
-          icon: <SecurityRoundedIcon fontSize="small" />,
-        },
-        {
-          label: "Audit Logs",
-          description: "Platform-wide administrative activity",
-          to: "/platform/audit-logs",
-          icon: <HistoryRoundedIcon fontSize="small" />,
-        },
-      ]
-    : driverPortal
-      ? [
-          {
-            label: "Driver Dashboard",
-            description: "Today’s rides, route readiness, and personal alerts",
-            to: "/portal/driver",
-            icon: <DashboardRoundedIcon fontSize="small" />,
-          },
-          {
-            label: "My Profile",
-            description: "Self-service contact, address, and emergency details",
-            to: "/portal/driver/profile",
-            icon: <BadgeRoundedIcon fontSize="small" />,
-          },
-          {
-            label: "Compliance",
-            description: "Document status, expirations, and compliance issues",
-            to: "/portal/driver/compliance",
-            icon: <FactCheckRoundedIcon fontSize="small" />,
-          },
-          {
-            label: "Assigned Rides",
-            description: "Trip queue, ride detail, and status updates",
-            to: "/portal/driver/rides",
-            icon: <CalendarMonthRoundedIcon fontSize="small" />,
-          },
-          {
-            label: "Assigned Routes",
-            description: "Daily manifests, stops, and route context",
-            to: "/portal/driver/routes",
-            icon: <RouteRoundedIcon fontSize="small" />,
-          },
-          {
-            label: "Notifications",
-            description: "Operational alerts and account messages",
-            to: "/portal/driver/notifications",
-            icon: <NotificationsRoundedIcon fontSize="small" />,
-          },
-        ]
-      : riderPortal
-        ? [
-            {
-              label: "Portal Dashboard",
-              description:
-                "Account overview, linked riders, ride snapshot, and billing summary",
-              to: "/portal/rider",
-              icon: <DashboardRoundedIcon fontSize="small" />,
-            },
-            {
-              label: "My Profile",
-              description:
-                "Contact details, addresses, and emergency or communication preferences",
-              to: "/portal/rider/profile",
-              icon: <BadgeRoundedIcon fontSize="small" />,
-            },
-            {
-              label: "Ride Activity",
-              description:
-                "Linked riders, visible trips, and current ride status",
-              to: "/portal/rider/rides",
-              icon: <CalendarMonthRoundedIcon fontSize="small" />,
-            },
-            {
-              label: "Billing",
-              description: "Invoices, balances, and posted payment history",
-              to: "/portal/rider/billing",
-              icon: <AttachMoneyRoundedIcon fontSize="small" />,
-            },
-            {
-              label: "Notifications",
-              description: "Current-user portal alerts and updates",
-              to: "/portal/rider/notifications",
-              icon: <NotificationsRoundedIcon fontSize="small" />,
-            },
-          ]
-        : organizationPortal
-          ? [
-              {
-                label: "Portal Dashboard",
-                description:
-                  "Organization overview, service snapshot, and billing summary",
-                to: "/portal/organization",
-                icon: <DashboardRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "My Profile",
-                description:
-                  "Contact details for the current organization portal user",
-                to: "/portal/organization/profile",
-                icon: <BadgeRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "Roster",
-                description: "Organization contacts and linked riders",
-                to: "/portal/organization/roster",
-                icon: <ContactPhoneRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "Contracts And Service",
-                description: "Agreements and visible ride activity",
-                to: "/portal/organization/contracts",
-                icon: <ReceiptLongRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "Billing",
-                description: "Invoices, balances, and payment history",
-                to: "/portal/organization/billing",
-                icon: <AttachMoneyRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "Notifications",
-                description: "Current-user portal alerts and updates",
-                to: "/portal/organization/notifications",
-                icon: <NotificationsRoundedIcon fontSize="small" />,
-              },
-            ]
-          : [
-              {
-                label: "Company Dashboard",
-                description: "Team access, user health, and admin coverage",
-                to: "/company",
-                icon: <DashboardRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "User Management",
-                description: "Manage company administrators and operators",
-                to: "/company/users",
-                icon: <BadgeRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "Notifications",
-                description:
-                  "Current-user inbox for operational and billing alerts",
-                to: "/company/notifications",
-                icon: <NotificationsRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.notifications),
-              },
-              {
-                label: "Notification Templates",
-                description:
-                  "Tenant-managed rendering for in-app and email hooks",
-                to: "/company/notification-templates",
-                icon: <AutoAwesomeMotionRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.notifications),
-              },
-              {
-                label: "Compliance Center",
-                description:
-                  "Issue tracking for expiring, missing, and rejected documents",
-                to: "/company/compliance",
-                icon: <FactCheckRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.compliance),
-              },
-              {
-                label: "Incident Management",
-                description:
-                  "Complaint, safety, and operational issue workflow for company admins",
-                to: "/company/incidents",
-                icon: <ReportProblemRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.incidents),
-              },
-              {
-                label: "Company Reports",
-                description:
-                  "Operational, billing, compliance, and incident reporting workspace",
-                to: "/company/reports",
-                icon: <AssessmentRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.reports),
-              },
-              {
-                label: "Company Settings",
-                description:
-                  "Tenant profile, policy, defaults, and branding controls",
-                to: "/company/settings",
-                icon: <SettingsRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "Rider Management",
-                description:
-                  "Rider onboarding, support needs, and guardian visibility",
-                to: "/company/riders",
-                icon: <AccessibleRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "Ride Management",
-                description:
-                  "One-off ride intake, lifecycle control, and scheduling readiness",
-                to: "/company/rides",
-                icon: <CalendarMonthRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.dispatch),
-              },
-              {
-                label: "Dispatch Board",
-                description:
-                  "Assignment coverage, exception handling, and day-of-service control",
-                to: "/company/dispatch",
-                icon: <DirectionsCarFilledRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.dispatch),
-              },
-              {
-                label: "Route Management",
-                description:
-                  "Route manifests, sequencing, and resource readiness",
-                to: "/company/routes",
-                icon: <RouteRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.routes),
-              },
-              {
-                label: "Recurring Rides",
-                description:
-                  "Recurring service templates and controlled ride generation",
-                to: "/company/recurring-rides",
-                icon: <RepeatRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.recurringRides),
-              },
-              {
-                label: "Guardian Management",
-                description:
-                  "Family contacts, pickup authorization, and billing visibility",
-                to: "/company/guardians",
-                icon: <ContactPhoneRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "Driver Management",
-                description:
-                  "Driver onboarding, readiness, and document control",
-                to: "/company/drivers",
-                icon: <DriveEtaRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "Vehicle Management",
-                description:
-                  "Fleet readiness, lifecycle control, and compliance",
-                to: "/company/vehicles",
-                icon: <DirectionsCarFilledRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "Pricing Rules",
-                description:
-                  "Rate policies, bill-to models, and service pricing",
-                to: "/company/pricing-rules",
-                icon: <AttachMoneyRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.billing),
-              },
-              {
-                label: "Invoice Management",
-                description:
-                  "Drafts, issuance, balances, and billing workflows",
-                to: "/company/invoices",
-                icon: <ReceiptLongRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.billing),
-              },
-              {
-                label: "Payment Management",
-                description:
-                  "Manual payment recording, application, and receivable collection traceability",
-                to: "/company/payments",
-                icon: <PaymentsRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.billing),
-              },
-              {
-                label: "Receivables",
-                description:
-                  "Aging exposure, overdue balances, and follow-up posture",
-                to: "/company/receivables",
-                icon: <AttachMoneyRoundedIcon fontSize="small" />,
-                enabled: isFeatureEnabled(moduleAccess?.billing),
-              },
-              {
-                label: "Role Catalog",
-                description: "Tenant-safe role definitions and usage",
-                to: "/company/roles",
-                icon: <SecurityRoundedIcon fontSize="small" />,
-              },
-              {
-                label: "Audit Logs",
-                description: "Tenant administrative activity",
-                to: "/company/audit-logs",
-                icon: <HistoryRoundedIcon fontSize="small" />,
-              },
-            ];
-  const visibleNavigationItems = navigationItems.filter(
-    (item) => (item as { enabled?: boolean }).enabled !== false,
-  );
-  const shellTitle = platformAdmin
-    ? "Operations Control Plane"
-    : driverPortal
-      ? "Driver Portal"
-      : riderPortal
-        ? "Rider And Guardian Portal"
-        : organizationPortal
-          ? "Organization Portal"
-          : "Company Access Control";
-  const shellDescription = platformAdmin
-    ? "Platform-admin workspace for tenant onboarding, identity governance, and company intake review."
-    : driverPortal
-      ? "Portal workspace for assigned rides, route readiness, compliance visibility, and limited self-service updates."
-      : riderPortal
-        ? "Portal foundation for rider and guardian self-service, notifications, and future ride visibility."
-        : organizationPortal
-          ? "Portal foundation for organization contacts, notifications, and future roster, contract, and billing views."
-          : "Company-admin workspace for rider, fleet, user, and tenant governance workflows.";
-  const displayName = [session?.identity.firstName, session?.identity.lastName]
-    .filter(Boolean)
-    .join(" ");
 
   useEffect(() => {
     if (platformAdmin) {
@@ -497,40 +147,82 @@ export function AppShell() {
 
   const drawer = (
     <Stack sx={{ height: "100%" }}>
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ px: 2.5, py: 3 }}>
         <BrandMark compact />
       </Box>
       <Divider />
-      <List sx={{ px: 1.5, py: 2 }}>
-        {visibleNavigationItems.map((item) => (
-          <ListItemButton
-            key={item.to}
-            component={RouterLink}
-            to={item.to}
-            selected={
-              location.pathname === item.to ||
-              location.pathname.startsWith(`${item.to}/`)
-            }
-            sx={{ borderRadius: 3, mb: 0.75 }}
-          >
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <Avatar
-                sx={{
-                  width: 36,
-                  height: 36,
-                  bgcolor: "primary.main",
-                  color: "primary.contrastText",
-                }}
+      <Box sx={{ px: 2.5, py: 2 }}>
+        <Typography variant="overline" color="secondary.main">
+          {shellView.scopeLabel}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {workspaceLabel}
+        </Typography>
+      </Box>
+      <Divider />
+
+      <Box sx={{ flexGrow: 1, overflowY: "auto", px: 1.5, py: 2 }}>
+        <Stack spacing={2}>
+          {visibleSections.map((section) => (
+            <Box key={section.title}>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ px: 1.5, pb: 1, display: "block" }}
               >
-                {item.icon}
-              </Avatar>
-              <ListItemText primary={item.label} secondary={item.description} />
-            </Stack>
-          </ListItemButton>
-        ))}
-      </List>
-      <Box sx={{ mt: "auto", px: 2.5, pb: 3 }}>
-        <Stack spacing={1.5}>
+                {section.title}
+              </Typography>
+              <List disablePadding>
+                {section.items.map((item) => {
+                  const selected = isRouteActive(location.pathname, item.to);
+                  return (
+                    <ListItemButton
+                      key={item.to}
+                      component={RouterLink}
+                      to={item.to}
+                      selected={selected}
+                      sx={{
+                        borderRadius: 3,
+                        mb: 0.75,
+                        alignItems: "flex-start",
+                        py: 1.1,
+                        "&.Mui-selected": {
+                          bgcolor: "rgba(15, 76, 92, 0.10)",
+                        },
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          minWidth: 40,
+                          color: selected ? "primary.main" : "text.secondary",
+                          mt: 0.25,
+                        }}
+                      >
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={item.label}
+                        secondary={item.description}
+                        primaryTypographyProps={{
+                          fontWeight: selected ? 700 : 600,
+                          color: selected ? "primary.main" : "text.primary",
+                        }}
+                        secondaryTypographyProps={{
+                          sx: { lineHeight: 1.35 },
+                        }}
+                      />
+                    </ListItemButton>
+                  );
+                })}
+              </List>
+            </Box>
+          ))}
+        </Stack>
+      </Box>
+
+      <Divider />
+      <Box sx={{ px: 2.5, py: 2.5 }}>
+        <Stack spacing={1.25}>
           <Chip
             label={
               (session?.identity.roles ?? []).map(getRoleLabel).join(", ") ||
@@ -538,19 +230,68 @@ export function AppShell() {
             }
             color="secondary"
             variant="outlined"
+            sx={{ justifyContent: "flex-start" }}
           />
           <Button
             component={RouterLink}
-            to="/apply"
+            to="/"
             color="inherit"
             endIcon={<LaunchRoundedIcon />}
           >
-            Open Public Application Form
+            Open public site
           </Button>
         </Stack>
       </Box>
     </Stack>
   );
+
+  const notificationMenuContent =
+    platformAdmin || latestNotifications.length === 0 ? (
+      <MenuItem disabled>
+        <ListItemText
+          primary={
+            platformAdmin
+              ? "No platform notifications"
+              : "No recent notifications"
+          }
+          secondary={
+            platformAdmin
+              ? "Notification delivery is focused on tenant and portal users today."
+              : "New operational alerts will appear here."
+          }
+        />
+      </MenuItem>
+    ) : (
+      latestNotifications.map((notification) => (
+        <MenuItem
+          key={notification.id}
+          onClick={() => {
+            setNotificationAnchorEl(null);
+            navigate(notificationTarget);
+          }}
+          sx={{ alignItems: "flex-start", whiteSpace: "normal" }}
+        >
+          <ListItemText
+            primary={notification.title}
+            secondary={notification.message}
+            primaryTypographyProps={{
+              fontWeight: notification.readStatus === "UNREAD" ? 700 : 500,
+            }}
+            secondaryTypographyProps={{
+              sx: {
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              },
+            }}
+          />
+        </MenuItem>
+      ))
+    );
+
+  const currentTitle = currentItem?.label ?? shellView.title;
+  const currentDescription = currentItem?.description ?? shellView.description;
 
   return (
     <Box
@@ -582,40 +323,30 @@ export function AppShell() {
           >
             <MenuRoundedIcon />
           </IconButton>
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h6">{shellTitle}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {shellDescription}
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Typography variant="overline" color="secondary.main">
+              {shellView.scopeLabel}
+            </Typography>
+            <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
+              {workspaceLabel}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" noWrap>
+              {shellView.description}
             </Typography>
           </Box>
           <Stack direction="row" spacing={1.5} alignItems="center">
-            {!platformAdmin ? (
-              <IconButton
-                color="inherit"
-                onClick={(event) =>
-                  setNotificationAnchorEl(event.currentTarget)
-                }
-              >
-                <Badge color="secondary" badgeContent={unreadCount} max={99}>
-                  <NotificationsRoundedIcon />
-                </Badge>
-              </IconButton>
-            ) : null}
-            <Box
-              sx={{ textAlign: "right", display: { xs: "none", sm: "block" } }}
+            <IconButton
+              color="inherit"
+              onClick={(event) => setNotificationAnchorEl(event.currentTarget)}
             >
-              <Typography variant="body2" color="text.secondary">
-                Signed in as
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                {displayName || session?.identity.email || "Unknown"}
-              </Typography>
-              {branding?.displayName ? (
-                <Typography variant="caption" color="text.secondary">
-                  {branding.displayName}
-                </Typography>
-              ) : null}
-            </Box>
+              <Badge
+                color="secondary"
+                badgeContent={platformAdmin ? 0 : unreadCount}
+                max={99}
+              >
+                <NotificationsRoundedIcon />
+              </Badge>
+            </IconButton>
             <Chip
               label={
                 capabilities?.subscriptionPlan?.name ??
@@ -627,10 +358,15 @@ export function AppShell() {
             />
             <Button
               color="inherit"
-              startIcon={<LogoutRoundedIcon />}
-              onClick={signOut}
+              onClick={(event) => setUserMenuAnchorEl(event.currentTarget)}
+              startIcon={
+                <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main" }}>
+                  {getInitials(displayName)}
+                </Avatar>
+              }
+              endIcon={<MoreHorizRoundedIcon />}
             >
-              Sign out
+              {displayName}
             </Button>
           </Stack>
         </Toolbar>
@@ -645,45 +381,13 @@ export function AppShell() {
         <Box sx={{ px: 2, py: 1.5 }}>
           <Typography variant="subtitle1">Notifications</Typography>
           <Typography variant="body2" color="text.secondary">
-            {unreadCount} unread notification{unreadCount === 1 ? "" : "s"}
+            {platformAdmin
+              ? "Notification center placeholder for platform scope"
+              : `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`}
           </Typography>
         </Box>
         <Divider />
-        {latestNotifications.length === 0 ? (
-          <MenuItem disabled>
-            <ListItemText
-              primary="No recent notifications"
-              secondary="New operational alerts will appear here."
-            />
-          </MenuItem>
-        ) : (
-          latestNotifications.map((notification) => (
-            <MenuItem
-              key={notification.id}
-              onClick={() => {
-                setNotificationAnchorEl(null);
-                navigate(notificationTarget);
-              }}
-              sx={{ alignItems: "flex-start", whiteSpace: "normal" }}
-            >
-              <ListItemText
-                primary={notification.title}
-                secondary={notification.message}
-                primaryTypographyProps={{
-                  fontWeight: notification.readStatus === "UNREAD" ? 700 : 500,
-                }}
-                secondaryTypographyProps={{
-                  sx: {
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  },
-                }}
-              />
-            </MenuItem>
-          ))
-        )}
+        {notificationMenuContent}
         <Divider />
         <MenuItem
           onClick={() => {
@@ -692,6 +396,81 @@ export function AppShell() {
           }}
         >
           View all notifications
+        </MenuItem>
+      </Menu>
+
+      <Menu
+        anchorEl={userMenuAnchorEl}
+        open={Boolean(userMenuAnchorEl)}
+        onClose={() => setUserMenuAnchorEl(null)}
+        PaperProps={{ sx: { width: 320, maxWidth: "calc(100vw - 24px)" } }}
+      >
+        <Box sx={{ px: 2, py: 1.75 }}>
+          <Typography variant="subtitle1">{displayName}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {session?.identity.email}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            {workspaceLabel}
+          </Typography>
+        </Box>
+        <Divider />
+        <Box sx={{ px: 2, py: 1.5 }}>
+          <Chip
+            label={
+              (session?.identity.roles ?? []).map(getRoleLabel).join(", ") ||
+              "No roles"
+            }
+            color="secondary"
+            variant="outlined"
+          />
+        </Box>
+        <Divider />
+        <MenuItem
+          component={RouterLink}
+          to={workspaceHomePath}
+          onClick={() => setUserMenuAnchorEl(null)}
+        >
+          Workspace home
+        </MenuItem>
+        {profilePath ? (
+          <MenuItem
+            component={RouterLink}
+            to={profilePath}
+            onClick={() => setUserMenuAnchorEl(null)}
+          >
+            {profilePath.includes("/settings")
+              ? "Workspace settings"
+              : "My profile"}
+          </MenuItem>
+        ) : null}
+        <Divider />
+        <MenuItem
+          component={RouterLink}
+          to="/"
+          onClick={() => setUserMenuAnchorEl(null)}
+        >
+          View public site
+        </MenuItem>
+        <MenuItem
+          component={RouterLink}
+          to="/contact#request-demo"
+          onClick={() => setUserMenuAnchorEl(null)}
+        >
+          Request demo
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          onClick={() => {
+            setUserMenuAnchorEl(null);
+            signOut();
+            navigate("/login", { replace: true });
+          }}
+        >
+          <ListItemIcon>
+            <LogoutRoundedIcon fontSize="small" />
+          </ListItemIcon>
+          Sign out
         </MenuItem>
       </Menu>
 
@@ -734,12 +513,86 @@ export function AppShell() {
 
       <Box
         component="main"
-        sx={{ flexGrow: 1, width: { md: `calc(100% - ${drawerWidth}px)` } }}
+        sx={{
+          flexGrow: 1,
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          display: "flex",
+          flexDirection: "column",
+        }}
       >
         <Toolbar />
-        <Box sx={{ p: { xs: 2, md: 4 } }}>
-          <Outlet />
-        </Box>
+        <Container
+          maxWidth={false}
+          sx={{
+            px: { xs: 2, md: 4 },
+            py: { xs: 2, md: 3 },
+            maxWidth: 1480,
+            width: "100%",
+            flexGrow: 1,
+            display: "flex",
+            flexDirection: "column",
+            gap: 3,
+          }}
+        >
+          <Box
+            sx={{
+              borderRadius: 5,
+              border: "1px solid",
+              borderColor: "divider",
+              bgcolor: "rgba(255, 255, 255, 0.8)",
+              backdropFilter: "blur(14px)",
+              px: { xs: 2.5, md: 3 },
+              py: { xs: 2, md: 2.5 },
+            }}
+          >
+            <Stack spacing={1.25}>
+              <Breadcrumbs separator="/" aria-label="breadcrumb">
+                <Link
+                  component={RouterLink}
+                  underline="hover"
+                  color="inherit"
+                  to={currentItem?.to ?? location.pathname}
+                >
+                  {shellView.scopeLabel}
+                </Link>
+                <Typography color="text.primary">{currentTitle}</Typography>
+              </Breadcrumbs>
+              <Typography variant="h4">{currentTitle}</Typography>
+              <Typography color="text.secondary">
+                {currentDescription}
+              </Typography>
+            </Stack>
+          </Box>
+
+          <Box sx={{ flexGrow: 1 }}>
+            <Outlet />
+          </Box>
+
+          <Box
+            component="footer"
+            sx={{
+              borderTop: "1px solid",
+              borderColor: "divider",
+              pt: 2,
+              pb: 1,
+            }}
+          >
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={1}
+              justifyContent="space-between"
+            >
+              <Typography variant="body2" color="text.secondary">
+                {branding?.displayName || "Transport Platform"} authenticated
+                workspace for {workspaceLabel.toLowerCase()}.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Support:{" "}
+                {branding?.supportEmail || "support@transportplatform.com"}
+              </Typography>
+            </Stack>
+          </Box>
+        </Container>
       </Box>
     </Box>
   );

@@ -2,6 +2,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   MenuItem,
   Stack,
   TextField,
@@ -15,6 +16,7 @@ import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
 import {
   riderGuardianPortalApi,
+  type RiderGuardianPortalLinkedRiderRecord,
   type RiderGuardianPortalProfilePayload,
   type RiderGuardianPortalProfileRecord,
 } from "../api/riderGuardianPortalApi";
@@ -51,6 +53,9 @@ export function RiderGuardianPortalProfilePage() {
   const { showError, showSuccess } = useToast();
   const [profile, setProfile] =
     useState<RiderGuardianPortalProfileRecord | null>(null);
+  const [linkedRiders, setLinkedRiders] = useState<
+    RiderGuardianPortalLinkedRiderRecord[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,9 +66,13 @@ export function RiderGuardianPortalProfilePage() {
       setLoading(true);
       setError(null);
       try {
-        const response = await riderGuardianPortalApi.getProfile();
+        const [response, ridersResponse] = await Promise.all([
+          riderGuardianPortalApi.getProfile(),
+          riderGuardianPortalApi.getLinkedRiders(),
+        ]);
         if (!cancelled) {
           setProfile(response);
+          setLinkedRiders(ridersResponse);
         }
       } catch {
         if (!cancelled) {
@@ -110,15 +119,29 @@ export function RiderGuardianPortalProfilePage() {
   const isGuardian = profile.scopeType === "GUARDIAN";
 
   return (
-    <Stack spacing={3}>
-      <SectionHeader
-        title="My Profile"
-        description="Keep rider or guardian contact details current so scheduling, support, and billing workflows stay aligned."
-      >
-        <Button variant="contained" onClick={handleSave} disabled={saving}>
-          {saving ? "Saving..." : "Save Profile"}
-        </Button>
-      </SectionHeader>
+    <Stack spacing={2.5}>
+      <PageCard>
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          justifyContent="space-between"
+          spacing={2}
+        >
+          <Stack spacing={1}>
+            <Typography variant="h4">
+              {isGuardian ? "My Profile And Linked Riders" : "My Profile"}
+            </Typography>
+            <Typography color="text.secondary">
+              Keep contact details up to date and review the rider records
+              already linked to this portal account.
+            </Typography>
+          </Stack>
+          <Box>
+            <Button variant="contained" onClick={handleSave} disabled={saving}>
+              {saving ? "Saving..." : "Save Profile"}
+            </Button>
+          </Box>
+        </Stack>
+      </PageCard>
       {error ? <Alert severity="error">{error}</Alert> : null}
       <PageCard>
         <Stack spacing={3}>
@@ -350,6 +373,53 @@ export function RiderGuardianPortalProfilePage() {
             Status: {profile.status} • Last updated{" "}
             {formatDateTime(profile.updatedAt)}
           </Typography>
+        </Stack>
+      </PageCard>
+      <PageCard>
+        <Stack spacing={2}>
+          <Typography variant="h5">Linked riders</Typography>
+          <Typography color="text.secondary">
+            Guardians can clearly confirm which riders are visible in this
+            portal. Riders only see their own linked record.
+          </Typography>
+          {linkedRiders.length === 0 ? (
+            <Typography color="text.secondary">
+              No linked riders are available.
+            </Typography>
+          ) : (
+            <Stack spacing={1.5}>
+              {linkedRiders.map((rider) => (
+                <PageCard key={rider.id} sx={{ p: { xs: 2, md: 2.5 } }}>
+                  <Stack spacing={1}>
+                    <Typography variant="h6">
+                      {rider.riderDisplayName}
+                    </Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                      <Chip
+                        label={rider.relationshipType ?? "Self"}
+                        size="small"
+                      />
+                      {rider.primaryGuardian ? (
+                        <Chip label="Primary guardian" size="small" />
+                      ) : null}
+                      {rider.authorizedForPickup ? (
+                        <Chip label="Pickup authorized" size="small" />
+                      ) : null}
+                      {rider.billingContact ? (
+                        <Chip label="Billing contact" size="small" />
+                      ) : null}
+                    </Stack>
+                    <Typography variant="body2" color="text.secondary">
+                      Rider code: {rider.riderCode}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Status: {rider.status}
+                    </Typography>
+                  </Stack>
+                </PageCard>
+              ))}
+            </Stack>
+          )}
         </Stack>
       </PageCard>
     </Stack>

@@ -6,6 +6,7 @@ export interface RiderGuardianPortalDashboardRecord {
   linkedRiderCount: number;
   upcomingRideCount: number;
   activeRideCount: number;
+  activeRecurringScheduleCount: number;
   openInvoiceCount: number;
   outstandingBalance: number;
   unreadNotifications: number;
@@ -89,6 +90,11 @@ export interface RiderGuardianPortalRideRecord {
   pickupAddress: string | null;
   dropoffAddress: string | null;
   routeId: number | null;
+  recurrenceScheduleId: number | null;
+}
+
+export interface RiderGuardianPortalRideDetailRecord extends RiderGuardianPortalRideRecord {
+  recurringRide: boolean;
 }
 
 export interface RiderGuardianPortalInvoiceRecord {
@@ -136,6 +142,10 @@ export const riderGuardianPortalApi = {
   async searchRides(params: Record<string, unknown>) {
     const response = await apiClient.get(`${basePath}/rides`, { params });
     return unwrapResponse<PageResponse<RiderGuardianPortalRideRecord>>(response.data);
+  },
+  async getRide(rideId: number) {
+    const response = await apiClient.get(`${basePath}/rides/${rideId}`);
+    return unwrapResponse<RiderGuardianPortalRideDetailRecord>(response.data);
   },
   async searchInvoices(params: Record<string, unknown>) {
     const response = await apiClient.get(`${basePath}/invoices`, { params });

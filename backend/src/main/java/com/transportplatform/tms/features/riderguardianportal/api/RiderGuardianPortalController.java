@@ -9,6 +9,7 @@ import com.transportplatform.tms.features.riderguardianportal.api.request.RiderG
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalDashboardResponse;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalLinkedRiderResponse;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalProfileResponse;
+import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalRideDetailResponse;
 import com.transportplatform.tms.features.riderguardianportal.application.RiderGuardianPortalService;
 import com.transportplatform.tms.features.billing.domain.InvoiceStatus;
 import com.transportplatform.tms.features.billing.domain.PaymentStatus;
@@ -19,6 +20,7 @@ import java.util.List;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -67,6 +69,11 @@ public class RiderGuardianPortalController {
             @RequestParam(defaultValue = "ASC") Sort.Direction sortDirection) {
         return ApiResponse
                 .success(service.searchRides(keyword, status, fromDate, toDate, page, size, sortBy, sortDirection));
+    }
+
+    @GetMapping("/portal/rider/rides/{rideId}")
+    public ApiResponse<RiderGuardianPortalRideDetailResponse> getRide(@PathVariable Long rideId) {
+        return ApiResponse.success(service.getRide(rideId));
     }
 
     @GetMapping("/portal/rider/invoices")

@@ -1,15 +1,6 @@
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import {
-  Alert,
-  Button,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import FmdGoodRoundedIcon from "@mui/icons-material/FmdGoodRounded";
+import { Alert, Button, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import {
@@ -18,7 +9,6 @@ import {
 } from "../api/driverPortalApi";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { PageCard } from "../../../shared/components/PageCard";
-import { SectionHeader } from "../../../shared/components/SectionHeader";
 import { StatusChip } from "../../../shared/components/StatusChip";
 import { formatDateTime } from "../../../shared/utils/format";
 
@@ -64,7 +54,7 @@ export function DriverPortalRouteDetailsPage() {
   }
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={2.5}>
       <Button
         component={RouterLink}
         to="/portal/driver/routes"
@@ -73,12 +63,17 @@ export function DriverPortalRouteDetailsPage() {
       >
         Back to routes
       </Button>
-      <SectionHeader
-        title={
-          route ? `${route.routeCode} · ${route.routeName}` : "Route Detail"
-        }
-        description="Review manifest notes and ordered stops for the assigned route."
-      />
+      <PageCard>
+        <Stack spacing={1}>
+          <Typography variant="h4">
+            {route ? `${route.routeCode} · ${route.routeName}` : "Route detail"}
+          </Typography>
+          <Typography color="text.secondary">
+            Review your route overview, manifest notes, and ordered stops for
+            the assigned route only.
+          </Typography>
+        </Stack>
+      </PageCard>
       {error ? <Alert severity="error">{error}</Alert> : null}
       {route ? (
         <>
@@ -99,36 +94,40 @@ export function DriverPortalRouteDetailsPage() {
           <PageCard>
             <Stack spacing={2}>
               <Typography variant="h5">Stops</Typography>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Ride</TableCell>
-                    <TableCell>Rider</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Pickup</TableCell>
-                    <TableCell>Dropoff</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {route.stops.map((stop) => (
-                    <TableRow key={stop.id} hover>
-                      <TableCell>{stop.stopSequence}</TableCell>
-                      <TableCell>{stop.rideNumber}</TableCell>
-                      <TableCell>{stop.riderName}</TableCell>
-                      <TableCell>
+              <Stack spacing={1.5}>
+                {route.stops.map((stop) => (
+                  <PageCard key={stop.id} sx={{ p: { xs: 2, md: 2.5 } }}>
+                    <Stack spacing={1.25}>
+                      <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        justifyContent="space-between"
+                        spacing={1}
+                      >
+                        <Typography variant="h6">
+                          Stop {stop.stopSequence} · {stop.rideNumber}
+                        </Typography>
                         <StatusChip value={stop.status} />
-                      </TableCell>
-                      <TableCell>
-                        {formatDateTime(stop.plannedPickupAt)}
-                      </TableCell>
-                      <TableCell>
-                        {formatDateTime(stop.plannedDropoffAt)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </Stack>
+                      <Typography color="text.secondary">
+                        {stop.riderName}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Pickup: {formatDateTime(stop.plannedPickupAt)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Dropoff: {formatDateTime(stop.plannedDropoffAt)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Pickup address: {stop.pickupAddress ?? "Not available"}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Dropoff address:{" "}
+                        {stop.dropoffAddress ?? "Not available"}
+                      </Typography>
+                    </Stack>
+                  </PageCard>
+                ))}
+              </Stack>
             </Stack>
           </PageCard>
         </>

@@ -1,6 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import {
-  Alert,
   Box,
   Button,
   Divider,
@@ -10,8 +9,10 @@ import {
   Typography,
 } from "@mui/material";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
-import { PageCard } from "../../../shared/components/PageCard";
+import { AuthFormShell } from "../components/AuthFormShell";
+import { resolvePostLoginRoute } from "../access";
 import { useAuth } from "../context/AuthContext";
+import { consumeAuthNotice } from "../utils/authNotices";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { runtimeApi, type RuntimeBranding } from "../../runtime/api/runtimeApi";
 
@@ -30,6 +31,7 @@ export function LoginPage() {
   const [email, setEmail] = useState("platform-admin@transport-platform.local");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [brandingPreview, setBrandingPreview] =
     useState<RuntimeBranding | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -39,20 +41,44 @@ export function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const normalizedTenantId = tenantId.trim();
+    const normalizedEmail = email.trim();
+
+    if (!normalizedTenantId) {
+      setError(
+        "Tenant ID is required. Use 'platform' for platform scope or enter your company tenant ID.",
+      );
+      return;
+    }
+
+    if (!normalizedEmail) {
+      setError("Email is required.");
+      return;
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      setError("Enter a valid work email address.");
+      return;
+    }
+
+    if (!password.trim()) {
+      setError("Password is required.");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
+    setNotice(null);
 
     try {
-      const session = await signIn({ tenantId, email, password });
+      const session = await signIn({
+        tenantId: normalizedTenantId,
+        email: normalizedEmail,
+        password,
+      });
       showSuccess("Signed in successfully.");
-      navigate(
-        targetPath === "/"
-          ? session.identity.roles.includes("ROLE_PLATFORM_ADMIN")
-            ? "/platform"
-            : "/company"
-          : targetPath,
-        { replace: true },
-      );
+      navigate(resolvePostLoginRoute(session, targetPath), { replace: true });
     } catch {
       setError(
         "Sign-in failed. Verify the tenant, email, password, and account status, then try again.",
@@ -75,8 +101,17 @@ export function LoginPage() {
   }
 
   useEffect(() => {
+    const authNotice = consumeAuthNotice();
+    if (authNotice) {
+      setNotice(authNotice.message);
+    }
+
     let active = true;
     const timeout = window.setTimeout(async () => {
+      if (!tenantId.trim()) {
+        setBrandingPreview(null);
+        return;
+      }
       try {
         const nextBranding = await runtimeApi.getTenantBranding(
           tenantId.trim(),
@@ -97,66 +132,44 @@ export function LoginPage() {
     };
   }, [tenantId]);
 
+  const status = error
+    ? { severity: "error" as const, message: error }
+    : notice
+      ? { severity: "warning" as const, message: notice }
+      : null;
+
   return (
-    <PageCard>
-      <Stack spacing={3} component="form" onSubmit={handleSubmit}>
-        <Box>
-          <Typography variant="h4">Administrator Sign In</Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-            {brandingPreview?.customLoginWelcomeText ||
-              "Sign in with a platform or company administrator account to manage onboarding, users, role assignments, and operational access."}
-          </Typography>
-        </Box>
-
-        {error ? <Alert severity="info">{error}</Alert> : null}
-
-        <Stack spacing={2}>
-          <TextField
-            label="Tenant ID"
-            value={tenantId}
-            onChange={handleTenantChange}
-            helperText="Use 'platform' for platform scope, or enter your company tenant ID."
-            fullWidth
-          />
-          <TextField
-            label="Email"
-            type="email"
-            value={email}
-            onChange={handleEmailChange}
-            required
-            fullWidth
-          />
-          <TextField
-            label="Password"
-            type="password"
-            value={password}
-            onChange={handlePasswordChange}
-            required
-            fullWidth
-          />
-        </Stack>
-
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          alignItems={{ sm: "center" }}
-        >
-          <Button
-            type="submit"
-            variant="contained"
-            size="large"
-            disabled={submitting}
+    <AuthFormShell
+      eyebrow="Secure sign in"
+      title="Sign in to your transportation workspace."
+      description={
+        brandingPreview?.customLoginWelcomeText ||
+        "Use your tenant ID, email, and password to access platform or company administration."
+      }
+      status={status}
+      footer={
+        <Typography variant="body2" color="text.secondary">
+          Transportation companies can begin onboarding through the{" "}
+          <Link component={RouterLink} to="/apply" underline="hover">
+            Apply to Join
+          </Link>{" "}
+          page or{" "}
+          <Link
+            component={RouterLink}
+            to="/contact#request-demo"
+            underline="hover"
           >
-            {submitting ? "Signing in..." : "Sign in"}
-          </Button>
-          <Typography variant="body2" color="text.secondary">
-            {brandingPreview?.displayName
-              ? `Workspace: ${brandingPreview.displayName}`
-              : "Platform bootstrap remains available for local development if the backend local profile keeps it enabled."}
-          </Typography>
-        </Stack>
-
-        {brandingPreview ? (
+            Request Demo
+          </Link>
+          . Need credential recovery access? Visit{" "}
+          <Link component={RouterLink} to="/forgot-password" underline="hover">
+            Forgot Password
+          </Link>
+          .
+        </Typography>
+      }
+      aside={
+        brandingPreview ? (
           <>
             <Divider />
             <Stack spacing={1.5}>
@@ -191,16 +204,65 @@ export function LoginPage() {
               </Stack>
             </Stack>
           </>
-        ) : null}
+        ) : undefined
+      }
+    >
+      <Stack spacing={2} component="form" onSubmit={handleSubmit}>
+        <TextField
+          label="Tenant ID"
+          value={tenantId}
+          onChange={handleTenantChange}
+          helperText="Use 'platform' for platform scope, or enter your company tenant ID."
+          error={Boolean(error) && !tenantId.trim()}
+        />
+        <TextField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={handleEmailChange}
+          required
+          error={
+            Boolean(error) &&
+            (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim()))
+          }
+        />
+        <TextField
+          label="Password"
+          type="password"
+          value={password}
+          onChange={handlePasswordChange}
+          required
+          error={Boolean(error) && !password.trim()}
+        />
+
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          alignItems={{ sm: "center" }}
+        >
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            disabled={submitting}
+          >
+            {submitting ? "Signing in..." : "Sign in"}
+          </Button>
+          <Typography variant="body2" color="text.secondary">
+            {brandingPreview?.displayName
+              ? `Workspace: ${brandingPreview.displayName}`
+              : "Enter a tenant ID to preview workspace branding before signing in."}
+          </Typography>
+        </Stack>
 
         <Typography variant="body2" color="text.secondary">
-          Transportation companies can submit onboarding requests through the{" "}
-          <Link component={RouterLink} to="/apply" underline="hover">
-            Apply to Join
-          </Link>{" "}
-          page.
+          Forgot your password?{" "}
+          <Link component={RouterLink} to="/forgot-password" underline="hover">
+            Reset access
+          </Link>
+          .
         </Typography>
       </Stack>
-    </PageCard>
+    </AuthFormShell>
   );
 }

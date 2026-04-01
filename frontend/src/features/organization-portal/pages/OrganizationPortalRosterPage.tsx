@@ -1,15 +1,10 @@
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
-import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
+import AccessibilityNewRoundedIcon from "@mui/icons-material/AccessibilityNewRounded";
 import {
   Alert,
   Box,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
@@ -18,10 +13,8 @@ import { LoadingState } from "../../../shared/components/LoadingState";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
 import { SectionHeader } from "../../../shared/components/SectionHeader";
-import { StatusChip } from "../../../shared/components/StatusChip";
 import {
   organizationPortalApi,
-  type OrganizationPortalContactRecord,
   type OrganizationPortalDashboardRecord,
   type OrganizationPortalRiderRecord,
 } from "../api/organizationPortalApi";
@@ -38,9 +31,6 @@ const riderStatuses = [
 export function OrganizationPortalRosterPage() {
   const [dashboard, setDashboard] =
     useState<OrganizationPortalDashboardRecord | null>(null);
-  const [contacts, setContacts] = useState<OrganizationPortalContactRecord[]>(
-    [],
-  );
   const [riders, setRiders] = useState<OrganizationPortalRiderRecord[]>([]);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
@@ -52,20 +42,17 @@ export function OrganizationPortalRosterPage() {
       setLoading(true);
       setError(null);
       try {
-        const [dashboardResponse, contactsResponse, ridersResponse] =
-          await Promise.all([
-            organizationPortalApi.getDashboard(),
-            organizationPortalApi.getContacts(),
-            organizationPortalApi.searchRiders({
-              status: status || undefined,
-              size: 25,
-              sortBy: "lastName",
-              sortDirection: "ASC",
-            }),
-          ]);
+        const [dashboardResponse, ridersResponse] = await Promise.all([
+          organizationPortalApi.getDashboard(),
+          organizationPortalApi.searchRiders({
+            status: status || undefined,
+            size: 25,
+            sortBy: "lastName",
+            sortDirection: "ASC",
+          }),
+        ]);
         if (!cancelled) {
           setDashboard(dashboardResponse);
-          setContacts(contactsResponse);
           setRiders(ridersResponse.items);
         }
       } catch {
@@ -89,10 +76,10 @@ export function OrganizationPortalRosterPage() {
   }
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={2.5}>
       <SectionHeader
-        title="Roster"
-        description="Review organization contacts and linked riders within the current portal scope."
+        title="Rider Roster"
+        description="Review the linked riders visible to your organization account and monitor support requirements without exposing tenant administration tools."
       />
       {error ? <Alert severity="error">{error}</Alert> : null}
       {dashboard ? (
@@ -106,15 +93,15 @@ export function OrganizationPortalRosterPage() {
           <Box>
             <MetricCard
               icon={<BadgeRoundedIcon color="primary" />}
-              label="Organization Contacts"
-              value={contacts.length}
+              label="Active Riders"
+              value={dashboard.linkedRiderCount}
             />
           </Box>
           <Box>
             <MetricCard
-              icon={<GroupsRoundedIcon color="primary" />}
-              label="Linked Riders"
-              value={dashboard.linkedRiderCount}
+              icon={<AccessibilityNewRoundedIcon color="primary" />}
+              label="Visible Roster"
+              value={riders.length}
             />
           </Box>
         </Box>
@@ -134,87 +121,24 @@ export function OrganizationPortalRosterPage() {
           ))}
         </TextField>
       </PageCard>
-      <PageCard sx={{ p: 0, overflow: "hidden" }}>
-        <Stack spacing={2} sx={{ p: { xs: 3, md: 4 } }}>
-          <SectionHeader
-            eyebrow="Contacts"
-            title="Organization Contacts"
-            description="Current contact roster visible to the organization portal."
-          />
-        </Stack>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {contacts.map((contact) => (
-              <TableRow key={contact.id} hover>
-                <TableCell>
-                  <Stack spacing={0.5}>
-                    <Typography fontWeight={700}>
-                      {contact.firstName} {contact.lastName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {contact.primary
-                        ? "Primary contact"
-                        : "Secondary contact"}
-                    </Typography>
-                  </Stack>
-                </TableCell>
-                <TableCell>
-                  {contact.title || contact.department || "-"}
-                </TableCell>
-                <TableCell>{contact.email || "-"}</TableCell>
-                <TableCell>{contact.phone}</TableCell>
-                <TableCell>
-                  <StatusChip value={contact.status} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </PageCard>
-      <PageCard sx={{ p: 0, overflow: "hidden" }}>
-        <Stack spacing={2} sx={{ p: { xs: 3, md: 4 } }}>
-          <SectionHeader
-            eyebrow="Riders"
-            title="Linked Riders"
-            description="The riders currently tied to this organization."
-          />
-        </Stack>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Rider</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Support needs</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {riders.map((rider) => (
-              <TableRow key={rider.id} hover>
-                <TableCell>
-                  <Stack spacing={0.5}>
-                    <Typography fontWeight={700}>
-                      {rider.riderDisplayName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {rider.riderCode}
-                    </Typography>
-                  </Stack>
-                </TableCell>
-                <TableCell>{rider.riderType}</TableCell>
-                <TableCell>
-                  <StatusChip value={rider.status} />
-                </TableCell>
-                <TableCell>
+      <Stack spacing={2}>
+        {riders.length === 0 ? (
+          <PageCard>
+            <Typography color="text.secondary">
+              No riders match the current filter.
+            </Typography>
+          </PageCard>
+        ) : (
+          riders.map((rider) => (
+            <PageCard key={rider.id}>
+              <Stack spacing={1.25}>
+                <Typography variant="h6">{rider.riderDisplayName}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {rider.riderCode} • {rider.riderType} •{" "}
+                  {rider.status.replaceAll("_", " ")}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Support needs:{" "}
                   {rider.wheelchairRequired || rider.escortRequired
                     ? `${rider.wheelchairRequired ? "Wheelchair" : ""}${
                         rider.wheelchairRequired && rider.escortRequired
@@ -222,21 +146,12 @@ export function OrganizationPortalRosterPage() {
                           : ""
                       }${rider.escortRequired ? "Escort" : ""}`
                     : "Standard"}
-                </TableCell>
-              </TableRow>
-            ))}
-            {riders.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4}>
-                  <Typography color="text.secondary">
-                    No riders match the current filter.
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : null}
-          </TableBody>
-        </Table>
-      </PageCard>
+                </Typography>
+              </Stack>
+            </PageCard>
+          ))
+        )}
+      </Stack>
     </Stack>
   );
 }

@@ -1,24 +1,12 @@
 import AttachMoneyRoundedIcon from "@mui/icons-material/AttachMoneyRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
-import {
-  Alert,
-  Box,
-  MenuItem,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Alert, Box, Button, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
-import { SectionHeader } from "../../../shared/components/SectionHeader";
-import { StatusChip } from "../../../shared/components/StatusChip";
 import {
   riderGuardianPortalApi,
   type RiderGuardianPortalDashboardRecord,
@@ -26,32 +14,10 @@ import {
   type RiderGuardianPortalPaymentRecord,
 } from "../api/riderGuardianPortalApi";
 
-const invoiceStatuses = [
-  "",
-  "ISSUED",
-  "PARTIALLY_PAID",
-  "PAID",
-  "OVERDUE",
-] as const;
-const paymentStatuses = [
-  "",
-  "PENDING",
-  "COMPLETED",
-  "FAILED",
-  "REFUNDED",
-] as const;
-
 function formatCurrency(value: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-    maximumFractionDigits: 2,
-  }).format(value ?? 0);
-}
-
-function formatAmount(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value ?? 0);
 }
@@ -74,8 +40,6 @@ export function RiderGuardianPortalBillingPage() {
   const [payments, setPayments] = useState<RiderGuardianPortalPaymentRecord[]>(
     [],
   );
-  const [invoiceStatus, setInvoiceStatus] = useState("");
-  const [paymentStatus, setPaymentStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,14 +53,12 @@ export function RiderGuardianPortalBillingPage() {
           await Promise.all([
             riderGuardianPortalApi.getDashboard(),
             riderGuardianPortalApi.searchInvoices({
-              status: invoiceStatus || undefined,
-              size: 25,
+              size: 6,
               sortBy: "invoiceDate",
               sortDirection: "DESC",
             }),
             riderGuardianPortalApi.searchPayments({
-              status: paymentStatus || undefined,
-              size: 25,
+              size: 4,
               sortBy: "paymentDate",
               sortDirection: "DESC",
             }),
@@ -120,18 +82,23 @@ export function RiderGuardianPortalBillingPage() {
     return () => {
       cancelled = true;
     };
-  }, [invoiceStatus, paymentStatus]);
+  }, []);
 
   if (loading) {
     return <LoadingState />;
   }
 
   return (
-    <Stack spacing={3}>
-      <SectionHeader
-        title="Billing"
-        description="Review invoice balances and recent payments already posted for the current rider or guardian scope."
-      />
+    <Stack spacing={2.5}>
+      <PageCard>
+        <Stack spacing={1}>
+          <Typography variant="h4">Billing Summary</Typography>
+          <Typography color="text.secondary">
+            Review invoice balances and recent payments already authorized for
+            your rider or guardian scope.
+          </Typography>
+        </Stack>
+      </PageCard>
       {error ? <Alert severity="error">{error}</Alert> : null}
       {dashboard ? (
         <Box
@@ -164,36 +131,6 @@ export function RiderGuardianPortalBillingPage() {
           </Box>
         </Box>
       ) : null}
-      <PageCard>
-        <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-          <TextField
-            select
-            label="Invoice status"
-            value={invoiceStatus}
-            onChange={(event) => setInvoiceStatus(event.target.value)}
-            sx={{ minWidth: { md: 220 } }}
-          >
-            {invoiceStatuses.map((option) => (
-              <MenuItem key={option || "all-invoices"} value={option}>
-                {option || "All invoice statuses"}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            label="Payment status"
-            value={paymentStatus}
-            onChange={(event) => setPaymentStatus(event.target.value)}
-            sx={{ minWidth: { md: 220 } }}
-          >
-            {paymentStatuses.map((option) => (
-              <MenuItem key={option || "all-payments"} value={option}>
-                {option || "All payment statuses"}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
-      </PageCard>
       <Box
         sx={{
           display: "grid",
@@ -201,93 +138,105 @@ export function RiderGuardianPortalBillingPage() {
           gridTemplateColumns: { xs: "1fr", xl: "repeat(2, minmax(0, 1fr))" },
         }}
       >
-        <PageCard sx={{ p: 0, overflow: "hidden" }}>
-          <Stack spacing={2} sx={{ p: { xs: 3, md: 4 } }}>
-            <SectionHeader
-              eyebrow="Invoices"
-              title="Invoice History"
-              description="Recent invoices and current balance status."
-            />
-          </Stack>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Invoice</TableCell>
-                <TableCell>Invoice date</TableCell>
-                <TableCell>Due</TableCell>
-                <TableCell>Balance</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {invoices.map((invoice) => (
-                <TableRow key={invoice.id} hover>
-                  <TableCell>{invoice.invoiceNumber}</TableCell>
-                  <TableCell>{formatDate(invoice.invoiceDate)}</TableCell>
-                  <TableCell>{formatDate(invoice.dueDate)}</TableCell>
-                  <TableCell>
-                    {formatCurrency(invoice.balanceDue, invoice.currency)}
-                  </TableCell>
-                  <TableCell>
-                    <StatusChip value={invoice.status} />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {invoices.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5}>
-                    <Typography color="text.secondary">
-                      No invoices match the current filters.
+        <PageCard>
+          <Stack spacing={2}>
+            <Typography variant="h5">Open and recent invoices</Typography>
+            {invoices.length === 0 ? (
+              <Typography color="text.secondary">
+                No invoices are visible right now.
+              </Typography>
+            ) : (
+              invoices.map((invoice) => (
+                <PageCard key={invoice.id} sx={{ p: { xs: 2, md: 2.5 } }}>
+                  <Stack spacing={1.25}>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      justifyContent="space-between"
+                      spacing={1}
+                    >
+                      <Typography variant="h6">
+                        {invoice.invoiceNumber}
+                      </Typography>
+                      <Chip
+                        label={invoice.status.replaceAll("_", " ")}
+                        color="secondary"
+                        sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+                      />
+                    </Stack>
+                    <Typography variant="body2" color="text.secondary">
+                      Invoice date: {formatDate(invoice.invoiceDate)}
                     </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
+                    <Typography variant="body2" color="text.secondary">
+                      Due: {formatDate(invoice.dueDate)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Balance due:{" "}
+                      {formatCurrency(invoice.balanceDue, invoice.currency)}
+                    </Typography>
+                  </Stack>
+                </PageCard>
+              ))
+            )}
+          </Stack>
         </PageCard>
-        <PageCard sx={{ p: 0, overflow: "hidden" }}>
-          <Stack spacing={2} sx={{ p: { xs: 3, md: 4 } }}>
-            <SectionHeader
-              eyebrow="Payments"
-              title="Payment History"
-              description="Recent payments already posted against visible invoices."
-            />
-          </Stack>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Payment</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Invoice</TableCell>
-                <TableCell>Method</TableCell>
-                <TableCell>Amount</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {payments.map((payment) => (
-                <TableRow key={payment.id} hover>
-                  <TableCell>{payment.paymentNumber}</TableCell>
-                  <TableCell>{formatDate(payment.paymentDate)}</TableCell>
-                  <TableCell>{payment.invoiceNumber ?? "-"}</TableCell>
-                  <TableCell>{payment.paymentMethod ?? "-"}</TableCell>
-                  <TableCell>{formatAmount(payment.amount)}</TableCell>
-                  <TableCell>
-                    <StatusChip value={payment.status} />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {payments.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6}>
-                    <Typography color="text.secondary">
-                      No payments match the current filters.
+        <PageCard>
+          <Stack spacing={2}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              spacing={1.5}
+            >
+              <Stack spacing={0.5}>
+                <Typography variant="h5">Recent payments</Typography>
+                <Typography color="text.secondary">
+                  Posted payments already visible within your billing scope.
+                </Typography>
+              </Stack>
+              <Button
+                component={RouterLink}
+                to="/portal/rider/billing/payments"
+                variant="outlined"
+                endIcon={<ArrowForwardRoundedIcon />}
+              >
+                Full payment history
+              </Button>
+            </Stack>
+            {payments.length === 0 ? (
+              <Typography color="text.secondary">
+                No payments are visible right now.
+              </Typography>
+            ) : (
+              payments.map((payment) => (
+                <PageCard key={payment.id} sx={{ p: { xs: 2, md: 2.5 } }}>
+                  <Stack spacing={1.25}>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      justifyContent="space-between"
+                      spacing={1}
+                    >
+                      <Typography variant="h6">
+                        {payment.paymentNumber}
+                      </Typography>
+                      <Chip
+                        label={payment.status.replaceAll("_", " ")}
+                        color="secondary"
+                        sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+                      />
+                    </Stack>
+                    <Typography variant="body2" color="text.secondary">
+                      Date: {formatDate(payment.paymentDate)}
                     </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
+                    <Typography variant="body2" color="text.secondary">
+                      Invoice: {payment.invoiceNumber ?? "Not linked"}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Method: {payment.paymentMethod ?? "Not provided"}
+                    </Typography>
+                  </Stack>
+                </PageCard>
+              ))
+            )}
+          </Stack>
         </PageCard>
       </Box>
     </Stack>

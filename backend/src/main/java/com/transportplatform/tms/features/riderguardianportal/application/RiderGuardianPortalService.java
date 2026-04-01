@@ -30,6 +30,7 @@ import com.transportplatform.tms.features.riderguardianportal.api.request.RiderG
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalDashboardResponse;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalLinkedRiderResponse;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalProfileResponse;
+import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalRideDetailResponse;
 import com.transportplatform.tms.features.ride.domain.Ride;
 import com.transportplatform.tms.features.ride.domain.RideRepository;
 import com.transportplatform.tms.features.ride.domain.RideStatus;
@@ -41,6 +42,7 @@ import java.time.LocalTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -104,6 +106,13 @@ public class RiderGuardianPortalService {
         long activeRideCount = rideRepository.count((root, query, builder) -> builder.and(
                 buildRideScopePredicate(scope, root, query, builder, null, null, null, null, riderIds),
                 root.get("status").in(UPCOMING_RIDE_STATUSES)));
+        long activeRecurringScheduleCount = rideRepository.findAll((root, query, builder) -> builder.and(
+                buildRideScopePredicate(scope, root, query, builder, null, null, now, null, riderIds),
+                builder.isNotNull(root.get("recurrenceSchedule")))).stream()
+                .map(ride -> ride.getRecurrenceSchedule() == null ? null : ride.getRecurrenceSchedule().getId())
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .count();
         var invoices = loadScopedInvoices(scope, null, null, 0, 1000, "invoiceDate", Sort.Direction.DESC).items();
         long openInvoiceCount = invoices.stream()
                 .filter(invoice -> invoice.status() == InvoiceStatus.ISSUED
@@ -123,6 +132,7 @@ public class RiderGuardianPortalService {
                 scope.linkedRiders().size(),
                 upcomingRideCount,
                 activeRideCount,
+                activeRecurringScheduleCount,
                 openInvoiceCount,
                 outstandingBalance,
                 unreadNotifications);
@@ -224,7 +234,8 @@ public class RiderGuardianPortalService {
         List<Long> riderIds = scope.linkedRiders().stream().map(Rider::getId).toList();
         LocalDateTime fromDateTime = fromDate == null ? null : fromDate.atStartOfDay();
         LocalDateTime toDateTime = toDate == null ? null : LocalDateTime.of(toDate, LocalTime.MAX);
-        var pageable = PageRequest.of(page, size, Sort.by(sortDirection, resolveRideSortField(sortBy)));
+        Sort.Direction resolvedSortDirection = Objects.requireNonNullElse(sortDirection, Sort.Direction.ASC);
+        var pageable = PageRequest.of(page, size, Sort.by(resolvedSortDirection, resolveRideSortField(sortBy)));
         var result = rideRepository.findAll((root, query, builder) -> buildRideScopePredicate(
                 scope,
                 root,
@@ -236,6 +247,19 @@ public class RiderGuardianPortalService {
                 toDateTime,
                 riderIds), pageable);
         return PageResponse.from(result.map(this::toRideSummary));
+    }
+
+    @Transactional(readOnly = true)
+    public RiderGuardianPortalRideDetailResponse getRide(Long rideId) {
+        var scope = accessService.resolveCurrentScope();
+        Ride ride = rideRepository.findByIdAndTenantId(rideId, scope.user().tenantId())
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND,
+                        "Ride not found for the current portal scope."));
+        if (!canAccessRide(scope, ride)) {
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                    "The current rider or guardian portal account cannot access this ride.");
+        }
+        return toRideDetail(ride);
     }
 
     @Transactional(readOnly = true)
@@ -257,7 +281,8 @@ public class RiderGuardianPortalService {
             String sortBy,
             Sort.Direction sortDirection) {
         var scope = accessService.resolveCurrentScope();
-        var pageable = PageRequest.of(page, size, Sort.by(sortDirection, resolvePaymentSortField(sortBy)));
+        Sort.Direction resolvedSortDirection = Objects.requireNonNullElse(sortDirection, Sort.Direction.DESC);
+        var pageable = PageRequest.of(page, size, Sort.by(resolvedSortDirection, resolvePaymentSortField(sortBy)));
         LocalDate today = LocalDate.now(clock);
         var result = paymentRepository.findAll((root, query, builder) -> {
             var predicate = PaymentSpecifications.search(scope.user().tenantId(), keyword, status, null, null, null)
@@ -287,7 +312,8 @@ public class RiderGuardianPortalService {
             String sortBy,
             Sort.Direction sortDirection) {
         LocalDate today = LocalDate.now(clock);
-        var pageable = PageRequest.of(page, size, Sort.by(sortDirection, resolveInvoiceSortField(sortBy)));
+        Sort.Direction resolvedSortDirection = Objects.requireNonNullElse(sortDirection, Sort.Direction.DESC);
+        var pageable = PageRequest.of(page, size, Sort.by(resolvedSortDirection, resolveInvoiceSortField(sortBy)));
         var result = invoiceRepository.findAll((root, query, builder) -> {
             var predicate = InvoiceSpecifications
                     .search(scope.user().tenantId(), keyword, status, null, null, null, null, null, today)
@@ -425,7 +451,41 @@ public class RiderGuardianPortalService {
                         ride.getPickupState(), ride.getPickupZipCode()),
                 address(ride.getDropoffAddressLine1(), ride.getDropoffAddressLine2(), ride.getDropoffCity(),
                         ride.getDropoffState(), ride.getDropoffZipCode()),
-                ride.getRouteId());
+                ride.getRouteId(),
+                ride.getRecurrenceSchedule() == null ? null : ride.getRecurrenceSchedule().getId());
+    }
+
+    private RiderGuardianPortalRideDetailResponse toRideDetail(Ride ride) {
+        return new RiderGuardianPortalRideDetailResponse(
+                ride.getId(),
+                ride.getRideNumber(),
+                ride.getStatus(),
+                ride.getServiceType(),
+                ride.getTripType(),
+                ride.getScheduledPickupAt(),
+                ride.getScheduledDropoffAt(),
+                displayName(ride.getRider().getFirstName(), ride.getRider().getLastName()),
+                ride.getGuardian() == null ? null
+                        : displayName(ride.getGuardian().getFirstName(), ride.getGuardian().getLastName()),
+                ride.getOrganization() == null ? null : ride.getOrganization().getName(),
+                address(ride.getPickupAddressLine1(), ride.getPickupAddressLine2(), ride.getPickupCity(),
+                        ride.getPickupState(), ride.getPickupZipCode()),
+                address(ride.getDropoffAddressLine1(), ride.getDropoffAddressLine2(), ride.getDropoffCity(),
+                        ride.getDropoffState(), ride.getDropoffZipCode()),
+                ride.getRouteId(),
+                ride.getRecurrenceSchedule() == null ? null : ride.getRecurrenceSchedule().getId(),
+                ride.getRecurrenceSchedule() != null);
+    }
+
+    private boolean canAccessRide(RiderGuardianPortalAccessService.ResolvedRiderGuardianScope scope, Ride ride) {
+        if (scope.scopeType() == PortalSubjectType.RIDER) {
+            return ride.getRider() != null && ride.getRider().getId().equals(scope.rider().getId());
+        }
+        if (ride.getGuardian() != null && ride.getGuardian().getId().equals(scope.guardian().getId())) {
+            return true;
+        }
+        List<Long> riderIds = scope.linkedRiders().stream().map(Rider::getId).toList();
+        return ride.getRider() != null && riderIds.contains(ride.getRider().getId());
     }
 
     private InvoiceSummaryResponse toInvoiceSummary(Invoice invoice, LocalDate today) {

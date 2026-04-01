@@ -6,17 +6,18 @@ import com.transportplatform.tms.features.ride.domain.RideTripType;
 import java.time.LocalDateTime;
 
 public record PortalRideSummaryResponse(
-        Long id,
-        String rideNumber,
-        RideStatus status,
-        ServiceType serviceType,
-        RideTripType tripType,
-        LocalDateTime scheduledPickupAt,
-        LocalDateTime scheduledDropoffAt,
-        String riderName,
-        String guardianName,
-        String organizationName,
-        String pickupAddress,
-        String dropoffAddress,
-        Long routeId) {
+                Long id,
+                String rideNumber,
+                RideStatus status,
+                ServiceType serviceType,
+                RideTripType tripType,
+                LocalDateTime scheduledPickupAt,
+                LocalDateTime scheduledDropoffAt,
+                String riderName,
+                String guardianName,
+                String organizationName,
+                String pickupAddress,
+                String dropoffAddress,
+                Long routeId,
+                Long recurrenceScheduleId) {
 }

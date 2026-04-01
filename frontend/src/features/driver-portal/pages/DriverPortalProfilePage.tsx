@@ -1,5 +1,14 @@
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
-import { Alert, Button, Stack, TextField } from "@mui/material";
+import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import {
+  Alert,
+  Box,
+  Button,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useEffect, useState } from "react";
 import {
   driverPortalApi,
@@ -8,7 +17,6 @@ import {
 } from "../api/driverPortalApi";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { PageCard } from "../../../shared/components/PageCard";
-import { SectionHeader } from "../../../shared/components/SectionHeader";
 import { useToast } from "../../../shared/providers/ToastProvider";
 
 export function DriverPortalProfilePage() {
@@ -80,187 +88,252 @@ export function DriverPortalProfilePage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <SectionHeader
-        title="My Profile"
-        description="Manage your self-service contact and emergency information without leaving the portal."
-      />
+    <Stack spacing={2.5}>
+      <PageCard>
+        <Stack spacing={1}>
+          <Typography variant="h4">My Profile</Typography>
+          <Typography color="text.secondary">
+            Keep your contact information, availability, and emergency details
+            current for dispatch and support teams.
+          </Typography>
+        </Stack>
+      </PageCard>
       {error ? <Alert severity="error">{error}</Alert> : null}
       {profile ? (
-        <PageCard>
-          <Stack spacing={2}>
-            <TextField
-              label="Driver Code"
-              value={profile.driverCode}
-              disabled
-              fullWidth
-            />
-            <TextField
-              label="Full Name"
-              value={`${profile.firstName} ${profile.lastName}`}
-              disabled
-              fullWidth
-            />
-            <TextField
-              label="Email"
-              value={profile.email ?? ""}
-              disabled
-              fullWidth
-            />
-            <TextField
-              label="Phone"
-              value={form.phone ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  phone: event.target.value,
-                }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="Alternate Phone"
-              value={form.alternatePhone ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  alternatePhone: event.target.value,
-                }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="Address Line 1"
-              value={form.addressLine1 ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  addressLine1: event.target.value,
-                }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="Address Line 2"
-              value={form.addressLine2 ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  addressLine2: event.target.value,
-                }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="City"
-              value={form.city ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, city: event.target.value }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="State"
-              value={form.state ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  state: event.target.value,
-                }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="ZIP Code"
-              value={form.zipCode ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  zipCode: event.target.value,
-                }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="Country"
-              value={form.country ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  country: event.target.value,
-                }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="Availability Summary"
-              value={form.availabilitySummary ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  availabilitySummary: event.target.value,
-                }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="Emergency Contact Name"
-              value={form.emergencyContactName ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  emergencyContactName: event.target.value,
-                }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="Emergency Contact Phone"
-              value={form.emergencyContactPhone ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  emergencyContactPhone: event.target.value,
-                }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="Emergency Contact Relationship"
-              value={form.emergencyContactRelationship ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  emergencyContactRelationship: event.target.value,
-                }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="Notes"
-              value={form.notes ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  notes: event.target.value,
-                }))
-              }
-              multiline
-              minRows={4}
-              fullWidth
-            />
-            <Stack direction="row" justifyContent="flex-end">
-              <Button
-                startIcon={<SaveRoundedIcon />}
-                variant="contained"
-                onClick={handleSave}
-                disabled={saving}
-              >
-                Save Profile
-              </Button>
+        <Box
+          sx={{
+            display: "grid",
+            gap: 2,
+            gridTemplateColumns: {
+              xs: "1fr",
+              lg: "minmax(0, 0.9fr) minmax(0, 1.1fr)",
+            },
+          }}
+        >
+          <PageCard>
+            <Stack spacing={2}>
+              <Typography variant="h5">Driver identity</Typography>
+              <Typography color="text.secondary">
+                These details come from your account and help dispatch confirm
+                your assignment and contact profile.
+              </Typography>
+              <TextField
+                label="Driver Code"
+                value={profile.driverCode}
+                disabled
+                fullWidth
+              />
+              <TextField
+                label="Full Name"
+                value={`${profile.firstName} ${profile.lastName}`}
+                disabled
+                fullWidth
+              />
+              <TextField
+                label="Email"
+                value={profile.email ?? ""}
+                disabled
+                fullWidth
+              />
+              <Stack spacing={1}>
+                <Typography variant="body2" color="text.secondary">
+                  License expiry: {profile.licenseExpiryDate ?? "Not available"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Background check expiry:{" "}
+                  {profile.backgroundCheckExpiryDate ?? "Not available"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Drug test expiry:{" "}
+                  {profile.drugTestExpiryDate ?? "Not available"}
+                </Typography>
+              </Stack>
             </Stack>
-          </Stack>
-        </PageCard>
+          </PageCard>
+          <PageCard>
+            <Stack spacing={2}>
+              <Typography variant="h5">Update my details</Typography>
+              <Typography color="text.secondary">
+                Keep this information current so operations can reach you and
+                support your route changes quickly.
+              </Typography>
+              <TextField
+                label="Phone"
+                value={form.phone ?? ""}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    phone: event.target.value,
+                  }))
+                }
+                fullWidth
+              />
+              <TextField
+                label="Alternate Phone"
+                value={form.alternatePhone ?? ""}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    alternatePhone: event.target.value,
+                  }))
+                }
+                fullWidth
+              />
+              <TextField
+                label="Availability Summary"
+                value={form.availabilitySummary ?? ""}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    availabilitySummary: event.target.value,
+                  }))
+                }
+                fullWidth
+              />
+              <TextField
+                label="Address Line 1"
+                value={form.addressLine1 ?? ""}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    addressLine1: event.target.value,
+                  }))
+                }
+                fullWidth
+              />
+              <TextField
+                label="Address Line 2"
+                value={form.addressLine2 ?? ""}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    addressLine2: event.target.value,
+                  }))
+                }
+                fullWidth
+              />
+              <Box
+                sx={{
+                  display: "grid",
+                  gap: 2,
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, minmax(0, 1fr))",
+                  },
+                }}
+              >
+                <TextField
+                  label="City"
+                  value={form.city ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      city: event.target.value,
+                    }))
+                  }
+                  fullWidth
+                />
+                <TextField
+                  label="State"
+                  value={form.state ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      state: event.target.value,
+                    }))
+                  }
+                  fullWidth
+                />
+                <TextField
+                  label="ZIP Code"
+                  value={form.zipCode ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      zipCode: event.target.value,
+                    }))
+                  }
+                  fullWidth
+                />
+                <TextField
+                  label="Country"
+                  value={form.country ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      country: event.target.value,
+                    }))
+                  }
+                  fullWidth
+                />
+              </Box>
+              <Typography variant="subtitle2">Emergency contact</Typography>
+              <TextField
+                label="Emergency Contact Name"
+                value={form.emergencyContactName ?? ""}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    emergencyContactName: event.target.value,
+                  }))
+                }
+                fullWidth
+              />
+              <TextField
+                label="Emergency Contact Phone"
+                value={form.emergencyContactPhone ?? ""}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    emergencyContactPhone: event.target.value,
+                  }))
+                }
+                fullWidth
+              />
+              <TextField
+                label="Emergency Contact Relationship"
+                value={form.emergencyContactRelationship ?? ""}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    emergencyContactRelationship: event.target.value,
+                  }))
+                }
+                fullWidth
+              />
+              <TextField
+                label="Notes"
+                value={form.notes ?? ""}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    notes: event.target.value,
+                  }))
+                }
+                multiline
+                minRows={3}
+                fullWidth
+              />
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                <Button
+                  startIcon={<SaveRoundedIcon />}
+                  variant="contained"
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  Save profile
+                </Button>
+                <Button
+                  startIcon={<PhoneRoundedIcon />}
+                  variant="outlined"
+                  disabled
+                >
+                  Contact dispatch from company channels
+                </Button>
+              </Stack>
+            </Stack>
+          </PageCard>
+        </Box>
       ) : null}
     </Stack>
   );

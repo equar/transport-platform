@@ -4,6 +4,7 @@ import {
   AUTH_SESSION_INVALIDATED_EVENT,
   AUTH_SESSION_STORAGE_KEY,
 } from '../config/storage';
+import { persistAuthNotice } from '../../features/auth/utils/authNotices';
 import type { ApiResponse } from './types';
 
 function readSession() {
@@ -43,6 +44,13 @@ apiClient.interceptors.response.use(
   (error) => {
     const status = error?.response?.status;
     if ((status === 401 || status === 403) && readSession()?.accessToken) {
+      persistAuthNotice({
+        reason: status === 401 ? 'session-expired' : 'invalid-access',
+        message:
+          status === 401
+            ? 'Your session expired or is no longer valid. Sign in again to continue.'
+            : 'Your access changed or the requested operation is no longer available for this account. Sign in again to continue.',
+      });
       window.dispatchEvent(
         new CustomEvent(AUTH_SESSION_INVALIDATED_EVENT, {
           detail: { status },

@@ -98,7 +98,7 @@ export function DriverPortalRideDetailsPage() {
   }
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={2.5}>
       <Button
         component={RouterLink}
         to="/portal/driver/rides"
@@ -107,10 +107,17 @@ export function DriverPortalRideDetailsPage() {
       >
         Back to rides
       </Button>
-      <SectionHeader
-        title={ride ? `Ride ${ride.rideNumber}` : "Ride Detail"}
-        description="Open trip context, progress updates, and field notes for the assigned ride."
-      />
+      <PageCard>
+        <Stack spacing={1}>
+          <Typography variant="h4">
+            {ride ? `Ride ${ride.rideNumber}` : "Ride detail"}
+          </Typography>
+          <Typography color="text.secondary">
+            Review the assigned trip, update ride status, and leave operational
+            notes only for your own ride.
+          </Typography>
+        </Stack>
+      </PageCard>
       {error ? <Alert severity="error">{error}</Alert> : null}
       {ride ? (
         <>
@@ -138,6 +145,10 @@ export function DriverPortalRideDetailsPage() {
               </Typography>
               <Typography>
                 Special instructions: {ride.specialInstructions ?? "-"}
+              </Typography>
+              <Typography>
+                Route assignment:{" "}
+                {ride.routeId ? `Route #${ride.routeId}` : "No route assigned"}
               </Typography>
               <Stack
                 direction={{ xs: "column", md: "row" }}

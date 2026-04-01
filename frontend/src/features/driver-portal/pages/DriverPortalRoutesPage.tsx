@@ -1,15 +1,14 @@
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import {
   Alert,
+  Box,
+  Button,
+  Chip,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TablePagination,
-  TableRow,
   TextField,
+  Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -18,11 +17,8 @@ import {
   type DriverPortalRouteStatus,
   type DriverPortalRouteSummaryRecord,
 } from "../api/driverPortalApi";
-import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import { LoadingState } from "../../../shared/components/LoadingState";
-import { SectionHeader } from "../../../shared/components/SectionHeader";
-import { StatusChip } from "../../../shared/components/StatusChip";
-import { TableActionButton } from "../../../shared/components/TableActionButton";
+import { PageCard } from "../../../shared/components/PageCard";
 
 const routeStatuses: Array<DriverPortalRouteStatus | ""> = [
   "",
@@ -79,73 +75,90 @@ export function DriverPortalRoutesPage() {
   }, [keyword, page, size, status]);
 
   return (
-    <Stack spacing={3}>
-      <SectionHeader
-        title="Assigned Routes"
-        description="Open route manifests and stop sequencing for the routes assigned to your profile."
-      />
-      <AdminFilterBar>
-        <TextField
-          label="Search"
-          value={keyword}
-          onChange={(event) => setKeyword(event.target.value)}
-          fullWidth
-        />
-        <TextField
-          select
-          label="Status"
-          value={status}
-          onChange={(event) =>
-            setStatus(event.target.value as DriverPortalRouteStatus | "")
-          }
-          sx={{ minWidth: 220 }}
+    <Stack spacing={2.5}>
+      <PageCard>
+        <Stack spacing={1}>
+          <Typography variant="h4">My Routes</Typography>
+          <Typography color="text.secondary">
+            Review assigned route manifests and open route details for your
+            daily stops.
+          </Typography>
+        </Stack>
+      </PageCard>
+      <PageCard>
+        <Box
+          sx={{
+            display: "grid",
+            gap: 2,
+            gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" },
+          }}
         >
-          {routeStatuses.map((option) => (
-            <MenuItem key={option || "all"} value={option}>
-              {option || "All statuses"}
-            </MenuItem>
-          ))}
-        </TextField>
-      </AdminFilterBar>
+          <TextField
+            label="Search"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            fullWidth
+          />
+          <TextField
+            select
+            label="Status"
+            value={status}
+            onChange={(event) =>
+              setStatus(event.target.value as DriverPortalRouteStatus | "")
+            }
+            sx={{ minWidth: 220 }}
+          >
+            {routeStatuses.map((option) => (
+              <MenuItem key={option || "all"} value={option}>
+                {option || "All statuses"}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Box>
+      </PageCard>
       {loading ? <LoadingState /> : null}
       {error ? <Alert severity="error">{error}</Alert> : null}
       {!loading ? (
-        <Stack spacing={0}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Route</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Rides</TableCell>
-                <TableCell />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {items.map((route) => (
-                <TableRow key={route.id} hover>
-                  <TableCell>
-                    {route.routeCode} · {route.routeName}
-                  </TableCell>
-                  <TableCell>{route.routeDate}</TableCell>
-                  <TableCell>
-                    <StatusChip value={route.status} />
-                  </TableCell>
-                  <TableCell>{route.linkedRideCount}</TableCell>
-                  <TableCell align="right">
-                    <TableActionButton
-                      title="Open route detail"
-                      onClick={() =>
-                        navigate(`/portal/driver/routes/${route.id}`)
-                      }
-                    >
-                      <VisibilityRoundedIcon />
-                    </TableActionButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <Stack spacing={2}>
+          {items.map((route) => (
+            <PageCard key={route.id}>
+              <Stack spacing={1.5}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  spacing={1.5}
+                >
+                  <Stack spacing={0.5}>
+                    <Typography variant="h6">
+                      {route.routeCode} · {route.routeName}
+                    </Typography>
+                    <Typography color="text.secondary">
+                      {route.routeDate}
+                    </Typography>
+                  </Stack>
+                  <Chip
+                    label={route.status.replaceAll("_", " ")}
+                    color="secondary"
+                    sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+                  />
+                </Stack>
+                <Typography variant="body2" color="text.secondary">
+                  Linked rides: {route.linkedRideCount}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Start: {route.startTime ?? "Not set"} · End:{" "}
+                  {route.endTime ?? "Not set"}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  endIcon={<ArrowForwardRoundedIcon />}
+                  onClick={() => navigate(`/portal/driver/routes/${route.id}`)}
+                >
+                  Open route
+                </Button>
+              </Stack>
+            </PageCard>
+          ))}
           <TablePagination
             component="div"
             count={total}

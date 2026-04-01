@@ -407,7 +407,8 @@ public class OrganizationPortalService {
                         ride.getPickupState(), ride.getPickupZipCode()),
                 address(ride.getDropoffAddressLine1(), ride.getDropoffAddressLine2(), ride.getDropoffCity(),
                         ride.getDropoffState(), ride.getDropoffZipCode()),
-                ride.getRouteId());
+                ride.getRouteId(),
+                ride.getRecurrenceSchedule() == null ? null : ride.getRecurrenceSchedule().getId());
     }
 
     private ContractStatus resolveEffectiveContractStatus(Contract contract, LocalDate today) {

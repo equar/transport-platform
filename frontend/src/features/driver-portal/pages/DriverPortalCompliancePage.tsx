@@ -1,13 +1,4 @@
-import {
-  Alert,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import { Alert, Box, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import {
   driverPortalApi,
@@ -15,7 +6,6 @@ import {
 } from "../api/driverPortalApi";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { PageCard } from "../../../shared/components/PageCard";
-import { SectionHeader } from "../../../shared/components/SectionHeader";
 import { StatusChip } from "../../../shared/components/StatusChip";
 import { formatDateTime } from "../../../shared/utils/format";
 
@@ -65,84 +55,130 @@ export function DriverPortalCompliancePage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <SectionHeader
-        title="Compliance"
-        description="Review document status, upcoming expirations, and issues that still need action."
-      />
+    <Stack spacing={2.5}>
+      <PageCard>
+        <Stack spacing={1}>
+          <Typography variant="h4">My Compliance</Typography>
+          <Typography color="text.secondary">
+            Review your document status, expiring items, and compliance issues
+            that still need attention.
+          </Typography>
+        </Stack>
+      </PageCard>
       {error ? <Alert severity="error">{error}</Alert> : null}
       {summary ? (
         <>
-          <PageCard>
-            <Stack direction={{ xs: "column", md: "row" }} spacing={3}>
-              <Typography variant="h6">
-                Unresolved Issues: {summary.unresolvedComplianceIssues}
+          <Box
+            sx={{
+              display: "grid",
+              gap: 2,
+              gridTemplateColumns: {
+                xs: "repeat(2, minmax(0, 1fr))",
+                md: "repeat(4, minmax(0, 1fr))",
+              },
+            }}
+          >
+            <PageCard sx={{ p: { xs: 2, md: 2.5 } }}>
+              <Typography variant="overline" color="secondary.main">
+                Open issues
               </Typography>
-              <Typography variant="h6">
-                Expiring Soon: {summary.expiringDocumentsSoon}
+              <Typography variant="h4">
+                {summary.unresolvedComplianceIssues}
               </Typography>
-            </Stack>
-          </PageCard>
+            </PageCard>
+            <PageCard sx={{ p: { xs: 2, md: 2.5 } }}>
+              <Typography variant="overline" color="secondary.main">
+                Expiring soon
+              </Typography>
+              <Typography variant="h4">
+                {summary.expiringDocumentsSoon}
+              </Typography>
+            </PageCard>
+          </Box>
           <PageCard>
             <Stack spacing={2}>
               <Typography variant="h5">Compliance Issues</Typography>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Severity</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Summary</TableCell>
-                    <TableCell>Recommended Action</TableCell>
-                    <TableCell>Updated</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
+              {summary.issues.length === 0 ? (
+                <Typography color="text.secondary">
+                  No compliance issues are open right now.
+                </Typography>
+              ) : (
+                <Stack spacing={1.5}>
                   {summary.issues.map((issue) => (
-                    <TableRow key={issue.id} hover>
-                      <TableCell>{issue.issueType}</TableCell>
-                      <TableCell>{issue.severity}</TableCell>
-                      <TableCell>
-                        <StatusChip value={issue.issueStatus} />
-                      </TableCell>
-                      <TableCell>{issue.summary}</TableCell>
-                      <TableCell>{issue.recommendedAction ?? "-"}</TableCell>
-                      <TableCell>{formatDateTime(issue.updatedAt)}</TableCell>
-                    </TableRow>
+                    <PageCard key={issue.id} sx={{ p: { xs: 2, md: 2.5 } }}>
+                      <Stack spacing={1.25}>
+                        <Stack
+                          direction={{ xs: "column", sm: "row" }}
+                          justifyContent="space-between"
+                          spacing={1}
+                        >
+                          <Typography variant="h6">
+                            {issue.issueType}
+                          </Typography>
+                          <StatusChip value={issue.issueStatus} />
+                        </Stack>
+                        <Stack direction="row" spacing={1} flexWrap="wrap">
+                          <Chip
+                            label={`Severity: ${issue.severity}`}
+                            size="small"
+                          />
+                          {issue.relatedDocumentType ? (
+                            <Chip
+                              label={issue.relatedDocumentType}
+                              size="small"
+                            />
+                          ) : null}
+                        </Stack>
+                        <Typography color="text.secondary">
+                          {issue.summary}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Recommended action:{" "}
+                          {issue.recommendedAction ?? "Not provided"}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Updated: {formatDateTime(issue.updatedAt)}
+                        </Typography>
+                      </Stack>
+                    </PageCard>
                   ))}
-                </TableBody>
-              </Table>
+                </Stack>
+              )}
             </Stack>
           </PageCard>
           <PageCard>
             <Stack spacing={2}>
               <Typography variant="h5">Documents</Typography>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Document</TableCell>
-                    <TableCell>Verification</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Expiry</TableCell>
-                    <TableCell>Notes</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
+              {summary.documents.length === 0 ? (
+                <Typography color="text.secondary">
+                  No documents are available.
+                </Typography>
+              ) : (
+                <Stack spacing={1.5}>
                   {summary.documents.map((document) => (
-                    <TableRow key={document.id} hover>
-                      <TableCell>{document.documentType}</TableCell>
-                      <TableCell>
-                        <StatusChip value={document.verificationStatus} />
-                      </TableCell>
-                      <TableCell>
-                        <StatusChip value={document.status} />
-                      </TableCell>
-                      <TableCell>{formatDate(document.expiryDate)}</TableCell>
-                      <TableCell>{document.notes ?? "-"}</TableCell>
-                    </TableRow>
+                    <PageCard key={document.id} sx={{ p: { xs: 2, md: 2.5 } }}>
+                      <Stack spacing={1.25}>
+                        <Typography variant="h6">
+                          {document.documentType}
+                        </Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap">
+                          <StatusChip value={document.verificationStatus} />
+                          <StatusChip value={document.status} />
+                        </Stack>
+                        <Typography variant="body2" color="text.secondary">
+                          File: {document.fileName}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Expiry: {formatDate(document.expiryDate)}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Notes: {document.notes ?? "None"}
+                        </Typography>
+                      </Stack>
+                    </PageCard>
                   ))}
-                </TableBody>
-              </Table>
+                </Stack>
+              )}
             </Stack>
           </PageCard>
         </>

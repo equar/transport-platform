@@ -3,14 +3,16 @@ import {
   RouterProvider,
   createBrowserRouter,
 } from "react-router-dom";
-import { AuthLayout } from "../layouts/AuthLayout";
 import { AppShell } from "../layouts/AppShell";
+import { AuthLayout } from "../layouts/AuthLayout";
+import { PublicLayout } from "../layouts/PublicLayout";
 import { UnauthorizedPage } from "../pages/UnauthorizedPage";
 import { AuditLogsPage } from "../../features/audit/pages/AuditLogsPage";
 import { useAuth } from "../../features/auth/context/AuthContext";
 import { LoginPage } from "../../features/auth/pages/LoginPage";
 import { ProtectedRoute } from "../../features/auth/routes/ProtectedRoute";
 import {
+  canAccessCompanyWorkspace,
   isCompanyAdmin,
   isDriverPortalUser,
   isGuardianPortalUser,
@@ -53,6 +55,8 @@ import { IncidentManagementPage } from "../../features/incidents/pages/IncidentM
 import { CompanyReportsPage } from "../../features/reports/pages/CompanyReportsPage";
 import { CompanySettingsPage } from "../../features/settings/pages/CompanySettingsPage";
 import { DriverPortalDashboardPage } from "../../features/driver-portal/pages/DriverPortalDashboardPage";
+import { DriverPortalLayout } from "../../features/driver-portal/components/DriverPortalLayout";
+import { DriverPortalNotificationsPage } from "../../features/driver-portal/pages/DriverPortalNotificationsPage";
 import { DriverPortalProfilePage } from "../../features/driver-portal/pages/DriverPortalProfilePage";
 import { DriverPortalCompliancePage } from "../../features/driver-portal/pages/DriverPortalCompliancePage";
 import { DriverPortalRidesPage } from "../../features/driver-portal/pages/DriverPortalRidesPage";
@@ -60,33 +64,75 @@ import { DriverPortalRideDetailsPage } from "../../features/driver-portal/pages/
 import { DriverPortalRoutesPage } from "../../features/driver-portal/pages/DriverPortalRoutesPage";
 import { DriverPortalRouteDetailsPage } from "../../features/driver-portal/pages/DriverPortalRouteDetailsPage";
 import { RiderGuardianPortalBillingPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalBillingPage";
+import { RiderGuardianPortalLayout } from "../../features/rider-guardian-portal/components/RiderGuardianPortalLayout";
 import { RiderGuardianPortalHomePage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalHomePage";
+import { RiderGuardianPortalNotificationsPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalNotificationsPage";
+import { RiderGuardianPortalPaymentHistoryPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalPaymentHistoryPage";
 import { RiderGuardianPortalProfilePage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalProfilePage";
+import { RiderGuardianPortalRideDetailsPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalRideDetailsPage";
+import { RiderGuardianPortalRideHistoryPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalRideHistoryPage";
 import { RiderGuardianPortalRidesPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalRidesPage";
 import { OrganizationPortalBillingPage } from "../../features/organization-portal/pages/OrganizationPortalBillingPage";
+import { OrganizationPortalLayout } from "../../features/organization-portal/components/OrganizationPortalLayout";
+import { OrganizationPortalContactsPage } from "../../features/organization-portal/pages/OrganizationPortalContactsPage";
 import { OrganizationPortalContractsPage } from "../../features/organization-portal/pages/OrganizationPortalContractsPage";
 import { OrganizationPortalHomePage } from "../../features/organization-portal/pages/OrganizationPortalHomePage";
+import { OrganizationPortalNotificationsPage } from "../../features/organization-portal/pages/OrganizationPortalNotificationsPage";
 import { OrganizationPortalProfilePage } from "../../features/organization-portal/pages/OrganizationPortalProfilePage";
+import { OrganizationPortalRidesPage } from "../../features/organization-portal/pages/OrganizationPortalRidesPage";
 import { OrganizationPortalRosterPage } from "../../features/organization-portal/pages/OrganizationPortalRosterPage";
 import { FeatureFlagManagementPage } from "../../features/saas/pages/FeatureFlagManagementPage";
 import { SubscriptionPlanManagementPage } from "../../features/saas/pages/SubscriptionPlanManagementPage";
 import { TenantSubscriptionManagementPage } from "../../features/saas/pages/TenantSubscriptionManagementPage";
-
-function HomeRedirect() {
-  const { isAuthenticated, isLoading, getDefaultRoute } = useAuth();
-
-  if (isLoading) {
-    return null;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <Navigate to={getDefaultRoute()} replace />;
-}
+import { AboutPage } from "../../features/public/pages/AboutPage";
+import { ContactPage } from "../../features/public/pages/ContactPage";
+import { FaqPage } from "../../features/public/pages/FaqPage";
+import { FeaturesPage } from "../../features/public/pages/FeaturesPage";
+import { ForgotPasswordPage } from "../../features/public/pages/ForgotPasswordPage";
+import { HomePage } from "../../features/public/pages/HomePage";
+import { PricingPage } from "../../features/public/pages/PricingPage";
+import { ResetPasswordPage } from "../../features/public/pages/ResetPasswordPage";
+import { SolutionsPage } from "../../features/public/pages/SolutionsPage";
 
 const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <PublicLayout />,
+    children: [
+      {
+        index: true,
+        element: <HomePage />,
+      },
+      {
+        path: "about",
+        element: <AboutPage />,
+      },
+      {
+        path: "solutions",
+        element: <SolutionsPage />,
+      },
+      {
+        path: "features",
+        element: <FeaturesPage />,
+      },
+      {
+        path: "pricing",
+        element: <PricingPage />,
+      },
+      {
+        path: "contact",
+        element: <ContactPage />,
+      },
+      {
+        path: "faq",
+        element: <FaqPage />,
+      },
+      {
+        path: "/apply",
+        element: <PublicCompanyApplicationPage />,
+      },
+    ],
+  },
   {
     element: <AuthLayout />,
     children: [
@@ -95,8 +141,12 @@ const router = createBrowserRouter([
         element: <LoginPage />,
       },
       {
-        path: "/apply",
-        element: <PublicCompanyApplicationPage />,
+        path: "/forgot-password",
+        element: <ForgotPasswordPage />,
+      },
+      {
+        path: "/reset-password",
+        element: <ResetPasswordPage />,
       },
       {
         path: "/unauthorized",
@@ -157,9 +207,15 @@ const router = createBrowserRouter([
     path: "/company",
     element: (
       <ProtectedRoute
-        allowedRoles={["ROLE_TENANT_ADMIN"]}
+        allowedRoles={[
+          "ROLE_TENANT_ADMIN",
+          "ROLE_DISPATCHER",
+          "ROLE_BILLING_ADMIN",
+          "ROLE_COMPLIANCE_ADMIN",
+        ]}
         authorize={(session) =>
-          isCompanyAdmin(session) && Boolean(session?.identity.tenantId)
+          canAccessCompanyWorkspace(session) &&
+          Boolean(session?.identity.tenantId)
         }
       >
         <AppShell />
@@ -305,7 +361,7 @@ const router = createBrowserRouter([
           isDriverPortalUser(session) && Boolean(session?.identity.tenantId)
         }
       >
-        <AppShell />
+        <DriverPortalLayout />
       </ProtectedRoute>
     ),
     children: [
@@ -339,7 +395,7 @@ const router = createBrowserRouter([
       },
       {
         path: "notifications",
-        element: <NotificationCenterPage />,
+        element: <DriverPortalNotificationsPage />,
       },
     ],
   },
@@ -353,7 +409,7 @@ const router = createBrowserRouter([
           Boolean(session?.identity.tenantId)
         }
       >
-        <AppShell />
+        <RiderGuardianPortalLayout />
       </ProtectedRoute>
     ),
     children: [
@@ -370,12 +426,24 @@ const router = createBrowserRouter([
         element: <RiderGuardianPortalRidesPage />,
       },
       {
+        path: "rides/history",
+        element: <RiderGuardianPortalRideHistoryPage />,
+      },
+      {
+        path: "rides/:rideId",
+        element: <RiderGuardianPortalRideDetailsPage />,
+      },
+      {
         path: "billing",
         element: <RiderGuardianPortalBillingPage />,
       },
       {
+        path: "billing/payments",
+        element: <RiderGuardianPortalPaymentHistoryPage />,
+      },
+      {
         path: "notifications",
-        element: <NotificationCenterPage />,
+        element: <RiderGuardianPortalNotificationsPage />,
       },
     ],
   },
@@ -389,7 +457,7 @@ const router = createBrowserRouter([
           Boolean(session?.identity.tenantId)
         }
       >
-        <AppShell />
+        <OrganizationPortalLayout />
       </ProtectedRoute>
     ),
     children: [
@@ -402,8 +470,16 @@ const router = createBrowserRouter([
         element: <OrganizationPortalProfilePage />,
       },
       {
+        path: "contacts",
+        element: <OrganizationPortalContactsPage />,
+      },
+      {
         path: "roster",
         element: <OrganizationPortalRosterPage />,
+      },
+      {
+        path: "rides",
+        element: <OrganizationPortalRidesPage />,
       },
       {
         path: "contracts",
@@ -415,13 +491,9 @@ const router = createBrowserRouter([
       },
       {
         path: "notifications",
-        element: <NotificationCenterPage />,
+        element: <OrganizationPortalNotificationsPage />,
       },
     ],
-  },
-  {
-    path: "/",
-    element: <HomeRedirect />,
   },
   {
     path: "*",

@@ -1,24 +1,21 @@
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import {
   Alert,
   Box,
+  Button,
+  Chip,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
-import { SectionHeader } from "../../../shared/components/SectionHeader";
-import { StatusChip } from "../../../shared/components/StatusChip";
 import { formatDateTime } from "../../../shared/utils/format";
 import {
   riderGuardianPortalApi,
@@ -97,11 +94,16 @@ export function RiderGuardianPortalRidesPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <SectionHeader
-        title="Ride Activity"
-        description="Track upcoming and recent rides within the current rider or guardian scope."
-      />
+    <Stack spacing={2.5}>
+      <PageCard>
+        <Stack spacing={1}>
+          <Typography variant="h4">Upcoming Rides</Typography>
+          <Typography color="text.secondary">
+            See upcoming rides in your current rider or guardian scope without
+            exposing unrelated rider data.
+          </Typography>
+        </Stack>
+      </PageCard>
       {error ? <Alert severity="error">{error}</Alert> : null}
       {dashboard ? (
         <Box
@@ -159,105 +161,79 @@ export function RiderGuardianPortalRidesPage() {
               </MenuItem>
             ))}
           </TextField>
+          <Button
+            component={RouterLink}
+            to="/portal/rider/rides/history"
+            variant="outlined"
+          >
+            View ride history
+          </Button>
         </Stack>
       </PageCard>
-      <PageCard sx={{ p: 0, overflow: "hidden" }}>
-        <Stack spacing={2} sx={{ p: { xs: 3, md: 4 } }}>
-          <SectionHeader
-            eyebrow="Relationship scope"
-            title="Linked Riders"
-            description="The riders currently visible through this portal account."
-          />
-        </Stack>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Rider</TableCell>
-              <TableCell>Relationship</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Support needs</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      <PageCard>
+        <Stack spacing={2}>
+          <Typography variant="h5">Linked riders in scope</Typography>
+          <Stack spacing={1.25}>
             {linkedRiders.map((rider) => (
-              <TableRow key={rider.id} hover>
-                <TableCell>
-                  <Stack spacing={0.5}>
-                    <Typography fontWeight={700}>
-                      {rider.riderDisplayName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {rider.riderCode}
-                    </Typography>
-                  </Stack>
-                </TableCell>
-                <TableCell>{rider.relationshipType ?? "Self"}</TableCell>
-                <TableCell>
-                  <StatusChip value={rider.status} />
-                </TableCell>
-                <TableCell>
-                  {rider.wheelchairRequired || rider.escortRequired
-                    ? `${rider.wheelchairRequired ? "Wheelchair" : ""}${
-                        rider.wheelchairRequired && rider.escortRequired
-                          ? " • "
-                          : ""
-                      }${rider.escortRequired ? "Escort" : ""}`
-                    : "Standard"}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </PageCard>
-      <PageCard sx={{ p: 0, overflow: "hidden" }}>
-        <Stack spacing={2} sx={{ p: { xs: 3, md: 4 } }}>
-          <SectionHeader
-            eyebrow="Ride feed"
-            title="Visible Rides"
-            description="Ride status, pickup timing, and organization context for the current scope."
-          />
-        </Stack>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Ride</TableCell>
-              <TableCell>Pickup</TableCell>
-              <TableCell>Rider</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Organization</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rides.map((ride) => (
-              <TableRow key={ride.id} hover>
-                <TableCell>
-                  <Stack spacing={0.5}>
-                    <Typography fontWeight={700}>{ride.rideNumber}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {ride.pickupAddress ?? "Pickup address pending"}
-                    </Typography>
-                  </Stack>
-                </TableCell>
-                <TableCell>{formatDateTime(ride.scheduledPickupAt)}</TableCell>
-                <TableCell>{ride.riderName}</TableCell>
-                <TableCell>
-                  <StatusChip value={ride.status} />
-                </TableCell>
-                <TableCell>{ride.organizationName ?? "-"}</TableCell>
-              </TableRow>
-            ))}
-            {rides.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  <Typography color="text.secondary">
-                    No rides match the current filters.
+              <PageCard key={rider.id} sx={{ p: { xs: 2, md: 2.5 } }}>
+                <Stack spacing={0.75}>
+                  <Typography variant="h6">{rider.riderDisplayName}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {rider.relationshipType ?? "Self"} · {rider.riderCode}
                   </Typography>
-                </TableCell>
-              </TableRow>
-            ) : null}
-          </TableBody>
-        </Table>
+                </Stack>
+              </PageCard>
+            ))}
+          </Stack>
+        </Stack>
       </PageCard>
+      <Stack spacing={2}>
+        {rides.length === 0 ? (
+          <PageCard>
+            <Typography color="text.secondary">
+              No rides match the current filters.
+            </Typography>
+          </PageCard>
+        ) : (
+          rides.map((ride) => (
+            <PageCard key={ride.id}>
+              <Stack spacing={1.5}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  spacing={1}
+                >
+                  <Stack spacing={0.5}>
+                    <Typography variant="h6">{ride.rideNumber}</Typography>
+                    <Typography color="text.secondary">
+                      Viewing rider: {ride.riderName}
+                    </Typography>
+                  </Stack>
+                  <Chip
+                    label={ride.status.replaceAll("_", " ")}
+                    color="secondary"
+                    sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+                  />
+                </Stack>
+                <Typography variant="body2" color="text.secondary">
+                  Pickup: {formatDateTime(ride.scheduledPickupAt)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Organization: {ride.organizationName ?? "Not provided"}
+                </Typography>
+                <Button
+                  component={RouterLink}
+                  to={`/portal/rider/rides/${ride.id}`}
+                  variant="outlined"
+                  endIcon={<ArrowForwardRoundedIcon />}
+                >
+                  Open ride detail
+                </Button>
+              </Stack>
+            </PageCard>
+          ))
+        )}
+      </Stack>
     </Stack>
   );
 }
