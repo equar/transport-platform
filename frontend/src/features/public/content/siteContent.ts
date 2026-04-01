@@ -12,6 +12,27 @@ export interface PublicFooterSection {
   }>;
 }
 
+export const publicPrimaryCta = {
+  label: "Request Demo",
+  to: "/contact#request-demo",
+};
+
+export const publicSecondaryCta = {
+  label: "Apply to Join",
+  to: "/apply",
+};
+
+export const publicAuthCta = {
+  label: "Sign in",
+  to: "/login",
+};
+
+export const publicTrustHighlights = [
+  "Tenant-safe access controls",
+  "Role-aware portal experiences",
+  "Dispatch, billing, and onboarding foundations",
+];
+
 export const publicNavigationItems: PublicNavigationItem[] = [
   { label: "Home", to: "/" },
   { label: "Solutions", to: "/solutions" },

@@ -21,6 +21,7 @@ import { EmptyState } from "../../../shared/components/EmptyState";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { PageCard } from "../../../shared/components/PageCard";
 import { SectionHeader } from "../../../shared/components/SectionHeader";
+import { formatStatusLabel } from "../../../shared/components/StatusChip";
 import { TableActionButton } from "../../../shared/components/TableActionButton";
 import { formatDateTime } from "../../../shared/utils/format";
 import { AuditLogDetailsDialog } from "../components/AuditLogDetailsDialog";
@@ -63,10 +64,6 @@ const actionOptions = [
   "UNLINKED",
   "ARCHIVED",
 ];
-
-function formatLabel(value: string) {
-  return value.replaceAll("_", " ");
-}
 
 export function AuditLogsPage() {
   const { session } = useAuth();
@@ -146,7 +143,7 @@ export function AuditLogsPage() {
         >
           {moduleOptions.map((option) => (
             <MenuItem key={option || "all-modules"} value={option}>
-              {option ? formatLabel(option) : "All modules"}
+              {option ? formatStatusLabel(option) : "All modules"}
             </MenuItem>
           ))}
         </TextField>
@@ -162,7 +159,7 @@ export function AuditLogsPage() {
         >
           {actionOptions.map((option) => (
             <MenuItem key={option || "all-actions"} value={option}>
-              {option ? formatLabel(option) : "All actions"}
+              {option ? formatStatusLabel(option) : "All actions"}
             </MenuItem>
           ))}
         </TextField>
@@ -231,10 +228,10 @@ export function AuditLogsPage() {
                       {platformAdmin ? (
                         <TableCell>{item.tenantId ?? "Platform"}</TableCell>
                       ) : null}
-                      <TableCell>{formatLabel(item.module)}</TableCell>
-                      <TableCell>{formatLabel(item.action)}</TableCell>
+                      <TableCell>{formatStatusLabel(item.module)}</TableCell>
+                      <TableCell>{formatStatusLabel(item.action)}</TableCell>
                       <TableCell>
-                        {formatLabel(item.entityType)} #{item.entityId}
+                        {formatStatusLabel(item.entityType)} #{item.entityId}
                       </TableCell>
                       <TableCell>{item.summary}</TableCell>
                       <TableCell align="right">

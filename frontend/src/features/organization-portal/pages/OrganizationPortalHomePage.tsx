@@ -9,6 +9,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
+import { StatusChip } from "../../../shared/components/StatusChip";
 import { formatDateTime } from "../../../shared/utils/format";
 import {
   organizationPortalApi,
@@ -203,7 +204,17 @@ export function OrganizationPortalHomePage() {
               rides.map((ride) => (
                 <PageCard key={ride.id} sx={{ p: { xs: 2, md: 2.5 } }}>
                   <Stack spacing={1.1}>
-                    <Typography variant="h6">{ride.rideNumber}</Typography>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      justifyContent="space-between"
+                      spacing={1}
+                    >
+                      <Typography variant="h6">{ride.rideNumber}</Typography>
+                      <StatusChip
+                        value={ride.status}
+                        sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+                      />
+                    </Stack>
                     <Typography variant="body2" color="text.secondary">
                       Pickup: {formatDateTime(ride.scheduledPickupAt)}
                     </Typography>
@@ -212,9 +223,6 @@ export function OrganizationPortalHomePage() {
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       From: {ride.pickupAddress || "Pickup address pending"}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Status: {ride.status.replaceAll("_", " ")}
                     </Typography>
                   </Stack>
                 </PageCard>
@@ -267,13 +275,22 @@ export function OrganizationPortalHomePage() {
                 </Typography>
               ) : (
                 contracts.slice(0, 3).map((contract) => (
-                  <Stack key={contract.id} spacing={0.35}>
-                    <Typography fontWeight={700}>
-                      {contract.contractName}
-                    </Typography>
+                  <Stack key={contract.id} spacing={0.75}>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      justifyContent="space-between"
+                      spacing={1}
+                    >
+                      <Typography fontWeight={700}>
+                        {contract.contractName}
+                      </Typography>
+                      <StatusChip
+                        value={contract.status}
+                        sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+                      />
+                    </Stack>
                     <Typography variant="body2" color="text.secondary">
-                      {contract.contractCode} • {contract.billingModel} •{" "}
-                      {contract.status.replaceAll("_", " ")}
+                      {contract.contractCode} • {contract.billingModel}
                     </Typography>
                   </Stack>
                 ))

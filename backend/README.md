@@ -1,15 +1,16 @@
-# Backend Foundation
+# Backend
 
-Spring Boot backend foundation for the transportation management SaaS platform.
+Spring Boot backend for the transportation management platform. The backend is organized by feature and supports the public site, authenticated administration experience, and the driver, rider or guardian, and organization portals.
 
 ## Stack
 
 - Java 25
-- Spring Boot 3
-- Spring Security with JWT skeleton
+- Spring Boot 3.5.13
+- Spring Security with JWT-based authentication
 - Spring Data JPA
 - Flyway
 - MySQL
+- springdoc OpenAPI
 
 ## Package Structure
 
@@ -23,7 +24,32 @@ src/main/java/com/transportplatform/tms
 |   |-- security/
 |   `-- tenant/
 `-- features/
-    `-- auth/
+    |-- audit/
+    |-- auth/
+    |-- billing/
+    |-- companyapplication/
+    |-- compliance/
+    |-- dispatch/
+    |-- driver/
+    |-- driverportal/
+    |-- incident/
+    |-- notification/
+    |-- organization/
+    |-- organizationportal/
+    |-- platform/
+    |-- portalaccess/
+    |-- report/
+    |-- ride/
+    |-- rider/
+    |-- riderguardianportal/
+    |-- role/
+    |-- route/
+    |-- runtime/
+    |-- saas/
+    |-- settings/
+    |-- tenant/
+    |-- user/
+    `-- vehicle/
 ```
 
 ## Local Run
@@ -52,18 +78,24 @@ mvn -Dmaven.test.skip=true spring-boot:run
 
 Swagger/OpenAPI is enabled only for the `local` and `dev` profiles.
 
-## Initial Foundation Scope
+Useful local endpoints:
 
-- Shared audit entity and JPA auditing.
-- Canonical API response and error contract.
-- JWT parsing and token generation primitives.
-- Request-scoped tenant context using `X-Tenant-Id`.
-- Auth module skeleton for future implementation.
-- Flyway baseline migration for tenants and users.
+- API base: `http://localhost:8080/api`
+- Swagger UI: `http://localhost:8080/api/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8080/api/v3/api-docs`
+- Actuator health: `http://localhost:8080/api/actuator/health`
+
+## Current Backend Scope
+
+- JWT-backed authentication and tenant-aware request handling.
+- Shared audit, response, exception, security, configuration, and tenant infrastructure.
+- Feature-oriented APIs and services for platform administration, onboarding, operations, billing, compliance, reporting, notifications, and portal-scoped experiences.
+- Portal access and runtime capability support for role-aware frontend behavior.
+- Flyway-managed schema evolution across the implemented platform domains.
+- Swagger/OpenAPI exposure for local and dev environments.
 
 ## Deferred Work
 
-- Credential verification and password lifecycle.
-- Refresh token persistence and revocation.
-- Tenant provisioning and data isolation enforcement beyond request context.
-- Business feature modules.
+- External integrations and downstream workflow wiring beyond the current platform implementation.
+- Additional operational hardening, scaling, and observability work as deployment requirements evolve.
+- Future domain expansion beyond the currently implemented transportation, billing, compliance, and portal capabilities.

@@ -1,14 +1,26 @@
 import { Chip } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material/styles";
 
 interface StatusChipProps {
   value: string;
+  size?: "small" | "medium";
+  sx?: SxProps<Theme>;
 }
 
-function formatStatusLabel(value: string) {
+export function formatStatusLabel(value: string) {
   if (value.toUpperCase() === "INVITED") {
     return "Pending";
   }
-  return value.replaceAll("_", " ");
+
+  if (["NEMT", "SMS", "ACH"].includes(value.toUpperCase())) {
+    return value.toUpperCase();
+  }
+
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function resolveColor(
@@ -135,13 +147,14 @@ function resolveColor(
   return "default";
 }
 
-export function StatusChip({ value }: StatusChipProps) {
+export function StatusChip({ value, size = "small", sx }: StatusChipProps) {
   return (
     <Chip
       label={formatStatusLabel(value)}
       color={resolveColor(value)}
       variant="outlined"
-      size="small"
+      size={size}
+      sx={sx}
     />
   );
 }

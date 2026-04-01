@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   MenuItem,
   Stack,
   TablePagination,
@@ -19,6 +18,10 @@ import {
 } from "../api/driverPortalApi";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { PageCard } from "../../../shared/components/PageCard";
+import {
+  formatStatusLabel,
+  StatusChip,
+} from "../../../shared/components/StatusChip";
 import { formatDateTime } from "../../../shared/utils/format";
 
 const rideStatuses: Array<DriverPortalRideStatus | ""> = [
@@ -114,7 +117,7 @@ export function DriverPortalRidesPage() {
           >
             {rideStatuses.map((option) => (
               <MenuItem key={option || "all"} value={option}>
-                {option || "All statuses"}
+                {option ? formatStatusLabel(option) : "All statuses"}
               </MenuItem>
             ))}
           </TextField>
@@ -138,9 +141,8 @@ export function DriverPortalRidesPage() {
                       {ride.riderName}
                     </Typography>
                   </Stack>
-                  <Chip
-                    label={ride.status.replaceAll("_", " ")}
-                    color="secondary"
+                  <StatusChip
+                    value={ride.status}
                     sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
                   />
                 </Stack>

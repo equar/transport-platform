@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Button, Stack, TextField, Typography } from "@mui/material";
+import { Button, Link, Stack, TextField, Typography } from "@mui/material";
 import { Link as RouterLink, useSearchParams } from "react-router-dom";
 import { AuthFormShell } from "../../auth/components/AuthFormShell";
 import { authApi } from "../../auth/api/authApi";
@@ -96,17 +96,15 @@ export function ResetPasswordPage() {
       footer={
         <Typography variant="body2" color="text.secondary">
           Need a new link?{" "}
-          <Typography
+          <Link
             component={RouterLink}
             to="/forgot-password"
-            sx={{
-              color: "primary.main",
-              textDecoration: "none",
-              fontWeight: 700,
-            }}
+            underline="hover"
+            color="primary"
+            fontWeight={700}
           >
             Request password recovery
-          </Typography>
+          </Link>
           .
         </Typography>
       }

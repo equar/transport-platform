@@ -14,6 +14,10 @@ import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
 import { SectionHeader } from "../../../shared/components/SectionHeader";
 import {
+  formatStatusLabel,
+  StatusChip,
+} from "../../../shared/components/StatusChip";
+import {
   organizationPortalApi,
   type OrganizationPortalContractRecord,
   type OrganizationPortalDashboardRecord,
@@ -129,7 +133,7 @@ export function OrganizationPortalContractsPage() {
           >
             {contractStatuses.map((option) => (
               <MenuItem key={option || "all-contracts"} value={option}>
-                {option || "All contract statuses"}
+                {option ? formatStatusLabel(option) : "All contract statuses"}
               </MenuItem>
             ))}
           </TextField>
@@ -146,7 +150,17 @@ export function OrganizationPortalContractsPage() {
           contracts.map((contract) => (
             <PageCard key={contract.id}>
               <Stack spacing={1.25}>
-                <Typography variant="h6">{contract.contractName}</Typography>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  spacing={1}
+                >
+                  <Typography variant="h6">{contract.contractName}</Typography>
+                  <StatusChip
+                    value={contract.status}
+                    sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+                  />
+                </Stack>
                 <Typography variant="body2" color="text.secondary">
                   {contract.contractCode} • {contract.contractType}
                 </Typography>
@@ -156,9 +170,6 @@ export function OrganizationPortalContractsPage() {
                 <Typography variant="body2" color="text.secondary">
                   Active dates: {formatDate(contract.startDate)} -{" "}
                   {formatDate(contract.endDate)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Status: {contract.status.replaceAll("_", " ")}
                 </Typography>
               </Stack>
             </PageCard>

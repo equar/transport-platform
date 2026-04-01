@@ -93,7 +93,7 @@ export function PricingPage() {
                 to="/contact#request-demo"
                 variant={index === 1 ? "contained" : "outlined"}
               >
-                Contact Sales
+                Request Demo
               </Button>
             </Stack>
           </PageCard>
@@ -120,7 +120,7 @@ export function PricingPage() {
         eyebrow="Commercial next step"
         title="Move from plan comparison into a real sales conversation."
         description="Visitors now have enough pricing context to decide whether they should request a demo, apply to join, or start a solution review with the team."
-        primaryLabel="Contact Sales"
+        primaryLabel="Request Demo"
         primaryTo="/contact#request-demo"
         secondaryLabel="Apply to Join"
         secondaryTo="/apply"

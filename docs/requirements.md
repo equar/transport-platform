@@ -1,28 +1,28 @@
-# Foundation Requirements
+# Platform Requirements Snapshot
 
-## Delivered In This Foundation
+## Delivered In The Current Repository
 
-- Monorepo split into backend, frontend, infra, docs, and GitHub automation.
-- Backend package-by-feature structure with common technical modules.
-- Frontend feature-oriented structure with router, layouts, auth skeleton, and shared platform utilities.
-- Docker-based local runtime for MySQL, backend, and frontend.
-- Base multi-tenant request context and JWT authentication skeleton.
-- Flyway database migration baseline.
-- Environment-specific backend profiles for local, dev, and prod.
-- Professional starter documentation and CI workflow.
+- Monorepo structure for backend, frontend, infrastructure, documentation, and CI automation.
+- Multi-tenant backend with feature-oriented modules, shared technical infrastructure, JWT-based security, tenant context handling, audit support, and Flyway-managed schema evolution.
+- Public SaaS website covering marketing, pricing, FAQ, contact, and company application entry points.
+- Authentication and protected-route flows for sign-in, access notices, and password recovery UX.
+- Internal administration and operations experience spanning tenant, user, role, rider, driver, vehicle, route, ride, dispatch, compliance, billing, reporting, incidents, notifications, and settings domains.
+- Dedicated driver, rider or guardian, and organization portal experiences with scoped navigation and visibility.
+- Docker-based local runtime for MySQL, backend, and frontend, plus separate local developer run paths.
+- Shared frontend UX primitives for loading, empty, error, layout, and status presentation consistency.
+- Environment-specific backend profiles and local or dev Swagger exposure.
 
-## Explicitly Deferred
+## Still Deferred Or Continuing
 
-- Real authentication workflow and credential management.
-- Tenant provisioning lifecycle.
-- Business capabilities such as shipments, dispatch, fleet, drivers, billing, or reports.
-- Observability and compliance hardening beyond baseline configuration.
-- Automated test suites beyond build verification.
+- Additional production hardening for scale, observability, and deployment automation as operational needs evolve.
+- External integrations, downstream workflow wiring, and ecosystem connectivity beyond the currently implemented platform scope.
+- Further accessibility, telemetry, and performance optimization work beyond the current baseline.
+- Future domain expansion beyond the current public, admin, transportation, billing, compliance, and portal feature set.
 
-## Non-Functional Expectations For Future Batches
+## Ongoing Non-Functional Requirements
 
-- Tenant-safe data access patterns.
-- Consistent API error handling.
-- Secure-by-default endpoints.
-- Zero business logic in infrastructure and configuration layers.
-- Clear separation between feature modules and shared technical concerns.
+- Tenant-safe data access patterns at every backend boundary.
+- Consistent API envelopes, validation, and error handling.
+- Secure-by-default endpoints with backend-enforced authorization.
+- Clear separation between shared technical concerns and feature-owned business logic.
+- Role-aware frontend navigation that remains aligned with backend authorization and tenant scope.

@@ -14,6 +14,10 @@ import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
 import { SectionHeader } from "../../../shared/components/SectionHeader";
 import {
+  formatStatusLabel,
+  StatusChip,
+} from "../../../shared/components/StatusChip";
+import {
   organizationPortalApi,
   type OrganizationPortalDashboardRecord,
   type OrganizationPortalRiderRecord,
@@ -116,7 +120,7 @@ export function OrganizationPortalRosterPage() {
         >
           {riderStatuses.map((option) => (
             <MenuItem key={option || "all-statuses"} value={option}>
-              {option || "All rider statuses"}
+              {option ? formatStatusLabel(option) : "All rider statuses"}
             </MenuItem>
           ))}
         </TextField>
@@ -132,10 +136,19 @@ export function OrganizationPortalRosterPage() {
           riders.map((rider) => (
             <PageCard key={rider.id}>
               <Stack spacing={1.25}>
-                <Typography variant="h6">{rider.riderDisplayName}</Typography>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  spacing={1}
+                >
+                  <Typography variant="h6">{rider.riderDisplayName}</Typography>
+                  <StatusChip
+                    value={rider.status}
+                    sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+                  />
+                </Stack>
                 <Typography variant="body2" color="text.secondary">
-                  {rider.riderCode} • {rider.riderType} •{" "}
-                  {rider.status.replaceAll("_", " ")}
+                  {rider.riderCode} • {formatStatusLabel(rider.riderType)}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Support needs:{" "}

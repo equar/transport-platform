@@ -6,6 +6,7 @@ import {
 import { AppShell } from "../layouts/AppShell";
 import { AuthLayout } from "../layouts/AuthLayout";
 import { PublicLayout } from "../layouts/PublicLayout";
+import { NotFoundPage } from "../pages/NotFoundPage";
 import { UnauthorizedPage } from "../pages/UnauthorizedPage";
 import { AuditLogsPage } from "../../features/audit/pages/AuditLogsPage";
 import { useAuth } from "../../features/auth/context/AuthContext";
@@ -130,6 +131,10 @@ const router = createBrowserRouter([
       {
         path: "/apply",
         element: <PublicCompanyApplicationPage />,
+      },
+      {
+        path: "*",
+        element: <NotFoundPage />,
       },
     ],
   },
@@ -494,10 +499,6 @@ const router = createBrowserRouter([
         element: <OrganizationPortalNotificationsPage />,
       },
     ],
-  },
-  {
-    path: "*",
-    element: <Navigate to="/" replace />,
   },
 ]);
 

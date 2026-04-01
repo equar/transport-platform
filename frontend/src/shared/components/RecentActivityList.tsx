@@ -8,6 +8,7 @@ import {
 } from "@mui/material";
 import { EmptyState } from "./EmptyState";
 import { PageCard } from "./PageCard";
+import { formatStatusLabel } from "./StatusChip";
 import { formatDateTime } from "../utils/format";
 
 export interface RecentActivityItem {
@@ -27,10 +28,6 @@ interface RecentActivityListProps {
   title: string;
   description: string;
   items: RecentActivityItem[];
-}
-
-function formatLabel(value: string) {
-  return value.replaceAll("_", " ");
 }
 
 export function RecentActivityList({
@@ -57,7 +54,7 @@ export function RecentActivityList({
                 <ListItem disableGutters sx={{ py: 1.5 }}>
                   <ListItemText
                     primary={item.summary}
-                    secondary={`${formatDateTime(item.createdAt)} • ${item.actorName || item.actorEmail || "System"} • ${formatLabel(item.module)} / ${formatLabel(item.action)}`}
+                    secondary={`${formatDateTime(item.createdAt)} • ${item.actorName || item.actorEmail || "System"} • ${formatStatusLabel(item.module)} / ${formatStatusLabel(item.action)}`}
                   />
                 </ListItem>
                 {index < items.length - 1 ? <Divider /> : null}

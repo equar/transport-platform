@@ -1,5 +1,13 @@
 import { useState, type FormEvent } from "react";
-import { Alert, Box, Button, Chip, Stack, TextField, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { PublicCtaBand } from "../components/PublicCtaBand";
 import { PublicSection } from "../components/PublicSection";
@@ -86,7 +94,9 @@ export function ContactPage() {
 
             {submitted ? (
               <Alert severity="success">
-                Demo request captured in the public shell. Connect this form to your CRM or sales workflow in a later phase without changing the page structure.
+                Demo request captured in the public shell. Connect this form to
+                your CRM or sales workflow in a later phase without changing the
+                page structure.
               </Alert>
             ) : null}
 
@@ -121,7 +131,7 @@ export function ContactPage() {
                 sx={{ gridColumn: { md: "1 / -1" } }}
               >
                 <Button type="submit" variant="contained" size="large">
-                  Request demo workflow
+                  Request demo
                 </Button>
                 <Button
                   component={RouterLink}
