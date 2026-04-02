@@ -7,13 +7,12 @@ export function RiderGuardianPortalFoundationPage() {
     <Stack spacing={3}>
       <SectionHeader
         title="Rider And Guardian Portal"
-        description="Portal routing, auth isolation, and shared shell foundations are now active for rider and guardian roles."
+        description="Riders and guardians now have a dedicated portal experience with role-appropriate routing and account isolation."
       />
       <PageCard>
         <Alert severity="info">
-          Rider and guardian self-service foundations are enabled. The deeper
-          ride, billing, and profile workflows will build on this scoped portal
-          shell.
+          Rider and guardian self-service access is ready. Ride, billing, and
+          profile workflows all stay within this dedicated portal experience.
         </Alert>
       </PageCard>
     </Stack>

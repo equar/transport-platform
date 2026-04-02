@@ -55,8 +55,8 @@ const initialForm: CompanyApplicationSubmissionPayload = {
 };
 
 const applyBenefits = [
-  "Launch with a public-facing website shell and a branded sign-in experience",
-  "Standardize tenant setup, operational modules, and role-aware access patterns",
+  "Launch with a polished public site and a branded sign-in experience",
+  "Standardize workspace setup, operational modules, and role-aware access patterns",
   "Prepare for dispatch, billing, compliance, portal rollout, and SaaS growth",
 ];
 
@@ -116,7 +116,7 @@ export function PublicCompanyApplicationPage() {
       <PublicSection
         eyebrow="Apply to Join"
         title="Start the onboarding conversation with a clear, enterprise-ready application path."
-        description="This page now explains the value of applying, what happens next, and how the form fits into the broader onboarding journey."
+        description="Understand the value of applying, what happens next, and how the form fits into the broader onboarding journey."
       >
         <Box
           sx={{
@@ -136,7 +136,7 @@ export function PublicCompanyApplicationPage() {
       <PublicSection
         eyebrow="Process"
         title="A simple three-step path from interest to rollout planning."
-        description="Visitors should understand what happens after they apply, not just what fields they need to fill out."
+        description="Teams should understand what happens after they apply, not just which fields they need to complete."
       >
         <Box
           sx={{
@@ -420,7 +420,7 @@ export function PublicCompanyApplicationPage() {
       <PublicCtaBand
         eyebrow="Need a demo first"
         title="You do not have to commit before your team sees the platform."
-        description="Some visitors are ready to apply immediately. Others need a walkthrough. The public shell now supports both paths cleanly."
+        description="Some teams are ready to apply immediately. Others need a walkthrough first. Both paths stay clear and consistent."
         primaryLabel="Request Demo"
         primaryTo="/contact#request-demo"
         secondaryLabel="Review features"

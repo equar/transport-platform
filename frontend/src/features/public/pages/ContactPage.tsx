@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   Stack,
   TextField,
   Typography,
@@ -46,8 +45,8 @@ export function ContactPage() {
     <Stack spacing={{ xs: 4, md: 6 }}>
       <PublicSection
         eyebrow="Contact"
-        title="Route sales, support, and implementation conversations through one credible public entry point."
-        description="This page now gives first-time visitors a clearer path for business contact, support questions, and demo requests while keeping the actual submission wiring ready for a later integration phase."
+        title="Start the conversation with the right team."
+        description="Whether you are evaluating the platform, coordinating onboarding, or need workspace support, use the channels below to reach the team that can help."
       >
         <></>
       </PublicSection>
@@ -82,21 +81,18 @@ export function ContactPage() {
                 Request Demo
               </Typography>
               <Typography variant="h3" sx={{ mt: 1 }}>
-                Capture the request flow now, wire the sales workflow later.
+                Request a tailored walkthrough
               </Typography>
               <Typography color="text.secondary" sx={{ mt: 1 }}>
-                This phase establishes the public-site structure only. The
-                request form below is intentionally presentation-first so the
-                eventual CRM or ticketing integration can be added without
-                reshaping the page.
+                Share a few details about your program. This form captures the
+                information your sales or onboarding workflow will use.
               </Typography>
             </Box>
 
             {submitted ? (
               <Alert severity="success">
-                Demo request captured in the public shell. Connect this form to
-                your CRM or sales workflow in a later phase without changing the
-                page structure.
+                Thanks. Your request has been captured and is ready for your
+                sales workflow.
               </Alert>
             ) : null}
 
@@ -148,9 +144,9 @@ export function ContactPage() {
       </Box>
 
       <PublicCtaBand
-        eyebrow="Need a formal next step"
-        title="Move directly into onboarding if your team is ready."
-        description="Some visitors will want a demo first. Others are already ready to begin the application process. The contact flow now supports both journeys."
+        eyebrow="Ready to move beyond a demo"
+        title="Start onboarding when your team is ready."
+        description="Use the demo request above to start the conversation, or move directly into the application process if you already know the platform is a fit."
         primaryLabel="Apply to Join"
         primaryTo="/apply"
         secondaryLabel="Review pricing"

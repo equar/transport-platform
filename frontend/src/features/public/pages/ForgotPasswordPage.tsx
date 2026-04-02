@@ -8,6 +8,7 @@ export function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -26,9 +27,13 @@ export function ForgotPasswordPage() {
 
     setSubmitting(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
-      await authApi.requestPasswordReset({ email: normalizedEmail });
+      const response = await authApi.requestPasswordReset({
+        email: normalizedEmail,
+      });
+      setSuccessMessage(response.message);
       setSubmitted(true);
     } finally {
       setSubmitting(false);
@@ -39,13 +44,14 @@ export function ForgotPasswordPage() {
     <AuthFormShell
       eyebrow="Account recovery"
       title="Request password recovery instructions."
-      description="Enter the email address associated with your workspace access. This frontend flow is structured cleanly so backend delivery can be connected later without changing the page UX."
+      description="Enter the email address associated with your workspace account. We will prepare password recovery instructions for that address."
       status={
         submitted
           ? {
               severity: "success",
               message:
-                "If an account exists for that email, recovery instructions will be sent when backend delivery is connected.",
+                successMessage ||
+                "If an account exists for that email address, password recovery instructions will be prepared for delivery.",
             }
           : error
             ? { severity: "error", message: error }
@@ -75,11 +81,12 @@ export function ForgotPasswordPage() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
+          disabled={submitted || submitting}
           error={
             Boolean(error) &&
             (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim()))
           }
-          helperText="Use the email address associated with your transportation workspace."
+          helperText="Use the email address associated with your workspace account."
         />
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
@@ -87,9 +94,13 @@ export function ForgotPasswordPage() {
             type="submit"
             variant="contained"
             size="large"
-            disabled={submitting}
+            disabled={submitting || submitted}
           >
-            {submitting ? "Sending..." : "Send recovery instructions"}
+            {submitted
+              ? "Recovery request recorded"
+              : submitting
+                ? "Sending..."
+                : "Send recovery instructions"}
           </Button>
           <Button
             component={RouterLink}

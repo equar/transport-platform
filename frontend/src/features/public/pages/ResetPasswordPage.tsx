@@ -10,6 +10,7 @@ export function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const token = searchParams.get("token")?.trim() ?? "";
@@ -46,9 +47,11 @@ export function ResetPasswordPage() {
 
     setSubmitting(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
-      await authApi.resetPassword({ token, password });
+      const response = await authApi.resetPassword({ token, password });
+      setSuccessMessage(response.message);
       setSubmitted(true);
     } catch (nextError) {
       const message =
@@ -67,13 +70,14 @@ export function ResetPasswordPage() {
     <AuthFormShell
       eyebrow="Password reset"
       title="Create a new password for your workspace access."
-      description="This route is token-aware and ready for backend wiring. Use a secure reset link that includes the token query parameter."
+      description="Choose a new password for your workspace account. Use a valid reset link and create a password with at least 8 characters."
       status={
         submitted
           ? {
               severity: "success",
               message:
-                "Password reset completed in the public flow. Connect the backend reset service to make this live, then sign in with your new credentials.",
+                successMessage ||
+                "The password reset request completed successfully for this workspace.",
             }
           : tokenState === "expired"
             ? {
@@ -130,6 +134,7 @@ export function ResetPasswordPage() {
           required
           disabled={submitted || tokenState !== "ready"}
           error={Boolean(error) && confirmPassword !== password}
+          helperText="Re-enter the new password exactly as shown above."
         />
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
@@ -139,7 +144,11 @@ export function ResetPasswordPage() {
             size="large"
             disabled={submitting || submitted || tokenState !== "ready"}
           >
-            {submitting ? "Resetting..." : "Reset password"}
+            {submitted
+              ? "Password reset recorded"
+              : submitting
+                ? "Resetting..."
+                : "Reset password"}
           </Button>
           <Button
             component={RouterLink}

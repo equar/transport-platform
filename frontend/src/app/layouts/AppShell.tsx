@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
 import {
   AppBar,
@@ -47,6 +47,7 @@ import {
 } from "../../features/notifications/api/notificationApi";
 import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
 import { BrandMark } from "../../shared/components/BrandMark";
+import { LoadingState } from "../../shared/components/LoadingState";
 
 const drawerWidth = 280;
 
@@ -382,7 +383,7 @@ export function AppShell() {
           <Typography variant="subtitle1">Notifications</Typography>
           <Typography variant="body2" color="text.secondary">
             {platformAdmin
-              ? "Notification center placeholder for platform scope"
+              ? "Notifications are available for company and portal workspaces."
               : `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`}
           </Typography>
         </Box>
@@ -457,7 +458,7 @@ export function AppShell() {
           to="/contact#request-demo"
           onClick={() => setUserMenuAnchorEl(null)}
         >
-          Request demo
+          Request a demo
         </MenuItem>
         <Divider />
         <MenuItem
@@ -545,7 +546,7 @@ export function AppShell() {
               py: { xs: 2, md: 2.5 },
             }}
           >
-            <Stack spacing={1.25}>
+            <Stack spacing={0.75}>
               <Breadcrumbs separator="/" aria-label="breadcrumb">
                 <Link
                   component={RouterLink}
@@ -557,15 +558,24 @@ export function AppShell() {
                 </Link>
                 <Typography color="text.primary">{currentTitle}</Typography>
               </Breadcrumbs>
-              <Typography variant="h4">{currentTitle}</Typography>
-              <Typography color="text.secondary">
+              <Typography variant="body2" color="text.secondary">
                 {currentDescription}
               </Typography>
             </Stack>
           </Box>
 
           <Box sx={{ flexGrow: 1 }}>
-            <Outlet />
+            <Suspense
+              fallback={
+                <LoadingState
+                  title="Loading workspace"
+                  description="Please wait while the selected workspace view is prepared."
+                  minHeight={360}
+                />
+              }
+            >
+              <Outlet />
+            </Suspense>
           </Box>
 
           <Box

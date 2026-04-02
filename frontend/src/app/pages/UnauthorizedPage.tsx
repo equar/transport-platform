@@ -21,8 +21,8 @@ export function UnauthorizedPage() {
   return (
     <AuthFormShell
       eyebrow="Access denied"
-      title="Your account does not have access to this area."
-      description="You are signed in, but the requested workspace, role, or module is not available for this account right now."
+      title="This account cannot open that area."
+      description="The page you requested is not included in your current role or workspace access."
       tone="warning"
       aside={
         <Stack direction="row" spacing={1.5} alignItems="center">
@@ -43,7 +43,7 @@ export function UnauthorizedPage() {
               variant="contained"
               size="large"
             >
-              Go to available workspace
+              Go to my workspace
             </Button>
           ) : (
             <Button
@@ -69,9 +69,8 @@ export function UnauthorizedPage() {
     >
       {attemptedPath ? (
         <Typography variant="body2" color="text.secondary">
-          If you still need this route, ask an administrator to verify that the
-          required role and tenant-scoped access have been assigned to your
-          account.
+          If you still need this route, ask an administrator to review your role
+          and workspace permissions.
         </Typography>
       ) : null}
     </AuthFormShell>

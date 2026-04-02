@@ -18,20 +18,24 @@ export function SectionHeader({
       direction={{ xs: "column", md: "row" }}
       spacing={2}
       justifyContent="space-between"
-      alignItems={{ md: "flex-end" }}
+      alignItems={{ xs: "stretch", md: "flex-end" }}
     >
-      <Box>
+      <Box sx={{ minWidth: 0 }}>
         {eyebrow ? (
           <Typography variant="overline" color="secondary.main">
             {eyebrow}
           </Typography>
         ) : null}
-        <Typography variant="h3">{title}</Typography>
+        <Typography variant="h3" sx={{ mt: eyebrow ? 0.5 : 0 }}>
+          {title}
+        </Typography>
         <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 760 }}>
           {description}
         </Typography>
       </Box>
-      {children ? <Box>{children}</Box> : null}
+      {children ? (
+        <Box sx={{ width: { xs: "100%", md: "auto" } }}>{children}</Box>
+      ) : null}
     </Stack>
   );
 }

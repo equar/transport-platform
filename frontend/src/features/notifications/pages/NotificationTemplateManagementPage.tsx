@@ -157,9 +157,9 @@ export function NotificationTemplateManagementPage() {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        eyebrow="Batch 6A"
+        eyebrow="Communications"
         title="Notification Templates"
-        description="Manage tenant-safe in-app and email templates that drive notification rendering across user, dispatch, compliance, and billing workflows."
+        description="Manage the in-app and email templates used across user, dispatch, compliance, and billing workflows."
       >
         <Button
           variant="contained"
@@ -416,7 +416,7 @@ export function NotificationTemplateManagementPage() {
               multiline
               minRows={5}
               fullWidth
-              helperText="Use {{placeholder}} syntax for dynamic values."
+              helperText="Use tokens such as {{firstName}} for dynamic values."
             />
             <TextField
               label="Description"

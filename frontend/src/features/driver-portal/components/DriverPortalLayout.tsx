@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
@@ -34,6 +34,7 @@ import { getRoleLabel } from "../../auth/access";
 import { notificationApi } from "../../notifications/api/notificationApi";
 import { driverPortalNavigationItems } from "./driverPortalNavigation";
 import { BrandMark } from "../../../shared/components/BrandMark";
+import { LoadingState } from "../../../shared/components/LoadingState";
 
 function isActivePath(currentPath: string, targetPath: string) {
   return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
@@ -260,10 +261,20 @@ export function DriverPortalLayout() {
           maxWidth: 1120,
           mx: "auto",
           px: { xs: 2, md: 3 },
-          py: { xs: 2.5, md: 3 },
+          py: { xs: 3, md: 4 },
         }}
       >
-        <Outlet />
+        <Suspense
+          fallback={
+            <LoadingState
+              title="Loading driver portal"
+              description="Please wait while the latest assignments and portal details are prepared."
+              minHeight={320}
+            />
+          }
+        >
+          <Outlet />
+        </Suspense>
       </Box>
 
       <Box
@@ -277,6 +288,7 @@ export function DriverPortalLayout() {
           borderColor: "divider",
           backgroundColor: "rgba(252, 252, 250, 0.96)",
           backdropFilter: "blur(14px)",
+          zIndex: (theme) => theme.zIndex.appBar,
         }}
       >
         <BottomNavigation showLabels value={currentItem.to}>

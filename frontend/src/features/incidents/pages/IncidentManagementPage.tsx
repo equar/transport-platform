@@ -316,9 +316,9 @@ export function IncidentManagementPage() {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        eyebrow="Batch 6B"
+        eyebrow="Operations"
         title="Incident Management"
-        description="Track complaints, safety events, and operational escalations with tenant-safe workflow control, ownership, and follow-up detail."
+        description="Track complaints, safety events, and operational escalations with clear ownership, workflow control, and follow-up detail."
       >
         <Button
           variant="contained"

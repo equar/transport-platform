@@ -95,7 +95,7 @@ export function OrganizationPortalContractsPage() {
     <Stack spacing={3}>
       <SectionHeader
         title="Contracts"
-        description="Review the agreements already visible to your organization account. Contract visibility is read-only unless additional backend actions are introduced later."
+        description="Review the agreements available to your organization account, along with the status and timing details your team needs for planning."
       />
       {error ? <Alert severity="error">{error}</Alert> : null}
       {dashboard ? (

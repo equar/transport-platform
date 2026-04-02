@@ -135,7 +135,7 @@ export function ComplianceDashboardPage() {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        eyebrow="Batch 6A"
+        eyebrow="Operations"
         title="Compliance Center"
         description="Monitor open fleet and driver compliance issues, spot expiring documents before they block dispatch, and track operator actions on each issue."
       />

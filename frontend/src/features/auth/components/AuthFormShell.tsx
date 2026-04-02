@@ -1,5 +1,5 @@
 import type { PropsWithChildren, ReactNode } from "react";
-import { Alert, Box, Stack, Typography } from "@mui/material";
+import { Alert, Box, Divider, Stack, Typography } from "@mui/material";
 import { PageCard } from "../../../shared/components/PageCard";
 
 interface AuthFormShellProps extends PropsWithChildren {
@@ -32,6 +32,7 @@ export function AuthFormShell({
       sx={{
         maxWidth,
         mx: "auto",
+        width: "100%",
         borderColor: tone === "warning" ? "warning.light" : "divider",
         background:
           tone === "warning"
@@ -39,7 +40,7 @@ export function AuthFormShell({
             : undefined,
       }}
     >
-      <Stack spacing={3}>
+      <Stack spacing={3.5}>
         <Box>
           <Typography variant="overline" color="secondary.main">
             {eyebrow}
@@ -47,19 +48,26 @@ export function AuthFormShell({
           <Typography variant="h3" sx={{ mt: 1 }}>
             {title}
           </Typography>
-          <Typography color="text.secondary" sx={{ mt: 1 }}>
+          <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 680 }}>
             {description}
           </Typography>
         </Box>
 
         {status ? (
-          <Alert severity={status.severity}>{status.message}</Alert>
+          <Alert severity={status.severity} sx={{ borderRadius: 3 }}>
+            {status.message}
+          </Alert>
         ) : null}
 
         {children}
 
-        {aside ? <Box>{aside}</Box> : null}
-        {footer ? <Box>{footer}</Box> : null}
+        {aside || footer ? (
+          <Stack spacing={2.5}>
+            <Divider />
+            {aside ? <Box>{aside}</Box> : null}
+            {footer ? <Box>{footer}</Box> : null}
+          </Stack>
+        ) : null}
       </Stack>
     </PageCard>
   );
