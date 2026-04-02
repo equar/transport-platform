@@ -16,6 +16,7 @@ import com.transportplatform.tms.features.rider.domain.RiderGuardianStatus;
 import com.transportplatform.tms.features.rider.domain.RiderRepository;
 import com.transportplatform.tms.features.rider.domain.RiderStatus;
 import com.transportplatform.tms.features.rider.domain.RiderType;
+import com.transportplatform.tms.features.saas.application.SubscriptionEnforcementService;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -40,6 +41,7 @@ public class RiderService {
     private final RiderCodeGenerator riderCodeGenerator;
     private final OrganizationValidationService organizationValidationService;
     private final AuditLogService auditLogService;
+    private final SubscriptionEnforcementService subscriptionEnforcementService;
     private final Clock clock;
 
     public RiderService(RiderRepository riderRepository,
@@ -50,6 +52,7 @@ public class RiderService {
             RiderCodeGenerator riderCodeGenerator,
             OrganizationValidationService organizationValidationService,
             AuditLogService auditLogService,
+            SubscriptionEnforcementService subscriptionEnforcementService,
             Clock clock) {
         this.riderRepository = riderRepository;
         this.riderGuardianRepository = riderGuardianRepository;
@@ -59,6 +62,7 @@ public class RiderService {
         this.riderCodeGenerator = riderCodeGenerator;
         this.organizationValidationService = organizationValidationService;
         this.auditLogService = auditLogService;
+        this.subscriptionEnforcementService = subscriptionEnforcementService;
         this.clock = clock;
     }
 
@@ -99,6 +103,7 @@ public class RiderService {
     @Transactional
     public RiderResponse createCompanyRider(RiderUpsertRequest request) {
         String tenantId = riderAccessService.requireCompanyTenantId();
+        subscriptionEnforcementService.requireRiderCreationAllowed(tenantId);
         Rider rider = new Rider();
         rider.setTenantId(tenantId);
         rider.setRiderCode(riderCodeGenerator.generate(tenantId));

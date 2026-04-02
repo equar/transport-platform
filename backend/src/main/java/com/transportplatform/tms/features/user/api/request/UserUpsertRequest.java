@@ -11,13 +11,13 @@ import jakarta.validation.constraints.Size;
 import java.util.Set;
 
 public record UserUpsertRequest(
-                String tenantId,
-                @NotBlank @Size(max = 100) String firstName,
-                @NotBlank @Size(max = 100) String lastName,
-                @NotBlank @Email @Size(max = 150) String email,
-                @Size(min = 8, max = 100) String password,
-                UserStatus status,
-                @NotEmpty Set<RoleName> roles,
-                PortalSubjectType portalSubjectType,
-                @Positive Long portalSubjectId) {
+        String tenantId,
+        @NotBlank @Size(max = 100) String firstName,
+        @NotBlank @Size(max = 100) String lastName,
+        @NotBlank @Email @Size(max = 150) String email,
+        @Size(max = 100) String password,
+        UserStatus status,
+        @NotEmpty Set<RoleName> roles,
+        PortalSubjectType portalSubjectType,
+        @Positive Long portalSubjectId) {
 }

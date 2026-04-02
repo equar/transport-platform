@@ -1,6 +1,7 @@
 package com.transportplatform.tms.features.auth.domain;
 
 import com.transportplatform.tms.common.audit.AuditableEntity;
+import com.transportplatform.tms.features.notification.domain.NotificationDeliveryStatus;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -48,6 +49,19 @@ public class AppUser extends AuditableEntity {
 
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
+
+    @Column(name = "last_invitation_sent_at")
+    private Instant lastInvitationSentAt;
+
+    @Column(name = "invitation_send_count", nullable = false)
+    private int invitationSendCount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "last_invitation_delivery_status", length = 30)
+    private NotificationDeliveryStatus lastInvitationDeliveryStatus;
+
+    @Column(name = "last_invitation_failure_message", length = 1000)
+    private String lastInvitationFailureMessage;
 
     @Column(name = "enabled", nullable = false)
     private boolean enabled = true;
@@ -124,6 +138,38 @@ public class AppUser extends AuditableEntity {
 
     public void setLastLoginAt(Instant lastLoginAt) {
         this.lastLoginAt = lastLoginAt;
+    }
+
+    public Instant getLastInvitationSentAt() {
+        return lastInvitationSentAt;
+    }
+
+    public void setLastInvitationSentAt(Instant lastInvitationSentAt) {
+        this.lastInvitationSentAt = lastInvitationSentAt;
+    }
+
+    public int getInvitationSendCount() {
+        return invitationSendCount;
+    }
+
+    public void setInvitationSendCount(int invitationSendCount) {
+        this.invitationSendCount = Math.max(invitationSendCount, 0);
+    }
+
+    public NotificationDeliveryStatus getLastInvitationDeliveryStatus() {
+        return lastInvitationDeliveryStatus;
+    }
+
+    public void setLastInvitationDeliveryStatus(NotificationDeliveryStatus lastInvitationDeliveryStatus) {
+        this.lastInvitationDeliveryStatus = lastInvitationDeliveryStatus;
+    }
+
+    public String getLastInvitationFailureMessage() {
+        return lastInvitationFailureMessage;
+    }
+
+    public void setLastInvitationFailureMessage(String lastInvitationFailureMessage) {
+        this.lastInvitationFailureMessage = lastInvitationFailureMessage;
     }
 
     public boolean isEnabled() {

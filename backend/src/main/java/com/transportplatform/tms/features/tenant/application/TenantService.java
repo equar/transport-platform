@@ -5,6 +5,7 @@ import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.response.PageResponse;
 import com.transportplatform.tms.features.audit.application.AuditLogCommand;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
+import com.transportplatform.tms.features.notification.application.NotificationTemplateProvisioningService;
 import com.transportplatform.tms.features.tenant.api.request.TenantUpsertRequest;
 import com.transportplatform.tms.features.tenant.api.response.TenantResponse;
 import com.transportplatform.tms.features.tenant.domain.Tenant;
@@ -23,12 +24,15 @@ public class TenantService {
     private final TenantRepository tenantRepository;
     private final TenantMapper tenantMapper;
     private final AuditLogService auditLogService;
+    private final NotificationTemplateProvisioningService notificationTemplateProvisioningService;
 
     public TenantService(TenantRepository tenantRepository, TenantMapper tenantMapper,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            NotificationTemplateProvisioningService notificationTemplateProvisioningService) {
         this.tenantRepository = tenantRepository;
         this.tenantMapper = tenantMapper;
         this.auditLogService = auditLogService;
+        this.notificationTemplateProvisioningService = notificationTemplateProvisioningService;
     }
 
     @Transactional(readOnly = true)
@@ -62,6 +66,7 @@ public class TenantService {
                 "Tenant " + saved.getCompanyName() + " was created.",
                 null,
                 snapshot(saved)));
+        notificationTemplateProvisioningService.provisionDefaults(saved.getId());
         return tenantMapper.toResponse(saved);
     }
 
@@ -127,7 +132,9 @@ public class TenantService {
 
     @Transactional
     public Tenant createFromApplication(Tenant tenant) {
-        return tenantRepository.save(tenant);
+        Tenant saved = tenantRepository.save(tenant);
+        notificationTemplateProvisioningService.provisionDefaults(saved.getId());
+        return saved;
     }
 
     private Tenant findTenant(String tenantId) {

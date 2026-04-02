@@ -79,6 +79,12 @@ public class UserManagementController {
         return ApiResponse.success(userManagementService.deactivatePlatformUser(userId));
     }
 
+    @PostMapping("/platform/users/{userId}/resend-invitation")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public ApiResponse<UserResponse> resendPlatformInvitation(@PathVariable Long userId) {
+        return ApiResponse.success(userManagementService.resendPlatformInvitation(userId));
+    }
+
     @GetMapping("/company/users")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ApiResponse<PageResponse<UserResponse>> searchCompanyUsers(
@@ -126,5 +132,11 @@ public class UserManagementController {
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ApiResponse<UserResponse> deactivateCompanyUser(@PathVariable Long userId) {
         return ApiResponse.success(userManagementService.deactivateCompanyUser(userId));
+    }
+
+    @PostMapping("/company/users/{userId}/resend-invitation")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<UserResponse> resendCompanyInvitation(@PathVariable Long userId) {
+        return ApiResponse.success(userManagementService.resendCompanyInvitation(userId));
     }
 }

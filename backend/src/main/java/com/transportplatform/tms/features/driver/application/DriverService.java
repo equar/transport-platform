@@ -15,6 +15,7 @@ import com.transportplatform.tms.features.driver.domain.DriverStatus;
 import com.transportplatform.tms.features.driver.domain.DriverTrainingStatus;
 import com.transportplatform.tms.features.driver.domain.DriverType;
 import com.transportplatform.tms.features.notification.application.NotificationEventService;
+import com.transportplatform.tms.features.saas.application.SubscriptionEnforcementService;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -35,6 +36,7 @@ public class DriverService {
     private final DriverComplianceSummaryService driverComplianceSummaryService;
     private final AuditLogService auditLogService;
     private final NotificationEventService notificationEventService;
+    private final SubscriptionEnforcementService subscriptionEnforcementService;
     private final Clock clock;
 
     public DriverService(DriverRepository driverRepository,
@@ -44,6 +46,7 @@ public class DriverService {
             DriverComplianceSummaryService driverComplianceSummaryService,
             AuditLogService auditLogService,
             NotificationEventService notificationEventService,
+            SubscriptionEnforcementService subscriptionEnforcementService,
             Clock clock) {
         this.driverRepository = driverRepository;
         this.driverMapper = driverMapper;
@@ -52,6 +55,7 @@ public class DriverService {
         this.driverComplianceSummaryService = driverComplianceSummaryService;
         this.auditLogService = auditLogService;
         this.notificationEventService = notificationEventService;
+        this.subscriptionEnforcementService = subscriptionEnforcementService;
         this.clock = clock;
     }
 
@@ -85,6 +89,7 @@ public class DriverService {
     @Transactional
     public DriverResponse createCompanyDriver(DriverUpsertRequest request) {
         String tenantId = driverAccessService.requireCompanyTenantId();
+        subscriptionEnforcementService.requireDriverCreationAllowed(tenantId);
         Driver driver = new Driver();
         driver.setTenantId(tenantId);
         driver.setDriverCode(driverCodeGenerator.generate(tenantId));

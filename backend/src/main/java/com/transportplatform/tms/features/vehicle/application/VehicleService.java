@@ -13,6 +13,7 @@ import com.transportplatform.tms.features.vehicle.domain.VehicleComplianceStatus
 import com.transportplatform.tms.features.vehicle.domain.VehicleOwnershipType;
 import com.transportplatform.tms.features.vehicle.domain.VehicleRepository;
 import com.transportplatform.tms.features.vehicle.domain.VehicleStatus;
+import com.transportplatform.tms.features.saas.application.SubscriptionEnforcementService;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -36,6 +37,7 @@ public class VehicleService {
     private final VehicleCodeGenerator vehicleCodeGenerator;
     private final VehicleComplianceSummaryService vehicleComplianceSummaryService;
     private final AuditLogService auditLogService;
+    private final SubscriptionEnforcementService subscriptionEnforcementService;
     private final Clock clock;
 
     public VehicleService(VehicleRepository vehicleRepository,
@@ -44,6 +46,7 @@ public class VehicleService {
             VehicleCodeGenerator vehicleCodeGenerator,
             VehicleComplianceSummaryService vehicleComplianceSummaryService,
             AuditLogService auditLogService,
+            SubscriptionEnforcementService subscriptionEnforcementService,
             Clock clock) {
         this.vehicleRepository = vehicleRepository;
         this.vehicleMapper = vehicleMapper;
@@ -51,6 +54,7 @@ public class VehicleService {
         this.vehicleCodeGenerator = vehicleCodeGenerator;
         this.vehicleComplianceSummaryService = vehicleComplianceSummaryService;
         this.auditLogService = auditLogService;
+        this.subscriptionEnforcementService = subscriptionEnforcementService;
         this.clock = clock;
     }
 
@@ -87,6 +91,7 @@ public class VehicleService {
     @Transactional
     public VehicleResponse createCompanyVehicle(VehicleUpsertRequest request) {
         String tenantId = vehicleAccessService.requireCompanyTenantId();
+        subscriptionEnforcementService.requireVehicleCreationAllowed(tenantId);
         Vehicle vehicle = new Vehicle();
         vehicle.setTenantId(tenantId);
         vehicle.setVehicleCode(vehicleCodeGenerator.generate(tenantId));

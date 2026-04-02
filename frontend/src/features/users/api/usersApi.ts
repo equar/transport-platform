@@ -12,6 +12,10 @@ export interface UserRecord {
   status: string;
   roles: string[];
   lastLoginAt: string | null;
+  lastInvitationSentAt: string | null;
+  invitationSendCount: number;
+  lastInvitationDeliveryStatus: string | null;
+  lastInvitationFailureMessage: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -71,6 +75,12 @@ export const usersApi = {
   },
   async deactivate(scope: UserScope, userId: number) {
     const response = await apiClient.post(`${buildBasePath(scope)}/${userId}/deactivate`);
+    return unwrapResponse<UserRecord>(response.data);
+  },
+  async resendInvitation(scope: UserScope, userId: number) {
+    const response = await apiClient.post(
+      `${buildBasePath(scope)}/${userId}/resend-invitation`,
+    );
     return unwrapResponse<UserRecord>(response.data);
   },
 };

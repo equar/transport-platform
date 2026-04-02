@@ -28,6 +28,12 @@ public final class UserStatusWorkflow {
         }
     }
 
+    public static void ensureCanResendInvitation(UserStatus currentStatus) {
+        if (currentStatus != UserStatus.INVITED) {
+            throw invalidTransition("Only invited users can receive a new invitation link.");
+        }
+    }
+
     private static ApiException invalidTransition(String message) {
         return new ApiException(
                 ErrorCode.INVALID_STATUS_TRANSITION,

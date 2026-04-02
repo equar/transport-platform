@@ -1,6 +1,8 @@
 package com.transportplatform.tms.common.security;
 
+import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.tenant.TenantContext;
+import com.transportplatform.tms.common.tenant.TenantProperties;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,9 +21,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final TenantProperties tenantProperties;
+    private final SecurityFailureResponseWriter securityFailureResponseWriter;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService,
+            TenantProperties tenantProperties,
+            SecurityFailureResponseWriter securityFailureResponseWriter) {
         this.jwtService = jwtService;
+        this.tenantProperties = tenantProperties;
+        this.securityFailureResponseWriter = securityFailureResponseWriter;
     }
 
     @Override
@@ -38,6 +46,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             JwtClaims claims = jwtService.parseAccessToken(token);
+            String requestTenantId = request.getHeader(tenantProperties.getHeaderName());
+            if (StringUtils.hasText(requestTenantId)
+                    && StringUtils.hasText(claims.tenantId())
+                    && !claims.tenantId().equals(requestTenantId)) {
+                SecurityContextHolder.clearContext();
+                TenantContext.clear();
+                securityFailureResponseWriter.write(
+                        response,
+                        HttpServletResponse.SC_FORBIDDEN,
+                        ErrorCode.FORBIDDEN,
+                        "The supplied tenant context does not match the authenticated workspace.");
+                return;
+            }
+
             AuthenticatedUser user = new AuthenticatedUser(
                     claims.userId(),
                     claims.tenantId(),

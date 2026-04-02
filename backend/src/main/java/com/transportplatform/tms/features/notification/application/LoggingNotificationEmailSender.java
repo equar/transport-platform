@@ -2,9 +2,11 @@ package com.transportplatform.tms.features.notification.application;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnMissingBean(NotificationEmailSender.class)
 public class LoggingNotificationEmailSender implements NotificationEmailSender {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggingNotificationEmailSender.class);

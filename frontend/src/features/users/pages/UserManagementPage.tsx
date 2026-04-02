@@ -12,8 +12,10 @@ import {
   TablePagination,
   TableRow,
   TextField,
+  Typography,
 } from "@mui/material";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import MarkEmailUnreadRoundedIcon from "@mui/icons-material/MarkEmailUnreadRounded";
 import PauseCircleRoundedIcon from "@mui/icons-material/PauseCircleRounded";
 import PersonOffRoundedIcon from "@mui/icons-material/PersonOffRounded";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
@@ -40,6 +42,18 @@ import {
 
 const userStatuses = ["", "ACTIVE", "INVITED", "SUSPENDED", "DEACTIVATED"];
 
+function renderInvitationDelivery(user: UserRecord) {
+  if (user.status !== "INVITED" && user.invitationSendCount === 0) {
+    return "-";
+  }
+
+  if (user.invitationSendCount === 0) {
+    return "Not sent";
+  }
+
+  return null;
+}
+
 export function UserManagementPage() {
   const { session } = useAuth();
   const platformAdmin = isPlatformAdmin(session);
@@ -59,6 +73,7 @@ export function UserManagementPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
   const [saving, setSaving] = useState(false);
+  const [resendingUserId, setResendingUserId] = useState<number | null>(null);
   const [statusAction, setStatusAction] = useState<{
     type: "activate" | "suspend" | "deactivate";
     user: UserRecord;
@@ -140,6 +155,19 @@ export function UserManagementPage() {
       showError("The user status action could not be completed.");
     } finally {
       setStatusLoading(false);
+    }
+  }
+
+  async function handleResendInvitation(user: UserRecord) {
+    setResendingUserId(user.id);
+    try {
+      await usersApi.resendInvitation(scope, user.id);
+      showSuccess(`A new invitation was sent to ${user.email}.`);
+      await loadUsers();
+    } catch {
+      showError("The invitation could not be resent.");
+    } finally {
+      setResendingUserId(null);
     }
   }
 
@@ -244,6 +272,8 @@ export function UserManagementPage() {
                     <TableCell>Roles</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell>Last Login</TableCell>
+                    <TableCell>Invitation Sent</TableCell>
+                    <TableCell>Invitation Delivery</TableCell>
                     <TableCell>Updated</TableCell>
                     <TableCell align="right">Actions</TableCell>
                   </TableRow>
@@ -269,6 +299,42 @@ export function UserManagementPage() {
                           ? formatDateTime(item.lastLoginAt)
                           : "Never"}
                       </TableCell>
+                      <TableCell>
+                        {item.lastInvitationSentAt
+                          ? formatDateTime(item.lastInvitationSentAt)
+                          : item.status === "INVITED"
+                            ? "Not sent"
+                            : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {renderInvitationDelivery(item) ?? (
+                          <Stack spacing={0.5}>
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
+                            >
+                              <StatusChip
+                                value={
+                                  item.lastInvitationDeliveryStatus ?? "PENDING"
+                                }
+                              />
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {item.invitationSendCount} attempt
+                                {item.invitationSendCount === 1 ? "" : "s"}
+                              </Typography>
+                            </Stack>
+                            {item.lastInvitationFailureMessage ? (
+                              <Typography variant="caption" color="error.main">
+                                {item.lastInvitationFailureMessage}
+                              </Typography>
+                            ) : null}
+                          </Stack>
+                        )}
+                      </TableCell>
                       <TableCell>{formatDateTime(item.updatedAt)}</TableCell>
                       <TableCell align="right">
                         <TableActionButton
@@ -280,6 +346,17 @@ export function UserManagementPage() {
                         >
                           <EditRoundedIcon />
                         </TableActionButton>
+                        {item.status === "INVITED" ? (
+                          <TableActionButton
+                            title="Resend invitation"
+                            onClick={() => void handleResendInvitation(item)}
+                            buttonProps={{
+                              disabled: resendingUserId === item.id,
+                            }}
+                          >
+                            <MarkEmailUnreadRoundedIcon />
+                          </TableActionButton>
+                        ) : null}
                         {item.status !== "ACTIVE" ? (
                           <TableActionButton
                             title="Activate user"

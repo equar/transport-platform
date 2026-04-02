@@ -2,6 +2,7 @@ package com.transportplatform.tms.features.companyapplication.application;
 
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
+import com.transportplatform.tms.features.auth.application.AuthFacade;
 import com.transportplatform.tms.features.auth.domain.AppUser;
 import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.auth.domain.RoleName;
@@ -18,10 +19,14 @@ public class AppUserTenantOwnerProvisioningService implements TenantOwnerProvisi
 
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthFacade authFacade;
 
-    public AppUserTenantOwnerProvisioningService(AppUserRepository appUserRepository, PasswordEncoder passwordEncoder) {
+    public AppUserTenantOwnerProvisioningService(AppUserRepository appUserRepository,
+            PasswordEncoder passwordEncoder,
+            AuthFacade authFacade) {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
+        this.authFacade = authFacade;
     }
 
     @Override
@@ -42,6 +47,8 @@ public class AppUserTenantOwnerProvisioningService implements TenantOwnerProvisi
         user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
         user.setStatus(UserStatus.INVITED);
         user.setRoles(Set.of(RoleName.ROLE_TENANT_ADMIN));
-        return appUserRepository.save(user).getId();
+        AppUser saved = appUserRepository.save(user);
+        authFacade.sendInvitation(saved, null);
+        return saved.getId();
     }
 }

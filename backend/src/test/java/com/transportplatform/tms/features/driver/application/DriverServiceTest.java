@@ -18,6 +18,7 @@ import com.transportplatform.tms.features.driver.domain.DriverStatus;
 import com.transportplatform.tms.features.driver.domain.DriverTrainingStatus;
 import com.transportplatform.tms.features.driver.domain.DriverType;
 import com.transportplatform.tms.features.notification.application.NotificationEventService;
+import com.transportplatform.tms.features.saas.application.SubscriptionEnforcementService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -50,6 +51,9 @@ class DriverServiceTest {
         @Mock
         private NotificationEventService notificationEventService;
 
+        @Mock
+        private SubscriptionEnforcementService subscriptionEnforcementService;
+
         @Test
         void companyDriverCreationUsesTenantScopeAndPendingReview() {
                 DriverService driverService = new DriverService(
@@ -60,6 +64,7 @@ class DriverServiceTest {
                                 driverComplianceSummaryService,
                                 auditLogService,
                                 notificationEventService,
+                                subscriptionEnforcementService,
                                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 
                 when(driverAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
@@ -104,6 +109,7 @@ class DriverServiceTest {
 
                 ArgumentCaptor<Driver> driverCaptor = ArgumentCaptor.forClass(Driver.class);
                 verify(driverRepository).save(driverCaptor.capture());
+                verify(subscriptionEnforcementService).requireDriverCreationAllowed("tenant-123");
                 assertEquals("tenant-123", driverCaptor.getValue().getTenantId());
                 assertEquals("DRV-000123", driverCaptor.getValue().getDriverCode());
                 assertEquals(DriverStatus.PENDING_REVIEW, driverCaptor.getValue().getStatus());
@@ -119,6 +125,7 @@ class DriverServiceTest {
                                 driverComplianceSummaryService,
                                 auditLogService,
                                 notificationEventService,
+                                subscriptionEnforcementService,
                                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 
                 Driver driver = new Driver();

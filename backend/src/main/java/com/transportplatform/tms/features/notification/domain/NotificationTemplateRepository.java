@@ -5,15 +5,19 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface NotificationTemplateRepository
-        extends JpaRepository<NotificationTemplate, Long>, JpaSpecificationExecutor<NotificationTemplate> {
+                extends JpaRepository<NotificationTemplate, Long>, JpaSpecificationExecutor<NotificationTemplate> {
 
-    Optional<NotificationTemplate> findByIdAndTenantId(Long id, String tenantId);
+        Optional<NotificationTemplate> findByIdAndTenantId(Long id, String tenantId);
 
-    boolean existsByTenantIdAndTemplateCodeIgnoreCase(String tenantId, String templateCode);
+        boolean existsByTenantIdAndTemplateCodeIgnoreCase(String tenantId, String templateCode);
 
-    Optional<NotificationTemplate> findFirstByTenantIdAndEventTypeAndChannelAndStatusOrderByDefaultTemplateDescUpdatedAtDesc(
-            String tenantId,
-            NotificationType eventType,
-            NotificationChannel channel,
-            NotificationTemplateStatus status);
+        Optional<NotificationTemplate> findFirstByTenantIdAndEventTypeAndChannelAndStatusOrderByDefaultTemplateDescUpdatedAtDesc(
+                        String tenantId,
+                        NotificationType eventType,
+                        NotificationChannel channel,
+                        NotificationTemplateStatus status);
+
+        boolean existsByTenantIdAndEventTypeAndChannel(String tenantId,
+                        NotificationType eventType,
+                        NotificationChannel channel);
 }

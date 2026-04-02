@@ -25,17 +25,20 @@ public class SecurityConfig {
     private final SecurityProperties securityProperties;
     private final TenantContextFilter tenantContextFilter;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RequestRateLimitingFilter requestRateLimitingFilter;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
 
     public SecurityConfig(SecurityProperties securityProperties,
             TenantContextFilter tenantContextFilter,
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            RequestRateLimitingFilter requestRateLimitingFilter,
             RestAuthenticationEntryPoint restAuthenticationEntryPoint,
             RestAccessDeniedHandler restAccessDeniedHandler) {
         this.securityProperties = securityProperties;
         this.tenantContextFilter = tenantContextFilter;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.requestRateLimitingFilter = requestRateLimitingFilter;
         this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
         this.restAccessDeniedHandler = restAccessDeniedHandler;
     }
@@ -60,6 +63,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/runtime/tenant-branding").permitAll()
                         .anyRequest().authenticated())
+                .addFilterBefore(requestRateLimitingFilter, TenantContextFilter.class)
                 .addFilterBefore(tenantContextFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

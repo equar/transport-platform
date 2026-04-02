@@ -133,9 +133,17 @@ Backend:
 - `APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL`
 - `APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD`
 - `APP_SECURITY_ALLOWED_ORIGINS`
+- `APP_NOTIFICATION_EMAIL_FROM_ADDRESS`
+- `APP_NOTIFICATION_EMAIL_REPLY_TO`
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
 - `SPRING_DATASOURCE_PASSWORD`
+- `SPRING_MAIL_HOST`
+- `SPRING_MAIL_PORT`
+- `SPRING_MAIL_USERNAME`
+- `SPRING_MAIL_PASSWORD`
+- `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH`
+- `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE`
 - `MYSQL_HOST`
 - `MYSQL_PORT`
 - `MYSQL_DATABASE`
@@ -162,6 +170,8 @@ java -jar target/transport-platform-backend-0.1.0-SNAPSHOT.jar
 ```
 
 Provide production values for `APP_SECURITY_JWT_SECRET`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, and `APP_SECURITY_ALLOWED_ORIGINS` before starting the jar on the AWS server or VM.
+
+Configure `SPRING_MAIL_HOST` plus the corresponding SMTP credentials to enable real notification and password-reset email delivery. Without SMTP configuration, the backend will log email attempts but will not deliver them.
 
 Frontend static deployment:
 

@@ -46,9 +46,27 @@ app:
       enabled: false
       email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:platform-admin@transport-platform.local}
       password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:}
+  notification:
+    email:
+      from-address: ${APP_NOTIFICATION_EMAIL_FROM_ADDRESS:}
+      reply-to: ${APP_NOTIFICATION_EMAIL_REPLY_TO:}
   security:
     api-docs-enabled: false
     allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:}
+    password-reset:
+      public-url: ${APP_SECURITY_PASSWORD_RESET_PUBLIC_URL:http://localhost:5173/reset-password}
+      ttl: ${APP_SECURITY_PASSWORD_RESET_TTL:PT1H}
+    rate-limit:
+      enabled: ${APP_SECURITY_RATE_LIMIT_ENABLED:true}
+      login:
+        capacity: ${APP_SECURITY_RATE_LIMIT_LOGIN_CAPACITY:10}
+        window: ${APP_SECURITY_RATE_LIMIT_LOGIN_WINDOW:PT1M}
+      refresh:
+        capacity: ${APP_SECURITY_RATE_LIMIT_REFRESH_CAPACITY:20}
+        window: ${APP_SECURITY_RATE_LIMIT_REFRESH_WINDOW:PT1M}
+      company-application:
+        capacity: ${APP_SECURITY_RATE_LIMIT_COMPANY_APPLICATION_CAPACITY:3}
+        window: ${APP_SECURITY_RATE_LIMIT_COMPANY_APPLICATION_WINDOW:PT15M}
     jwt:
       issuer: transport-platform
       secret: ${APP_SECURITY_JWT_SECRET:}

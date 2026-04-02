@@ -18,6 +18,7 @@ interface AuthTokensResponse {
 }
 
 interface ForgotPasswordPayload {
+  tenantId: string;
   email: string;
 }
 
@@ -31,8 +32,21 @@ interface ChangePasswordPayload {
   newPassword: string;
 }
 
-function delay(ms: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
+function resolveApiErrorMessage(error: unknown): string {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error &&
+    typeof (error as {
+      response?: { data?: { error?: { message?: string } } };
+    }).response?.data?.error?.message === 'string'
+  ) {
+    return ((error as {
+      response?: { data?: { error?: { message?: string } } };
+    }).response?.data?.error?.message ?? 'Request failed.');
+  }
+
+  return error instanceof Error ? error.message : 'Request failed.';
 }
 
 export const authApi = {
@@ -59,30 +73,36 @@ export const authApi = {
   },
 
   async requestPasswordReset(payload: ForgotPasswordPayload) {
-    await delay(700);
+    const response = await apiClient.post('/v1/auth/forgot-password', payload);
+    const message = unwrapResponse<string>(response.data);
+
     return {
       email: payload.email,
       message:
-        "If an account exists for that email address, password recovery instructions will be prepared for delivery in this workspace.",
+        message ||
+        'If an account exists for that workspace and email, password recovery instructions will be prepared for delivery.',
     };
   },
 
   async resetPassword(payload: ResetPasswordPayload) {
-    await delay(700);
+    try {
+      const response = await apiClient.post('/v1/auth/reset-password', payload);
+      const message = unwrapResponse<string>(response.data);
 
-    if (!payload.token || payload.token === "expired") {
-      const error = new Error("expired");
-      throw error;
+      return {
+        message:
+          message ||
+          'The password reset request completed successfully. You can now sign in with your new password.',
+      };
+    } catch (error) {
+      const message = resolveApiErrorMessage(error);
+      if (message.includes('expired')) {
+        throw new Error('expired');
+      }
+      if (message.includes('invalid')) {
+        throw new Error('invalid');
+      }
+      throw new Error(message);
     }
-
-    if (payload.token === "invalid") {
-      const error = new Error("invalid");
-      throw error;
-    }
-
-    return {
-      message:
-        "The password reset request was accepted for this link and is ready for the connected workspace reset flow.",
-    };
   },
 };

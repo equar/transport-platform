@@ -123,7 +123,13 @@ export function UserUpsertDialog({
             />
           ) : null}
           <TextField
-            label={user ? "New password (optional)" : "Password"}
+            label={
+              user
+                ? "New password (optional)"
+                : form.status === "INVITED"
+                  ? "Password (optional for invited users)"
+                  : "Password"
+            }
             type="password"
             value={form.password ?? ""}
             onChange={(event) =>
@@ -135,7 +141,9 @@ export function UserUpsertDialog({
             helperText={
               user
                 ? "Leave blank to keep the current password."
-                : "Minimum 8 characters."
+                : form.status === "INVITED"
+                  ? "Leave blank to send an activation email and let the user choose a password."
+                  : "Minimum 8 characters."
             }
             fullWidth
           />

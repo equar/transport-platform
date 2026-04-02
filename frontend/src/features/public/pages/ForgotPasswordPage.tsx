@@ -5,6 +5,7 @@ import { AuthFormShell } from "../../auth/components/AuthFormShell";
 import { authApi } from "../../auth/api/authApi";
 
 export function ForgotPasswordPage() {
+  const [tenantId, setTenantId] = useState("platform");
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -14,7 +15,15 @@ export function ForgotPasswordPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const normalizedTenantId = tenantId.trim();
     const normalizedEmail = email.trim();
+    if (!normalizedTenantId) {
+      setError(
+        "Workspace ID is required. Use 'platform' for platform administration, or enter your company workspace ID.",
+      );
+      return;
+    }
+
     if (!normalizedEmail) {
       setError("Email is required.");
       return;
@@ -31,10 +40,17 @@ export function ForgotPasswordPage() {
 
     try {
       const response = await authApi.requestPasswordReset({
+        tenantId: normalizedTenantId,
         email: normalizedEmail,
       });
       setSuccessMessage(response.message);
       setSubmitted(true);
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : "The recovery request could not be completed. Try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -74,6 +90,15 @@ export function ForgotPasswordPage() {
       maxWidth={640}
     >
       <Stack spacing={2} component="form" onSubmit={handleSubmit}>
+        <TextField
+          label="Workspace ID"
+          value={tenantId}
+          onChange={(event) => setTenantId(event.target.value)}
+          required
+          disabled={submitted || submitting}
+          error={Boolean(error) && !tenantId.trim()}
+          helperText="Use 'platform' for platform administration, or enter your company workspace ID."
+        />
         <TextField
           label="Work Email"
           type="email"

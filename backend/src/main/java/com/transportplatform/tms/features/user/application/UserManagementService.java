@@ -7,18 +7,21 @@ import com.transportplatform.tms.common.security.AuthenticatedUser;
 import com.transportplatform.tms.common.security.CurrentAuthenticatedUserService;
 import com.transportplatform.tms.features.audit.application.AuditLogCommand;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
+import com.transportplatform.tms.features.auth.application.AuthFacade;
 import com.transportplatform.tms.features.auth.domain.AppUser;
 import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
 import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import com.transportplatform.tms.features.portalaccess.application.PortalAccessService;
+import com.transportplatform.tms.features.saas.application.SubscriptionEnforcementService;
 import com.transportplatform.tms.features.portalaccess.domain.PortalSubjectType;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.features.user.api.request.UserUpsertRequest;
 import com.transportplatform.tms.features.user.api.response.UserResponse;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -33,25 +36,31 @@ public class UserManagementService {
     private final AppUserRepository appUserRepository;
     private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthFacade authFacade;
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final AuditLogService auditLogService;
     private final NotificationEventService notificationEventService;
     private final PortalAccessService portalAccessService;
+    private final SubscriptionEnforcementService subscriptionEnforcementService;
 
     public UserManagementService(AppUserRepository appUserRepository,
             TenantRepository tenantRepository,
             PasswordEncoder passwordEncoder,
+            AuthFacade authFacade,
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
             AuditLogService auditLogService,
             NotificationEventService notificationEventService,
-            PortalAccessService portalAccessService) {
+            PortalAccessService portalAccessService,
+            SubscriptionEnforcementService subscriptionEnforcementService) {
         this.appUserRepository = appUserRepository;
         this.tenantRepository = tenantRepository;
         this.passwordEncoder = passwordEncoder;
+        this.authFacade = authFacade;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.auditLogService = auditLogService;
         this.notificationEventService = notificationEventService;
         this.portalAccessService = portalAccessService;
+        this.subscriptionEnforcementService = subscriptionEnforcementService;
     }
 
     @Transactional(readOnly = true)
@@ -104,9 +113,11 @@ public class UserManagementService {
         requireRole(RoleName.ROLE_PLATFORM_ADMIN);
         AppUser user = new AppUser();
         applyUserValues(user, request, AdminScope.PLATFORM, true);
+        subscriptionEnforcementService.requireUserCreationAllowed(user.getTenantId());
         AppUser saved = appUserRepository.save(user);
         syncPortalScope(saved, request);
         recordUserCreated(saved);
+        sendInvitationIfNeeded(saved);
         return toResponse(saved);
     }
 
@@ -115,10 +126,15 @@ public class UserManagementService {
         requireCompanyAdminTenantId();
         AppUser user = new AppUser();
         applyUserValues(user, request, AdminScope.COMPANY, true);
+        subscriptionEnforcementService.requireUserCreationAllowed(user.getTenantId());
         AppUser saved = appUserRepository.save(user);
         syncPortalScope(saved, request);
         recordUserCreated(saved);
-        notificationEventService.publishCompanyUserCreated(saved);
+        if (saved.getStatus() == UserStatus.INVITED) {
+            sendInvitationIfNeeded(saved);
+        } else {
+            notificationEventService.publishCompanyUserCreated(saved);
+        }
         return toResponse(saved);
     }
 
@@ -172,6 +188,13 @@ public class UserManagementService {
     }
 
     @Transactional
+    public UserResponse resendPlatformInvitation(Long userId) {
+        requireRole(RoleName.ROLE_PLATFORM_ADMIN);
+        AppUser user = findUser(userId);
+        return resendInvitation(user);
+    }
+
+    @Transactional
     public UserResponse activateCompanyUser(Long userId) {
         AppUser user = findUserForCompanyScope(userId);
         UserStatusWorkflow.ensureCanActivate(user.getStatus());
@@ -190,6 +213,12 @@ public class UserManagementService {
         AppUser user = findUserForCompanyScope(userId);
         UserStatusWorkflow.ensureCanDeactivate(user.getStatus());
         return updateStatus(user, UserStatus.DEACTIVATED);
+    }
+
+    @Transactional
+    public UserResponse resendCompanyInvitation(Long userId) {
+        AppUser user = findUserForCompanyScope(userId);
+        return resendInvitation(user);
     }
 
     private UserResponse updateStatus(AppUser user, UserStatus status) {
@@ -221,12 +250,21 @@ public class UserManagementService {
         String tenantId = resolveTenantId(scope, request.tenantId());
         Set<RoleName> roles = validateRoles(new LinkedHashSet<>(request.roles()), scope, tenantId);
         String normalizedEmail = request.email().trim().toLowerCase();
+        UserStatus requestedStatus = request.status() == null ? UserStatus.ACTIVE : request.status();
 
-        if (creating && (request.password() == null || request.password().isBlank())) {
+        if (request.password() != null && !request.password().isBlank() && request.password().length() < 8) {
             throw new ApiException(
                     ErrorCode.VALIDATION_FAILED,
                     HttpStatus.BAD_REQUEST,
-                    "A password is required when creating a user.");
+                    "Passwords must be at least 8 characters long.");
+        }
+
+        if (creating && (request.password() == null || request.password().isBlank())
+                && requestedStatus != UserStatus.INVITED) {
+            throw new ApiException(
+                    ErrorCode.VALIDATION_FAILED,
+                    HttpStatus.BAD_REQUEST,
+                    "A password is required when creating a non-invited user.");
         }
 
         boolean emailConflict = creating
@@ -244,10 +282,34 @@ public class UserManagementService {
         user.setLastName(request.lastName().trim());
         user.setEmail(normalizedEmail);
         user.setRoles(roles);
-        user.setStatus(request.status() == null ? UserStatus.ACTIVE : request.status());
+        user.setStatus(requestedStatus);
         if (request.password() != null && !request.password().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.password()));
+        } else if (creating && requestedStatus == UserStatus.INVITED) {
+            user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
         }
+    }
+
+    private void sendInvitationIfNeeded(AppUser user) {
+        if (user.getStatus() == UserStatus.INVITED) {
+            authFacade.sendInvitation(user, null);
+        }
+    }
+
+    private UserResponse resendInvitation(AppUser user) {
+        UserStatusWorkflow.ensureCanResendInvitation(user.getStatus());
+        authFacade.sendInvitation(user, null);
+        auditLogService.record(new AuditLogCommand(
+                null,
+                user.getTenantId(),
+                "USER",
+                "INVITATION_RESENT",
+                "USER",
+                resolveEntityId(user),
+                "A new invitation link was sent to user " + user.getEmail() + ".",
+                null,
+                snapshot(user)));
+        return toResponse(user);
     }
 
     private Set<RoleName> validateRoles(Set<RoleName> roles, AdminScope scope, String tenantId) {
@@ -347,14 +409,11 @@ public class UserManagementService {
 
     private AppUser findUserForCompanyScope(Long userId) {
         String tenantId = requireCompanyAdminTenantId();
-        AppUser user = findUser(userId);
-        if (!tenantId.equals(user.getTenantId())) {
-            throw new ApiException(
-                    ErrorCode.FORBIDDEN,
-                    HttpStatus.FORBIDDEN,
-                    "Company administrators can only manage users within their tenant.");
-        }
-        return user;
+        return appUserRepository.findByIdAndTenantScope(userId, tenantId)
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.RESOURCE_NOT_FOUND,
+                        HttpStatus.NOT_FOUND,
+                        "The requested user could not be found within the current tenant."));
     }
 
     private String requireCompanyAdminTenantId() {
@@ -451,6 +510,11 @@ public class UserManagementService {
         values.put("firstName", user.getFirstName());
         values.put("lastName", user.getLastName());
         values.put("status", user.getStatus() == null ? null : user.getStatus().name());
+        values.put("lastInvitationSentAt", user.getLastInvitationSentAt());
+        values.put("invitationSendCount", user.getInvitationSendCount());
+        values.put("lastInvitationDeliveryStatus", user.getLastInvitationDeliveryStatus() == null ? null
+                : user.getLastInvitationDeliveryStatus().name());
+        values.put("lastInvitationFailureMessage", user.getLastInvitationFailureMessage());
         values.put("roles", user.getRoles().stream().map(Enum::name).toList());
         return values;
     }
@@ -466,6 +530,10 @@ public class UserManagementService {
                 user.getRoles().stream().map(Enum::name)
                         .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new)),
                 user.getLastLoginAt(),
+                user.getLastInvitationSentAt(),
+                user.getInvitationSendCount(),
+                user.getLastInvitationDeliveryStatus() == null ? null : user.getLastInvitationDeliveryStatus().name(),
+                user.getLastInvitationFailureMessage(),
                 user.getCreatedAt(),
                 user.getUpdatedAt());
     }

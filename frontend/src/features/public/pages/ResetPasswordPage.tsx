@@ -59,7 +59,9 @@ export function ResetPasswordPage() {
       setError(
         message === "expired"
           ? "This reset link has expired. Request a new one to continue."
-          : "This reset link is invalid. Request a new one to continue.",
+          : message === "invalid"
+            ? "This reset link is invalid. Request a new one to continue."
+            : message,
       );
     } finally {
       setSubmitting(false);

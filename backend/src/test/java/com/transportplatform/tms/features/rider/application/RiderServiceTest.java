@@ -13,6 +13,7 @@ import com.transportplatform.tms.features.rider.domain.RiderGuardianRepository;
 import com.transportplatform.tms.features.rider.domain.RiderRepository;
 import com.transportplatform.tms.features.rider.domain.RiderStatus;
 import com.transportplatform.tms.features.rider.domain.RiderType;
+import com.transportplatform.tms.features.saas.application.SubscriptionEnforcementService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -44,6 +45,9 @@ class RiderServiceTest {
     @Mock
     private AuditLogService auditLogService;
 
+    @Mock
+    private SubscriptionEnforcementService subscriptionEnforcementService;
+
     @Test
     void companyRiderCreationUsesTenantScopeAndPendingDefault() {
         RiderService riderService = new RiderService(
@@ -55,6 +59,7 @@ class RiderServiceTest {
                 riderCodeGenerator,
                 organizationValidationService,
                 auditLogService,
+                subscriptionEnforcementService,
                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 
         when(riderAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
@@ -98,6 +103,7 @@ class RiderServiceTest {
 
         ArgumentCaptor<Rider> riderCaptor = ArgumentCaptor.forClass(Rider.class);
         verify(riderRepository).save(riderCaptor.capture());
+        verify(subscriptionEnforcementService).requireRiderCreationAllowed("tenant-123");
         assertEquals("tenant-123", riderCaptor.getValue().getTenantId());
         assertEquals("RID-000123", riderCaptor.getValue().getRiderCode());
         assertEquals(RiderStatus.PENDING, riderCaptor.getValue().getStatus());
