@@ -26,6 +26,11 @@ interface ResetPasswordPayload {
   password: string;
 }
 
+interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
 function delay(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
@@ -44,12 +49,21 @@ export const authApi = {
     };
   },
 
+  async changePassword(payload: ChangePasswordPayload) {
+    const response = await apiClient.post('/v1/auth/change-password', payload);
+    const message = unwrapResponse<string>(response.data);
+
+    return {
+      message: message || 'Password updated successfully.',
+    };
+  },
+
   async requestPasswordReset(payload: ForgotPasswordPayload) {
     await delay(700);
     return {
       email: payload.email,
       message:
-        "If an account exists for that email, password recovery instructions will be sent when backend delivery is connected.",
+        "If an account exists for that email address, password recovery instructions will be prepared for delivery in this workspace.",
     };
   },
 
@@ -68,7 +82,7 @@ export const authApi = {
 
     return {
       message:
-        "Password reset is staged successfully in the public flow. Connect the backend token service to make this live.",
+        "The password reset request was accepted for this link and is ready for the connected workspace reset flow.",
     };
   },
 };

@@ -1,15 +1,10 @@
-import { Box, Button, Stack, Typography } from "@mui/material";
-import { Link as RouterLink, Outlet } from "react-router-dom";
-import {
-  publicPrimaryCta,
-  publicSecondaryCta,
-} from "../../features/public/content/siteContent";
-import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
-import { BrandMark } from "../../shared/components/BrandMark";
+import { Suspense } from "react";
+import { Box } from "@mui/material";
+import { Outlet } from "react-router-dom";
+import { AuthMarketingPanel } from "../../features/auth/components/AuthMarketingPanel";
+import { LoadingState } from "../../shared/components/LoadingState";
 
 export function AuthLayout() {
-  const { branding } = useRuntimeCapabilities();
-
   return (
     <Box
       sx={{
@@ -35,53 +30,19 @@ export function AuthLayout() {
           alignItems: "center",
         }}
       >
-        <Stack spacing={3} sx={{ maxWidth: 560 }}>
-          <BrandMark />
-          <Typography variant="h2">
-            {branding?.customLoginWelcomeText ||
-              "Secure transportation operations, tenant governance, and role-aware access from one platform."}
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {branding?.customFooterText ||
-              "The public website now leads naturally into authentication, onboarding, and account recovery without breaking the product experience."}
-          </Typography>
-          <Stack spacing={1.25}>
-            <Typography color="text.secondary">
-              Tenant-aware sign-in for platform and company access
-            </Typography>
-            <Typography color="text.secondary">
-              Recovery flows structured cleanly for future backend wiring
-            </Typography>
-            <Typography color="text.secondary">
-              Public-to-private navigation that stays aligned with the SaaS
-              shell
-            </Typography>
-          </Stack>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-            <Button
-              component={RouterLink}
-              to={publicSecondaryCta.to}
-              variant="outlined"
-              size="large"
-            >
-              {publicSecondaryCta.label}
-            </Button>
-            <Button
-              component={RouterLink}
-              to={publicPrimaryCta.to}
-              variant="contained"
-              size="large"
-            >
-              {publicPrimaryCta.label}
-            </Button>
-          </Stack>
-          <Typography variant="body2" color="text.secondary">
-            Need help with access? Contact support or request a guided workspace
-            walkthrough.
-          </Typography>
-        </Stack>
+        <AuthMarketingPanel />
 
-        <Outlet />
+        <Suspense
+          fallback={
+            <LoadingState
+              title="Loading access flow"
+              description="Please wait while the next account screen is prepared."
+              minHeight={320}
+            />
+          }
+        >
+          <Outlet />
+        </Suspense>
       </Box>
     </Box>
   );

@@ -553,7 +553,7 @@ export function CompanyReportsPage() {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        eyebrow="Batch 6B"
+        eyebrow="Reporting"
         title="Company Reports"
         description="Run operational, billing, compliance, and incident reports from a single tenant-admin workspace with export-ready output."
       >
@@ -584,7 +584,7 @@ export function CompanyReportsPage() {
           icon={<DownloadRoundedIcon color="primary" />}
           label="Export Formats"
           value={(selectedDefinition?.exportFormats ?? []).join(", ") || "-"}
-          caption="Formats declared by the backend for future-ready exports."
+          caption="Formats currently available for exporting the selected report."
         />
       </Stack>
 
@@ -659,7 +659,7 @@ export function CompanyReportsPage() {
           <AdminFilterBar>
             <TextField
               label="Search"
-              placeholder="Keyword"
+              placeholder="Search by rider, driver, route, invoice, or report detail"
               value={filters.keyword ?? ""}
               onChange={(event) => updateFilter("keyword", event.target.value)}
               fullWidth

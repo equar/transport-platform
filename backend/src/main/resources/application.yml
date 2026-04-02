@@ -4,9 +4,9 @@ spring:
   profiles:
     default: local
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/transport_platform?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${DB_USERNAME:transport}
-    password: ${DB_PASSWORD:transport}
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:transport_platform}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:${MYSQL_USER:transport}}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:${MYSQL_PASSWORD:transport}}}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     open-in-view: false
@@ -14,6 +14,7 @@ spring:
       ddl-auto: validate
     properties:
       hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
         "[jdbc.time_zone]": UTC
         "[format_sql]": false
   flyway:
@@ -47,7 +48,7 @@ app:
       password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:}
   security:
     api-docs-enabled: false
-    allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+    allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:}
     jwt:
       issuer: transport-platform
       secret: ${APP_SECURITY_JWT_SECRET:}

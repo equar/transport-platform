@@ -10,6 +10,7 @@ app:
       password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:ChangeMe123!}
   security:
     api-docs-enabled: true
+    allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:4173}
     jwt:
       secret: ${APP_SECURITY_JWT_SECRET:dev-jwt-secret-change-before-deployment-1234567890}
 

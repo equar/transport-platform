@@ -234,9 +234,9 @@ export function InvoiceManagementPage() {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        eyebrow="Batch 5A"
+        eyebrow="Billing"
         title="Invoice Management"
-        description="Manage draft and issued invoices, generate tenant-scoped billing drafts, and monitor outstanding balances with practical first-version invoice workflows."
+        description="Manage draft and issued invoices, generate billing drafts, and monitor outstanding balances with clear operational visibility."
       >
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
           <Button

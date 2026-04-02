@@ -324,7 +324,7 @@ export function RiderUpsertDialog({
                 error={Boolean(errors.organizationId)}
                 helperText={
                   errors.organizationId ??
-                  "Optional future-ready organization linkage."
+                  "Optional organization reference for linked roster or contract records."
                 }
                 fullWidth
               />

@@ -11,7 +11,7 @@ const pricingTiers = [
     price: "Custom",
     points: [
       "Public website shell, branded login, and onboarding entry points",
-      "Platform administration foundations and tenant-ready setup",
+      "Platform administration tools and workspace-ready setup",
       "Structured implementation planning for initial launch",
     ],
   },
@@ -31,7 +31,7 @@ const pricingTiers = [
     subtitle: "For scaled programs, governance, and commercial expansion",
     price: "Custom",
     points: [
-      "Subscription and feature-flag commercialization foundations",
+      "Subscription controls and feature management for growing programs",
       "Program-specific implementation and integration planning",
       "Environment, security, and rollout alignment for larger organizations",
     ],
@@ -43,8 +43,8 @@ export function PricingPage() {
     <Stack spacing={{ xs: 4, md: 6 }}>
       <PublicSection
         eyebrow="Pricing"
-        title="Create a pricing conversation that feels enterprise-ready from the first visit."
-        description="This page now frames packaging in a way that supports product growth, implementation scoping, and custom program discussions without pretending complex transportation deployments can be reduced to a single fixed plan."
+        title="Pricing that scales with your transportation program."
+        description="Choose the rollout approach that matches your current stage, then tailor the final implementation plan with our team."
       >
         <></>
       </PublicSection>
@@ -68,6 +68,14 @@ export function PricingPage() {
           >
             <Stack spacing={2} sx={{ height: "100%" }}>
               <Box>
+                {index === 1 ? (
+                  <Chip
+                    label="Most requested"
+                    color="secondary"
+                    size="small"
+                    sx={{ mb: 1.5 }}
+                  />
+                ) : null}
                 <Typography variant="overline" color="secondary.main">
                   {tier.subtitle}
                 </Typography>
@@ -78,7 +86,8 @@ export function PricingPage() {
                   {tier.price}
                 </Typography>
                 <Typography color="text.secondary" sx={{ mt: 1 }}>
-                  Contact sales for program-specific pricing and rollout design.
+                  Talk with our team for rollout planning, implementation scope,
+                  and program-specific pricing.
                 </Typography>
               </Box>
               <Stack spacing={1.25} sx={{ flexGrow: 1 }}>
@@ -102,24 +111,24 @@ export function PricingPage() {
 
       <PublicSection
         eyebrow="Custom pricing"
-        title="Need something more tailored?"
-        description="The platform supports custom pricing conversations for specialized transportation models, multi-entity programs, phased rollouts, and enterprise governance requirements."
+        title="Need a tailored rollout plan?"
+        description="The platform supports specialized transportation models, multi-entity programs, phased launches, and enterprise governance requirements."
       >
         <PageCard>
           <Typography color="text.secondary">
             Custom pricing is available for organizations that need contract
-            transportation workflows, multi-program governance, portal
-            expansion, or a deployment plan that spans multiple service lines.
-            Use Contact Sales to shape the right rollout rather than forcing
-            your program into the wrong package.
+            transportation workflows, multiple programs, portal expansion, or a
+            deployment plan that spans more than one service line. Use a guided
+            pricing conversation to shape the right rollout instead of forcing
+            your team into the wrong package.
           </Typography>
         </PageCard>
       </PublicSection>
 
       <PublicCtaBand
         eyebrow="Commercial next step"
-        title="Move from plan comparison into a real sales conversation."
-        description="Visitors now have enough pricing context to decide whether they should request a demo, apply to join, or start a solution review with the team."
+        title="Ready to compare the right plan for your program?"
+        description="Review the available rollout tiers, then request a guided walkthrough or begin the application process when your team is ready."
         primaryLabel="Request Demo"
         primaryTo="/contact#request-demo"
         secondaryLabel="Apply to Join"

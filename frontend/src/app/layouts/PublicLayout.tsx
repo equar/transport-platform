@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import { Box, Container } from "@mui/material";
 import { Outlet } from "react-router-dom";
 import { PublicFooter } from "../../features/public/components/PublicFooter";
 import { PublicHeader } from "../../features/public/components/PublicHeader";
+import { LoadingState } from "../../shared/components/LoadingState";
 
 export function PublicLayout() {
   return (
@@ -17,7 +19,17 @@ export function PublicLayout() {
       <PublicHeader />
       <Box component="main" sx={{ flexGrow: 1 }}>
         <Container maxWidth="xl" sx={{ py: { xs: 4, md: 6 } }}>
-          <Outlet />
+          <Suspense
+            fallback={
+              <LoadingState
+                title="Loading page"
+                description="Please wait while the latest public content is prepared."
+                minHeight={320}
+              />
+            }
+          >
+            <Outlet />
+          </Suspense>
         </Container>
       </Box>
       <PublicFooter />

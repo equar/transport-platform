@@ -3,8 +3,10 @@ package com.transportplatform.tms.features.auth.application;
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.security.AuthenticatedUser;
+import com.transportplatform.tms.common.security.CurrentAuthenticatedUserService;
 import com.transportplatform.tms.common.security.JwtClaims;
 import com.transportplatform.tms.common.security.JwtService;
+import com.transportplatform.tms.features.auth.api.request.ChangePasswordRequest;
 import com.transportplatform.tms.features.auth.api.request.LoginRequest;
 import com.transportplatform.tms.features.auth.api.request.RefreshTokenRequest;
 import com.transportplatform.tms.features.auth.api.response.AuthTokensResponse;
@@ -28,13 +30,16 @@ public class AuthFacade {
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
 
     public AuthFacade(AppUserRepository appUserRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            CurrentAuthenticatedUserService currentAuthenticatedUserService) {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.currentAuthenticatedUserService = currentAuthenticatedUserService;
     }
 
     @Transactional
@@ -66,6 +71,30 @@ public class AuthFacade {
         } catch (JwtException exception) {
             throw invalidCredentials();
         }
+    }
+
+    @Transactional
+    public String changePassword(ChangePasswordRequest request) {
+        AuthenticatedUser currentUser = currentAuthenticatedUserService.requireCurrentUser();
+        AppUser user = appUserRepository.findById(currentUser.id())
+                .orElseThrow(this::invalidCredentials);
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new ApiException(
+                    ErrorCode.INVALID_CREDENTIALS,
+                    HttpStatus.BAD_REQUEST,
+                    "The current password is incorrect.");
+        }
+
+        if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+            throw new ApiException(
+                    ErrorCode.VALIDATION_FAILED,
+                    HttpStatus.BAD_REQUEST,
+                    "The new password must be different from the current password.");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        return "Password updated successfully.";
     }
 
     private AuthTokensResponse issueTokens(AuthenticatedUser user) {

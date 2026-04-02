@@ -288,7 +288,7 @@ export function VehicleUpsertDialog({
                 error={Boolean(errors.assignedDriverId)}
                 helperText={
                   errors.assignedDriverId ??
-                  "Optional future-ready reference for assignment workflows."
+                  "Optional driver reference to keep assignments connected to this vehicle record."
                 }
                 fullWidth
               />

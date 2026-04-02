@@ -33,7 +33,7 @@ export function PublicFooter() {
               <BrandMark compact />
               <Typography color="text.secondary">
                 {branding?.customFooterText ||
-                  "Operational control, onboarding, tenant governance, and portal access brought together in one transportation SaaS platform."}
+                  "Operational control, onboarding, workspace governance, and portal access brought together in one transportation platform."}
               </Typography>
               <Stack spacing={0.75}>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -56,27 +56,17 @@ export function PublicFooter() {
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
                   {section.title}
                 </Typography>
-                {section.links.map((link) =>
-                  link.placeholder ? (
-                    <Typography
-                      key={link.label}
-                      variant="body2"
-                      color="text.secondary"
-                    >
-                      {link.label}
-                    </Typography>
-                  ) : (
-                    <Link
-                      key={link.label}
-                      component={RouterLink}
-                      to={link.to || "/"}
-                      color="text.secondary"
-                      underline="hover"
-                    >
-                      {link.label}
-                    </Link>
-                  ),
-                )}
+                {section.links.map((link) => (
+                  <Link
+                    key={link.label}
+                    component={RouterLink}
+                    to={link.to || "/"}
+                    color="text.secondary"
+                    underline="hover"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
               </Stack>
             ))}
           </Box>

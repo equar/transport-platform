@@ -1,8 +1,12 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import {
   Box,
   Button,
   Divider,
+  IconButton,
+  InputAdornment,
   Link,
   Stack,
   TextField,
@@ -31,6 +35,7 @@ export function LoginPage() {
   const [tenantId, setTenantId] = useState("platform");
   const [email, setEmail] = useState("platform-admin@transport-platform.local");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [brandingPreview, setBrandingPreview] =
@@ -48,7 +53,7 @@ export function LoginPage() {
 
     if (!normalizedTenantId) {
       setError(
-        "Tenant ID is required. Use 'platform' for platform scope or enter your company tenant ID.",
+        "Workspace ID is required. Use 'platform' for platform administration, or enter your company workspace ID.",
       );
       return;
     }
@@ -101,6 +106,10 @@ export function LoginPage() {
     setPassword(event.target.value);
   }
 
+  function handlePasswordVisibilityToggle() {
+    setPasswordVisible((current) => !current);
+  }
+
   useEffect(() => {
     const authNotice = consumeAuthNotice();
     if (authNotice) {
@@ -145,12 +154,12 @@ export function LoginPage() {
       title="Sign in to your transportation workspace."
       description={
         brandingPreview?.customLoginWelcomeText ||
-        "Use your tenant ID, email, and password to access platform or company administration."
+        "Use your workspace ID, email address, and password to access your platform or company account."
       }
       status={status}
       footer={
         <Typography variant="body2" color="text.secondary">
-          Transportation companies can begin onboarding through the{" "}
+          Transportation teams can get started through the{" "}
           <Link component={RouterLink} to="/apply" underline="hover">
             {publicSecondaryCta.label}
           </Link>{" "}
@@ -162,7 +171,7 @@ export function LoginPage() {
           >
             Request Demo
           </Link>
-          . Need credential recovery access? Visit{" "}
+          . Need password help? Visit{" "}
           <Link component={RouterLink} to="/forgot-password" underline="hover">
             Forgot Password
           </Link>
@@ -175,7 +184,7 @@ export function LoginPage() {
             <Divider />
             <Stack spacing={1.5}>
               <Typography variant="subtitle2" color="text.secondary">
-                Tenant branding preview
+                Workspace branding preview
               </Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <Box
@@ -194,7 +203,7 @@ export function LoginPage() {
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {brandingPreview.customFooterText ||
-                      "White-label sign-in preview for the selected tenant."}
+                      "Preview the branding and support details for the selected workspace."}
                   </Typography>
                   {brandingPreview.supportEmail ? (
                     <Typography variant="body2" color="text.secondary">
@@ -210,18 +219,19 @@ export function LoginPage() {
     >
       <Stack spacing={2} component="form" onSubmit={handleSubmit}>
         <TextField
-          label="Tenant ID"
+          label="Workspace ID"
           value={tenantId}
           onChange={handleTenantChange}
-          helperText="Use 'platform' for platform scope, or enter your company tenant ID."
+          helperText="Use 'platform' for platform administration, or enter your company workspace ID."
           error={Boolean(error) && !tenantId.trim()}
         />
         <TextField
-          label="Email"
+          label="Work Email"
           type="email"
           value={email}
           onChange={handleEmailChange}
           required
+          helperText="Use the email address assigned to your workspace account."
           error={
             Boolean(error) &&
             (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim()))
@@ -229,12 +239,33 @@ export function LoginPage() {
         />
         <TextField
           label="Password"
-          type="password"
+          type={passwordVisible ? "text" : "password"}
           value={password}
           onChange={handlePasswordChange}
           required
           error={Boolean(error) && !password.trim()}
-          helperText="Use the password issued for this tenant workspace."
+          helperText="Use the password assigned to your workspace account."
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={
+                      passwordVisible ? "Hide password" : "Show password"
+                    }
+                    edge="end"
+                    onClick={handlePasswordVisibilityToggle}
+                  >
+                    {passwordVisible ? (
+                      <VisibilityOffRoundedIcon />
+                    ) : (
+                      <VisibilityRoundedIcon />
+                    )}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
         />
 
         <Stack
@@ -253,14 +284,14 @@ export function LoginPage() {
           <Typography variant="body2" color="text.secondary">
             {brandingPreview?.displayName
               ? `Workspace: ${brandingPreview.displayName}`
-              : "Enter a tenant ID to preview workspace branding before signing in."}
+              : "Enter a workspace ID to preview branding before you sign in."}
           </Typography>
         </Stack>
 
         <Typography variant="body2" color="text.secondary">
           Forgot your password?{" "}
           <Link component={RouterLink} to="/forgot-password" underline="hover">
-            Reset access
+            Reset your password
           </Link>
           .
         </Typography>
