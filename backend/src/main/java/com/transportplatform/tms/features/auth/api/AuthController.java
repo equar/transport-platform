@@ -1,6 +1,7 @@
 package com.transportplatform.tms.features.auth.api;
 
 import com.transportplatform.tms.common.response.ApiResponse;
+import com.transportplatform.tms.features.auth.api.request.ChangePasswordRequest;
 import com.transportplatform.tms.features.auth.api.request.LoginRequest;
 import com.transportplatform.tms.features.auth.api.request.RefreshTokenRequest;
 import com.transportplatform.tms.features.auth.api.response.AuthTokensResponse;
@@ -30,6 +31,11 @@ public class AuthController {
     @PostMapping("/refresh")
     public ApiResponse<AuthTokensResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         return ApiResponse.success(authFacade.refresh(request));
+    }
+
+    @PostMapping("/change-password")
+    public ApiResponse<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        return ApiResponse.success(authFacade.changePassword(request));
     }
 
     @GetMapping("/status")

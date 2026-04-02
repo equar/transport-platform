@@ -49,6 +49,10 @@ const LoginPage = lazyPage(
   () => import("../../features/auth/pages/LoginPage"),
   "LoginPage",
 );
+const PlatformAdminProfilePage = lazyPage(
+  () => import("../../features/auth/pages/PlatformAdminProfilePage"),
+  "PlatformAdminProfilePage",
+);
 const DashboardPage = lazyPage(
   () => import("../../features/dashboard/pages/DashboardPage"),
   "DashboardPage",
@@ -467,6 +471,10 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <DashboardPage />,
+      },
+      {
+        path: "profile",
+        element: <PlatformAdminProfilePage />,
       },
       {
         path: "tenants",

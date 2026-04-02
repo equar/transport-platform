@@ -26,6 +26,11 @@ interface ResetPasswordPayload {
   password: string;
 }
 
+interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
 function delay(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
@@ -41,6 +46,15 @@ export const authApi = {
       tokenType: tokens.tokenType,
       expiresInSeconds: tokens.expiresInSeconds,
       identity: tokens.user,
+    };
+  },
+
+  async changePassword(payload: ChangePasswordPayload) {
+    const response = await apiClient.post('/v1/auth/change-password', payload);
+    const message = unwrapResponse<string>(response.data);
+
+    return {
+      message: message || 'Password updated successfully.',
     };
   },
 

@@ -1,8 +1,12 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import {
   Box,
   Button,
   Divider,
+  IconButton,
+  InputAdornment,
   Link,
   Stack,
   TextField,
@@ -31,6 +35,7 @@ export function LoginPage() {
   const [tenantId, setTenantId] = useState("platform");
   const [email, setEmail] = useState("platform-admin@transport-platform.local");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [brandingPreview, setBrandingPreview] =
@@ -99,6 +104,10 @@ export function LoginPage() {
 
   function handlePasswordChange(event: ChangeEvent<HTMLInputElement>) {
     setPassword(event.target.value);
+  }
+
+  function handlePasswordVisibilityToggle() {
+    setPasswordVisible((current) => !current);
   }
 
   useEffect(() => {
@@ -230,12 +239,33 @@ export function LoginPage() {
         />
         <TextField
           label="Password"
-          type="password"
+          type={passwordVisible ? "text" : "password"}
           value={password}
           onChange={handlePasswordChange}
           required
           error={Boolean(error) && !password.trim()}
           helperText="Use the password assigned to your workspace account."
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={
+                      passwordVisible ? "Hide password" : "Show password"
+                    }
+                    edge="end"
+                    onClick={handlePasswordVisibilityToggle}
+                  >
+                    {passwordVisible ? (
+                      <VisibilityOffRoundedIcon />
+                    ) : (
+                      <VisibilityRoundedIcon />
+                    )}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
         />
 
         <Stack

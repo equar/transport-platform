@@ -8,7 +8,7 @@
 - Authentication and protected-route flows for sign-in, access notices, and password recovery UX.
 - Internal administration and operations experience spanning tenant, user, role, rider, driver, vehicle, route, ride, dispatch, compliance, billing, reporting, incidents, notifications, and settings domains.
 - Dedicated driver, rider or guardian, and organization portal experiences with scoped navigation and visibility.
-- Docker-based local runtime for MySQL, backend, and frontend, plus separate local developer run paths.
+- Direct local runtime for a host-installed MySQL instance, Spring Boot backend, and Vite frontend, plus standard jar and static build deployment outputs.
 - Shared frontend UX primitives for loading, empty, error, layout, and status presentation consistency.
 - Environment-specific backend profiles and local or dev Swagger exposure.
 

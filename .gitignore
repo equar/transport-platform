@@ -22,5 +22,5 @@ frontend/.vite/
 .env
 .env.*
 
-# Docker
-mysql-data/
+# Local runtime
+infra/.local/

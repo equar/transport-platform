@@ -59,6 +59,7 @@ mvn spring-boot:run
 ```
 
 The default profile is `local`. Database and JWT values can be overridden via environment variables.
+The default datasource points to a locally running MySQL instance on `localhost:3306`, defaulting to the `transport_platform` database with `transport` and `transport` credentials unless you override them.
 
 If unrelated test-compilation failures block startup during local development, run:
 
@@ -72,6 +73,14 @@ mvn -Dmaven.test.skip=true spring-boot:run
 - `APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL`
 - `APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD`
 - `APP_SECURITY_ALLOWED_ORIGINS`
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+- `MYSQL_HOST`
+- `MYSQL_PORT`
+- `MYSQL_DATABASE`
+- `MYSQL_USER`
+- `MYSQL_PASSWORD`
 - `DB_URL`
 - `DB_USERNAME`
 - `DB_PASSWORD`
@@ -84,6 +93,28 @@ Useful local endpoints:
 - Swagger UI: `http://localhost:8080/api/swagger-ui/index.html`
 - OpenAPI JSON: `http://localhost:8080/api/v3/api-docs`
 - Actuator health: `http://localhost:8080/api/actuator/health`
+
+## Non-Docker Deployment
+
+Build a standard Spring Boot jar:
+
+```powershell
+mvn -B -DskipTests package
+```
+
+Run it on the target server:
+
+```powershell
+java -jar target/transport-platform-backend-0.1.0-SNAPSHOT.jar
+```
+
+Provide production values for:
+
+- `APP_SECURITY_JWT_SECRET`
+- `APP_SECURITY_ALLOWED_ORIGINS`
+- `DB_URL`
+- `DB_USERNAME`
+- `DB_PASSWORD`
 
 ## Current Backend Scope
 

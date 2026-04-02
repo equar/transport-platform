@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.security")
 public class SecurityProperties {
 
-    private List<String> allowedOrigins = List.of("http://localhost:3000", "http://localhost:5173");
+    private List<String> allowedOrigins = List.of();
     private boolean apiDocsEnabled;
     private final Jwt jwt = new Jwt();
 

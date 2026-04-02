@@ -445,21 +445,25 @@ export function AppShell() {
               : "My profile"}
           </MenuItem>
         ) : null}
-        <Divider />
-        <MenuItem
-          component={RouterLink}
-          to="/"
-          onClick={() => setUserMenuAnchorEl(null)}
-        >
-          View public site
-        </MenuItem>
-        <MenuItem
-          component={RouterLink}
-          to="/contact#request-demo"
-          onClick={() => setUserMenuAnchorEl(null)}
-        >
-          Request a demo
-        </MenuItem>
+        {!platformAdmin ? (
+          <>
+            <Divider />
+            <MenuItem
+              component={RouterLink}
+              to="/"
+              onClick={() => setUserMenuAnchorEl(null)}
+            >
+              View public site
+            </MenuItem>
+            <MenuItem
+              component={RouterLink}
+              to="/contact#request-demo"
+              onClick={() => setUserMenuAnchorEl(null)}
+            >
+              Request a demo
+            </MenuItem>
+          </>
+        ) : null}
         <Divider />
         <MenuItem
           onClick={() => {
