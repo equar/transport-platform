@@ -8,7 +8,7 @@ export function NotFoundPage() {
     <AuthFormShell
       eyebrow="Page not found"
       title="That page does not exist in this workspace."
-      description="The link may be outdated, the route may have changed, or the page may not be available for this environment yet."
+      description="The link may be outdated, the route may have changed, or the page may not be available in this environment."
       aside={
         <Stack direction="row" spacing={1.5} alignItems="center">
           <TravelExploreRoundedIcon color="secondary" fontSize="large" />
@@ -48,7 +48,7 @@ export function NotFoundPage() {
       maxWidth={720}
     >
       <Typography variant="body2" color="text.secondary">
-        If you expected to reach a protected area, sign in first and navigate
+        If you expected to reach a protected area, sign in first and continue
         from the correct workspace menu.
       </Typography>
     </AuthFormShell>

@@ -178,7 +178,7 @@ export function CompanySettingsPage() {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        eyebrow="Batch 6B"
+        eyebrow="Workspace configuration"
         title="Company Settings"
         description="Manage tenant profile, operational defaults, compliance policy switches, billing configuration, and brand settings from one control surface."
       >

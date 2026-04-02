@@ -37,8 +37,8 @@ const defaultBranding: RuntimeBranding = {
   supportPhone: null,
   website: null,
   customLoginWelcomeText:
-    "Transportation operations, tenancy, and security foundations in one platform shell.",
-  customFooterText: "Transport Platform SaaS operations",
+    "Transportation operations, workspace governance, and secure access in one platform.",
+  customFooterText: "Transport Platform transportation operations",
 };
 
 export function RuntimeCapabilitiesProvider({ children }: PropsWithChildren) {

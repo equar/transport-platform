@@ -559,7 +559,12 @@ export function canAccessShellPath(
   pathname: string,
 ) {
   const shellView = buildAppShellView(session, moduleAccess);
-  return findAppShellNavItemForPath(pathname, shellView.sections) !== null;
+  const profilePath = getAppShellProfilePath(session, moduleAccess);
+
+  return (
+    findAppShellNavItemForPath(pathname, shellView.sections) !== null ||
+    (profilePath !== null && doesNavItemMatchPath({ to: profilePath } as AppShellNavItem, pathname))
+  );
 }
 
 export function getAppShellHomePath(
@@ -574,6 +579,10 @@ export function getAppShellProfilePath(
   session: AuthSession | null,
   moduleAccess: RuntimeModuleAccess | null,
 ) {
+  if (isPlatformAdmin(session)) {
+    return "/platform/profile";
+  }
+
   const shellView = buildAppShellView(session, moduleAccess);
   const items = flattenSections(shellView.sections);
 

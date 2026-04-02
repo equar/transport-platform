@@ -135,7 +135,7 @@ export function PaymentManagementPage() {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        eyebrow="Batch 5B"
+        eyebrow="Billing"
         title="Payment Management"
         description="Record manual payments, track application status, and monitor receivable collection activity in the tenant billing workspace."
       >

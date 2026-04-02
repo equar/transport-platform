@@ -4,22 +4,86 @@ import { PublicSection } from "../components/PublicSection";
 import { PageCard } from "../../../shared/components/PageCard";
 
 const featureModules = [
-  "Users and roles",
-  "Drivers",
-  "Vehicles",
-  "Riders and guardians",
-  "Organizations and contracts",
-  "Ride scheduling",
-  "Recurring rides",
-  "Dispatch board",
-  "Routes",
-  "Invoices and payments",
-  "Notifications",
-  "Compliance",
-  "Incidents",
-  "Reports",
-  "Portals",
-  "SaaS features",
+  {
+    name: "Users and roles",
+    description:
+      "Manage platform and company users with role-based access control and workspace-aware permissions.",
+  },
+  {
+    name: "Drivers",
+    description:
+      "Onboard, track, and manage driver records, documents, compliance status, and assignment readiness.",
+  },
+  {
+    name: "Vehicles",
+    description:
+      "Maintain fleet records, track vehicle documents, monitor compliance, and manage service status.",
+  },
+  {
+    name: "Riders and guardians",
+    description:
+      "Coordinate passenger records, guardian relationships, and the rider data that drives scheduling.",
+  },
+  {
+    name: "Organizations and contracts",
+    description:
+      "Manage client organizations, service contracts, rosters, and billing relationships in one place.",
+  },
+  {
+    name: "Ride scheduling",
+    description:
+      "Create and manage individual ride bookings with full visibility into pickup, drop-off, and assignment.",
+  },
+  {
+    name: "Recurring rides",
+    description:
+      "Define repeating ride schedules and generate instances without manual re-entry every week.",
+  },
+  {
+    name: "Dispatch board",
+    description:
+      "Monitor live service across rides, drivers, and vehicles with a day-of-operations command view.",
+  },
+  {
+    name: "Routes",
+    description:
+      "Build and manage route plans that connect multiple stops, riders, and driver assignments efficiently.",
+  },
+  {
+    name: "Invoices and payments",
+    description:
+      "Issue invoices, record payments, manage receivables, and maintain a clear financial audit trail.",
+  },
+  {
+    name: "Notifications",
+    description:
+      "Send and track operational alerts to drivers, riders, guardians, and organization contacts.",
+  },
+  {
+    name: "Compliance",
+    description:
+      "Track driver and vehicle compliance status, flag expiring documents, and resolve open issues.",
+  },
+  {
+    name: "Incidents",
+    description:
+      "Record, track, and resolve operational incidents, safety events, and service complaints.",
+  },
+  {
+    name: "Reports",
+    description:
+      "Access operational and financial reports that give leadership visibility across the entire program.",
+  },
+  {
+    name: "Portals",
+    description:
+      "Provide drivers, riders, guardians, and organizations with secure, role-appropriate self-service access.",
+  },
+  {
+    name: "SaaS features",
+    description:
+      "Manage subscription plans, feature flags, and tenant provisioning from the platform administration layer.",
+  },
 ];
 
 export function FeaturesPage() {
@@ -27,8 +91,8 @@ export function FeaturesPage() {
     <Stack spacing={{ xs: 5, md: 7 }}>
       <PublicSection
         eyebrow="Feature architecture"
-        title="Explain the product through the modules visitors will eventually buy, deploy, and use."
-        description="The public feature page now maps directly to the major product areas in the application, making the platform feel concrete before a prospect signs in."
+        title="Everything you need to run a modern transportation operation, from onboarding to invoicing."
+        description="Transport Platform covers the full operational stack. Here is a breakdown of the major modules your team will work with every day."
       >
         <Box
           sx={{
@@ -38,12 +102,11 @@ export function FeaturesPage() {
           }}
         >
           {featureModules.map((module) => (
-            <PageCard key={module} sx={{ height: "100%" }}>
+            <PageCard key={module.name} sx={{ height: "100%" }}>
               <Stack spacing={1}>
-                <Typography variant="h6">{module}</Typography>
+                <Typography variant="h6">{module.name}</Typography>
                 <Typography color="text.secondary">
-                  Structured to fit a multi-tenant transportation operating
-                  model.
+                  {module.description}
                 </Typography>
               </Stack>
             </PageCard>
@@ -53,23 +116,23 @@ export function FeaturesPage() {
 
       <PublicSection
         eyebrow="Why it matters"
-        title="Visitors should be able to understand the breadth of the platform without reading internal product docs."
-        description="This page now gives prospects and implementation stakeholders a clear inventory of the major modules already shaping the private product."
+        title="One system. Every workflow your team needs."
+        description="From rider onboarding to driver compliance, billing to reporting, every module is purpose-built for transportation operations and designed to work together out of the box."
       >
         <PageCard>
           <Typography color="text.secondary">
-            Instead of burying the product behind login, the public shell now
-            explains how the platform supports onboarding, operations,
-            dispatching, finance, safety, communications, portals, and SaaS
-            administration in one coherent system.
+            Instead of assembling a patchwork of admin portals, dispatch tools,
+            and finance systems, your team gets a single platform where every
+            role has the right surface, every workflow connects, and leadership
+            maintains full operational visibility.
           </Typography>
         </PageCard>
       </PublicSection>
 
       <PublicCtaBand
         eyebrow="See the full story"
-        title="Use the feature overview to move naturally into pricing or a guided demo."
-        description="Visitors now have enough context to understand what the product covers before entering a sales or onboarding path."
+        title="Ready to see these features in action?"
+        description="Schedule a guided walkthrough and see how the platform fits your program."
         primaryLabel="Request Demo"
         primaryTo="/contact#request-demo"
         secondaryLabel="Review pricing"

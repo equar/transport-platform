@@ -61,7 +61,7 @@ export function SolutionsPage() {
 
       <PublicSection
         eyebrow="Operating context"
-        title="The product story changes by service model, but the platform foundation stays consistent."
+        title="The product story changes by service model, but the platform stays consistent."
         description="Whether the customer is transporting students, elderly passengers, medical riders, contracted rosters, or private scheduled trips, the platform still needs to connect users, vehicles, schedules, dispatching, communications, and billing inside one governed workflow."
       >
         <PageCard>

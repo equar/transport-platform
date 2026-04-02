@@ -3,12 +3,9 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Button,
-  Chip,
   Stack,
   Typography,
 } from "@mui/material";
-import { Link as RouterLink } from "react-router-dom";
 import { PublicCtaBand } from "../components/PublicCtaBand";
 import { PublicSection } from "../components/PublicSection";
 import { PageCard } from "../../../shared/components/PageCard";
@@ -23,9 +20,9 @@ const faqGroups = [
           "The platform is designed for multi-tenant transportation operations that need to support platform administrators, company teams, drivers, riders, guardians, and organization stakeholders within one governed system.",
       },
       {
-        question: "What does the public shell include right now?",
+        question: "What types of transportation programs does it support?",
         answer:
-          "It includes the public marketing pages, route structure, responsive layout, public CTA flows, and structured placeholders for forms that can be wired to backend services later.",
+          "The platform supports student transportation, elderly transportation, NEMT, organization and contract transportation, and private scheduled ride programs. Each service model is supported through the same core operational architecture.",
       },
     ],
   },
@@ -38,10 +35,9 @@ const faqGroups = [
           "Teams can request a demo, apply to join, or begin a scoped rollout conversation depending on where they are in the evaluation process.",
       },
       {
-        question:
-          "Can the application flow be connected to a real onboarding process later?",
+        question: "How long does it take to get operational?",
         answer:
-          "Yes. The page structure and form model are intentionally organized so backend or CRM integrations can be added without redesigning the public journey.",
+          "Most teams are fully operational within a few weeks. The platform is structured around a clear setup sequence that takes you from tenant provisioning through riders, drivers, vehicles, and scheduling into day-of-service execution.",
       },
     ],
   },
@@ -56,7 +52,7 @@ const faqGroups = [
       {
         question: "Can the platform support invoices and payments?",
         answer:
-          "Yes. The product direction includes invoice, payment, receivables, and reporting workflows as part of the broader operating model.",
+          "Yes. The platform includes invoice management, payment recording, receivables tracking, and financial reporting workflows as part of the broader operating model.",
       },
     ],
   },
@@ -69,10 +65,9 @@ const faqGroups = [
           "The platform is built on tenant-aware access boundaries, role-based routing, and distinct portal surfaces for different user groups.",
       },
       {
-        question:
-          "Will the public experience stay aligned with tenant branding?",
+        question: "Is company data kept separate across tenants?",
         answer:
-          "Yes. The shell already reuses the runtime-aware branding and theme primitives so the public-facing experience can stay aligned with the broader platform identity.",
+          "Yes. Each company operates in its own tenant workspace with strict data separation. Platform administrators have governance access without exposing one tenant's data to another.",
       },
     ],
   },
@@ -82,13 +77,13 @@ const faqGroups = [
       {
         question: "Which portal roles does the platform support?",
         answer:
-          "The current architecture supports dedicated experiences for drivers, riders, guardians, and organization users alongside company and platform administration workspaces.",
+          "The platform supports dedicated experiences for drivers, riders, guardians, and organization users alongside company and platform administration workspaces.",
       },
       {
         question:
-          "Does the private application change when the public shell expands?",
+          "Can external users like riders and guardians access the platform?",
         answer:
-          "No. The public pages are intentionally isolated from the authenticated shell so the product can continue evolving without destabilizing the marketing or onboarding experience.",
+          "Yes. Riders, guardians, and organization contacts each have their own portal with the right level of access. They can view rides, billing, rosters, and notifications without seeing internal company operations.",
       },
     ],
   },
@@ -99,8 +94,8 @@ export function FaqPage() {
     <Stack spacing={{ xs: 4, md: 6 }}>
       <PublicSection
         eyebrow="FAQ"
-        title="Answer the questions evaluation teams actually ask before signing in."
-        description="The FAQ page is now grouped by topic so visitors can quickly find the answers most relevant to their role in the buying or onboarding process."
+        title="Answers to the questions we hear most."
+        description="Browse by topic to find the information most relevant to your role and stage of evaluation."
       >
         <Stack spacing={3}>
           {faqGroups.map((group) => (
@@ -127,8 +122,8 @@ export function FaqPage() {
 
       <PublicCtaBand
         eyebrow="Still have questions"
-        title="Move from FAQs into a real conversation."
-        description="Visitors can now review grouped answers and then go directly into pricing or a guided product discussion."
+        title="Still have questions? Our team is happy to help."
+        description="Reach out and let us know what you need. We are happy to answer anything not covered here or schedule time for a more detailed conversation."
         primaryLabel="Contact the team"
         primaryTo="/contact#request-demo"
         secondaryLabel="Review pricing"

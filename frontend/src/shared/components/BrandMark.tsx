@@ -23,7 +23,7 @@ export function BrandMark({ compact = false }: BrandMarkProps) {
           : "TRANSPORT PLATFORM"}
       </Typography>
       <Typography variant={compact ? "body2" : "h4"} sx={{ fontWeight: 700 }}>
-        {branding?.displayName || "Multi-tenant TMS foundation"}
+        {branding?.displayName || "Transportation operations platform"}
       </Typography>
     </Stack>
   );

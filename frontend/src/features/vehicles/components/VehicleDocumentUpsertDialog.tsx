@@ -186,9 +186,8 @@ export function VehicleDocumentUpsertDialog({
             />
           </Button>
           <Typography variant="caption" color="text.secondary">
-            File selection captures metadata only for this batch. Actual file
-            storage can be connected later without changing the vehicle document
-            model.
+            Selecting a file fills in the document metadata so your team can
+            complete the record even if the file is stored outside the platform.
           </Typography>
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <TextField
@@ -212,7 +211,7 @@ export function VehicleDocumentUpsertDialog({
             label="Storage Path"
             value={form.storagePath ?? ""}
             onChange={(event) => updateField("storagePath", event.target.value)}
-            helperText="Optional storage reference for future attachment integration."
+            helperText="Optional storage reference for an attached file or external document system."
             fullWidth
           />
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>

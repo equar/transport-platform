@@ -105,7 +105,7 @@ export function ReceivablesManagementPage() {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        eyebrow="Batch 5B"
+        eyebrow="Billing"
         title="Receivables and Aging"
         description="Track collected cash, aging buckets, and overdue invoice exposure while keeping follow-up work anchored to the invoice record."
       >

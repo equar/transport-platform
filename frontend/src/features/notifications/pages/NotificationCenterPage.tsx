@@ -131,7 +131,7 @@ export function NotificationCenterPage() {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        eyebrow="Batch 6A"
+        eyebrow="Communications"
         title="Notification Center"
         description="Track in-app alerts, email hook delivery state, and operator follow-up without leaving the tenant admin workspace."
       >

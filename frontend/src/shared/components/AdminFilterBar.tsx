@@ -12,6 +12,9 @@ export function AdminFilterBar({ children, stackProps }: AdminFilterBarProps) {
       <Stack
         direction={{ xs: "column", md: "row" }}
         spacing={2}
+        useFlexGap
+        flexWrap="wrap"
+        alignItems={{ xs: "stretch", md: "flex-start" }}
         {...stackProps}
       >
         {children}

@@ -28,9 +28,9 @@ export const publicAuthCta = {
 };
 
 export const publicTrustHighlights = [
-  "Tenant-safe access controls",
-  "Role-aware portal experiences",
-  "Dispatch, billing, and onboarding foundations",
+  "Built-in access controls for every team",
+  "Dedicated portals for drivers, riders, and organizations",
+  "Dispatch, billing, and onboarding in one platform",
 ];
 
 export const publicNavigationItems: PublicNavigationItem[] = [
@@ -59,7 +59,7 @@ export const publicFooterSections: PublicFooterSection[] = [
       { label: "About", to: "/about" },
       { label: "Contact", to: "/contact" },
       { label: "Request Demo", to: "/contact#request-demo" },
-      { label: "Login", to: "/login" },
+      { label: "Sign in", to: "/login" },
     ],
   },
   {
@@ -74,10 +74,10 @@ export const publicFooterSections: PublicFooterSection[] = [
   {
     title: "Legal",
     links: [
-      { label: "Privacy Policy", placeholder: true },
-      { label: "Terms of Service", placeholder: true },
-      { label: "Security", placeholder: true },
-      { label: "Data Processing", placeholder: true },
+      { label: "Privacy and Data Handling", to: "/privacy" },
+      { label: "Service Agreements", to: "/service-agreements" },
+      { label: "Security Overview", to: "/security" },
+      { label: "Data Processing Support", to: "/data-processing-support" },
     ],
   },
 ];

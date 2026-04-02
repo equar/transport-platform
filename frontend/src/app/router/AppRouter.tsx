@@ -1,3 +1,4 @@
+import { lazy, type ComponentType } from "react";
 import {
   Navigate,
   RouterProvider,
@@ -5,95 +6,371 @@ import {
 } from "react-router-dom";
 import { AppShell } from "../layouts/AppShell";
 import { AuthLayout } from "../layouts/AuthLayout";
+import { PublicAuthLayout } from "../layouts/PublicAuthLayout";
 import { PublicLayout } from "../layouts/PublicLayout";
-import { NotFoundPage } from "../pages/NotFoundPage";
-import { UnauthorizedPage } from "../pages/UnauthorizedPage";
-import { AuditLogsPage } from "../../features/audit/pages/AuditLogsPage";
-import { useAuth } from "../../features/auth/context/AuthContext";
-import { LoginPage } from "../../features/auth/pages/LoginPage";
 import { ProtectedRoute } from "../../features/auth/routes/ProtectedRoute";
 import {
   canAccessCompanyWorkspace,
-  isCompanyAdmin,
   isDriverPortalUser,
   isGuardianPortalUser,
   isOrganizationPortalUser,
   isPlatformAdmin,
   isRiderPortalUser,
 } from "../../features/auth/access";
-import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
-import { InvoiceDetailsPage } from "../../features/billing/pages/InvoiceDetailsPage";
-import { InvoiceManagementPage } from "../../features/billing/pages/InvoiceManagementPage";
-import { PaymentDetailsPage } from "../../features/billing/pages/PaymentDetailsPage";
-import { PaymentManagementPage } from "../../features/billing/pages/PaymentManagementPage";
-import { PricingRuleDetailsPage } from "../../features/billing/pages/PricingRuleDetailsPage";
-import { PricingRuleManagementPage } from "../../features/billing/pages/PricingRuleManagementPage";
-import { ReceivablesManagementPage } from "../../features/billing/pages/ReceivablesManagementPage";
-import { DispatchBoardPage } from "../../features/dispatch/pages/DispatchBoardPage";
-import { DriverDetailsPage } from "../../features/drivers/pages/DriverDetailsPage";
-import { DriverManagementPage } from "../../features/drivers/pages/DriverManagementPage";
-import { GuardianDetailsPage } from "../../features/guardians/pages/GuardianDetailsPage";
-import { GuardianManagementPage } from "../../features/guardians/pages/GuardianManagementPage";
-import { RecurringRideDetailsPage } from "../../features/rides/pages/RecurringRideDetailsPage";
-import { RecurringRideManagementPage } from "../../features/rides/pages/RecurringRideManagementPage";
-import { RideDetailsPage } from "../../features/rides/pages/RideDetailsPage";
-import { RideManagementPage } from "../../features/rides/pages/RideManagementPage";
-import { RiderDetailsPage } from "../../features/riders/pages/RiderDetailsPage";
-import { RiderManagementPage } from "../../features/riders/pages/RiderManagementPage";
-import { VehicleDetailsPage } from "../../features/vehicles/pages/VehicleDetailsPage";
-import { VehicleManagementPage } from "../../features/vehicles/pages/VehicleManagementPage";
-import { TenantManagementPage } from "../../features/tenants/pages/TenantManagementPage";
-import { RouteDetailsPage } from "../../features/routes/pages/RouteDetailsPage";
-import { RouteManagementPage } from "../../features/routes/pages/RouteManagementPage";
-import { CompanyApplicationsPage } from "../../features/company-applications/pages/CompanyApplicationsPage";
-import { PublicCompanyApplicationPage } from "../../features/company-applications/pages/PublicCompanyApplicationPage";
-import { RoleManagementPage } from "../../features/roles/pages/RoleManagementPage";
-import { UserManagementPage } from "../../features/users/pages/UserManagementPage";
-import { NotificationCenterPage } from "../../features/notifications/pages/NotificationCenterPage";
-import { NotificationTemplateManagementPage } from "../../features/notifications/pages/NotificationTemplateManagementPage";
-import { ComplianceDashboardPage } from "../../features/compliance/pages/ComplianceDashboardPage";
-import { IncidentManagementPage } from "../../features/incidents/pages/IncidentManagementPage";
-import { CompanyReportsPage } from "../../features/reports/pages/CompanyReportsPage";
-import { CompanySettingsPage } from "../../features/settings/pages/CompanySettingsPage";
-import { DriverPortalDashboardPage } from "../../features/driver-portal/pages/DriverPortalDashboardPage";
 import { DriverPortalLayout } from "../../features/driver-portal/components/DriverPortalLayout";
-import { DriverPortalNotificationsPage } from "../../features/driver-portal/pages/DriverPortalNotificationsPage";
-import { DriverPortalProfilePage } from "../../features/driver-portal/pages/DriverPortalProfilePage";
-import { DriverPortalCompliancePage } from "../../features/driver-portal/pages/DriverPortalCompliancePage";
-import { DriverPortalRidesPage } from "../../features/driver-portal/pages/DriverPortalRidesPage";
-import { DriverPortalRideDetailsPage } from "../../features/driver-portal/pages/DriverPortalRideDetailsPage";
-import { DriverPortalRoutesPage } from "../../features/driver-portal/pages/DriverPortalRoutesPage";
-import { DriverPortalRouteDetailsPage } from "../../features/driver-portal/pages/DriverPortalRouteDetailsPage";
-import { RiderGuardianPortalBillingPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalBillingPage";
 import { RiderGuardianPortalLayout } from "../../features/rider-guardian-portal/components/RiderGuardianPortalLayout";
-import { RiderGuardianPortalHomePage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalHomePage";
-import { RiderGuardianPortalNotificationsPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalNotificationsPage";
-import { RiderGuardianPortalPaymentHistoryPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalPaymentHistoryPage";
-import { RiderGuardianPortalProfilePage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalProfilePage";
-import { RiderGuardianPortalRideDetailsPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalRideDetailsPage";
-import { RiderGuardianPortalRideHistoryPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalRideHistoryPage";
-import { RiderGuardianPortalRidesPage } from "../../features/rider-guardian-portal/pages/RiderGuardianPortalRidesPage";
-import { OrganizationPortalBillingPage } from "../../features/organization-portal/pages/OrganizationPortalBillingPage";
 import { OrganizationPortalLayout } from "../../features/organization-portal/components/OrganizationPortalLayout";
-import { OrganizationPortalContactsPage } from "../../features/organization-portal/pages/OrganizationPortalContactsPage";
-import { OrganizationPortalContractsPage } from "../../features/organization-portal/pages/OrganizationPortalContractsPage";
-import { OrganizationPortalHomePage } from "../../features/organization-portal/pages/OrganizationPortalHomePage";
-import { OrganizationPortalNotificationsPage } from "../../features/organization-portal/pages/OrganizationPortalNotificationsPage";
-import { OrganizationPortalProfilePage } from "../../features/organization-portal/pages/OrganizationPortalProfilePage";
-import { OrganizationPortalRidesPage } from "../../features/organization-portal/pages/OrganizationPortalRidesPage";
-import { OrganizationPortalRosterPage } from "../../features/organization-portal/pages/OrganizationPortalRosterPage";
-import { FeatureFlagManagementPage } from "../../features/saas/pages/FeatureFlagManagementPage";
-import { SubscriptionPlanManagementPage } from "../../features/saas/pages/SubscriptionPlanManagementPage";
-import { TenantSubscriptionManagementPage } from "../../features/saas/pages/TenantSubscriptionManagementPage";
-import { AboutPage } from "../../features/public/pages/AboutPage";
-import { ContactPage } from "../../features/public/pages/ContactPage";
-import { FaqPage } from "../../features/public/pages/FaqPage";
-import { FeaturesPage } from "../../features/public/pages/FeaturesPage";
-import { ForgotPasswordPage } from "../../features/public/pages/ForgotPasswordPage";
-import { HomePage } from "../../features/public/pages/HomePage";
-import { PricingPage } from "../../features/public/pages/PricingPage";
-import { ResetPasswordPage } from "../../features/public/pages/ResetPasswordPage";
-import { SolutionsPage } from "../../features/public/pages/SolutionsPage";
+
+function lazyPage<TModule extends Record<string, unknown>>(
+  importer: () => Promise<TModule>,
+  exportName: keyof TModule,
+) {
+  return lazy(async () => {
+    const module = await importer();
+    return {
+      default: module[exportName] as ComponentType<any>,
+    };
+  });
+}
+
+const NotFoundPage = lazyPage(
+  () => import("../pages/NotFoundPage"),
+  "NotFoundPage",
+);
+const UnauthorizedPage = lazyPage(
+  () => import("../pages/UnauthorizedPage"),
+  "UnauthorizedPage",
+);
+const AuditLogsPage = lazyPage(
+  () => import("../../features/audit/pages/AuditLogsPage"),
+  "AuditLogsPage",
+);
+const LoginPage = lazyPage(
+  () => import("../../features/auth/pages/LoginPage"),
+  "LoginPage",
+);
+const PlatformAdminProfilePage = lazyPage(
+  () => import("../../features/auth/pages/PlatformAdminProfilePage"),
+  "PlatformAdminProfilePage",
+);
+const DashboardPage = lazyPage(
+  () => import("../../features/dashboard/pages/DashboardPage"),
+  "DashboardPage",
+);
+const InvoiceDetailsPage = lazyPage(
+  () => import("../../features/billing/pages/InvoiceDetailsPage"),
+  "InvoiceDetailsPage",
+);
+const InvoiceManagementPage = lazyPage(
+  () => import("../../features/billing/pages/InvoiceManagementPage"),
+  "InvoiceManagementPage",
+);
+const PaymentDetailsPage = lazyPage(
+  () => import("../../features/billing/pages/PaymentDetailsPage"),
+  "PaymentDetailsPage",
+);
+const PaymentManagementPage = lazyPage(
+  () => import("../../features/billing/pages/PaymentManagementPage"),
+  "PaymentManagementPage",
+);
+const PricingRuleDetailsPage = lazyPage(
+  () => import("../../features/billing/pages/PricingRuleDetailsPage"),
+  "PricingRuleDetailsPage",
+);
+const PricingRuleManagementPage = lazyPage(
+  () => import("../../features/billing/pages/PricingRuleManagementPage"),
+  "PricingRuleManagementPage",
+);
+const ReceivablesManagementPage = lazyPage(
+  () => import("../../features/billing/pages/ReceivablesManagementPage"),
+  "ReceivablesManagementPage",
+);
+const DispatchBoardPage = lazyPage(
+  () => import("../../features/dispatch/pages/DispatchBoardPage"),
+  "DispatchBoardPage",
+);
+const DriverDetailsPage = lazyPage(
+  () => import("../../features/drivers/pages/DriverDetailsPage"),
+  "DriverDetailsPage",
+);
+const DriverManagementPage = lazyPage(
+  () => import("../../features/drivers/pages/DriverManagementPage"),
+  "DriverManagementPage",
+);
+const GuardianDetailsPage = lazyPage(
+  () => import("../../features/guardians/pages/GuardianDetailsPage"),
+  "GuardianDetailsPage",
+);
+const GuardianManagementPage = lazyPage(
+  () => import("../../features/guardians/pages/GuardianManagementPage"),
+  "GuardianManagementPage",
+);
+const RecurringRideDetailsPage = lazyPage(
+  () => import("../../features/rides/pages/RecurringRideDetailsPage"),
+  "RecurringRideDetailsPage",
+);
+const RecurringRideManagementPage = lazyPage(
+  () => import("../../features/rides/pages/RecurringRideManagementPage"),
+  "RecurringRideManagementPage",
+);
+const RideDetailsPage = lazyPage(
+  () => import("../../features/rides/pages/RideDetailsPage"),
+  "RideDetailsPage",
+);
+const RideManagementPage = lazyPage(
+  () => import("../../features/rides/pages/RideManagementPage"),
+  "RideManagementPage",
+);
+const RiderDetailsPage = lazyPage(
+  () => import("../../features/riders/pages/RiderDetailsPage"),
+  "RiderDetailsPage",
+);
+const RiderManagementPage = lazyPage(
+  () => import("../../features/riders/pages/RiderManagementPage"),
+  "RiderManagementPage",
+);
+const VehicleDetailsPage = lazyPage(
+  () => import("../../features/vehicles/pages/VehicleDetailsPage"),
+  "VehicleDetailsPage",
+);
+const VehicleManagementPage = lazyPage(
+  () => import("../../features/vehicles/pages/VehicleManagementPage"),
+  "VehicleManagementPage",
+);
+const TenantManagementPage = lazyPage(
+  () => import("../../features/tenants/pages/TenantManagementPage"),
+  "TenantManagementPage",
+);
+const RouteDetailsPage = lazyPage(
+  () => import("../../features/routes/pages/RouteDetailsPage"),
+  "RouteDetailsPage",
+);
+const RouteManagementPage = lazyPage(
+  () => import("../../features/routes/pages/RouteManagementPage"),
+  "RouteManagementPage",
+);
+const CompanyApplicationsPage = lazyPage(
+  () =>
+    import("../../features/company-applications/pages/CompanyApplicationsPage"),
+  "CompanyApplicationsPage",
+);
+const PublicCompanyApplicationPage = lazyPage(
+  () =>
+    import("../../features/company-applications/pages/PublicCompanyApplicationPage"),
+  "PublicCompanyApplicationPage",
+);
+const RoleManagementPage = lazyPage(
+  () => import("../../features/roles/pages/RoleManagementPage"),
+  "RoleManagementPage",
+);
+const UserManagementPage = lazyPage(
+  () => import("../../features/users/pages/UserManagementPage"),
+  "UserManagementPage",
+);
+const NotificationCenterPage = lazyPage(
+  () => import("../../features/notifications/pages/NotificationCenterPage"),
+  "NotificationCenterPage",
+);
+const NotificationTemplateManagementPage = lazyPage(
+  () =>
+    import("../../features/notifications/pages/NotificationTemplateManagementPage"),
+  "NotificationTemplateManagementPage",
+);
+const ComplianceDashboardPage = lazyPage(
+  () => import("../../features/compliance/pages/ComplianceDashboardPage"),
+  "ComplianceDashboardPage",
+);
+const IncidentManagementPage = lazyPage(
+  () => import("../../features/incidents/pages/IncidentManagementPage"),
+  "IncidentManagementPage",
+);
+const CompanyReportsPage = lazyPage(
+  () => import("../../features/reports/pages/CompanyReportsPage"),
+  "CompanyReportsPage",
+);
+const CompanySettingsPage = lazyPage(
+  () => import("../../features/settings/pages/CompanySettingsPage"),
+  "CompanySettingsPage",
+);
+const DriverPortalDashboardPage = lazyPage(
+  () => import("../../features/driver-portal/pages/DriverPortalDashboardPage"),
+  "DriverPortalDashboardPage",
+);
+const DriverPortalNotificationsPage = lazyPage(
+  () =>
+    import("../../features/driver-portal/pages/DriverPortalNotificationsPage"),
+  "DriverPortalNotificationsPage",
+);
+const DriverPortalProfilePage = lazyPage(
+  () => import("../../features/driver-portal/pages/DriverPortalProfilePage"),
+  "DriverPortalProfilePage",
+);
+const DriverPortalCompliancePage = lazyPage(
+  () => import("../../features/driver-portal/pages/DriverPortalCompliancePage"),
+  "DriverPortalCompliancePage",
+);
+const DriverPortalRidesPage = lazyPage(
+  () => import("../../features/driver-portal/pages/DriverPortalRidesPage"),
+  "DriverPortalRidesPage",
+);
+const DriverPortalRideDetailsPage = lazyPage(
+  () =>
+    import("../../features/driver-portal/pages/DriverPortalRideDetailsPage"),
+  "DriverPortalRideDetailsPage",
+);
+const DriverPortalRoutesPage = lazyPage(
+  () => import("../../features/driver-portal/pages/DriverPortalRoutesPage"),
+  "DriverPortalRoutesPage",
+);
+const DriverPortalRouteDetailsPage = lazyPage(
+  () =>
+    import("../../features/driver-portal/pages/DriverPortalRouteDetailsPage"),
+  "DriverPortalRouteDetailsPage",
+);
+const RiderGuardianPortalBillingPage = lazyPage(
+  () =>
+    import("../../features/rider-guardian-portal/pages/RiderGuardianPortalBillingPage"),
+  "RiderGuardianPortalBillingPage",
+);
+const RiderGuardianPortalHomePage = lazyPage(
+  () =>
+    import("../../features/rider-guardian-portal/pages/RiderGuardianPortalHomePage"),
+  "RiderGuardianPortalHomePage",
+);
+const RiderGuardianPortalNotificationsPage = lazyPage(
+  () =>
+    import("../../features/rider-guardian-portal/pages/RiderGuardianPortalNotificationsPage"),
+  "RiderGuardianPortalNotificationsPage",
+);
+const RiderGuardianPortalPaymentHistoryPage = lazyPage(
+  () =>
+    import("../../features/rider-guardian-portal/pages/RiderGuardianPortalPaymentHistoryPage"),
+  "RiderGuardianPortalPaymentHistoryPage",
+);
+const RiderGuardianPortalProfilePage = lazyPage(
+  () =>
+    import("../../features/rider-guardian-portal/pages/RiderGuardianPortalProfilePage"),
+  "RiderGuardianPortalProfilePage",
+);
+const RiderGuardianPortalRideDetailsPage = lazyPage(
+  () =>
+    import("../../features/rider-guardian-portal/pages/RiderGuardianPortalRideDetailsPage"),
+  "RiderGuardianPortalRideDetailsPage",
+);
+const RiderGuardianPortalRideHistoryPage = lazyPage(
+  () =>
+    import("../../features/rider-guardian-portal/pages/RiderGuardianPortalRideHistoryPage"),
+  "RiderGuardianPortalRideHistoryPage",
+);
+const RiderGuardianPortalRidesPage = lazyPage(
+  () =>
+    import("../../features/rider-guardian-portal/pages/RiderGuardianPortalRidesPage"),
+  "RiderGuardianPortalRidesPage",
+);
+const OrganizationPortalBillingPage = lazyPage(
+  () =>
+    import("../../features/organization-portal/pages/OrganizationPortalBillingPage"),
+  "OrganizationPortalBillingPage",
+);
+const OrganizationPortalContactsPage = lazyPage(
+  () =>
+    import("../../features/organization-portal/pages/OrganizationPortalContactsPage"),
+  "OrganizationPortalContactsPage",
+);
+const OrganizationPortalContractsPage = lazyPage(
+  () =>
+    import("../../features/organization-portal/pages/OrganizationPortalContractsPage"),
+  "OrganizationPortalContractsPage",
+);
+const OrganizationPortalHomePage = lazyPage(
+  () =>
+    import("../../features/organization-portal/pages/OrganizationPortalHomePage"),
+  "OrganizationPortalHomePage",
+);
+const OrganizationPortalNotificationsPage = lazyPage(
+  () =>
+    import("../../features/organization-portal/pages/OrganizationPortalNotificationsPage"),
+  "OrganizationPortalNotificationsPage",
+);
+const OrganizationPortalProfilePage = lazyPage(
+  () =>
+    import("../../features/organization-portal/pages/OrganizationPortalProfilePage"),
+  "OrganizationPortalProfilePage",
+);
+const OrganizationPortalRidesPage = lazyPage(
+  () =>
+    import("../../features/organization-portal/pages/OrganizationPortalRidesPage"),
+  "OrganizationPortalRidesPage",
+);
+const OrganizationPortalRosterPage = lazyPage(
+  () =>
+    import("../../features/organization-portal/pages/OrganizationPortalRosterPage"),
+  "OrganizationPortalRosterPage",
+);
+const FeatureFlagManagementPage = lazyPage(
+  () => import("../../features/saas/pages/FeatureFlagManagementPage"),
+  "FeatureFlagManagementPage",
+);
+const SubscriptionPlanManagementPage = lazyPage(
+  () => import("../../features/saas/pages/SubscriptionPlanManagementPage"),
+  "SubscriptionPlanManagementPage",
+);
+const TenantSubscriptionManagementPage = lazyPage(
+  () => import("../../features/saas/pages/TenantSubscriptionManagementPage"),
+  "TenantSubscriptionManagementPage",
+);
+const AboutPage = lazyPage(
+  () => import("../../features/public/pages/AboutPage"),
+  "AboutPage",
+);
+const ContactPage = lazyPage(
+  () => import("../../features/public/pages/ContactPage"),
+  "ContactPage",
+);
+const DataProcessingSupportPage = lazyPage(
+  () => import("../../features/public/pages/DataProcessingSupportPage"),
+  "DataProcessingSupportPage",
+);
+const FaqPage = lazyPage(
+  () => import("../../features/public/pages/FaqPage"),
+  "FaqPage",
+);
+const FeaturesPage = lazyPage(
+  () => import("../../features/public/pages/FeaturesPage"),
+  "FeaturesPage",
+);
+const ForgotPasswordPage = lazyPage(
+  () => import("../../features/public/pages/ForgotPasswordPage"),
+  "ForgotPasswordPage",
+);
+const HomePage = lazyPage(
+  () => import("../../features/public/pages/HomePage"),
+  "HomePage",
+);
+const PricingPage = lazyPage(
+  () => import("../../features/public/pages/PricingPage"),
+  "PricingPage",
+);
+const PrivacyAndDataHandlingPage = lazyPage(
+  () => import("../../features/public/pages/PrivacyAndDataHandlingPage"),
+  "PrivacyAndDataHandlingPage",
+);
+const ResetPasswordPage = lazyPage(
+  () => import("../../features/public/pages/ResetPasswordPage"),
+  "ResetPasswordPage",
+);
+const SecurityOverviewPage = lazyPage(
+  () => import("../../features/public/pages/SecurityOverviewPage"),
+  "SecurityOverviewPage",
+);
+const ServiceAgreementsPage = lazyPage(
+  () => import("../../features/public/pages/ServiceAgreementsPage"),
+  "ServiceAgreementsPage",
+);
+const SolutionsPage = lazyPage(
+  () => import("../../features/public/pages/SolutionsPage"),
+  "SolutionsPage",
+);
 
 const router = createBrowserRouter([
   {
@@ -125,6 +402,22 @@ const router = createBrowserRouter([
         element: <ContactPage />,
       },
       {
+        path: "privacy",
+        element: <PrivacyAndDataHandlingPage />,
+      },
+      {
+        path: "service-agreements",
+        element: <ServiceAgreementsPage />,
+      },
+      {
+        path: "security",
+        element: <SecurityOverviewPage />,
+      },
+      {
+        path: "data-processing-support",
+        element: <DataProcessingSupportPage />,
+      },
+      {
         path: "faq",
         element: <FaqPage />,
       },
@@ -139,12 +432,17 @@ const router = createBrowserRouter([
     ],
   },
   {
-    element: <AuthLayout />,
+    element: <PublicAuthLayout />,
     children: [
       {
         path: "/login",
         element: <LoginPage />,
       },
+    ],
+  },
+  {
+    element: <AuthLayout />,
+    children: [
       {
         path: "/forgot-password",
         element: <ForgotPasswordPage />,
@@ -173,6 +471,10 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <DashboardPage />,
+      },
+      {
+        path: "profile",
+        element: <PlatformAdminProfilePage />,
       },
       {
         path: "tenants",

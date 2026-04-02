@@ -240,9 +240,9 @@ export function PricingRuleManagementPage() {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        eyebrow="Batch 5A"
+        eyebrow="Billing"
         title="Pricing Rules"
-        description="Manage tenant-scoped pricing rules for rider, guardian, organization, and contract billing scenarios with future-ready service applicability and lifecycle controls."
+        description="Manage pricing rules for rider, guardian, organization, and contract billing scenarios with clear service applicability and lifecycle controls."
       >
         <Button
           variant="contained"

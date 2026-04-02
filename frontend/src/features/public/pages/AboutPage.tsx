@@ -30,7 +30,7 @@ const differentiators = [
   {
     title: "Commercially SaaS-ready",
     description:
-      "Subscription and feature-flag foundations support a credible product strategy as the platform grows across tenants and service lines.",
+      "Subscription controls and feature management support a credible product strategy as the platform grows across teams and service lines.",
   },
 ];
 
@@ -72,7 +72,7 @@ export function AboutPage() {
             The platform is designed to solve that fragmentation. Instead of
             asking teams to assemble a patchwork of admin portals, dispatch
             tools, finance systems, and stakeholder touchpoints, it creates a
-            single SaaS foundation where each role sees the right surface and
+            single operating platform where each role sees the right surface and
             leadership keeps the right level of control.
           </Typography>
         </PageCard>
@@ -81,7 +81,7 @@ export function AboutPage() {
       <PublicSection
         eyebrow="How we differ"
         title="The difference is not just features. It is the operating model behind them."
-        description="The public site now explains what makes the platform distinct for enterprise buyers and implementation stakeholders."
+        description="The platform is designed to stay clear for enterprise buyers, implementation teams, and day-to-day operators alike."
       >
         <Box
           sx={{
@@ -106,7 +106,7 @@ export function AboutPage() {
       <PublicCtaBand
         eyebrow="Next step"
         title="Understand the platform story, then move into a demo or pricing conversation."
-        description="This page gives first-time visitors the context they need before logging in or entering a formal onboarding path."
+        description="This page gives first-time visitors the context they need before they request a demo, review pricing, or begin onboarding."
         primaryLabel="Request Demo"
         primaryTo="/contact#request-demo"
         secondaryLabel="See Pricing"

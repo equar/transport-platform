@@ -7,13 +7,12 @@ export function OrganizationPortalFoundationPage() {
     <Stack spacing={3}>
       <SectionHeader
         title="Organization Portal"
-        description="Portal routing, auth isolation, and shared shell foundations are now active for organization contact roles."
+        description="Organization contacts now have a dedicated portal experience with scoped routing and account isolation."
       />
       <PageCard>
         <Alert severity="info">
-          Organization portal foundations are enabled. Scoped dashboard, roster,
-          contract, and billing workflows can now be layered onto this shell
-          without breaking role isolation.
+          Organization portal access is ready. Dashboard, roster, contract, and
+          billing workflows all stay scoped to the right organization account.
         </Alert>
       </PageCard>
     </Stack>
