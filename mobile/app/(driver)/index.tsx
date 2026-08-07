@@ -10,6 +10,7 @@ import { useAuth } from '@auth/AuthContext';
 import { MobileHero } from '@components/MobileHero';
 import { ActionRow } from '@components/ActionRow';
 import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
+import TenantHeader from '@components/TenantHeader';
 
 export default function DriverDashboard() {
   const { session, signOut } = useAuth();
@@ -36,6 +37,7 @@ export default function DriverDashboard() {
         <View>
           <Text style={styles.greeting}>Good day,</Text>
           <Text style={styles.name}>{name}</Text>
+          <TenantHeader tenantId={session?.identity.tenantId} />
         </View>
         <Text style={styles.signOut} onPress={signOut}>Sign out</Text>
       </View>

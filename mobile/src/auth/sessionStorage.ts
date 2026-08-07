@@ -33,3 +33,22 @@ export async function deleteSessionValue(key: string): Promise<void> {
   }
   if (allowSimulatorFallback) await AsyncStorage.removeItem(key);
 }
+
+// Tenant branding cache helpers
+export async function getCachedTenantBranding(tenantId: string): Promise<string | null> {
+  if (!tenantId) return null;
+  const key = `tenant_branding_${tenantId}`;
+  return getSessionValue(key);
+}
+
+export async function setCachedTenantBranding(tenantId: string, value: string): Promise<void> {
+  if (!tenantId) return;
+  const key = `tenant_branding_${tenantId}`;
+  return setSessionValue(key, value);
+}
+
+export async function deleteCachedTenantBranding(tenantId: string): Promise<void> {
+  if (!tenantId) return;
+  const key = `tenant_branding_${tenantId}`;
+  return deleteSessionValue(key);
+}
