@@ -1,6 +1,7 @@
 package com.transportplatform.tms.common.security;
 
 import com.transportplatform.tms.features.auth.application.PlatformAdminBootstrapProperties;
+import java.nio.charset.StandardCharsets;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,10 @@ public class SecurityConfigurationValidator {
         String jwtSecret = securityProperties.getJwt().getSecret();
         if (jwtSecret == null || jwtSecret.isBlank()) {
             throw new IllegalStateException("app.security.jwt.secret must be configured for the active profile.");
+        }
+        if (jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException(
+                    "app.security.jwt.secret must contain at least 32 bytes for HS256 signing.");
         }
         if (environment.acceptsProfiles(Profiles.of("prod"))
                 && (LOCAL_DEVELOPMENT_SECRET.equals(jwtSecret) || DEV_SECRET.equals(jwtSecret))) {

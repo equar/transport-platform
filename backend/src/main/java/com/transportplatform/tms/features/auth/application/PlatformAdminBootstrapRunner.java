@@ -35,7 +35,7 @@ public class PlatformAdminBootstrapRunner implements ApplicationRunner {
             return;
         }
 
-        if (appUserRepository.existsForTenantAndEmail(null, properties.getEmail())) {
+        if (appUserRepository.existsByEmailIgnoreCase(properties.getEmail())) {
             return;
         }
 

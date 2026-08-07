@@ -54,7 +54,7 @@ export function AuthFormShell({
         </Box>
 
         {status ? (
-          <Alert severity={status.severity} sx={{ borderRadius: 3 }}>
+          <Alert severity={status.severity}>
             {status.message}
           </Alert>
         ) : null}

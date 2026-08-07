@@ -796,7 +796,6 @@ export function RideDetailsPage() {
                   elevation={0}
                   sx={{
                     p: 2,
-                    borderRadius: 3,
                     border: "1px solid",
                     borderColor: "divider",
                   }}

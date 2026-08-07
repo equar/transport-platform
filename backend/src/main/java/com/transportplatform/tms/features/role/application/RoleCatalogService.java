@@ -55,6 +55,8 @@ public class RoleCatalogService {
             case ROLE_PLATFORM_ADMIN -> "Platform Admin";
             case ROLE_TENANT_ADMIN -> "Company Admin";
             case ROLE_DISPATCHER -> "Dispatcher";
+            case ROLE_BILLING_ADMIN -> "Billing Admin";
+            case ROLE_COMPLIANCE_ADMIN -> "Compliance Admin";
             case ROLE_DRIVER -> "Driver";
             case ROLE_RIDER -> "Rider";
             case ROLE_GUARDIAN -> "Guardian";
@@ -69,6 +71,8 @@ public class RoleCatalogService {
             case ROLE_TENANT_ADMIN ->
                 "Tenant-scoped administration for company users, role assignment, and company dashboards.";
             case ROLE_DISPATCHER -> "Operational access to scheduling and dispatch workflows.";
+            case ROLE_BILLING_ADMIN -> "Tenant-scoped access to billing, payments, receivables, and financial reports.";
+            case ROLE_COMPLIANCE_ADMIN -> "Tenant-scoped access to driver, vehicle, compliance, incident, and compliance reporting workflows.";
             case ROLE_DRIVER -> "Driver-facing operational access.";
             case ROLE_RIDER -> "Rider-facing access for trip visibility and service interactions.";
             case ROLE_GUARDIAN -> "Guardian access for linked rider trip visibility and coordination.";

@@ -35,7 +35,7 @@ public class IncidentManagementController {
     }
 
     @GetMapping("/company/incidents")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<PageResponse<IncidentSummaryResponse>> searchCompanyIncidents(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) IncidentStatus status,
@@ -63,19 +63,19 @@ public class IncidentManagementController {
     }
 
     @GetMapping("/company/incidents/reference-data")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<IncidentReferenceDataResponse> getReferenceData() {
         return ApiResponse.success(incidentService.getReferenceData());
     }
 
     @GetMapping("/company/incidents/{incidentId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<IncidentDetailResponse> getCompanyIncident(@PathVariable Long incidentId) {
         return ApiResponse.success(incidentService.getCompanyIncident(incidentId));
     }
 
     @PostMapping("/company/incidents")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<IncidentDetailResponse> createCompanyIncident(
             @Valid @RequestBody IncidentUpsertRequest request) {
@@ -83,49 +83,49 @@ public class IncidentManagementController {
     }
 
     @PutMapping("/company/incidents/{incidentId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<IncidentDetailResponse> updateCompanyIncident(@PathVariable Long incidentId,
             @Valid @RequestBody IncidentUpsertRequest request) {
         return ApiResponse.success(incidentService.updateCompanyIncident(incidentId, request));
     }
 
     @PostMapping("/company/incidents/{incidentId}/in-review")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<IncidentDetailResponse> moveToInReview(@PathVariable Long incidentId,
             @Valid @RequestBody(required = false) IncidentStatusActionRequest request) {
         return ApiResponse.success(incidentService.moveToInReview(incidentId, request));
     }
 
     @PostMapping("/company/incidents/{incidentId}/escalate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<IncidentDetailResponse> escalate(@PathVariable Long incidentId,
             @Valid @RequestBody(required = false) IncidentStatusActionRequest request) {
         return ApiResponse.success(incidentService.escalate(incidentId, request));
     }
 
     @PostMapping("/company/incidents/{incidentId}/resolve")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<IncidentDetailResponse> resolve(@PathVariable Long incidentId,
             @Valid @RequestBody IncidentStatusActionRequest request) {
         return ApiResponse.success(incidentService.resolve(incidentId, request));
     }
 
     @PostMapping("/company/incidents/{incidentId}/close")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<IncidentDetailResponse> close(@PathVariable Long incidentId,
             @Valid @RequestBody(required = false) IncidentStatusActionRequest request) {
         return ApiResponse.success(incidentService.close(incidentId, request));
     }
 
     @PostMapping("/company/incidents/{incidentId}/dismiss")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<IncidentDetailResponse> dismiss(@PathVariable Long incidentId,
             @Valid @RequestBody(required = false) IncidentStatusActionRequest request) {
         return ApiResponse.success(incidentService.dismiss(incidentId, request));
     }
 
     @PostMapping("/company/incidents/{incidentId}/reopen")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<IncidentDetailResponse> reopen(@PathVariable Long incidentId,
             @Valid @RequestBody(required = false) IncidentStatusActionRequest request) {
         return ApiResponse.success(incidentService.reopen(incidentId, request));

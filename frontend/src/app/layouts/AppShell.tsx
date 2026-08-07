@@ -19,6 +19,7 @@ import {
   ListItemText,
   Menu,
   MenuItem,
+  Skeleton,
   Stack,
   Toolbar,
   Typography,
@@ -47,9 +48,9 @@ import {
 } from "../../features/notifications/api/notificationApi";
 import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
 import { BrandMark } from "../../shared/components/BrandMark";
-import { LoadingState } from "../../shared/components/LoadingState";
 
-const drawerWidth = 280;
+const drawerWidth = 252;
+const appBarHeight = 72;
 
 function isRouteActive(currentPath: string, targetPath: string) {
   return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
@@ -144,32 +145,31 @@ export function AppShell() {
     return () => {
       cancelled = true;
     };
-  }, [location.pathname, platformAdmin]);
+  }, [platformAdmin, session?.accessToken]);
 
   const drawer = (
     <Stack sx={{ height: "100%" }}>
-      <Box sx={{ px: 2.5, py: 3 }}>
+      <Box sx={{ px: 2.5, py: 2, color: "white" }}>
         <BrandMark compact />
       </Box>
       <Divider />
-      <Box sx={{ px: 2.5, py: 2 }}>
-        <Typography variant="overline" color="secondary.main">
+      <Box sx={{ px: 2.5, py: 1.5 }}>
+        <Typography variant="overline" sx={{ color: "rgba(255,255,255,.48)" }}>
           {shellView.scopeLabel}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: "rgba(255,255,255,.78)" }}>
           {workspaceLabel}
         </Typography>
       </Box>
       <Divider />
 
-      <Box sx={{ flexGrow: 1, overflowY: "auto", px: 1.5, py: 2 }}>
-        <Stack spacing={2}>
+      <Box sx={{ flexGrow: 1, overflowY: "auto", px: 1.25, py: 1.5 }}>
+        <Stack spacing={1.5}>
           {visibleSections.map((section) => (
             <Box key={section.title}>
               <Typography
                 variant="overline"
-                color="text.secondary"
-                sx={{ px: 1.5, pb: 1, display: "block" }}
+                sx={{ px: 1.25, pb: 0.5, display: "block", color: "rgba(255,255,255,.42)" }}
               >
                 {section.title}
               </Typography>
@@ -183,33 +183,34 @@ export function AppShell() {
                       to={item.to}
                       selected={selected}
                       sx={{
-                        borderRadius: 3,
-                        mb: 0.75,
-                        alignItems: "flex-start",
-                        py: 1.1,
+                        mb: 0.25,
+                        minHeight: 44,
+                        borderRadius: 1.5,
+                        alignItems: "center",
+                        py: 0.75,
+                        px: 1.25,
                         "&.Mui-selected": {
-                          bgcolor: "rgba(15, 76, 92, 0.10)",
+                          bgcolor: "rgba(255,255,255,.12)",
+                          boxShadow: "inset 3px 0 0 #e18a48",
                         },
+                        "&:hover": { bgcolor: "rgba(255,255,255,.075)" },
                       }}
                     >
                       <ListItemIcon
                         sx={{
-                          minWidth: 40,
-                          color: selected ? "primary.main" : "text.secondary",
-                          mt: 0.25,
+                          minWidth: 36,
+                          color: selected ? "#f1a768" : "rgba(255,255,255,.48)",
                         }}
                       >
                         {item.icon}
                       </ListItemIcon>
                       <ListItemText
                         primary={item.label}
-                        secondary={item.description}
                         primaryTypographyProps={{
                           fontWeight: selected ? 700 : 600,
-                          color: selected ? "primary.main" : "text.primary",
-                        }}
-                        secondaryTypographyProps={{
-                          sx: { lineHeight: 1.35 },
+                          color: "common.white",
+                          fontSize: "0.94rem",
+                          lineHeight: 1.25,
                         }}
                       />
                     </ListItemButton>
@@ -222,7 +223,7 @@ export function AppShell() {
       </Box>
 
       <Divider />
-      <Box sx={{ px: 2.5, py: 2.5 }}>
+      <Box sx={{ px: 2.5, py: 2.5, color: "white", "& .MuiButton-root": { color: "rgba(255,255,255,.72)" }, "& .MuiChip-root": { color: "white", borderColor: "rgba(255,255,255,.22)" } }}>
         <Stack spacing={1.25}>
           <Chip
             label={
@@ -311,11 +312,11 @@ export function AppShell() {
           ml: { md: `${drawerWidth}px` },
           borderBottom: "1px solid",
           borderColor: "divider",
-          backgroundColor: "rgba(247, 248, 244, 0.88)",
-          backdropFilter: "blur(12px)",
+          backgroundColor: "rgba(255, 255, 255, 0.82)",
+          backdropFilter: "blur(18px)",
         }}
       >
-        <Toolbar sx={{ gap: 2 }}>
+        <Toolbar sx={{ gap: 2, minHeight: `${appBarHeight}px !important` }}>
           <IconButton
             color="inherit"
             edge="start"
@@ -331,11 +332,8 @@ export function AppShell() {
             <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
               {workspaceLabel}
             </Typography>
-            <Typography variant="body2" color="text.secondary" noWrap>
-              {shellView.description}
-            </Typography>
           </Box>
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          <Stack direction="row" spacing={1} alignItems="center">
             <IconButton
               color="inherit"
               onClick={(event) => setNotificationAnchorEl(event.currentTarget)}
@@ -356,6 +354,7 @@ export function AppShell() {
               }
               color="primary"
               variant="outlined"
+              sx={{ display: { xs: "none", lg: "flex" } }}
             />
             <Button
               color="inherit"
@@ -366,8 +365,9 @@ export function AppShell() {
                 </Avatar>
               }
               endIcon={<MoreHorizRoundedIcon />}
+              sx={{ minWidth: 0, "& .MuiButton-startIcon": { mr: { xs: 0, sm: 1 } } }}
             >
-              {displayName}
+              <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>{displayName}</Box>
             </Button>
           </Stack>
         </Toolbar>
@@ -493,6 +493,8 @@ export function AppShell() {
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: drawerWidth,
+              color: "common.white",
+              background: "radial-gradient(circle at 0 0, #174e5b 0, transparent 28%), linear-gradient(180deg, #0a2932 0%, #071e25 100%)",
             },
           }}
         >
@@ -507,8 +509,9 @@ export function AppShell() {
               boxSizing: "border-box",
               width: drawerWidth,
               borderRight: "1px solid",
-              borderColor: "divider",
-              backgroundColor: "#fcfcfa",
+              borderColor: "rgba(255,255,255,.06)",
+              color: "common.white",
+              background: "radial-gradient(circle at 0 0, #174e5b 0, transparent 28%), linear-gradient(180deg, #0a2932 0%, #071e25 100%)",
             },
           }}
         >
@@ -523,14 +526,16 @@ export function AppShell() {
           width: { md: `calc(100% - ${drawerWidth}px)` },
           display: "flex",
           flexDirection: "column",
+          backgroundImage: "radial-gradient(rgba(15,76,92,.075) 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
         }}
       >
-        <Toolbar />
+        <Toolbar sx={{ minHeight: `${appBarHeight}px !important` }} />
         <Container
           maxWidth={false}
           sx={{
             px: { xs: 2, md: 4 },
-            py: { xs: 2, md: 3 },
+            py: { xs: 2.5, md: 4 },
             maxWidth: 1480,
             width: "100%",
             flexGrow: 1,
@@ -541,13 +546,14 @@ export function AppShell() {
         >
           <Box
             sx={{
-              borderRadius: 5,
               border: "1px solid",
               borderColor: "divider",
-              bgcolor: "rgba(255, 255, 255, 0.8)",
-              backdropFilter: "blur(14px)",
+              bgcolor: "rgba(255,255,255,.72)",
+              backdropFilter: "blur(12px)",
+              borderRadius: 2,
               px: { xs: 2.5, md: 3 },
-              py: { xs: 2, md: 2.5 },
+              py: { xs: 2, md: 2.25 },
+              boxShadow: "0 12px 30px rgba(15,50,60,.06)",
             }}
           >
             <Stack spacing={0.75}>
@@ -571,11 +577,18 @@ export function AppShell() {
           <Box sx={{ flexGrow: 1 }}>
             <Suspense
               fallback={
-                <LoadingState
-                  title="Loading workspace"
-                  description="Please wait while the selected workspace view is prepared."
-                  minHeight={360}
-                />
+                <Box
+                  aria-label="Loading workspace"
+                  aria-busy="true"
+                  sx={{ minHeight: 360, pt: 0.5 }}
+                >
+                  <Skeleton variant="rounded" height={180} animation={false} />
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 2 }}>
+                    <Skeleton variant="rounded" height={112} sx={{ flex: 1 }} animation={false} />
+                    <Skeleton variant="rounded" height={112} sx={{ flex: 1 }} animation={false} />
+                    <Skeleton variant="rounded" height={112} sx={{ flex: 1 }} animation={false} />
+                  </Stack>
+                </Box>
               }
             >
               <Outlet />

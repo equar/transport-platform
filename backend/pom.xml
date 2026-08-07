@@ -21,6 +21,9 @@
         <java.version>25</java.version>
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.8.8</springdoc.version>
+        <byte-buddy.version>1.17.8</byte-buddy.version>
+        <microsoft-graph.version>6.3.0</microsoft-graph.version>
+        <azure-identity.version>1.11.1</azure-identity.version>
     </properties>
 
     <dependencies>
@@ -85,6 +88,16 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
+            <groupId>com.microsoft.graph</groupId>
+            <artifactId>microsoft-graph</artifactId>
+            <version>${microsoft-graph.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-identity</artifactId>
+            <version>${azure-identity.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
@@ -93,6 +106,13 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-javaagent:${settings.localRepository}/net/bytebuddy/byte-buddy-agent/${byte-buddy.version}/byte-buddy-agent-${byte-buddy.version}.jar</argLine>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

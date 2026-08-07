@@ -33,6 +33,7 @@ import { StatusChip } from "../../../shared/components/StatusChip";
 import { TableActionButton } from "../../../shared/components/TableActionButton";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
+import { normalizeBusinessError } from "../../../shared/api/businessError";
 import {
   riderTypeOptions,
   ridersApi,
@@ -135,8 +136,13 @@ export function RiderManagementPage() {
       setDialogOpen(false);
       setSelectedRider(null);
       await loadRiders();
-    } catch {
-      showError("Rider changes could not be saved.");
+    } catch (saveError) {
+      showError(
+        normalizeBusinessError(
+          saveError,
+          "Rider changes could not be saved.",
+        ).message,
+      );
     } finally {
       setSaving(false);
     }

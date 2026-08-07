@@ -27,6 +27,8 @@ import { isPlatformAdmin } from "../../auth/access";
 import { useAuth } from "../../auth/context/AuthContext";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
+import { PageHero } from "../../../shared/components/PageHero";
+import { OperationsPulse } from "../../../shared/components/OperationsPulse";
 import { RecentActivityList } from "../../../shared/components/RecentActivityList";
 import {
   dashboardApi,
@@ -507,25 +509,31 @@ export function DashboardPage() {
   const summaryCards = platformAdmin ? platformCards : companyCards;
   const summary = platformAdmin ? platformSummary : companySummary;
   const recentActivity = summary?.recentActivity ?? [];
+  const metricValue = (key: string) => {
+    const value = summary?.[key as keyof typeof summary];
+    return typeof value === "number" ? value : 0;
+  };
+  const pulseItems = platformAdmin
+    ? [
+        { label: "Active tenants", value: metricValue("activeTenants"), color: "success" as const },
+        { label: "Pending applications", value: metricValue("pendingApplications"), color: "warning" as const },
+        { label: "Active subscriptions", value: metricValue("activeSubscriptions"), color: "primary" as const },
+        { label: "Suspended tenants", value: metricValue("suspendedTenants"), color: "error" as const },
+      ]
+    : [
+        { label: "Active riders", value: metricValue("activeRiders"), color: "primary" as const },
+        { label: "Active drivers", value: metricValue("activeDrivers"), color: "success" as const },
+        { label: "Active vehicles", value: metricValue("activeVehicles"), color: "secondary" as const },
+        { label: "Open compliance issues", value: metricValue("openComplianceIssues"), color: "warning" as const },
+      ];
 
   return (
     <Stack spacing={3}>
-      <PageCard>
-        <Stack spacing={2}>
-          <Typography variant="overline" color="secondary.main">
-            {platformAdmin ? "Platform Dashboard" : "Company Dashboard"}
-          </Typography>
-          <Typography variant="h3">
-            {platformAdmin
-              ? "Tenant onboarding, identity governance, and company intake are visible in one control surface."
-              : "Operations, fleet, dispatch, and billing controls are centralized in one company-admin workspace."}
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {platformAdmin
-              ? "Track application demand, tenant activation, and user lifecycle health across the platform."
-              : "Track user activity, rider readiness, guardian coverage, driver onboarding, vehicle readiness, billing posture, and administrative changes for your tenant."}
-          </Typography>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+      <PageHero
+        eyebrow={platformAdmin ? "Platform command center" : "Operations command center"}
+        title={platformAdmin ? "Run every tenant from one clear control surface." : "Keep today’s transportation operation moving."}
+        description={platformAdmin ? "Monitor tenant health, subscriptions, onboarding demand, and access governance across the whole platform." : "See dispatch readiness, compliance risk, billing posture, and the people who need attention—all in one place."}
+      >
             {platformAdmin ? (
               <>
                 <Button
@@ -542,13 +550,7 @@ export function DashboardPage() {
                 >
                   Manage Users
                 </Button>
-                <Button
-                  component={RouterLink}
-                  to="/platform/audit-logs"
-                  variant="text"
-                >
-                  Review Audit Logs
-                </Button>
+                <Button component={RouterLink} to="/platform/tenants" variant="outlined">View tenants</Button>
               </>
             ) : (
               <>
@@ -559,132 +561,32 @@ export function DashboardPage() {
                 >
                   Manage Users
                 </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/riders"
-                  variant="outlined"
-                >
-                  Manage Riders
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/rides"
-                  variant="outlined"
-                >
-                  Manage Rides
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/pricing-rules"
-                  variant="outlined"
-                >
-                  Manage Pricing Rules
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/invoices"
-                  variant="outlined"
-                >
-                  Manage Invoices
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/payments"
-                  variant="outlined"
-                >
-                  Manage Payments
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/receivables"
-                  variant="outlined"
-                >
-                  Review Receivables
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/incidents"
-                  variant="outlined"
-                >
-                  Manage Incidents
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/reports"
-                  variant="outlined"
-                >
-                  Run Reports
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/settings"
-                  variant="text"
-                >
-                  Company Settings
+                <Button component={RouterLink} to="/company/drivers" variant="outlined">
+                  Manage Drivers
                 </Button>
                 <Button
                   component={RouterLink}
                   to="/company/dispatch"
-                  variant="contained"
+                  variant="outlined"
                 >
                   Open Dispatch Board
                 </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/routes"
-                  variant="outlined"
-                >
-                  Manage Routes
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/guardians"
-                  variant="text"
-                >
-                  Manage Guardians
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/recurring-rides"
-                  variant="text"
-                >
-                  Manage Recurring Rides
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/drivers"
-                  variant="outlined"
-                >
-                  Review Drivers
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/vehicles"
-                  variant="text"
-                >
-                  Review Vehicles
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/vehicles"
-                  variant="text"
-                >
-                  Manage Vehicle Documents
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/audit-logs"
-                  variant="text"
-                >
-                  Review Audit Logs
-                </Button>
+                <Button component={RouterLink} to="/company/rides" variant="outlined">Manage rides</Button>
+                <Button component={RouterLink} to="/company/incidents" variant="outlined">Review incidents</Button>
               </>
             )}
-          </Stack>
-        </Stack>
-      </PageCard>
+      </PageHero>
 
       {error ? <Alert severity="error">{error}</Alert> : null}
+
+      <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", lg: "minmax(0,1.35fr) minmax(340px,.65fr)" } }}>
+        <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "repeat(2,minmax(0,1fr))", md: "repeat(4,minmax(0,1fr))" } }}>
+          {summaryCards.slice(0, 4).map((card) => (
+            <MetricCard key={`primary-${card.key}`} icon={card.icon} label={card.label} caption={card.caption} value={summary ? formatSummaryValue(card, summary[card.key as keyof typeof summary]) : <Skeleton width={56} />} />
+          ))}
+        </Box>
+        <OperationsPulse title={platformAdmin ? "Platform health" : "Operational pulse"} description={platformAdmin ? "Live distribution across core governance signals." : "A quick comparison of today’s service capacity."} items={pulseItems} />
+      </Box>
 
       <Box
         sx={{
@@ -697,7 +599,7 @@ export function DashboardPage() {
           },
         }}
       >
-        {summaryCards.map((card) => (
+        {summaryCards.slice(4, platformAdmin ? 10 : 12).map((card) => (
           <MetricCard
             key={card.key}
             icon={card.icon}

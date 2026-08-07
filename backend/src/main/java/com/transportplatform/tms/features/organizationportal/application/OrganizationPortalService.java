@@ -32,12 +32,10 @@ import com.transportplatform.tms.features.organization.domain.ContractStatus;
 import com.transportplatform.tms.features.organization.domain.Organization;
 import com.transportplatform.tms.features.organization.domain.OrganizationContact;
 import com.transportplatform.tms.features.organization.domain.OrganizationContactRepository;
-import com.transportplatform.tms.features.organization.domain.OrganizationRepository;
 import com.transportplatform.tms.features.organizationportal.api.request.OrganizationPortalProfileUpdateRequest;
 import com.transportplatform.tms.features.organizationportal.api.response.OrganizationPortalDashboardResponse;
 import com.transportplatform.tms.features.organizationportal.api.response.OrganizationPortalProfileResponse;
 import com.transportplatform.tms.features.portalcommon.api.response.PortalRideSummaryResponse;
-import com.transportplatform.tms.features.rider.domain.Rider;
 import com.transportplatform.tms.features.rider.domain.RiderRepository;
 import com.transportplatform.tms.features.rider.domain.RiderStatus;
 import com.transportplatform.tms.features.ride.domain.Ride;
@@ -72,7 +70,6 @@ public class OrganizationPortalService {
 
     private final OrganizationPortalAccessService accessService;
     private final OrganizationContactRepository organizationContactRepository;
-    private final OrganizationRepository organizationRepository;
     private final RiderRepository riderRepository;
     private final RideRepository rideRepository;
     private final ContractRepository contractRepository;
@@ -89,7 +86,6 @@ public class OrganizationPortalService {
 
     public OrganizationPortalService(OrganizationPortalAccessService accessService,
             OrganizationContactRepository organizationContactRepository,
-            OrganizationRepository organizationRepository,
             RiderRepository riderRepository,
             RideRepository rideRepository,
             ContractRepository contractRepository,
@@ -105,7 +101,6 @@ public class OrganizationPortalService {
             Clock clock) {
         this.accessService = accessService;
         this.organizationContactRepository = organizationContactRepository;
-        this.organizationRepository = organizationRepository;
         this.riderRepository = riderRepository;
         this.rideRepository = rideRepository;
         this.contractRepository = contractRepository;

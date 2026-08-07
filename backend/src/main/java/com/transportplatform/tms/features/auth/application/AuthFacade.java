@@ -13,6 +13,8 @@ import com.transportplatform.tms.features.auth.api.response.AuthTokensResponse;
 import com.transportplatform.tms.features.auth.domain.AppUser;
 import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
+import com.transportplatform.tms.features.tenant.domain.TenantRepository;
+import com.transportplatform.tms.features.tenant.domain.TenantStatus;
 import io.jsonwebtoken.JwtException;
 import java.time.Instant;
 import java.util.LinkedHashSet;
@@ -25,32 +27,41 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthFacade {
 
-    private static final String PLATFORM_TENANT_ALIAS = "platform";
-
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
+    private final TenantRepository tenantRepository;
 
     public AuthFacade(AppUserRepository appUserRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            CurrentAuthenticatedUserService currentAuthenticatedUserService) {
+            CurrentAuthenticatedUserService currentAuthenticatedUserService,
+            TenantRepository tenantRepository) {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
+        this.tenantRepository = tenantRepository;
     }
 
     @Transactional
     public AuthTokensResponse login(LoginRequest request) {
-        String normalizedTenantId = normalizeTenantId(request.tenantId());
-        AppUser user = appUserRepository.findForAuthentication(normalizedTenantId, request.email())
-                .orElseThrow(() -> invalidCredentials());
-
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash()) || !user.isActiveForLogin()) {
+        AppUser user = appUserRepository.findForAuthenticationByEmail(request.email())
+                .orElseThrow(this::invalidCredentials);
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw invalidCredentials();
         }
+        if (!user.isActiveForLogin()) {
+            throw invalidCredentials();
+        }
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            throw new ApiException(
+                    ErrorCode.FORBIDDEN,
+                    HttpStatus.FORBIDDEN,
+                    "This account has no assigned role. Contact an administrator.");
+        }
+        ensureTenantActive(user.getTenantId());
 
         user.setLastLoginAt(Instant.now());
 
@@ -66,6 +77,7 @@ public class AuthFacade {
             if (!user.isActiveForLogin()) {
                 throw invalidCredentials();
             }
+            ensureTenantActive(user.getTenantId());
 
             return issueTokens(toPrincipal(user));
         } catch (JwtException exception) {
@@ -130,17 +142,25 @@ public class AuthFacade {
                 user.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.name())).toList());
     }
 
-    private String normalizeTenantId(String tenantId) {
-        if (tenantId == null || tenantId.isBlank()) {
-            return null;
-        }
-        return PLATFORM_TENANT_ALIAS.equalsIgnoreCase(tenantId.trim()) ? null : tenantId.trim();
-    }
-
     private ApiException invalidCredentials() {
         return new ApiException(
                 ErrorCode.INVALID_CREDENTIALS,
                 HttpStatus.UNAUTHORIZED,
                 "The provided credentials are invalid.");
+    }
+
+    private void ensureTenantActive(String tenantId) {
+        if (tenantId == null || tenantId.isBlank()) {
+            return;
+        }
+        if (tenantRepository.findById(tenantId)
+                .map(tenant -> tenant.getStatus() == TenantStatus.ACTIVE)
+                .orElse(false)) {
+            return;
+        }
+        throw new ApiException(
+                ErrorCode.FORBIDDEN,
+                HttpStatus.FORBIDDEN,
+                "This company account is not active. Contact the platform administrator.");
     }
 }

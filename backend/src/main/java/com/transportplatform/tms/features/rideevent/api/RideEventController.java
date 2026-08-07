@@ -27,13 +27,13 @@ public class RideEventController {
     }
 
     @GetMapping("/company/rides/{rideId}/events")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<List<RideEventResponse>> getCompanyRideEvents(@PathVariable Long rideId) {
         return ApiResponse.success(rideEventService.getCompanyRideEvents(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/events/notes")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> addCompanyRideEventNote(@PathVariable Long rideId,
             @Valid @RequestBody AddRideEventNoteRequest request) {
         rideService.addCompanyRideNote(rideId, request.notes());

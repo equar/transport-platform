@@ -11,6 +11,8 @@ import com.transportplatform.tms.features.driverportal.api.response.DriverPortal
 import com.transportplatform.tms.features.driverportal.api.response.DriverPortalRideSummaryResponse;
 import com.transportplatform.tms.features.driverportal.api.response.DriverPortalRouteDetailResponse;
 import com.transportplatform.tms.features.driverportal.api.response.DriverPortalRouteSummaryResponse;
+import com.transportplatform.tms.features.driverportal.api.response.DriverPortalDocumentResponse;
+import com.transportplatform.tms.features.driver.domain.DriverDocumentType;
 import com.transportplatform.tms.features.driverportal.application.DriverPortalService;
 import com.transportplatform.tms.features.ride.domain.RideStatus;
 import com.transportplatform.tms.features.route.domain.RouteStatus;
@@ -25,6 +27,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 @RestController
 @PreAuthorize("hasRole('DRIVER')")
@@ -55,6 +62,20 @@ public class DriverPortalController {
     @GetMapping("/portal/driver/compliance")
     public ApiResponse<DriverPortalComplianceSummaryResponse> getComplianceSummary() {
         return ApiResponse.success(driverPortalService.getComplianceSummary());
+    }
+
+    @PostMapping(value = "/portal/driver/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<DriverPortalDocumentResponse> uploadDocument(
+            @RequestParam DriverDocumentType documentType,
+            @RequestParam(required = false) String documentNumber,
+            @RequestParam(required = false) String issuingAuthority,
+            @RequestParam(required = false) LocalDate issueDate,
+            @RequestParam(required = false) LocalDate expiryDate,
+            @RequestParam(required = false) String notes,
+            @RequestPart("file") MultipartFile file) {
+        return ApiResponse.success(driverPortalService.uploadDocument(documentType, documentNumber,
+                issuingAuthority, issueDate, expiryDate, notes, file));
     }
 
     @GetMapping("/portal/driver/rides")

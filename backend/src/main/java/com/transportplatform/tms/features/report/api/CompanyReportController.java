@@ -50,13 +50,13 @@ public class CompanyReportController {
     }
 
     @GetMapping("/company/reports")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<List<ReportDefinitionResponse>> listReports() {
         return ApiResponse.success(reportService.listAvailableReports());
     }
 
     @GetMapping("/company/reports/drivers")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<CompanyReportResponse<DriverReportRowResponse>> getDriverReport(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) DriverStatus status,
@@ -67,7 +67,7 @@ public class CompanyReportController {
     }
 
     @GetMapping("/company/reports/vehicles")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<CompanyReportResponse<VehicleReportRowResponse>> getVehicleReport(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) VehicleStatus status,
@@ -80,7 +80,7 @@ public class CompanyReportController {
     }
 
     @GetMapping("/company/reports/riders")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<CompanyReportResponse<RiderReportRowResponse>> getRiderReport(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) RiderStatus status,
@@ -95,7 +95,7 @@ public class CompanyReportController {
     }
 
     @GetMapping("/company/reports/rides")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<CompanyReportResponse<RideReportRowResponse>> getRideReport(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) RideStatus status,
@@ -109,7 +109,7 @@ public class CompanyReportController {
     }
 
     @GetMapping("/company/reports/routes")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<CompanyReportResponse<RouteReportRowResponse>> getRouteReport(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) RouteStatus status,
@@ -122,7 +122,7 @@ public class CompanyReportController {
     }
 
     @GetMapping("/company/reports/invoices")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<CompanyReportResponse<InvoiceReportRowResponse>> getInvoiceReport(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) InvoiceStatus status,
@@ -135,7 +135,7 @@ public class CompanyReportController {
     }
 
     @GetMapping("/company/reports/payments")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<CompanyReportResponse<PaymentReportRowResponse>> getPaymentReport(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) PaymentStatus status,
@@ -146,7 +146,7 @@ public class CompanyReportController {
     }
 
     @GetMapping("/company/reports/compliance")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<CompanyReportResponse<ComplianceIssueReportRowResponse>> getComplianceReport(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) ComplianceEntityType entityType,
@@ -162,7 +162,7 @@ public class CompanyReportController {
     }
 
     @GetMapping("/company/reports/incidents")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<CompanyReportResponse<IncidentReportRowResponse>> getIncidentReport(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) IncidentType incidentType,

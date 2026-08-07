@@ -1,0 +1,29 @@
+[Unit]
+Description=Bakaroo Transport Platform Backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/transport-platform
+EnvironmentFile=/opt/transport-platform/.env
+ExecStart=/usr/bin/java -Xms512m -Xmx1g -XX:+UseG1GC -XX:TieredStopAtLevel=1 -jar /opt/transport-platform/backend.jar
+Restart=always
+RestartSec=10
+SuccessExitStatus=143
+TimeoutStopSec=45
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=transport-platform-backend
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/transport-platform/logs /opt/transport-platform/documents
+LimitNOFILE=65535
+Environment=TZ=America/New_York
+
+[Install]
+WantedBy=multi-user.target

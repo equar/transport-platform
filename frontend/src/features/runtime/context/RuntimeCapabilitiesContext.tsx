@@ -27,7 +27,7 @@ const RuntimeCapabilitiesContext = createContext<
 >(undefined);
 
 const defaultBranding: RuntimeBranding = {
-  displayName: "Transport Platform",
+  displayName: "Bakaroo Transports",
   logoUrl: null,
   faviconUrl: null,
   primaryColor: "#0B5FFF",
@@ -38,7 +38,7 @@ const defaultBranding: RuntimeBranding = {
   website: null,
   customLoginWelcomeText:
     "Transportation operations, workspace governance, and secure access in one platform.",
-  customFooterText: "Transport Platform transportation operations",
+  customFooterText: "Bakaroo Transports transportation operations",
 };
 
 export function RuntimeCapabilitiesProvider({ children }: PropsWithChildren) {

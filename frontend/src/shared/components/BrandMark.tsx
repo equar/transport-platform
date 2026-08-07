@@ -1,4 +1,4 @@
-import { Stack, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
 
 interface BrandMarkProps {
@@ -7,24 +7,16 @@ interface BrandMarkProps {
 
 export function BrandMark({ compact = false }: BrandMarkProps) {
   const { branding } = useRuntimeCapabilities();
+  const logoUrl = branding?.logoUrl || "/branding/bakaroo-logo.png";
 
   return (
-    <Stack spacing={compact ? 0 : 0.25}>
-      <Typography
-        variant={compact ? "h6" : "overline"}
-        sx={{
-          letterSpacing: "0.18em",
-          color: "secondary.main",
-          fontWeight: 700,
-        }}
-      >
-        {compact
-          ? (branding?.displayName?.toUpperCase() ?? "TRANSPORT PLATFORM")
-          : "TRANSPORT PLATFORM"}
-      </Typography>
-      <Typography variant={compact ? "body2" : "h4"} sx={{ fontWeight: 700 }}>
-        {branding?.displayName || "Transportation operations platform"}
-      </Typography>
-    </Stack>
+    <Box
+      component="img"
+      src={logoUrl}
+      alt={`${branding?.displayName || "Bakaroo Transports"} logo`}
+      sx={compact
+        ? { width: 176, maxWidth: "100%", height: 72, objectFit: "contain", flexShrink: 0 }
+        : { width: "min(100%, 320px)", height: "auto", objectFit: "contain" }}
+    />
   );
 }

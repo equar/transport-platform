@@ -1,4 +1,5 @@
 import {
+  Alert,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -38,6 +39,17 @@ export function TenantDetailsDialog({
       <DialogContent>
         {tenant ? (
           <Stack spacing={3} sx={{ mt: 1 }}>
+            {tenant.status === "PENDING" ? (
+              <Alert severity="info">
+                Before activation, create a tenant administrator account for this
+                tenant. Activation initializes access to the company workspace;
+                pending tenants cannot sign in.
+              </Alert>
+            ) : tenant.status === "SUSPENDED" ? (
+              <Alert severity="warning">
+                Sign-in and tenant resources are blocked while this tenant is suspended.
+              </Alert>
+            ) : null}
             <Stack
               direction={{ xs: "column", md: "row" }}
               spacing={2}
@@ -54,6 +66,7 @@ export function TenantDetailsDialog({
             <Divider />
             <Stack spacing={2}>
               <DetailRow label="Legal Name" value={tenant.legalName} />
+              <DetailRow label="Workspace code used at sign-in" value={tenant.tenantCode} />
               <DetailRow label="Email" value={tenant.email} />
               <DetailRow label="Phone" value={tenant.phone} />
               <DetailRow label="Business Type" value={tenant.businessType} />

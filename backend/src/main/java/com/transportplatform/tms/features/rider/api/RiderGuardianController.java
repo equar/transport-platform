@@ -27,19 +27,19 @@ public class RiderGuardianController {
     }
 
     @GetMapping("/company/riders/{riderId}/guardians")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<List<RiderGuardianResponse>> listGuardiansForRider(@PathVariable Long riderId) {
         return ApiResponse.success(riderRelationshipService.listGuardiansForRider(riderId));
     }
 
     @GetMapping("/company/guardians/{guardianId}/riders")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<List<GuardianLinkedRiderResponse>> listRidersForGuardian(@PathVariable Long guardianId) {
         return ApiResponse.success(riderRelationshipService.listRidersForGuardian(guardianId));
     }
 
     @PostMapping("/company/riders/{riderId}/guardians")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RiderGuardianResponse> linkGuardianToRider(@PathVariable Long riderId,
             @Valid @RequestBody RiderGuardianUpsertRequest request) {
@@ -47,14 +47,14 @@ public class RiderGuardianController {
     }
 
     @PutMapping("/company/rider-guardians/{relationshipId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RiderGuardianResponse> updateRiderGuardian(@PathVariable Long relationshipId,
             @Valid @RequestBody RiderGuardianUpsertRequest request) {
         return ApiResponse.success(riderRelationshipService.updateRiderGuardian(relationshipId, request));
     }
 
     @PostMapping("/company/rider-guardians/{relationshipId}/unlink")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RiderGuardianResponse> unlinkRiderGuardian(@PathVariable Long relationshipId) {
         return ApiResponse.success(riderRelationshipService.unlinkRiderGuardian(relationshipId));
     }

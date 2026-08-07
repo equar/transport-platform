@@ -51,7 +51,8 @@ public class CompanyApplicationApprovalService {
         tenant.setStatus(TenantStatus.PENDING);
 
         Tenant savedTenant = tenantService.createFromApplication(tenant);
-        Long ownerUserId = tenantOwnerProvisioningService.provisionOwner(savedTenant.getId(), request.ownerEmail());
+        Long ownerUserId = tenantOwnerProvisioningService.provisionOwner(
+                savedTenant.getId(), request.ownerEmail(), request.ownerPassword());
         return new ApprovalResult(savedTenant.getId(), ownerUserId);
     }
 

@@ -33,7 +33,7 @@ public class RideManagementController {
     }
 
     @GetMapping("/company/rides")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<PageResponse<RideResponse>> searchCompanyRides(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) RideStatus status,
@@ -67,99 +67,99 @@ public class RideManagementController {
     }
 
     @GetMapping("/company/rides/{rideId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> getCompanyRide(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.getCompanyRide(rideId));
     }
 
     @PostMapping("/company/rides")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RideResponse> createCompanyRide(@Valid @RequestBody RideUpsertRequest request) {
         return ApiResponse.success(rideService.createCompanyRide(request));
     }
 
     @PutMapping("/company/rides/{rideId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> updateCompanyRide(@PathVariable Long rideId,
             @Valid @RequestBody RideUpsertRequest request) {
         return ApiResponse.success(rideService.updateCompanyRide(rideId, request));
     }
 
     @PostMapping("/company/rides/{rideId}/request")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> requestCompanyRide(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.requestCompanyRide(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/review")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> reviewCompanyRide(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.reviewCompanyRide(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/schedule")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> scheduleCompanyRide(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.scheduleCompanyRide(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/mark-assigned")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> markCompanyRideAssigned(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.markCompanyRideAssigned(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/driver-en-route")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> markCompanyRideDriverEnRoute(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.markCompanyRideDriverEnRoute(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/arrived")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> markCompanyRideArrived(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.markCompanyRideArrived(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/picked-up")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> markCompanyRidePickedUp(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.markCompanyRidePickedUp(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/dropped-off")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> markCompanyRideDroppedOff(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.markCompanyRideDroppedOff(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/complete")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> completeCompanyRide(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.completeCompanyRide(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/no-show")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> markCompanyRideNoShow(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.markCompanyRideNoShow(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/missed")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> markCompanyRideMissed(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.markCompanyRideMissed(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/failed")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> markCompanyRideFailed(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.markCompanyRideFailed(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/cancel")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> cancelCompanyRide(@PathVariable Long rideId,
             @Valid @RequestBody CancelRideRequest request) {
         return ApiResponse.success(rideService.cancelCompanyRide(rideId, request));

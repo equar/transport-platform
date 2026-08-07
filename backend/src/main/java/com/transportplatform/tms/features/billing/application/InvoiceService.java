@@ -31,11 +31,9 @@ import com.transportplatform.tms.features.organization.domain.ContractRepository
 import com.transportplatform.tms.features.organization.domain.ContractType;
 import com.transportplatform.tms.features.organization.domain.OrganizationRepository;
 import com.transportplatform.tms.features.organization.domain.OrganizationType;
-import com.transportplatform.tms.features.organization.domain.ServiceType;
 import com.transportplatform.tms.features.rider.domain.RiderRepository;
 import com.transportplatform.tms.features.rider.domain.RiderType;
 import com.transportplatform.tms.features.ride.domain.Ride;
-import com.transportplatform.tms.features.ride.domain.RideTripType;
 import com.transportplatform.tms.features.route.domain.Route;
 import java.math.BigDecimal;
 import java.math.RoundingMode;

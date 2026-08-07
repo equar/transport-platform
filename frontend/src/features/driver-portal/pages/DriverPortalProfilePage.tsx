@@ -18,6 +18,7 @@ import {
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { PageCard } from "../../../shared/components/PageCard";
 import { useToast } from "../../../shared/providers/ToastProvider";
+import { PasswordChangeCard } from "../../auth/components/PasswordChangeCard";
 
 export function DriverPortalProfilePage() {
   const { showError, showSuccess } = useToast();
@@ -335,6 +336,7 @@ export function DriverPortalProfilePage() {
           </PageCard>
         </Box>
       ) : null}
+      <PasswordChangeCard />
     </Stack>
   );
 }

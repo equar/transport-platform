@@ -114,7 +114,6 @@ export function MarketingPage({
                   sx={{
                     px: 2,
                     py: 1.5,
-                    borderRadius: 3,
                     border: "1px solid",
                     borderColor: "divider",
                     bgcolor: "rgba(255, 255, 255, 0.72)",

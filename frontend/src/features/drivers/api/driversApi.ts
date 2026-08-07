@@ -254,6 +254,12 @@ export const driversApi = {
     });
     return unwrapResponse<PageResponse<DriverDocumentRecord>>(response.data);
   },
+  async listAllDocuments(driverId: number) {
+    const response = await apiClient.get(
+      `/company/drivers/${driverId}/documents/all`,
+    );
+    return unwrapResponse<DriverDocumentRecord[]>(response.data);
+  },
   async createDocument(driverId: number, payload: DriverDocumentPayload) {
     const response = await apiClient.post(
       `/company/drivers/${driverId}/documents`,
@@ -267,6 +273,13 @@ export const driversApi = {
       payload,
     );
     return unwrapResponse<DriverDocumentRecord>(response.data);
+  },
+  async downloadDocument(documentId: number) {
+    const response = await apiClient.get(
+      `/company/driver-documents/${documentId}/content`,
+      { responseType: "blob" },
+    );
+    return response.data as Blob;
   },
   async verifyDocument(documentId: number, payload: DriverDocumentReviewPayload) {
     const response = await apiClient.post(

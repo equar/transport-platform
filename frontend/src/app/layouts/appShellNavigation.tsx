@@ -24,6 +24,7 @@ import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
 import type { AuthSession } from "../../features/auth/types";
 import type { RuntimeModuleAccess } from "../../features/runtime/api/runtimeApi";
 import {
+  canAccessCompanyWorkspace,
   getDefaultRoute,
   hasRole,
   isCompanyAdmin,
@@ -512,7 +513,7 @@ function filterCompanySections(
       ...section,
       items: section.items.filter((item) => {
         const moduleEnabled = item.requiredModule
-          ? moduleAccess?.[item.requiredModule] === true
+          ? moduleAccess === null || moduleAccess[item.requiredModule] === true
           : true;
         return moduleEnabled && hasCompanyAudience(item.audiences, session);
       }),
@@ -581,6 +582,10 @@ export function getAppShellProfilePath(
 ) {
   if (isPlatformAdmin(session)) {
     return "/platform/profile";
+  }
+
+  if (canAccessCompanyWorkspace(session)) {
+    return "/company/security";
   }
 
   const shellView = buildAppShellView(session, moduleAccess);

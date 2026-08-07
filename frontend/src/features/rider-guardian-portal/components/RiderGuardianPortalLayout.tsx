@@ -124,10 +124,9 @@ export function RiderGuardianPortalLayout() {
               selected={selected}
               onClick={() => setMobileOpen(false)}
               sx={{
-                borderRadius: 3,
                 mb: 0.75,
                 alignItems: "flex-start",
-                py: 1.1,
+                py: 1,
                 "&.Mui-selected": {
                   bgcolor: "rgba(15, 76, 92, 0.10)",
                 },

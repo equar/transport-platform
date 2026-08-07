@@ -97,6 +97,31 @@ class UserManagementServiceTest {
         assertEquals("tenant-123", userCaptor.getValue().getTenantId());
     }
 
+    @Test
+    void portalUserCreationRequiresOperationalIdentityLink() {
+        when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
+        when(passwordEncoder.encode("secret123")).thenReturn("encoded-password");
+        when(appUserRepository.save(org.mockito.ArgumentMatchers.any(AppUser.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        ApiException exception = assertThrows(ApiException.class,
+                () -> userManagementService.createCompanyUser(new UserUpsertRequest(
+                        null,
+                        "Taylor",
+                        "Driver",
+                        "driver@example.com",
+                        "secret123",
+                        UserStatus.ACTIVE,
+                        Set.of(RoleName.ROLE_DRIVER),
+                        null,
+                        null)));
+
+        assertEquals("VALIDATION_FAILED", exception.getErrorCode().name());
+        assertEquals(
+                "A portal identity must be selected for driver, rider, guardian, and organization users.",
+                exception.getMessage());
+    }
+
     private AuthenticatedUser companyAdmin() {
         return new AuthenticatedUser(
                 7L,

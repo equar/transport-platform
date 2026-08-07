@@ -25,7 +25,6 @@ import com.transportplatform.tms.features.vehicle.domain.VehicleRepository;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.EnumSet;
-import java.util.List;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 

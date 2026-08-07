@@ -34,7 +34,7 @@ public class PricingRuleManagementController {
     }
 
     @GetMapping("/company/pricing-rules")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PageResponse<PricingRuleSummaryResponse>> searchCompanyPricingRules(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) PricingRuleStatus status,
@@ -62,13 +62,13 @@ public class PricingRuleManagementController {
     }
 
     @GetMapping("/company/pricing-rules/{pricingRuleId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PricingRuleDetailResponse> getCompanyPricingRule(@PathVariable Long pricingRuleId) {
         return ApiResponse.success(pricingRuleService.getCompanyPricingRule(pricingRuleId));
     }
 
     @PostMapping("/company/pricing-rules")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<PricingRuleDetailResponse> createCompanyPricingRule(
             @Valid @RequestBody PricingRuleUpsertRequest request) {
@@ -76,26 +76,26 @@ public class PricingRuleManagementController {
     }
 
     @PutMapping("/company/pricing-rules/{pricingRuleId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PricingRuleDetailResponse> updateCompanyPricingRule(@PathVariable Long pricingRuleId,
             @Valid @RequestBody PricingRuleUpsertRequest request) {
         return ApiResponse.success(pricingRuleService.updateCompanyPricingRule(pricingRuleId, request));
     }
 
     @PostMapping("/company/pricing-rules/{pricingRuleId}/activate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PricingRuleDetailResponse> activateCompanyPricingRule(@PathVariable Long pricingRuleId) {
         return ApiResponse.success(pricingRuleService.activateCompanyPricingRule(pricingRuleId));
     }
 
     @PostMapping("/company/pricing-rules/{pricingRuleId}/suspend")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PricingRuleDetailResponse> suspendCompanyPricingRule(@PathVariable Long pricingRuleId) {
         return ApiResponse.success(pricingRuleService.suspendCompanyPricingRule(pricingRuleId));
     }
 
     @PostMapping("/company/pricing-rules/{pricingRuleId}/deactivate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PricingRuleDetailResponse> deactivateCompanyPricingRule(@PathVariable Long pricingRuleId) {
         return ApiResponse.success(pricingRuleService.deactivateCompanyPricingRule(pricingRuleId));
     }

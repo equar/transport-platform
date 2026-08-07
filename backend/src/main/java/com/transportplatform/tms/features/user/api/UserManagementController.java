@@ -6,6 +6,9 @@ import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
 import com.transportplatform.tms.features.user.api.request.UserUpsertRequest;
 import com.transportplatform.tms.features.user.api.response.UserResponse;
+import com.transportplatform.tms.features.user.api.response.PortalSubjectOptionResponse;
+import com.transportplatform.tms.features.portalaccess.domain.PortalSubjectType;
+import java.util.List;
 import com.transportplatform.tms.features.user.application.UserManagementService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -88,6 +91,14 @@ public class UserManagementController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ApiResponse.success(userManagementService.searchCompanyUsers(keyword, status, role, page, size));
+    }
+
+    @GetMapping("/company/users/portal-subjects")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<List<PortalSubjectOptionResponse>> listCompanyPortalSubjects(
+            @RequestParam PortalSubjectType type,
+            @RequestParam(defaultValue = "") String keyword) {
+        return ApiResponse.success(userManagementService.listCompanyPortalSubjects(type, keyword));
     }
 
     @GetMapping("/company/users/{userId}")

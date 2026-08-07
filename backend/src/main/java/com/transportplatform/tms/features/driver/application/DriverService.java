@@ -123,10 +123,17 @@ public class DriverService {
         DriverComplianceSummaryResponse complianceSummary = driverComplianceSummaryService
                 .getSummary(driver.getTenantId(), driver);
         if (complianceSummary.missingRequiredDocumentCount() > 0 || complianceSummary.expiredDocumentCount() > 0) {
+            String missing = complianceSummary.missingRequiredDocumentTypes().stream()
+                    .map(type -> type.name().replace('_', ' '))
+                    .sorted()
+                    .collect(java.util.stream.Collectors.joining(", "));
+            String reason = complianceSummary.missingRequiredDocumentCount() > 0
+                    ? "Missing required documents: " + missing + "."
+                    : complianceSummary.expiredDocumentCount() + " required document(s) are expired.";
             throw new ApiException(
                     ErrorCode.INVALID_STATUS_TRANSITION,
                     HttpStatus.BAD_REQUEST,
-                    "Required driver documents must be present and unexpired before documents can be marked complete.");
+                    "Document review cannot be completed. " + reason);
         }
         DriverStatus targetStatus = DriverStatusWorkflow.resolvePostDocumentStatus(driver);
         return updateStatus(driver, targetStatus, "DOCUMENTS_READY",

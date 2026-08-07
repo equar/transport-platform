@@ -393,7 +393,7 @@ export function RideManagementPage() {
           description="Adjust the filters or create a ride to start building operational scheduling history for this tenant."
         />
       ) : (
-        <Paper variant="outlined" sx={{ borderRadius: 5, overflow: "hidden" }}>
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Table>
             <TableHead>
               <TableRow>

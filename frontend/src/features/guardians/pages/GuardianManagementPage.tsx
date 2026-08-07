@@ -31,6 +31,7 @@ import { StatusChip } from "../../../shared/components/StatusChip";
 import { TableActionButton } from "../../../shared/components/TableActionButton";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
+import { normalizeBusinessError } from "../../../shared/api/businessError";
 import {
   guardiansApi,
   type GuardianPayload,
@@ -121,8 +122,13 @@ export function GuardianManagementPage() {
       setDialogOpen(false);
       setSelectedGuardian(null);
       await loadGuardians();
-    } catch {
-      showError("Guardian changes could not be saved.");
+    } catch (saveError) {
+      showError(
+        normalizeBusinessError(
+          saveError,
+          "Guardian changes could not be saved.",
+        ).message,
+      );
     } finally {
       setSaving(false);
     }

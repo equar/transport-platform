@@ -17,7 +17,6 @@ export interface AuthSession {
 }
 
 export interface LoginPayload {
-  tenantId?: string | null;
   email: string;
   password: string;
 }

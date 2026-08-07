@@ -148,13 +148,14 @@ function resolveColor(
 }
 
 export function StatusChip({ value, size = "small", sx }: StatusChipProps) {
+  const color = resolveColor(value);
   return (
     <Chip
       label={formatStatusLabel(value)}
-      color={resolveColor(value)}
+      color={color}
       variant="outlined"
       size={size}
-      sx={sx}
+      sx={{ borderWidth: 0, bgcolor: color === "default" ? "action.hover" : `${color}.main`, color: color === "default" ? "text.primary" : "common.white", "& .MuiChip-label": { px: 1.25 }, ...sx }}
     />
   );
 }

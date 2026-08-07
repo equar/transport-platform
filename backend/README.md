@@ -89,10 +89,10 @@ Swagger/OpenAPI is enabled only for the `local` and `dev` profiles.
 
 Useful local endpoints:
 
-- API base: `http://localhost:8080/api`
-- Swagger UI: `http://localhost:8080/api/swagger-ui/index.html`
-- OpenAPI JSON: `http://localhost:8080/api/v3/api-docs`
-- Actuator health: `http://localhost:8080/api/actuator/health`
+- API base: `http://localhost:8087/api`
+- Swagger UI: `http://localhost:8087/api/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8087/api/v3/api-docs`
+- Actuator health: `http://localhost:8087/api/actuator/health`
 
 ## Non-Docker Deployment
 

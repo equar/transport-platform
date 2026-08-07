@@ -96,6 +96,12 @@ export function CompanyApplicationDetailsDialog({
               label="Rejection Reason"
               value={application.rejectionReason || "-"}
             />
+            {application.approvedTenantId ? (
+              <>
+                <DetailRow label="Provisioned tenant ID" value={application.approvedTenantId} />
+                <DetailRow label="Provisioned owner user ID" value={String(application.ownerUserId ?? "-")} />
+              </>
+            ) : null}
             <DetailRow
               label="Created"
               value={`${application.createdBy} • ${formatDateTime(application.createdAt)}`}

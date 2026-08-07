@@ -14,7 +14,7 @@ management:
 app:
   bootstrap:
     platform-admin:
-      enabled: false
+      enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:false}
   security:
     api-docs-enabled: false
 

@@ -3,13 +3,16 @@ import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
-import { Alert, Box, Button, Chip, Stack, Typography } from "@mui/material";
+import { Box, Button, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
+import { PageHero } from "../../../shared/components/PageHero";
 import { formatDateTime } from "../../../shared/utils/format";
+import { BusinessErrorState } from "../../../shared/components/BusinessErrorState";
+import { normalizeBusinessError, type BusinessError } from "../../../shared/api/businessError";
 import {
   riderGuardianPortalApi,
   type RiderGuardianPortalDashboardRecord,
@@ -31,7 +34,7 @@ export function RiderGuardianPortalHomePage() {
     RiderGuardianPortalRideRecord[]
   >([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<BusinessError | null>(null);
 
   async function loadPortal() {
     setLoading(true);
@@ -47,8 +50,8 @@ export function RiderGuardianPortalHomePage() {
       ]);
       setDashboard(dashboardResponse);
       setUpcomingRides(ridesResponse.items.slice(0, 4));
-    } catch {
-      setError("The rider or guardian portal could not be loaded.");
+    } catch (loadError) {
+      setError(normalizeBusinessError(loadError, "The rider or guardian portal could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -66,23 +69,12 @@ export function RiderGuardianPortalHomePage() {
 
   return (
     <Stack spacing={2.5}>
-      <PageCard>
-        <Stack spacing={1.25}>
-          <Typography variant="overline" color="secondary.main">
-            {scopeLabel} workspace
-          </Typography>
-          <Typography variant="h3">
-            See upcoming service, billing status, and account alerts in one
-            place.
-          </Typography>
-          <Typography color="text.secondary">
-            This portal keeps ride, billing, and notification visibility limited
-            to the current rider or guardian scope.
-          </Typography>
-        </Stack>
-      </PageCard>
+      <PageHero eyebrow={`${scopeLabel} workspace`} title={scopeLabel === "Guardian" ? "Everyone you care for, safely in view." : "Your next ride is easy to find."} description={scopeLabel === "Guardian" ? "Track linked riders, upcoming pickups, account alerts, and billing from one reassuring view." : "Check pickup details, ride status, billing, and important service updates without the clutter."}>
+        <Button component={RouterLink} to="/portal/rider/rides" variant="contained">View upcoming rides</Button>
+        <Button component={RouterLink} to="/portal/rider/notifications" variant="outlined">Check updates</Button>
+      </PageHero>
 
-      {error ? <Alert severity="error">{error}</Alert> : null}
+      {error ? <BusinessErrorState error={error} onRetry={() => void loadPortal()} /> : null}
 
       {dashboard ? (
         <Box
@@ -158,7 +150,7 @@ export function RiderGuardianPortalHomePage() {
               </Typography>
             ) : (
               upcomingRides.map((ride) => (
-                <PageCard key={ride.id} sx={{ p: { xs: 2, md: 2.5 } }}>
+                <PageCard key={ride.id} sx={{ p: { xs: 2, md: 2.5 }, boxShadow: "none", bgcolor: "rgba(15,76,92,.025)", borderLeft: "4px solid", borderLeftColor: "primary.main" }}>
                   <Stack spacing={1.25}>
                     <Stack
                       direction={{ xs: "column", sm: "row" }}
@@ -179,12 +171,10 @@ export function RiderGuardianPortalHomePage() {
                     <Typography variant="body2" color="text.secondary">
                       Pickup: {formatDateTime(ride.scheduledPickupAt)}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      From: {ride.pickupAddress ?? "Pending"}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      To: {ride.dropoffAddress ?? "Pending"}
-                    </Typography>
+                    <Stack spacing={0} sx={{ position: "relative", pl: 3, py: .5, "&::before": { content: '""', position: "absolute", left: 7, top: 12, bottom: 12, width: 2, bgcolor: "divider" } }}>
+                      <Typography variant="body2" sx={{ position: "relative", py: .65, "&::before": { content: '""', position: "absolute", left: -22, top: 12, width: 9, height: 9, borderRadius: "50%", bgcolor: "primary.main" } }}>Pickup · {ride.pickupAddress ?? "Pending"}</Typography>
+                      <Typography variant="body2" sx={{ position: "relative", py: .65, "&::before": { content: '""', position: "absolute", left: -22, top: 12, width: 9, height: 9, borderRadius: "50%", bgcolor: "secondary.main" } }}>Drop-off · {ride.dropoffAddress ?? "Pending"}</Typography>
+                    </Stack>
                     <Stack
                       direction={{ xs: "column", sm: "row" }}
                       spacing={1.25}

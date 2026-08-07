@@ -16,10 +16,13 @@ import com.transportplatform.tms.features.driver.domain.DriverDocumentStatus;
 import com.transportplatform.tms.features.driver.domain.DriverDocumentType;
 import com.transportplatform.tms.features.driver.domain.DriverDocumentVerificationStatus;
 import com.transportplatform.tms.features.notification.application.NotificationEventService;
+import com.transportplatform.tms.features.compliance.application.ComplianceIssueSyncService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -36,6 +39,8 @@ public class DriverDocumentService {
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final AuditLogService auditLogService;
     private final NotificationEventService notificationEventService;
+    private final DriverDocumentStorageService driverDocumentStorageService;
+    private final ComplianceIssueSyncService complianceIssueSyncService;
     private final Clock clock;
 
     public DriverDocumentService(DriverDocumentRepository driverDocumentRepository,
@@ -44,6 +49,8 @@ public class DriverDocumentService {
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
             AuditLogService auditLogService,
             NotificationEventService notificationEventService,
+            DriverDocumentStorageService driverDocumentStorageService,
+            ComplianceIssueSyncService complianceIssueSyncService,
             Clock clock) {
         this.driverDocumentRepository = driverDocumentRepository;
         this.driverAccessService = driverAccessService;
@@ -51,7 +58,17 @@ public class DriverDocumentService {
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.auditLogService = auditLogService;
         this.notificationEventService = notificationEventService;
+        this.driverDocumentStorageService = driverDocumentStorageService;
+        this.complianceIssueSyncService = complianceIssueSyncService;
         this.clock = clock;
+    }
+
+    @Transactional(readOnly = true)
+    public StoredDriverDocumentFile loadCompanyDriverDocumentFile(Long documentId) {
+        DriverDocument document = findDocument(documentId);
+        return driverDocumentStorageService.load(document.getStoragePath(),
+                document.getOriginalFileName() == null ? document.getFileName() : document.getOriginalFileName(),
+                document.getContentType());
     }
 
     @Transactional(readOnly = true)
@@ -68,6 +85,18 @@ public class DriverDocumentService {
                         verificationStatus, status),
                 pageable);
         return PageResponse.from(result.map(driverDocumentMapper::toResponse));
+    }
+
+    @Transactional(readOnly = true)
+    public List<DriverDocumentResponse> listCompanyDriverDocuments(Long driverId) {
+        Driver driver = driverAccessService.findDriverForCompanyScope(driverId);
+        return driverDocumentRepository
+                .findAllByTenantIdAndDriver_IdIn(driver.getTenantId(), List.of(driver.getId()))
+                .stream()
+                .sorted(Comparator.comparing(DriverDocument::getUpdatedAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(driverDocumentMapper::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -119,6 +148,7 @@ public class DriverDocumentService {
         recordAudit(saved, "VERIFIED", "Driver document " + saved.getDocumentType().name() + " was verified.",
                 oldSnapshot, snapshot(saved));
         notificationEventService.publishDriverDocumentVerified(saved);
+        complianceIssueSyncService.synchronizeTenantIssues(saved.getTenantId());
         return driverDocumentMapper.toResponse(saved);
     }
 
@@ -139,6 +169,7 @@ public class DriverDocumentService {
         recordAudit(saved, "REJECTED", "Driver document " + saved.getDocumentType().name() + " was rejected.",
                 oldSnapshot, snapshot(saved));
         notificationEventService.publishDriverDocumentRejected(saved);
+        complianceIssueSyncService.synchronizeTenantIssues(saved.getTenantId());
         return driverDocumentMapper.toResponse(saved);
     }
 

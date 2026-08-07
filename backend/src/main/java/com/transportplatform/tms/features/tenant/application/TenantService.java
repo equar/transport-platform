@@ -23,12 +23,14 @@ public class TenantService {
     private final TenantRepository tenantRepository;
     private final TenantMapper tenantMapper;
     private final AuditLogService auditLogService;
+    private final TenantResourceProvisioningService tenantResourceProvisioningService;
 
     public TenantService(TenantRepository tenantRepository, TenantMapper tenantMapper,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService, TenantResourceProvisioningService tenantResourceProvisioningService) {
         this.tenantRepository = tenantRepository;
         this.tenantMapper = tenantMapper;
         this.auditLogService = auditLogService;
+        this.tenantResourceProvisioningService = tenantResourceProvisioningService;
     }
 
     @Transactional(readOnly = true)
@@ -52,6 +54,7 @@ public class TenantService {
         tenant.setStatus(TenantStatus.PENDING);
         tenantMapper.apply(tenant, request);
         Tenant saved = tenantRepository.save(tenant);
+        tenantResourceProvisioningService.initialize(saved.getId());
         auditLogService.record(new AuditLogCommand(
                 null,
                 saved.getId(),
@@ -89,6 +92,7 @@ public class TenantService {
     public TenantResponse activate(String tenantId) {
         Tenant tenant = findTenant(tenantId);
         TenantStatusWorkflow.ensureCanActivate(tenant.getStatus());
+        tenantResourceProvisioningService.ensureReadyForActivation(tenant.getId());
         var oldSnapshot = snapshot(tenant);
         tenant.setStatus(TenantStatus.ACTIVE);
         Tenant saved = tenantRepository.save(tenant);
@@ -127,7 +131,9 @@ public class TenantService {
 
     @Transactional
     public Tenant createFromApplication(Tenant tenant) {
-        return tenantRepository.save(tenant);
+        Tenant saved = tenantRepository.save(tenant);
+        tenantResourceProvisioningService.initialize(saved.getId());
+        return saved;
     }
 
     private Tenant findTenant(String tenantId) {

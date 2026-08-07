@@ -1,6 +1,8 @@
 package com.transportplatform.tms.common.security;
 
 import com.transportplatform.tms.common.tenant.TenantContext;
+import com.transportplatform.tms.features.tenant.domain.TenantRepository;
+import com.transportplatform.tms.features.tenant.domain.TenantStatus;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,9 +21,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final TenantRepository tenantRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, TenantRepository tenantRepository) {
         this.jwtService = jwtService;
+        this.tenantRepository = tenantRepository;
     }
 
     @Override
@@ -38,6 +42,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             JwtClaims claims = jwtService.parseAccessToken(token);
+            if (claims.tenantId() != null && !claims.tenantId().isBlank()
+                    && tenantRepository.findById(claims.tenantId())
+                            .map(tenant -> tenant.getStatus() != TenantStatus.ACTIVE)
+                            .orElse(true)) {
+                SecurityContextHolder.clearContext();
+                TenantContext.clear();
+                filterChain.doFilter(request, response);
+                return;
+            }
             AuthenticatedUser user = new AuthenticatedUser(
                     claims.userId(),
                     claims.tenantId(),

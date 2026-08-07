@@ -387,7 +387,7 @@ export function RecurringRideManagementPage() {
           description="Create a recurring schedule to automate ride generation for repeat transportation patterns."
         />
       ) : (
-        <Paper variant="outlined" sx={{ borderRadius: 5, overflow: "hidden" }}>
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Table>
             <TableHead>
               <TableRow>

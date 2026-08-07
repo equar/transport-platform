@@ -55,9 +55,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health/**").permitAll()
                         .requestMatchers(publicDocumentationEndpoints).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/v1/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/auth/login", "/v1/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.POST, "/company-applications").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/v1/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/auth/status").permitAll()
                         .requestMatchers(HttpMethod.GET, "/runtime/tenant-branding").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(tenantContextFilter, UsernamePasswordAuthenticationFilter.class)

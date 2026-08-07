@@ -30,7 +30,7 @@ public class DriverManagementController {
     }
 
     @GetMapping("/company/drivers")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<PageResponse<DriverResponse>> searchCompanyDrivers(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) DriverStatus status,
@@ -50,57 +50,57 @@ public class DriverManagementController {
     }
 
     @GetMapping("/company/drivers/{driverId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<DriverResponse> getCompanyDriver(@PathVariable Long driverId) {
         return ApiResponse.success(driverService.getCompanyDriver(driverId));
     }
 
     @PostMapping("/company/drivers")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<DriverResponse> createCompanyDriver(@Valid @RequestBody DriverUpsertRequest request) {
         return ApiResponse.success(driverService.createCompanyDriver(request));
     }
 
     @PutMapping("/company/drivers/{driverId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<DriverResponse> updateCompanyDriver(@PathVariable Long driverId,
             @Valid @RequestBody DriverUpsertRequest request) {
         return ApiResponse.success(driverService.updateCompanyDriver(driverId, request));
     }
 
     @PostMapping("/company/drivers/{driverId}/review")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<DriverResponse> reviewCompanyDriver(@PathVariable Long driverId) {
         return ApiResponse.success(driverService.reviewCompanyDriver(driverId));
     }
 
     @PostMapping("/company/drivers/{driverId}/documents-complete")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<DriverResponse> completeCompanyDriverDocuments(@PathVariable Long driverId) {
         return ApiResponse.success(driverService.completeCompanyDriverDocuments(driverId));
     }
 
     @PostMapping("/company/drivers/{driverId}/activate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<DriverResponse> activateCompanyDriver(@PathVariable Long driverId) {
         return ApiResponse.success(driverService.activateCompanyDriver(driverId));
     }
 
     @PostMapping("/company/drivers/{driverId}/suspend")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<DriverResponse> suspendCompanyDriver(@PathVariable Long driverId) {
         return ApiResponse.success(driverService.suspendCompanyDriver(driverId));
     }
 
     @PostMapping("/company/drivers/{driverId}/deactivate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<DriverResponse> deactivateCompanyDriver(@PathVariable Long driverId) {
         return ApiResponse.success(driverService.deactivateCompanyDriver(driverId));
     }
 
     @PostMapping("/company/drivers/{driverId}/terminate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<DriverResponse> terminateCompanyDriver(@PathVariable Long driverId) {
         return ApiResponse.success(driverService.terminateCompanyDriver(driverId));
     }

@@ -3,22 +3,19 @@ import {
   Box,
   Button,
   Chip,
-  MenuItem,
   Paper,
   Stack,
   Table,
   TableBody,
   TableCell,
   TableHead,
-  TablePagination,
   TableRow,
-  TextField,
   Typography,
 } from "@mui/material";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import PauseCircleRoundedIcon from "@mui/icons-material/PauseCircleRounded";
 import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
@@ -28,7 +25,6 @@ import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import PersonOffRoundedIcon from "@mui/icons-material/PersonOffRounded";
 import { useEffect, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
-import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
 import { EmptyState } from "../../../shared/components/EmptyState";
 import { LoadingState } from "../../../shared/components/LoadingState";
@@ -38,13 +34,11 @@ import { StatusChip } from "../../../shared/components/StatusChip";
 import { TableActionButton } from "../../../shared/components/TableActionButton";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
+import { normalizeBusinessError } from "../../../shared/api/businessError";
 import {
   driversApi,
   type DriverDocumentPayload,
   type DriverDocumentRecord,
-  type DriverDocumentStatus,
-  type DriverDocumentType,
-  type DriverDocumentVerificationStatus,
   type DriverPayload,
   type DriverRecord,
 } from "../api/driversApi";
@@ -60,30 +54,6 @@ type DriverAction =
   | "deactivate"
   | "terminate";
 type DocumentAction = "activate" | "archive";
-
-const documentTypes: Array<DriverDocumentType | ""> = [
-  "",
-  "DRIVER_LICENSE",
-  "BACKGROUND_CHECK",
-  "DRUG_TEST",
-  "CPR_FIRST_AID",
-  "NEMT_CERTIFICATION",
-  "SCHOOL_TRANSPORT_PERMIT",
-  "PROFILE_PHOTO",
-  "INSURANCE_PROOF",
-  "W9",
-  "CONTRACT_AGREEMENT",
-  "OTHER",
-];
-const documentVerificationStatuses: Array<
-  DriverDocumentVerificationStatus | ""
-> = ["", "PENDING", "VERIFIED", "REJECTED", "EXPIRED"];
-const documentStatuses: Array<DriverDocumentStatus | ""> = [
-  "",
-  "ACTIVE",
-  "INACTIVE",
-  "ARCHIVED",
-];
 
 function formatDate(value?: string | null) {
   if (!value) {
@@ -101,16 +71,6 @@ export function DriverDetailsPage() {
   const { showError, showSuccess } = useToast();
   const [driver, setDriver] = useState<DriverRecord | null>(null);
   const [documents, setDocuments] = useState<DriverDocumentRecord[]>([]);
-  const [documentType, setDocumentType] = useState<DriverDocumentType | "">("");
-  const [verificationStatus, setVerificationStatus] = useState<
-    DriverDocumentVerificationStatus | ""
-  >("");
-  const [documentStatus, setDocumentStatus] = useState<
-    DriverDocumentStatus | ""
-  >("");
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState(10);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [driverDialogOpen, setDriverDialogOpen] = useState(false);
@@ -138,15 +98,8 @@ export function DriverDetailsPage() {
   }
 
   async function loadDocuments() {
-    const response = await driversApi.listDocuments(resolvedDriverId, {
-      documentType,
-      verificationStatus,
-      status: documentStatus,
-      page,
-      size,
-    });
-    setDocuments(response.items);
-    setTotal(response.totalElements);
+    const response = await driversApi.listAllDocuments(resolvedDriverId);
+    setDocuments(response);
   }
 
   async function loadPage() {
@@ -168,14 +121,7 @@ export function DriverDetailsPage() {
       return;
     }
     void loadPage();
-  }, [
-    resolvedDriverId,
-    documentType,
-    verificationStatus,
-    documentStatus,
-    page,
-    size,
-  ]);
+  }, [resolvedDriverId]);
 
   async function handleDriverSubmit(payload: DriverPayload) {
     if (!driver) {
@@ -223,8 +169,13 @@ export function DriverDetailsPage() {
       showSuccess("Driver status updated successfully.");
       setDriverAction(null);
       await loadPage();
-    } catch {
-      showError("The driver action could not be completed.");
+    } catch (actionError) {
+      showError(
+        normalizeBusinessError(
+          actionError,
+          "The driver action could not be completed.",
+        ).message,
+      );
     } finally {
       setDriverActionLoading(false);
     }
@@ -316,6 +267,11 @@ export function DriverDetailsPage() {
     );
   }
 
+  const missingRequiredDocuments = driver.complianceSummary.missingRequiredDocumentTypes;
+  const documentReviewBlocked =
+    missingRequiredDocuments.length > 0 ||
+    driver.complianceSummary.expiredDocumentCount > 0;
+
   return (
     <Stack spacing={3}>
       <Button
@@ -397,6 +353,7 @@ export function DriverDetailsPage() {
               <Button
                 startIcon={<DescriptionRoundedIcon />}
                 onClick={() => setDriverAction("documents-complete")}
+                disabled={documentReviewBlocked}
               >
                 Complete Document Review
               </Button>
@@ -439,6 +396,15 @@ export function DriverDetailsPage() {
               </Button>
             ) : null}
           </Stack>
+          {driver.status === "DOCUMENT_PENDING" && documentReviewBlocked ? (
+            <Alert severity="warning">
+              {missingRequiredDocuments.length > 0
+                ? `Complete document review is unavailable. Missing required documents: ${missingRequiredDocuments
+                    .map((type) => type.replaceAll("_", " "))
+                    .join(", ")}.`
+                : `${driver.complianceSummary.expiredDocumentCount} required document(s) are expired and must be replaced.`}
+            </Alert>
+          ) : null}
         </Stack>
       </PageCard>
 
@@ -565,68 +531,15 @@ export function DriverDetailsPage() {
       </Box>
 
       <SectionHeader
-        title="Driver Documents"
-        description="Manage document metadata, verification outcomes, expiry visibility, and archive state for this driver."
+        title={`Driver Documents (${documents.length})`}
+        description="Open each submitted document and approve or reject it for this driver."
       />
-
-      <AdminFilterBar>
-        <TextField
-          label="Document Type"
-          select
-          value={documentType}
-          onChange={(event) => {
-            setPage(0);
-            setDocumentType(event.target.value as DriverDocumentType | "");
-          }}
-          sx={{ minWidth: 200 }}
-        >
-          {documentTypes.map((value) => (
-            <MenuItem key={value || "all-document-types"} value={value}>
-              {value ? value.replaceAll("_", " ") : "All document types"}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          label="Verification Status"
-          select
-          value={verificationStatus}
-          onChange={(event) => {
-            setPage(0);
-            setVerificationStatus(
-              event.target.value as DriverDocumentVerificationStatus | "",
-            );
-          }}
-          sx={{ minWidth: 220 }}
-        >
-          {documentVerificationStatuses.map((value) => (
-            <MenuItem key={value || "all-verification-statuses"} value={value}>
-              {value ? value.replaceAll("_", " ") : "All verification statuses"}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          label="Document Status"
-          select
-          value={documentStatus}
-          onChange={(event) => {
-            setPage(0);
-            setDocumentStatus(event.target.value as DriverDocumentStatus | "");
-          }}
-          sx={{ minWidth: 180 }}
-        >
-          {documentStatuses.map((value) => (
-            <MenuItem key={value || "all-document-statuses"} value={value}>
-              {value ? value.replaceAll("_", " ") : "All document statuses"}
-            </MenuItem>
-          ))}
-        </TextField>
-      </AdminFilterBar>
 
       <PageCard sx={{ p: 0, overflow: "hidden" }}>
         {documents.length === 0 ? (
           <EmptyState
-            title="No records found"
-            description="Add driver documents or adjust the filters to review compliance records."
+            title="No driver documents"
+            description="Documents submitted by this driver will appear here for review."
           />
         ) : (
           <>
@@ -681,6 +594,26 @@ export function DriverDetailsPage() {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
+                        <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
+                          {document.storagePath ? (
+                            <Button
+                            size="small"
+                            variant="text"
+                            startIcon={<DownloadRoundedIcon />}
+                            onClick={async () => {
+                              try {
+                                const blob = await driversApi.downloadDocument(document.id);
+                                const url = URL.createObjectURL(blob);
+                                window.open(url, "_blank", "noopener,noreferrer");
+                                window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                              } catch {
+                                showError("Unable to open the uploaded document.");
+                              }
+                            }}
+                          >
+                              Review file
+                            </Button>
+                          ) : null}
                         {document.status !== "ARCHIVED" ? (
                           <TableActionButton
                             title="Edit Metadata"
@@ -695,25 +628,29 @@ export function DriverDetailsPage() {
                         {document.status === "ACTIVE" &&
                         document.verificationStatus !== "VERIFIED" &&
                         document.verificationStatus !== "EXPIRED" ? (
-                          <TableActionButton
-                            title="Verify Document"
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="success"
                             onClick={() =>
                               setReviewState({ mode: "verify", document })
                             }
                           >
-                            <CheckCircleRoundedIcon />
-                          </TableActionButton>
+                              Approve
+                          </Button>
                         ) : null}
                         {document.status === "ACTIVE" &&
                         document.verificationStatus !== "REJECTED" ? (
-                          <TableActionButton
-                            title="Reject Document"
+                          <Button
+                            size="small"
+                            variant="text"
+                            color="error"
                             onClick={() =>
                               setReviewState({ mode: "reject", document })
                             }
                           >
-                            <CancelRoundedIcon />
-                          </TableActionButton>
+                              Reject
+                          </Button>
                         ) : null}
                         {document.status === "ARCHIVED" ? null : (
                           <TableActionButton
@@ -725,23 +662,13 @@ export function DriverDetailsPage() {
                             <ArchiveRoundedIcon />
                           </TableActionButton>
                         )}
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </Paper>
-            <TablePagination
-              component="div"
-              count={total}
-              page={page}
-              rowsPerPage={size}
-              onPageChange={(_, nextPage) => setPage(nextPage)}
-              onRowsPerPageChange={(event) => {
-                setSize(Number(event.target.value));
-                setPage(0);
-              }}
-            />
           </>
         )}
       </PageCard>

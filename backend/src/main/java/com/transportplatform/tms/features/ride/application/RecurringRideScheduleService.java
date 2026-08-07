@@ -22,7 +22,6 @@ import com.transportplatform.tms.features.rideevent.application.RideEventService
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.Map;

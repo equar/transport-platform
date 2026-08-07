@@ -12,11 +12,12 @@ export function PageCard({ children, sx }: PageCardProps) {
       elevation={0}
       sx={{
         p: { xs: 3, md: 4 },
-        borderRadius: 5,
         border: "1px solid",
         borderColor: "divider",
-        backgroundColor: "rgba(255, 255, 255, 0.82)",
-        backdropFilter: "blur(16px)",
+        backgroundColor: "background.paper",
+        borderRadius: 2.75,
+        boxShadow: 1,
+        transition: "box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease",
         ...sx,
       }}
     >

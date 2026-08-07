@@ -1,12 +1,16 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
   application:
     name: transport-platform-backend
   profiles:
     default: local
   datasource:
-    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:transport_platform}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}}
-    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:${MYSQL_USER:transport}}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:${MYSQL_PASSWORD:transport}}}
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3311}/transport_platform?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:${MYSQL_USER:root}}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:${MYSQL_PASSWORD:root}}}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     open-in-view: false
@@ -26,7 +30,7 @@ spring:
       write-dates-as-timestamps: false
 
 server:
-  port: 8080
+  port: 8087
   servlet:
     context-path: /api
 
@@ -41,11 +45,21 @@ management:
         enabled: true
 
 app:
+  email:
+    enabled: ${APP_EMAIL_ENABLED:false}
+    provider: ${APP_EMAIL_PROVIDER:logging}
+    from: ${APP_EMAIL_FROM:}
+  microsoft:
+    graph:
+      client-id: ${MICROSOFT_GRAPH_CLIENT_ID:}
+      tenant-id: ${MICROSOFT_GRAPH_TENANT_ID:}
+      client-secret: ${MICROSOFT_GRAPH_CLIENT_SECRET:}
+      scopes: ${MICROSOFT_GRAPH_SCOPES:https://graph.microsoft.com/.default}
   bootstrap:
     platform-admin:
-      enabled: false
-      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:platform-admin@transport-platform.local}
-      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:}
+      enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:false}
+      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:samuelweld2018@gmail.com}
+      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:Password123}
   security:
     api-docs-enabled: false
     allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:}

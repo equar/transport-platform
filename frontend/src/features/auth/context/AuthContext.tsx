@@ -6,7 +6,10 @@ import {
   type PropsWithChildren,
 } from "react";
 import { authApi } from "../api/authApi";
-import { getDefaultRoute as resolveDefaultRoute } from "../access";
+import {
+  getDefaultRoute as resolveDefaultRoute,
+  hasRole as sessionHasRole,
+} from "../access";
 import type { AuthSession, LoginPayload } from "../types";
 import {
   AUTH_SESSION_INVALIDATED_EVENT,
@@ -78,6 +81,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     isAuthenticated: Boolean(session?.accessToken),
     isLoading,
     async signIn(payload: LoginPayload) {
+      window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+      setSession(null);
       const nextSession = await authApi.signIn(payload);
       window.localStorage.setItem(
         AUTH_SESSION_STORAGE_KEY,
@@ -91,7 +96,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setSession(null);
     },
     hasRole(role: string) {
-      return Boolean(session?.identity.roles.includes(role));
+      return sessionHasRole(session, role);
     },
     getDefaultRoute() {
       return resolveDefaultRoute(session);

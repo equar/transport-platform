@@ -18,6 +18,7 @@ import com.transportplatform.tms.features.settings.domain.TenantSettings;
 import com.transportplatform.tms.features.settings.domain.TenantSettingsRepository;
 import com.transportplatform.tms.features.tenant.domain.Tenant;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
+import com.transportplatform.tms.features.tenant.domain.TenantStatus;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,6 +68,10 @@ public class RuntimeCapabilitiesService {
                     "A tenant-scoped user is required for tenant capabilities.");
         }
         Tenant tenant = requireTenant(user.tenantId());
+        if (tenant.getStatus() != TenantStatus.ACTIVE) {
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                    "This company workspace is not active.");
+        }
         TenantSettings settings = tenantSettingsRepository.findById(tenant.getId())
                 .orElseGet(() -> defaultSettings(tenant.getId()));
         var currentSubscription = tenantSubscriptionRepository
@@ -151,8 +156,8 @@ public class RuntimeCapabilitiesService {
                     "Transport Platform SaaS operations");
         }
         Tenant tenant = requireTenant(tenantId);
-        TenantSettings settings = tenantSettingsRepository.findById(tenantId)
-                .orElseGet(() -> defaultSettings(tenantId));
+        TenantSettings settings = tenantSettingsRepository.findById(tenant.getId())
+                .orElseGet(() -> defaultSettings(tenant.getId()));
         return toBranding(tenant, settings);
     }
 
@@ -196,6 +201,7 @@ public class RuntimeCapabilitiesService {
 
     private Tenant requireTenant(String tenantId) {
         return tenantRepository.findById(tenantId)
+                .or(() -> tenantRepository.findByTenantCodeIgnoreCase(tenantId))
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND,
                         "Tenant was not found."));
     }

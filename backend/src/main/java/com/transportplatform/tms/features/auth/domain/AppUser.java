@@ -19,8 +19,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "app_users", uniqueConstraints = @UniqueConstraint(name = "uk_app_users_tenant_email", columnNames = {
-        "tenant_id", "email" }))
+@Table(name = "app_users", uniqueConstraints = @UniqueConstraint(name = "uk_app_users_email", columnNames = "email"))
 public class AppUser extends AuditableEntity {
 
     @Id

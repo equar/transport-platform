@@ -36,7 +36,7 @@ public class DispatchManagementController {
     }
 
     @GetMapping("/company/dispatch/rides")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<PageResponse<DispatchRideSummaryResponse>> searchCompanyDispatchBoard(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "ALL") DispatchRideView view,
@@ -68,7 +68,7 @@ public class DispatchManagementController {
     }
 
     @GetMapping("/company/dispatch/summary")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<DispatchBoardSummaryResponse> getCompanyDispatchBoardSummary(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) RideStatus status,
@@ -90,7 +90,7 @@ public class DispatchManagementController {
     }
 
     @PostMapping("/company/rides/{rideId}/assign-driver")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> assignCompanyRideDriver(@PathVariable Long rideId,
             @Valid @RequestBody AssignRideDriverRequest request) {
         dispatchService.assignRideDriver(rideId, request.driverId());
@@ -98,7 +98,7 @@ public class DispatchManagementController {
     }
 
     @PostMapping("/company/rides/{rideId}/assign-vehicle")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> assignCompanyRideVehicle(@PathVariable Long rideId,
             @Valid @RequestBody AssignRideVehicleRequest request) {
         dispatchService.assignRideVehicle(rideId, request.vehicleId());
@@ -106,7 +106,7 @@ public class DispatchManagementController {
     }
 
     @PostMapping("/company/rides/{rideId}/assign-resources")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> assignCompanyRideResources(@PathVariable Long rideId,
             @Valid @RequestBody AssignRideResourcesRequest request) {
         dispatchService.assignRideResources(rideId, request.driverId(), request.vehicleId());
@@ -114,14 +114,14 @@ public class DispatchManagementController {
     }
 
     @PostMapping("/company/rides/{rideId}/unassign-driver")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> unassignCompanyRideDriver(@PathVariable Long rideId) {
         dispatchService.unassignRideDriver(rideId);
         return ApiResponse.success(rideService.getCompanyRide(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/unassign-vehicle")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> unassignCompanyRideVehicle(@PathVariable Long rideId) {
         dispatchService.unassignRideVehicle(rideId);
         return ApiResponse.success(rideService.getCompanyRide(rideId));

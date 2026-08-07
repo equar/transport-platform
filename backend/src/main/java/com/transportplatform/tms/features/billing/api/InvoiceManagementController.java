@@ -41,7 +41,7 @@ public class InvoiceManagementController {
     }
 
     @GetMapping("/company/invoices")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PageResponse<InvoiceSummaryResponse>> searchCompanyInvoices(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) InvoiceStatus status,
@@ -69,33 +69,33 @@ public class InvoiceManagementController {
     }
 
     @GetMapping("/company/invoices/{invoiceId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<InvoiceDetailResponse> getCompanyInvoice(@PathVariable Long invoiceId) {
         return ApiResponse.success(invoiceService.getCompanyInvoice(invoiceId));
     }
 
     @GetMapping("/company/invoices/{invoiceId}/line-items")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<List<InvoiceLineItemResponse>> listCompanyInvoiceLineItems(@PathVariable Long invoiceId) {
         return ApiResponse.success(invoiceService.listCompanyInvoiceLineItems(invoiceId));
     }
 
     @PostMapping("/company/invoices")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<InvoiceDetailResponse> createCompanyInvoice(@Valid @RequestBody InvoiceUpsertRequest request) {
         return ApiResponse.success(invoiceService.createCompanyInvoice(request));
     }
 
     @PutMapping("/company/invoices/{invoiceId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<InvoiceDetailResponse> updateCompanyInvoice(@PathVariable Long invoiceId,
             @Valid @RequestBody InvoiceUpsertRequest request) {
         return ApiResponse.success(invoiceService.updateCompanyInvoice(invoiceId, request));
     }
 
     @PostMapping("/company/invoices/{invoiceId}/line-items")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<InvoiceLineItemResponse> addLineItem(@PathVariable Long invoiceId,
             @Valid @RequestBody InvoiceLineItemUpsertRequest request) {
@@ -103,41 +103,41 @@ public class InvoiceManagementController {
     }
 
     @PutMapping("/company/invoice-line-items/{lineItemId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<InvoiceLineItemResponse> updateLineItem(@PathVariable Long lineItemId,
             @Valid @RequestBody InvoiceLineItemUpsertRequest request) {
         return ApiResponse.success(invoiceService.updateLineItem(lineItemId, request));
     }
 
     @DeleteMapping("/company/invoice-line-items/{lineItemId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeLineItem(@PathVariable Long lineItemId) {
         invoiceService.removeLineItem(lineItemId);
     }
 
     @PostMapping("/company/invoices/{invoiceId}/issue")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<InvoiceDetailResponse> issueCompanyInvoice(@PathVariable Long invoiceId) {
         return ApiResponse.success(invoiceService.issueCompanyInvoice(invoiceId));
     }
 
     @PostMapping("/company/invoices/{invoiceId}/void")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<InvoiceDetailResponse> voidCompanyInvoice(@PathVariable Long invoiceId,
             @Valid @RequestBody VoidInvoiceRequest request) {
         return ApiResponse.success(invoiceService.voidCompanyInvoice(invoiceId, request));
     }
 
     @PostMapping("/company/billing/preview")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<BillingPreviewResponse> previewManualGeneration(
             @Valid @RequestBody BillingPreviewRequest request) {
         return ApiResponse.success(invoiceService.previewManualGeneration(request));
     }
 
     @PostMapping("/company/invoices/generate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<InvoiceDetailResponse> generateManualInvoice(
             @Valid @RequestBody ManualInvoiceGenerationRequest request) {

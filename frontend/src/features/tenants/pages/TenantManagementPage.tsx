@@ -1,9 +1,5 @@
 import {
-  Alert,
-  Button,
   MenuItem,
-  Paper,
-  Stack,
   Table,
   TableBody,
   TableCell,
@@ -13,18 +9,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import PauseCircleRoundedIcon from "@mui/icons-material/PauseCircleRounded";
 import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { useEffect, useState } from "react";
 import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
-import { SectionHeader } from "../../../shared/components/SectionHeader";
-import { PageCard } from "../../../shared/components/PageCard";
 import { StatusChip } from "../../../shared/components/StatusChip";
-import { EmptyState } from "../../../shared/components/EmptyState";
-import { LoadingState } from "../../../shared/components/LoadingState";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
 import { TableActionButton } from "../../../shared/components/TableActionButton";
 import { formatDateTime } from "../../../shared/utils/format";
@@ -32,6 +23,10 @@ import { useToast } from "../../../shared/providers/ToastProvider";
 import { tenantsApi, type Tenant, type TenantPayload } from "../api/tenantsApi";
 import { TenantDialog } from "../components/TenantDialog";
 import { TenantDetailsDialog } from "../components/TenantDetailsDialog";
+import { normalizeBusinessError, type BusinessError } from "../../../shared/api/businessError";
+import { BusinessErrorState } from "../../../shared/components/BusinessErrorState";
+import { WorkspacePage } from "../../../shared/components/WorkspacePage";
+import { DataTableShell } from "../../../shared/components/DataTableShell";
 
 const tenantStatuses = ["", "PENDING", "ACTIVE", "SUSPENDED", "INACTIVE"];
 
@@ -44,9 +39,10 @@ export function TenantManagementPage() {
   const [size, setSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<BusinessError | null>(null);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [tenantDialogOpen, setTenantDialogOpen] = useState(false);
+  const [tenantSaveLoading, setTenantSaveLoading] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [actionTenant, setActionTenant] = useState<Tenant | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -58,8 +54,8 @@ export function TenantManagementPage() {
       const response = await tenantsApi.search({ keyword, status, page, size });
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
-      setError("Tenant records could not be loaded.");
+    } catch (loadError) {
+      setError(normalizeBusinessError(loadError, "Tenant records could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -70,19 +66,22 @@ export function TenantManagementPage() {
   }, [keyword, page, size, status]);
 
   async function handleTenantSubmit(payload: TenantPayload) {
+    setTenantSaveLoading(true);
     try {
       if (selectedTenant) {
         await tenantsApi.update(selectedTenant.id, payload);
         showSuccess("Tenant updated successfully.");
       } else {
         await tenantsApi.create(payload);
-        showSuccess("Tenant created successfully.");
+        showSuccess("Tenant created in pending status. Create its tenant administrator, then activate the workspace.");
       }
       setTenantDialogOpen(false);
       setSelectedTenant(null);
       await loadTenants();
-    } catch {
-      showError("Tenant changes could not be saved.");
+    } catch (saveError) {
+      showError(saveError, "Tenant changes could not be saved.");
+    } finally {
+      setTenantSaveLoading(false);
     }
   }
 
@@ -102,31 +101,23 @@ export function TenantManagementPage() {
       }
       setActionTenant(null);
       await loadTenants();
-    } catch {
-      showError("Tenant status could not be updated.");
+    } catch (statusError) {
+      showError(statusError, "Tenant status could not be updated.");
     } finally {
       setActionLoading(false);
     }
   }
 
   return (
-    <Stack spacing={3}>
-      <SectionHeader
+    <WorkspacePage
         eyebrow="Platform Administration"
         title="Tenant Management"
         description="Manage provisioned transportation companies, update tenant records, and control activation status."
-      >
-        <Button
-          variant="contained"
-          startIcon={<AddRoundedIcon />}
-          onClick={() => {
+        primaryAction={{ label: "Create tenant", onClick: () => {
             setSelectedTenant(null);
             setTenantDialogOpen(true);
-          }}
-        >
-          Create Tenant
-        </Button>
-      </SectionHeader>
+          } }}
+      >
 
       <AdminFilterBar>
         <TextField
@@ -156,19 +147,19 @@ export function TenantManagementPage() {
         </TextField>
       </AdminFilterBar>
 
-      {error ? <Alert severity="error">{error}</Alert> : null}
+      {error ? <BusinessErrorState error={error} onRetry={() => void loadTenants()} /> : null}
 
-      <PageCard sx={{ p: 0, overflow: "hidden" }}>
-        {loading ? (
-          <LoadingState />
-        ) : items.length === 0 ? (
-          <EmptyState
-            title="No records found"
-            description="Adjust the search criteria or create a new tenant to get started."
-          />
-        ) : (
-          <>
-            <Paper sx={{ overflowX: "auto" }}>
+      <DataTableShell
+        loading={loading}
+        empty={items.length === 0}
+        emptyTitle="No tenants found"
+        emptyDescription="Adjust the search criteria or create a new tenant to get started."
+        pagination={<TablePagination
+          component="div" count={total} page={page} rowsPerPage={size}
+          onPageChange={(_, nextPage) => setPage(nextPage)}
+          onRowsPerPageChange={(event) => { setSize(Number(event.target.value)); setPage(0); }}
+        />}
+      >
               <Table>
                 <TableHead>
                   <TableRow>
@@ -251,25 +242,12 @@ export function TenantManagementPage() {
                   ))}
                 </TableBody>
               </Table>
-            </Paper>
-            <TablePagination
-              component="div"
-              count={total}
-              page={page}
-              rowsPerPage={size}
-              onPageChange={(_, nextPage) => setPage(nextPage)}
-              onRowsPerPageChange={(event) => {
-                setSize(Number(event.target.value));
-                setPage(0);
-              }}
-            />
-          </>
-        )}
-      </PageCard>
+      </DataTableShell>
 
       <TenantDialog
         open={tenantDialogOpen}
         initialValue={selectedTenant}
+        loading={tenantSaveLoading}
         onClose={() => {
           setTenantDialogOpen(false);
           setSelectedTenant(null);
@@ -302,6 +280,6 @@ export function TenantManagementPage() {
         onCancel={() => setActionTenant(null)}
         onConfirm={() => void handleStatusChange()}
       />
-    </Stack>
+    </WorkspacePage>
   );
 }

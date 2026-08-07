@@ -53,6 +53,10 @@ const PlatformAdminProfilePage = lazyPage(
   () => import("../../features/auth/pages/PlatformAdminProfilePage"),
   "PlatformAdminProfilePage",
 );
+const AccountSecurityPage = lazyPage(
+  () => import("../../features/auth/pages/AccountSecurityPage"),
+  "AccountSecurityPage",
+);
 const DashboardPage = lazyPage(
   () => import("../../features/dashboard/pages/DashboardPage"),
   "DashboardPage",
@@ -534,6 +538,10 @@ const router = createBrowserRouter([
         element: <DashboardPage />,
       },
       {
+        path: "security",
+        element: <AccountSecurityPage />,
+      },
+      {
         path: "users",
         element: <UserManagementPage />,
       },
@@ -805,5 +813,5 @@ const router = createBrowserRouter([
 ]);
 
 export function AppRouter() {
-  return <RouterProvider router={router} />;
+  return <RouterProvider router={router} future={{ v7_startTransition: true }} />;
 }

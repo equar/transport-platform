@@ -11,9 +11,25 @@ export interface UserRecord {
   email: string;
   status: string;
   roles: string[];
+  portalSubjectType: PortalSubjectType | null;
+  portalSubjectId: number | null;
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type PortalSubjectType = "DRIVER" | "RIDER" | "GUARDIAN" | "ORGANIZATION_CONTACT";
+
+export interface PortalSubjectOption {
+  id: number;
+  type: PortalSubjectType;
+  displayName: string;
+  firstName: string;
+  lastName: string;
+  reference: string | null;
+  email: string | null;
+  status: string;
+  linked: boolean;
 }
 
 export interface UserSearchParams {
@@ -33,6 +49,19 @@ export interface UserUpsertPayload {
   password?: string;
   status: string;
   roles: string[];
+  portalSubjectType?: PortalSubjectType | null;
+  portalSubjectId?: number | null;
+}
+
+function normalizePayload(payload: UserUpsertPayload) {
+  return {
+    ...payload,
+    tenantId: payload.tenantId?.trim() || null,
+    firstName: payload.firstName.trim(),
+    lastName: payload.lastName.trim(),
+    email: payload.email.trim().toLowerCase(),
+    password: payload.password?.trim() || undefined,
+  };
 }
 
 function buildBasePath(scope: UserScope) {
@@ -40,6 +69,12 @@ function buildBasePath(scope: UserScope) {
 }
 
 export const usersApi = {
+  async listPortalSubjects(type: PortalSubjectType, keyword = "") {
+    const response = await apiClient.get("/company/users/portal-subjects", {
+      params: { type, keyword: keyword || undefined },
+    });
+    return unwrapResponse<PortalSubjectOption[]>(response.data);
+  },
   async search(scope: UserScope, params: UserSearchParams) {
     const response = await apiClient.get(buildBasePath(scope), {
       params: {
@@ -54,11 +89,11 @@ export const usersApi = {
     return unwrapResponse<PageResponse<UserRecord>>(response.data);
   },
   async create(scope: UserScope, payload: UserUpsertPayload) {
-    const response = await apiClient.post(buildBasePath(scope), payload);
+    const response = await apiClient.post(buildBasePath(scope), normalizePayload(payload));
     return unwrapResponse<UserRecord>(response.data);
   },
   async update(scope: UserScope, userId: number, payload: UserUpsertPayload) {
-    const response = await apiClient.put(`${buildBasePath(scope)}/${userId}`, payload);
+    const response = await apiClient.put(`${buildBasePath(scope)}/${userId}`, normalizePayload(payload));
     return unwrapResponse<UserRecord>(response.data);
   },
   async activate(scope: UserScope, userId: number) {

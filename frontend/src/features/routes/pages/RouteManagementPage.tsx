@@ -293,7 +293,6 @@ export function RouteManagementPage() {
       <Paper
         elevation={0}
         sx={{
-          borderRadius: 5,
           overflow: "hidden",
           border: "1px solid",
           borderColor: "divider",

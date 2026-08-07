@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.transportplatform.tms.features.compliance.application.ComplianceIssueSyncService;
 
 @ExtendWith(MockitoExtension.class)
 class DriverDocumentServiceTest {
@@ -42,6 +43,12 @@ class DriverDocumentServiceTest {
     @Mock
     private NotificationEventService notificationEventService;
 
+    @Mock
+    private DriverDocumentStorageService driverDocumentStorageService;
+
+    @Mock
+    private ComplianceIssueSyncService complianceIssueSyncService;
+
     @Test
     void rejectRequiresNotes() {
         DriverDocumentService driverDocumentService = new DriverDocumentService(
@@ -51,6 +58,8 @@ class DriverDocumentServiceTest {
                 currentAuthenticatedUserService,
                 auditLogService,
                 notificationEventService,
+                driverDocumentStorageService,
+                complianceIssueSyncService,
                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 
         Driver driver = new Driver();

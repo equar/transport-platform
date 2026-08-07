@@ -6,11 +6,11 @@ app:
   bootstrap:
     platform-admin:
       enabled: true
-      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:platform-admin@transport-platform.local}
-      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:ChangeMe123!}
+      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:samuelweld2018@gmail.com}
+      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:Password123}
   security:
     api-docs-enabled: true
-    allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:4173}
+    allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:http://localhost:3007,http://127.0.0.1:3007}
     jwt:
       secret: ${APP_SECURITY_JWT_SECRET:dev-jwt-secret-change-before-deployment-1234567890}
 

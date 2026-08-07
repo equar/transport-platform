@@ -19,6 +19,7 @@ import { SectionHeader } from "../../../shared/components/SectionHeader";
 import { useRuntimeCapabilities } from "../../runtime/context/RuntimeCapabilitiesContext";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
+import { PasswordChangeCard } from "../../auth/components/PasswordChangeCard";
 import {
   settingsApi,
   type CompanySettingsPayload,
@@ -672,6 +673,7 @@ export function CompanySettingsPage() {
           </PageCard>
         </>
       )}
+      <PasswordChangeCard />
     </Stack>
   );
 }

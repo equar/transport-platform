@@ -22,11 +22,11 @@ export function SectionHeader({
     >
       <Box sx={{ minWidth: 0 }}>
         {eyebrow ? (
-          <Typography variant="overline" color="secondary.main">
+          <Typography variant="overline" color="secondary.dark" sx={{ display: "inline-flex", px: 1.25, py: .4, borderRadius: 99, bgcolor: "rgba(196,106,34,.1)" }}>
             {eyebrow}
           </Typography>
         ) : null}
-        <Typography variant="h3" sx={{ mt: eyebrow ? 0.5 : 0 }}>
+        <Typography variant="h3" sx={{ mt: eyebrow ? 1 : 0 }}>
           {title}
         </Typography>
         <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 760 }}>

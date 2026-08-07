@@ -22,7 +22,6 @@ import com.transportplatform.tms.features.route.api.request.ReorderRouteStopsReq
 import com.transportplatform.tms.features.route.api.request.RouteUpsertRequest;
 import com.transportplatform.tms.features.route.api.request.UpdateRouteStopRequest;
 import com.transportplatform.tms.features.route.api.response.RouteResponse;
-import com.transportplatform.tms.features.route.api.response.RouteStopResponse;
 import com.transportplatform.tms.features.route.api.response.RouteSummaryResponse;
 import com.transportplatform.tms.features.route.domain.Route;
 import com.transportplatform.tms.features.route.domain.RouteRepository;

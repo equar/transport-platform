@@ -8,7 +8,7 @@ type AdminFilterBarProps = PropsWithChildren<{
 
 export function AdminFilterBar({ children, stackProps }: AdminFilterBarProps) {
   return (
-    <PageCard>
+    <PageCard sx={{ p: { xs: 2, md: 2.5 }, bgcolor: "rgba(255,255,255,.82)", backdropFilter: "blur(10px)" }}>
       <Stack
         direction={{ xs: "column", md: "row" }}
         spacing={2}

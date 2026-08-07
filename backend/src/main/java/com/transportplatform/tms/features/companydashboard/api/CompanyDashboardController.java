@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/company/dashboard")
-@PreAuthorize("hasRole('TENANT_ADMIN')")
+@PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'BILLING_ADMIN', 'COMPLIANCE_ADMIN')")
 public class CompanyDashboardController {
 
     private final CompanyDashboardService companyDashboardService;

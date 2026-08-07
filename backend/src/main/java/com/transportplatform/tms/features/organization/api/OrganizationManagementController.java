@@ -31,7 +31,7 @@ public class OrganizationManagementController {
     }
 
     @GetMapping("/company/organizations")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<PageResponse<OrganizationResponse>> searchCompanyOrganizations(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) OrganizationStatus status,
@@ -51,19 +51,19 @@ public class OrganizationManagementController {
     }
 
     @GetMapping("/company/organizations/options")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<List<OrganizationResponse>> listActiveOrganizations() {
         return ApiResponse.success(organizationService.listActiveOrganizations());
     }
 
     @GetMapping("/company/organizations/{organizationId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<OrganizationResponse> getCompanyOrganization(@PathVariable Long organizationId) {
         return ApiResponse.success(organizationService.getCompanyOrganization(organizationId));
     }
 
     @PostMapping("/company/organizations")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<OrganizationResponse> createCompanyOrganization(
             @Valid @RequestBody OrganizationUpsertRequest request) {
@@ -71,26 +71,26 @@ public class OrganizationManagementController {
     }
 
     @PutMapping("/company/organizations/{organizationId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<OrganizationResponse> updateCompanyOrganization(@PathVariable Long organizationId,
             @Valid @RequestBody OrganizationUpsertRequest request) {
         return ApiResponse.success(organizationService.updateCompanyOrganization(organizationId, request));
     }
 
     @PostMapping("/company/organizations/{organizationId}/activate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<OrganizationResponse> activateCompanyOrganization(@PathVariable Long organizationId) {
         return ApiResponse.success(organizationService.activateCompanyOrganization(organizationId));
     }
 
     @PostMapping("/company/organizations/{organizationId}/suspend")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<OrganizationResponse> suspendCompanyOrganization(@PathVariable Long organizationId) {
         return ApiResponse.success(organizationService.suspendCompanyOrganization(organizationId));
     }
 
     @PostMapping("/company/organizations/{organizationId}/deactivate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<OrganizationResponse> deactivateCompanyOrganization(@PathVariable Long organizationId) {
         return ApiResponse.success(organizationService.deactivateCompanyOrganization(organizationId));
     }

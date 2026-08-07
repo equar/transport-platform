@@ -31,7 +31,7 @@ public class VehicleDocumentController {
     }
 
     @GetMapping("/company/vehicles/{vehicleId}/documents")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<PageResponse<VehicleDocumentResponse>> searchCompanyVehicleDocuments(
             @PathVariable Long vehicleId,
             @RequestParam(required = false) VehicleDocumentType documentType,
@@ -49,13 +49,13 @@ public class VehicleDocumentController {
     }
 
     @GetMapping("/company/vehicle-documents/{documentId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleDocumentResponse> getCompanyVehicleDocument(@PathVariable Long documentId) {
         return ApiResponse.success(vehicleDocumentService.getCompanyVehicleDocument(documentId));
     }
 
     @PostMapping("/company/vehicles/{vehicleId}/documents")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<VehicleDocumentResponse> createCompanyVehicleDocument(@PathVariable Long vehicleId,
             @Valid @RequestBody VehicleDocumentUpsertRequest request) {
@@ -63,34 +63,34 @@ public class VehicleDocumentController {
     }
 
     @PutMapping("/company/vehicle-documents/{documentId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleDocumentResponse> updateCompanyVehicleDocument(@PathVariable Long documentId,
             @Valid @RequestBody VehicleDocumentUpsertRequest request) {
         return ApiResponse.success(vehicleDocumentService.updateCompanyVehicleDocument(documentId, request));
     }
 
     @PostMapping("/company/vehicle-documents/{documentId}/verify")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleDocumentResponse> verifyCompanyVehicleDocument(@PathVariable Long documentId,
             @Valid @RequestBody VehicleDocumentReviewRequest request) {
         return ApiResponse.success(vehicleDocumentService.verifyCompanyVehicleDocument(documentId, request));
     }
 
     @PostMapping("/company/vehicle-documents/{documentId}/reject")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleDocumentResponse> rejectCompanyVehicleDocument(@PathVariable Long documentId,
             @Valid @RequestBody VehicleDocumentReviewRequest request) {
         return ApiResponse.success(vehicleDocumentService.rejectCompanyVehicleDocument(documentId, request));
     }
 
     @PostMapping("/company/vehicle-documents/{documentId}/activate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleDocumentResponse> activateCompanyVehicleDocument(@PathVariable Long documentId) {
         return ApiResponse.success(vehicleDocumentService.activateCompanyVehicleDocument(documentId));
     }
 
     @PostMapping("/company/vehicle-documents/{documentId}/archive")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleDocumentResponse> archiveCompanyVehicleDocument(@PathVariable Long documentId) {
         return ApiResponse.success(vehicleDocumentService.archiveCompanyVehicleDocument(documentId));
     }
