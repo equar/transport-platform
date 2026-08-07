@@ -5,7 +5,15 @@ import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
 
 export function ActionRow({ icon, title, description, onPress, tone = 'primary' }: { icon: React.ComponentProps<typeof MaterialCommunityIcons>['name']; title: string; description: string; onPress: () => void; tone?: 'primary' | 'secondary' }) {
   const color = tone === 'primary' ? Colors.primary : Colors.secondary;
-  return <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+  return <Pressable
+    onPress={onPress}
+    style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+    android_ripple={{ color: 'rgba(0,0,0,0.08)' }}
+    hitSlop={4}
+    accessibilityRole="button"
+    accessibilityLabel={title}
+    accessibilityHint={description}
+  >
     <View style={[styles.icon, { backgroundColor: tone === 'primary' ? Colors.primarySoft : Colors.secondarySoft }]}><MaterialCommunityIcons name={icon} size={22} color={color} /></View>
     <View style={styles.copy}><Text style={styles.title}>{title}</Text><Text style={styles.description}>{description}</Text></View>
     <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textSecondary} />

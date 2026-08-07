@@ -49,9 +49,14 @@ interface AppBadgeProps {
 
 export function AppBadge({ status, label, style }: AppBadgeProps) {
   const { bg, text } = getColor(status);
+  const displayLabel = label ?? formatLabel(status);
   return (
-    <View style={[styles.badge, { backgroundColor: bg, borderRadius: Radius.chip }, style]}>
-      <Text style={[styles.text, { color: text }]}>{label ?? formatLabel(status)}</Text>
+    <View
+      style={[styles.badge, { backgroundColor: bg, borderRadius: Radius.chip }, style]}
+      accessibilityRole="text"
+      accessibilityLabel={`Status: ${displayLabel}`}
+    >
+      <Text style={[styles.text, { color: text }]}>{displayLabel}</Text>
     </View>
   );
 }

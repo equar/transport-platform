@@ -24,6 +24,7 @@ export default function DriverLayout() {
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.06,
           shadowRadius: 12,
+          elevation: 8,
         },
         tabBarLabelStyle: {
           fontFamily: 'SourceSans3_600SemiBold',

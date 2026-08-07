@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TextInput, TouchableOpacity, ViewStyle, Text } from 'react-native';
+import { StyleSheet, View, TextInput, Pressable, ViewStyle, Text } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
 
 interface AppInputProps {
@@ -15,6 +16,7 @@ interface AppInputProps {
   multiline?: boolean;
   numberOfLines?: number;
   editable?: boolean;
+  accessibilityLabel?: string;
 }
 
 export function AppInput({
@@ -30,6 +32,7 @@ export function AppInput({
   multiline = false,
   numberOfLines = 1,
   editable = true,
+  accessibilityLabel,
 }: AppInputProps) {
   const [focused, setFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -59,14 +62,30 @@ export function AppInput({
           multiline={multiline}
           numberOfLines={multiline ? numberOfLines : undefined}
           editable={editable}
+          accessibilityLabel={accessibilityLabel ?? label ?? placeholder}
+          accessibilityState={{ disabled: !editable }}
         />
         {secureTextEntry && (
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
-            <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁'}</Text>
-          </TouchableOpacity>
+          <Pressable
+            onPress={() => setShowPassword(!showPassword)}
+            style={styles.eyeButton}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+          >
+            <MaterialCommunityIcons
+              name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color={Colors.textSecondary}
+            />
+          </Pressable>
         )}
       </View>
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? (
+        <Text style={styles.errorText} accessibilityLiveRegion="polite">
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -84,7 +103,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: Colors.border,
     borderRadius: Radius.input,
     backgroundColor: Colors.surface,
@@ -93,7 +112,6 @@ const styles = StyleSheet.create({
   },
   focused: {
     borderColor: Colors.primary,
-    borderWidth: 2,
   },
   errored: {
     borderColor: Colors.error,
@@ -111,9 +129,10 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: Spacing.xs,
-  },
-  eyeText: {
-    fontSize: Typography.sizeMd,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   errorText: {
     fontFamily: 'SourceSans3_400Regular',

@@ -63,20 +63,64 @@ resolve_android_java() {
   require_command java
 }
 
-api_url_for_android_emulator() {
-  echo "${EXPO_PUBLIC_API_BASE_URL:-http://10.0.2.2:8087/api}"
+AWS_DEFAULT_API_BASE_URL="https://transport.bakaroo.com/api"
+LOCAL_DEFAULT_API_BASE_URL_ANDROID_EMULATOR="http://10.0.2.2:8087/api"
+LOCAL_DEFAULT_API_BASE_URL_IOS_SIMULATOR="http://127.0.0.1:8087/api"
+
+validate_env_name() {
+  case "$1" in
+    aws|local) ;;
+    *) echo "--env must be 'aws' or 'local' (got '${1:-}')" >&2; return 1 ;;
+  esac
 }
 
-require_physical_api_url() {
-  if [[ -z "${EXPO_PUBLIC_API_BASE_URL:-}" ]]; then
-    echo "EXPO_PUBLIC_API_BASE_URL is required for a physical device." >&2
-    echo "Example: EXPO_PUBLIC_API_BASE_URL=http://192.168.1.50:8087/api npm run $1" >&2
-    return 1
-  fi
-  case "$EXPO_PUBLIC_API_BASE_URL" in
-    *localhost*|*127.0.0.1*|*10.0.2.2*)
-      echo "Physical devices cannot reach API URL: $EXPO_PUBLIC_API_BASE_URL" >&2
-      echo "Use your computer's LAN IP address or an HTTPS development endpoint." >&2
+# Resolves the backend API base URL for a given environment and install target.
+#   env_name: aws | local
+#   target:   android-emulator | android-device | ios-simulator | ios-device
+resolve_api_base_url() {
+  local env_name="$1"
+  local target="$2"
+
+  case "$env_name" in
+    aws)
+      local url="${AWS_API_BASE_URL:-$AWS_DEFAULT_API_BASE_URL}"
+      case "$url" in
+        https://*) ;;
+        *) echo "AWS_API_BASE_URL must use HTTPS: $url" >&2; return 1 ;;
+      esac
+      echo "$url"
+      ;;
+    local)
+      case "$target" in
+        android-emulator)
+          echo "${LOCAL_API_BASE_URL:-$LOCAL_DEFAULT_API_BASE_URL_ANDROID_EMULATOR}"
+          ;;
+        ios-simulator)
+          echo "${LOCAL_API_BASE_URL:-$LOCAL_DEFAULT_API_BASE_URL_IOS_SIMULATOR}"
+          ;;
+        android-device|ios-device)
+          if [[ -z "${LOCAL_API_BASE_URL:-}" ]]; then
+            echo "LOCAL_API_BASE_URL is required to reach a local backend from a physical device." >&2
+            echo "Example: LOCAL_API_BASE_URL=http://192.168.1.50:8087/api npm run <script> -- --env local" >&2
+            return 1
+          fi
+          case "$LOCAL_API_BASE_URL" in
+            *localhost*|*127.0.0.1*|*10.0.2.2*)
+              echo "Physical devices cannot reach API URL: $LOCAL_API_BASE_URL" >&2
+              echo "Use your computer's LAN IP address instead of localhost." >&2
+              return 1
+              ;;
+          esac
+          echo "$LOCAL_API_BASE_URL"
+          ;;
+        *)
+          echo "Unknown install target: $target" >&2
+          return 1
+          ;;
+      esac
+      ;;
+    *)
+      echo "Unknown environment '$env_name' (expected 'aws' or 'local')" >&2
       return 1
       ;;
   esac

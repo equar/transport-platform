@@ -5,13 +5,37 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/common.sh"
 
+ENV_NAME="local"
+API_URL=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --env)
+      shift
+      ENV_NAME="${1:-}"
+      validate_env_name "$ENV_NAME"
+      ;;
+    --api-url)
+      shift
+      API_URL="${1:-}"
+      [[ -n "$API_URL" ]] || { echo "--api-url requires a URL." >&2; exit 2; }
+      ;;
+    *) echo "Unknown option: $1" >&2; exit 2 ;;
+  esac
+  shift
+done
+
 require_command node
 require_command npm
 require_command xcodebuild
 require_command xcrun
 ensure_node_modules
 
-export EXPO_PUBLIC_API_BASE_URL="${EXPO_PUBLIC_API_BASE_URL:-http://127.0.0.1:8080/api}"
+if [[ -n "$API_URL" ]]; then
+  export EXPO_PUBLIC_API_BASE_URL="$API_URL"
+elif [[ -z "${EXPO_PUBLIC_API_BASE_URL:-}" ]]; then
+  export EXPO_PUBLIC_API_BASE_URL="$(resolve_api_base_url "$ENV_NAME" "ios-simulator")"
+fi
 export EXPO_PUBLIC_SIMULATOR_SESSION_STORAGE=true
 export EXPO_PUBLIC_TEST_DRIVER_EMAIL="${EXPO_PUBLIC_TEST_DRIVER_EMAIL:-samuelweld2018+d1@gmail.com}"
 export EXPO_PUBLIC_TEST_DRIVER_PASSWORD="${EXPO_PUBLIC_TEST_DRIVER_PASSWORD:-DriverTest123!}"

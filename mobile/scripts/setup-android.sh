@@ -36,4 +36,5 @@ ensure_node_modules
 (cd "$PROJECT_ROOT/android" && ./gradlew assembleDebug --no-daemon)
 echo "Android setup and debug compilation completed."
 echo "Emulator: npm run android"
-echo "Physical device: EXPO_PUBLIC_API_BASE_URL=http://YOUR_LAN_IP:8080/api npm run android:device"
+echo "Physical device (local backend): npm run android:device -- --env local"
+echo "Physical device (AWS backend): npm run android:device -- --env aws"

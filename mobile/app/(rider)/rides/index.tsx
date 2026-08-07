@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl } from 'react-native';
+import { StyleSheet, FlatList, View, Text, Pressable, RefreshControl } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { riderPortalApi } from '@api/riderPortalApi';
@@ -34,10 +34,12 @@ export default function RiderRidesPage() {
         data={rides}
         keyExtractor={(r) => String(r.id)}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
+          <Pressable
+            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
             onPress={() => router.push(`/(rider)/rides/${item.id}`)}
-            activeOpacity={0.85}
+            android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+            accessibilityRole="button"
+            accessibilityLabel={`Ride ${item.rideNumber} for ${item.riderName}`}
           >
             <View style={styles.row}>
               <Text style={styles.rideNumber}>{item.rideNumber}</Text>
@@ -50,7 +52,7 @@ export default function RiderRidesPage() {
             <Text style={styles.address} numberOfLines={1}>
               {item.pickupAddress ?? '—'} → {item.dropoffAddress ?? '—'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
         ListEmptyComponent={<EmptyState title="No rides" description="No upcoming rides scheduled." />}
@@ -68,6 +70,7 @@ const styles = StyleSheet.create({
   header: { padding: Spacing.lg, paddingTop: Spacing.xxl, backgroundColor: Colors.surface },
   listContent: { padding: Spacing.lg },
   card: { padding: Spacing.lg, gap: Spacing.xs, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, ...Shadow.card },
+  cardPressed: { backgroundColor: Colors.surfaceMuted },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rideNumber: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
   riderName: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },

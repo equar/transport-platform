@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, StyleSheet, ScrollView, View, Text, RefreshControl, TouchableOpacity } from 'react-native';
+import { Alert, StyleSheet, ScrollView, View, Text, RefreshControl, Pressable } from 'react-native';
 import { Menu } from 'react-native-paper';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
@@ -80,13 +80,17 @@ export default function DriverCompliancePage() {
             onDismiss={() => setDocumentTypeMenuOpen(false)}
             anchorPosition="bottom"
             anchor={(
-            <TouchableOpacity
+            <Pressable
                 style={styles.dropdown}
                 onPress={() => setDocumentTypeMenuOpen(true)}
+                android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+                accessibilityRole="button"
+                accessibilityLabel={`Document type: ${selectedDocumentType.label}`}
+                accessibilityHint="Opens a list of document types to choose from"
             >
                 <Text style={styles.dropdownText}>{selectedDocumentType.label}</Text>
                 <Text style={styles.dropdownChevron}>⌄</Text>
-            </TouchableOpacity>
+            </Pressable>
             )}
           >
             {DOCUMENT_TYPES.map((type) => (

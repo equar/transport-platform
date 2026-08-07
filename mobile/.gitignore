@@ -16,20 +16,9 @@ node_modules/
 build/
 dist/
 
-# Android build / gradle
-android/.gradle/
-android/app/build/
-android/build/
-.gradle/
-
-# iOS build / Xcode / CocoaPods
-ios/build/
-ios/Pods/
-Pods/
-*.xcworkspace
-xcuserdata/
-*.xcuserstate
-*.xcodeproj/project.xcworkspace/
+# Native projects are regenerated via `npx expo prebuild` — do not track them.
+/android/
+/ios/
 
 # macOS artifacts
 .DS_Store
@@ -59,7 +48,3 @@ fastlane/Preview.html
 # Misc temp files
 *.tmp
 *.temp
-
-# Optional: uncomment if you use these local files
-# ios/TransportPlatform/fastlane/report.xml
-# android/local.properties

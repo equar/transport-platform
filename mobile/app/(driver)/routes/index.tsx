@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl } from 'react-native';
+import { StyleSheet, FlatList, View, Text, Pressable, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { driverPortalApi } from '@api/driverPortalApi';
@@ -30,10 +30,12 @@ export default function DriverRoutesPage() {
         data={routes}
         keyExtractor={(r) => String(r.id)}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
+          <Pressable
+            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
             onPress={() => router.push(`/(driver)/routes/${item.id}`)}
-            activeOpacity={0.85}
+            android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+            accessibilityRole="button"
+            accessibilityLabel={`Route ${item.routeCode}, ${item.routeName}`}
           >
             <View style={styles.row}>
               <Text style={styles.code}>{item.routeCode}</Text>
@@ -43,7 +45,7 @@ export default function DriverRoutesPage() {
             <Text style={styles.meta}>
               {formatDate(item.routeDate)} · {item.linkedRideCount} stops
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
         ListEmptyComponent={
@@ -60,6 +62,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: { padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: Colors.border },
   card: { padding: Spacing.lg, gap: Spacing.xs },
+  cardPressed: { backgroundColor: Colors.surfaceMuted },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   code: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeMd, color: Colors.primary },
   name: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },

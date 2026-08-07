@@ -65,11 +65,11 @@ From the repository root:
 
 Services:
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:8080/api`
+- Frontend: `http://localhost:3007`
+- Backend: `http://localhost:8087/api`
 - MySQL: `localhost:3306`
-- Backend health: `http://localhost:8080/api/actuator/health`
-- Swagger UI in local or dev profiles: `http://localhost:8080/api/swagger-ui/index.html`
+- Backend health: `http://localhost:8087/api/actuator/health`
+- Swagger UI in local or dev profiles: `http://localhost:8087/api/swagger-ui/index.html`
 
 Stop both local processes with:
 
@@ -94,8 +94,8 @@ mvn -Dmaven.test.skip=true spring-boot:run
 
 Backend API docs:
 
-- Swagger UI: `http://localhost:8080/api/swagger-ui/index.html`
-- OpenAPI JSON: `http://localhost:8080/api/v3/api-docs`
+- Swagger UI: `http://localhost:8087/api/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8087/api/v3/api-docs`
 
 Frontend:
 
@@ -105,7 +105,7 @@ npm ci
 npm run dev
 ```
 
-The Vite dev server proxies `/api` requests to `http://localhost:8080`, so the default frontend configuration works for local development without Docker.
+The Vite dev server runs on port `3007` and proxies `/api` requests to `http://localhost:8087`, matching the AWS port layout while preserving same-origin browser requests.
 
 Frontend validation build:
 
@@ -175,9 +175,9 @@ Deploy the generated `frontend/dist/` assets to your AWS web server or static ho
 
 ## Troubleshooting
 
-- Swagger UI is available only in `local` and `dev` profiles at `http://localhost:8080/api/swagger-ui/index.html`.
+- Swagger UI is available only in `local` and `dev` profiles at `http://localhost:8087/api/swagger-ui/index.html`.
 - Production profile disables Swagger/OpenAPI endpoints by default.
-- Backend health checks are exposed at `http://localhost:8080/api/actuator/health`.
+- Backend health checks are exposed at `http://localhost:8087/api/actuator/health`.
 - If local backend startup is blocked by unrelated stale test compilation, use `mvn -Dmaven.test.skip=true spring-boot:run` only as a temporary local workaround.
 - Frontend production validation should be run from `frontend/` with `npm run build`.
 

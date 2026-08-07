@@ -1,0 +1,122 @@
+name: Deploy to AWS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: transport-platform-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Build and deploy backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Test and package backend
+        working-directory: backend
+        run: mvn -B clean verify
+      - name: Stage backend artifact and environment
+        shell: bash
+        run: |
+          cp "$(find backend/target -maxdepth 1 -name '*.jar' ! -name '*.original' -print -quit)" /tmp/transport-platform-backend.jar
+          cat > /tmp/transport-platform.env <<'EOF'
+          SPRING_PROFILES_ACTIVE=prod
+          SERVER_PORT=${{ vars.SERVER_PORT }}
+          SERVER_SERVLET_CONTEXT_PATH=/api
+          SPRING_DATASOURCE_URL=jdbc:mysql://${{ vars.MYSQL_HOST }}:${{ vars.MYSQL_PORT }}/${{ vars.MYSQL_DATABASE }}?useSSL=true&requireSSL=true&allowPublicKeyRetrieval=false&serverTimezone=UTC
+          SPRING_DATASOURCE_USERNAME=${{ vars.MYSQL_USER }}
+          SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+          APP_SECURITY_ALLOWED_ORIGINS=${{ vars.APP_SECURITY_ALLOWED_ORIGINS }}
+          APP_SECURITY_JWT_SECRET=${{ secrets.APP_SECURITY_JWT_SECRET }}
+          APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED=${{ vars.APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED }}
+          APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL=${{ vars.APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL }}
+          APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD=${{ secrets.APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD }}
+          APP_DRIVER_DOCUMENT_STORAGE_ROOT=/opt/transport-platform/documents/driver-documents
+          APP_EMAIL_ENABLED=${{ vars.APP_EMAIL_ENABLED }}
+          APP_EMAIL_PROVIDER=${{ vars.APP_EMAIL_PROVIDER }}
+          APP_EMAIL_FROM=${{ vars.APP_EMAIL_FROM }}
+          MICROSOFT_GRAPH_CLIENT_ID=${{ vars.MICROSOFT_GRAPH_CLIENT_ID }}
+          MICROSOFT_GRAPH_TENANT_ID=${{ vars.MICROSOFT_GRAPH_TENANT_ID }}
+          MICROSOFT_GRAPH_CLIENT_SECRET=${{ secrets.MICROSOFT_GRAPH_CLIENT_SECRET }}
+          EOF
+      - name: Configure SSH
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s' '${{ secrets.LIGHTSAIL_SSH_KEY_B64 }}' | base64 --decode > ~/.ssh/transport-platform-aws
+          chmod 600 ~/.ssh/transport-platform-aws
+          ssh-keyscan -H '${{ vars.LIGHTSAIL_HOST }}' >> ~/.ssh/known_hosts
+      - name: Upload and activate backend
+        run: |
+          scp -i ~/.ssh/transport-platform-aws /tmp/transport-platform-backend.jar /tmp/transport-platform.env '${{ vars.LIGHTSAIL_USER }}@${{ vars.LIGHTSAIL_HOST }}:/tmp/'
+          ssh -i ~/.ssh/transport-platform-aws '${{ vars.LIGHTSAIL_USER }}@${{ vars.LIGHTSAIL_HOST }}' <<'REMOTE'
+            set -euo pipefail
+            test -d /opt/transport-platform
+            if [ -f /opt/transport-platform/backend.jar ]; then
+              cp /opt/transport-platform/backend.jar /opt/transport-platform/backend.jar.backup
+            fi
+            mv /tmp/transport-platform-backend.jar /opt/transport-platform/backend.jar
+            mv /tmp/transport-platform.env /opt/transport-platform/.env
+            chmod 600 /opt/transport-platform/.env
+            sudo systemctl restart transport-platform-backend.service
+          REMOTE
+      - name: Verify backend health
+        run: |
+          for attempt in $(seq 1 120); do
+            if ssh -i ~/.ssh/transport-platform-aws '${{ vars.LIGHTSAIL_USER }}@${{ vars.LIGHTSAIL_HOST }}' 'curl -fsS --max-time 5 http://127.0.0.1:8087/api/actuator/health'; then
+              exit 0
+            fi
+            sleep 5
+          done
+          ssh -i ~/.ssh/transport-platform-aws '${{ vars.LIGHTSAIL_USER }}@${{ vars.LIGHTSAIL_HOST }}' 'sudo journalctl -u transport-platform-backend.service --no-pager -n 100'
+          exit 1
+
+  frontend:
+    name: Build and deploy frontend
+    needs: backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: /api
+        run: |
+          npm ci
+          npm run build
+      - name: Package frontend
+        run: tar -czf /tmp/transport-platform-frontend.tar.gz -C frontend/dist .
+      - name: Configure SSH
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s' '${{ secrets.LIGHTSAIL_SSH_KEY_B64 }}' | base64 --decode > ~/.ssh/transport-platform-aws
+          chmod 600 ~/.ssh/transport-platform-aws
+          ssh-keyscan -H '${{ vars.LIGHTSAIL_HOST }}' >> ~/.ssh/known_hosts
+      - name: Upload and activate frontend
+        run: |
+          scp -i ~/.ssh/transport-platform-aws /tmp/transport-platform-frontend.tar.gz '${{ vars.LIGHTSAIL_USER }}@${{ vars.LIGHTSAIL_HOST }}:/tmp/'
+          ssh -i ~/.ssh/transport-platform-aws '${{ vars.LIGHTSAIL_USER }}@${{ vars.LIGHTSAIL_HOST }}' <<'REMOTE'
+            set -euo pipefail
+            sudo mkdir -p /var/www/transport-platform
+            sudo find /var/www/transport-platform -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+            sudo tar -xzf /tmp/transport-platform-frontend.tar.gz -C /var/www/transport-platform
+            sudo chown -R www-data:www-data /var/www/transport-platform
+            rm /tmp/transport-platform-frontend.tar.gz
+            sudo nginx -t
+            sudo systemctl reload nginx
+          REMOTE

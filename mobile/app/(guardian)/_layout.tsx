@@ -19,6 +19,7 @@ export default function GuardianLayout() {
           borderTopWidth: 1,
           height: 66 + insets.bottom, paddingTop: 7, paddingBottom: 8 + insets.bottom,
           shadowColor: '#0f2630', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.06, shadowRadius: 12,
+          elevation: 8,
         },
         tabBarLabelStyle: {
           fontFamily: 'SourceSans3_600SemiBold',

@@ -9,6 +9,7 @@ TARGET="emulator"
 BUILD_TYPE="release"
 SERIAL="${ANDROID_SERIAL:-}"
 API_URL=""
+ENV_NAME="local"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -16,6 +17,11 @@ while [[ $# -gt 0 ]]; do
     --device) TARGET="device" ;;
     --release) BUILD_TYPE="release" ;;
     --debug) BUILD_TYPE="debug" ;;
+    --env)
+      shift
+      ENV_NAME="${1:-}"
+      validate_env_name "$ENV_NAME"
+      ;;
     --api-url)
       shift
       API_URL="${1:-}"
@@ -31,10 +37,6 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-if [[ -n "$API_URL" ]]; then
-  export EXPO_PUBLIC_API_BASE_URL="$API_URL"
-fi
-
 require_command node
 require_command npm
 resolve_android_sdk
@@ -48,11 +50,12 @@ ensure_node_modules
 export EXPO_PUBLIC_TEST_DRIVER_EMAIL="${EXPO_PUBLIC_TEST_DRIVER_EMAIL:-samuelweld2018+d1@gmail.com}"
 export EXPO_PUBLIC_TEST_DRIVER_PASSWORD="${EXPO_PUBLIC_TEST_DRIVER_PASSWORD:-DriverTest123!}"
 
-if [[ "$TARGET" == "device" ]]; then
-  require_physical_api_url "android:device"
-else
-  export EXPO_PUBLIC_API_BASE_URL="$(api_url_for_android_emulator)"
+if [[ -z "$API_URL" ]]; then
+  API_TARGET="android-emulator"
+  [[ "$TARGET" == "device" ]] && API_TARGET="android-device"
+  API_URL="$(resolve_api_base_url "$ENV_NAME" "$API_TARGET")"
 fi
+export EXPO_PUBLIC_API_BASE_URL="$API_URL"
 
 adb start-server >/dev/null
 if [[ -z "$SERIAL" ]]; then

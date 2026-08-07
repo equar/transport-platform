@@ -42,4 +42,5 @@ ensure_node_modules
 (cd "$PROJECT_ROOT/ios" && "${POD_CMD[@]}" install)
 echo "iOS setup completed."
 echo "Simulator: npm run ios"
-echo "Physical device: DEVELOPMENT_TEAM=TEAMID EXPO_PUBLIC_API_BASE_URL=http://YOUR_LAN_IP:8080/api npm run ios:device"
+echo "Physical device (local backend): DEVELOPMENT_TEAM=TEAMID LOCAL_API_BASE_URL=http://YOUR_LAN_IP:8087/api npm run ios:device -- --env local"
+echo "Physical device (AWS backend): DEVELOPMENT_TEAM=TEAMID npm run ios:device -- --env aws"

@@ -1,0 +1,12 @@
+npm run android -- --env aws        # emulator against deployed AWS backend
+npm run ios -- --env aws            # simulator against deployed AWS backend
+npm run android -- --env local      # emulator against local backend (default)
+npm run ios -- --env local          # simulator against local backend (default)
+
+# physical devices need a LAN IP for local:
+LOCAL_API_BASE_URL=http://YOUR_LAN_IP:8087/api npm run android:device -- --env local
+LOCAL_API_BASE_URL=http://YOUR_LAN_IP:8087/api npm run ios:device -- --env local
+
+# physical devices against AWS (no LAN IP needed):
+npm run android:device -- --env aws
+npm run ios:device -- --env aws
