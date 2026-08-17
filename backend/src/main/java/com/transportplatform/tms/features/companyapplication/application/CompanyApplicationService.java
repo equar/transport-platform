@@ -16,9 +16,15 @@ import com.transportplatform.tms.features.companyapplication.domain.CompanyAppli
 import com.transportplatform.tms.features.companyapplication.domain.CompanyApplicationReviewEventRepository;
 import com.transportplatform.tms.features.companyapplication.domain.CompanyApplicationStatus;
 import java.time.YearMonth;
+import org.hibernate.exception.LockAcquisitionException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -95,14 +101,23 @@ public class CompanyApplicationService {
     }
 
     @Transactional
+    @Retryable(
+            retryFor = {
+                    DeadlockLoserDataAccessException.class,
+                    CannotAcquireLockException.class,
+                    PessimisticLockingFailureException.class,
+                    LockAcquisitionException.class
+            },
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 200, multiplier = 2.0))
     public CompanyApplicationResponse moveToUnderReview(Long applicationId, CompanyApplicationReviewRequest request) {
-        CompanyApplication application = findApplication(applicationId);
+        CompanyApplication application = findApplicationForUpdate(applicationId);
         CompanyApplicationStatusWorkflow.ensureCanMoveToUnderReview(application.getStatus());
         CompanyApplicationStatus previousStatus = application.getStatus();
         var oldSnapshot = snapshot(application);
         application.setStatus(CompanyApplicationStatus.UNDER_REVIEW);
         application.setReviewNotes(trim(request.reviewNotes()));
-        CompanyApplication saved = companyApplicationRepository.save(application);
+        CompanyApplication saved = companyApplicationRepository.saveAndFlush(application);
         reviewEventRepository
                 .save(buildEvent(saved, CompanyApplicationReviewAction.MOVED_TO_UNDER_REVIEW, previousStatus,
                         CompanyApplicationStatus.UNDER_REVIEW, request.reviewNotes()));
@@ -121,8 +136,17 @@ public class CompanyApplicationService {
     }
 
     @Transactional
+    @Retryable(
+            retryFor = {
+                    DeadlockLoserDataAccessException.class,
+                    CannotAcquireLockException.class,
+                    PessimisticLockingFailureException.class,
+                    LockAcquisitionException.class
+            },
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 200, multiplier = 2.0))
     public CompanyApplicationResponse approve(Long applicationId, CompanyApplicationReviewRequest request) {
-        CompanyApplication application = findApplication(applicationId);
+        CompanyApplication application = findApplicationForUpdate(applicationId);
         CompanyApplicationStatusWorkflow.ensureCanApprove(application.getStatus());
         CompanyApplicationStatus previousStatus = application.getStatus();
         var oldSnapshot = snapshot(application);
@@ -132,7 +156,7 @@ public class CompanyApplicationService {
         application.setReviewNotes(trim(request.reviewNotes()));
         application.setRejectionReason(null);
         application.setStatus(CompanyApplicationStatus.APPROVED);
-        CompanyApplication saved = companyApplicationRepository.save(application);
+        CompanyApplication saved = companyApplicationRepository.saveAndFlush(application);
         reviewEventRepository.save(buildEvent(saved, CompanyApplicationReviewAction.APPROVED, previousStatus,
                 CompanyApplicationStatus.APPROVED, request.reviewNotes()));
         auditLogService.record(new AuditLogCommand(
@@ -151,15 +175,24 @@ public class CompanyApplicationService {
     }
 
     @Transactional
+    @Retryable(
+            retryFor = {
+                    DeadlockLoserDataAccessException.class,
+                    CannotAcquireLockException.class,
+                    PessimisticLockingFailureException.class,
+                    LockAcquisitionException.class
+            },
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 200, multiplier = 2.0))
     public CompanyApplicationResponse reject(Long applicationId, CompanyApplicationReviewRequest request) {
-        CompanyApplication application = findApplication(applicationId);
+        CompanyApplication application = findApplicationForUpdate(applicationId);
         CompanyApplicationStatusWorkflow.ensureCanReject(application.getStatus(), request.rejectionReason());
         CompanyApplicationStatus previousStatus = application.getStatus();
         var oldSnapshot = snapshot(application);
         application.setReviewNotes(trim(request.reviewNotes()));
         application.setRejectionReason(trim(request.rejectionReason()));
         application.setStatus(CompanyApplicationStatus.REJECTED);
-        CompanyApplication saved = companyApplicationRepository.save(application);
+        CompanyApplication saved = companyApplicationRepository.saveAndFlush(application);
         reviewEventRepository.save(buildEvent(saved, CompanyApplicationReviewAction.REJECTED, previousStatus,
                 CompanyApplicationStatus.REJECTED, request.rejectionReason()));
         auditLogService.record(new AuditLogCommand(
@@ -179,6 +212,14 @@ public class CompanyApplicationService {
 
     private CompanyApplication findApplication(Long applicationId) {
         return companyApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.RESOURCE_NOT_FOUND,
+                        HttpStatus.NOT_FOUND,
+                        "Company application was not found."));
+    }
+
+    private CompanyApplication findApplicationForUpdate(Long applicationId) {
+        return companyApplicationRepository.findWithWriteLockById(applicationId)
                 .orElseThrow(() -> new ApiException(
                         ErrorCode.RESOURCE_NOT_FOUND,
                         HttpStatus.NOT_FOUND,

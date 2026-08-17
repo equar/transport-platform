@@ -45,10 +45,19 @@ management:
         enabled: true
 
 app:
+  auth:
+    password-reset-base-url: ${APP_AUTH_PASSWORD_RESET_BASE_URL:http://localhost:3007/reset-password}
+    password-reset-ttl: PT2H
   email:
     enabled: ${APP_EMAIL_ENABLED:false}
     provider: ${APP_EMAIL_PROVIDER:logging}
     from: ${APP_EMAIL_FROM:}
+  push:
+    enabled: ${APP_PUSH_ENABLED:false}
+    provider: ${APP_PUSH_PROVIDER:logging}
+    expo:
+      url: ${APP_PUSH_EXPO_URL:https://exp.host/--/api/v2/push/send}
+    expo-access-token: ${EXPO_ACCESS_TOKEN:}
   microsoft:
     graph:
       client-id: ${MICROSOFT_GRAPH_CLIENT_ID:}

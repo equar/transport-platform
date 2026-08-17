@@ -19,7 +19,6 @@ import {
   ListItemText,
   Menu,
   MenuItem,
-  Skeleton,
   Stack,
   Toolbar,
   Typography,
@@ -28,6 +27,7 @@ import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
+import CircleIcon from "@mui/icons-material/Circle";
 import {
   Link as RouterLink,
   Outlet,
@@ -48,9 +48,9 @@ import {
 } from "../../features/notifications/api/notificationApi";
 import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
 import { BrandMark } from "../../shared/components/BrandMark";
+import { LoadingState } from "../../shared/components/LoadingState";
 
-const drawerWidth = 252;
-const appBarHeight = 72;
+const drawerWidth = 276;
 
 function isRouteActive(currentPath: string, targetPath: string) {
   return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
@@ -145,31 +145,28 @@ export function AppShell() {
     return () => {
       cancelled = true;
     };
-  }, [platformAdmin, session?.accessToken]);
+  }, [location.pathname, platformAdmin]);
 
   const drawer = (
-    <Stack sx={{ height: "100%" }}>
-      <Box sx={{ px: 2.5, py: 2, color: "white" }}>
+    <Stack sx={{ height: "100%", bgcolor: "#25313a", color: "#e8eef1", backgroundImage: "linear-gradient(180deg, #2f3c46 0%, #222d35 100%)" }}>
+      <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: "rgba(17,24,29,.42)", borderBottom: "1px solid rgba(255,255,255,.08)" }}>
         <BrandMark compact />
       </Box>
-      <Divider />
-      <Box sx={{ px: 2.5, py: 1.5 }}>
-        <Typography variant="overline" sx={{ color: "rgba(255,255,255,.48)" }}>
+      <Box sx={{ mx: 1.5, my: 1.5, px: 1.75, py: 1.5, bgcolor: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 2.5, boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)" }}>
+        <Typography variant="caption" sx={{ color: "#95a9b0", display: "block", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 800 }}>
           {shellView.scopeLabel}
         </Typography>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,.78)" }}>
+        <Typography variant="subtitle2" sx={{ color: "#fff", fontWeight: 700, mt: .35 }} noWrap>
           {workspaceLabel}
         </Typography>
       </Box>
-      <Divider />
-
-      <Box sx={{ flexGrow: 1, overflowY: "auto", px: 1.25, py: 1.5 }}>
-        <Stack spacing={1.5}>
+      <Box sx={{ flexGrow: 1, overflowY: "auto", px: 1.5, py: 1 }}>
+        <Stack spacing={1.75}>
           {visibleSections.map((section) => (
             <Box key={section.title}>
               <Typography
                 variant="overline"
-                sx={{ px: 1.25, pb: 0.5, display: "block", color: "rgba(255,255,255,.42)" }}
+                sx={{ px: 1.4, pb: 0.9, display: "block", color: "#8da1aa", fontSize: ".66rem", letterSpacing: ".14em", lineHeight: 1.4 }}
               >
                 {section.title}
               </Typography>
@@ -183,23 +180,27 @@ export function AppShell() {
                       to={item.to}
                       selected={selected}
                       sx={{
-                        mb: 0.25,
-                        minHeight: 44,
-                        borderRadius: 1.5,
-                        alignItems: "center",
+                        mb: 0.4,
+                        minHeight: 42,
                         py: 0.75,
-                        px: 1.25,
+                        px: 1.4,
+                        color: "#c7d3d7",
+                        borderRadius: 2,
+                        border: "1px solid transparent",
                         "&.Mui-selected": {
-                          bgcolor: "rgba(255,255,255,.12)",
-                          boxShadow: "inset 3px 0 0 #e18a48",
+                          bgcolor: "rgba(255,255,255,.11)",
+                          color: "#fff",
+                          borderColor: "rgba(255,255,255,.08)",
+                          boxShadow: "inset 3px 0 0 #d6813f, 0 1px 2px rgba(0,0,0,.12)",
                         },
-                        "&:hover": { bgcolor: "rgba(255,255,255,.075)" },
+                        "&.Mui-selected:hover": { bgcolor: "rgba(255,255,255,.13)" },
+                        "&:hover": { bgcolor: "rgba(255,255,255,.06)" },
                       }}
                     >
                       <ListItemIcon
                         sx={{
-                          minWidth: 36,
-                          color: selected ? "#f1a768" : "rgba(255,255,255,.48)",
+                          minWidth: 30,
+                          color: selected ? "#6fd0df" : "#a8b0b4",
                         }}
                       >
                         {item.icon}
@@ -208,9 +209,8 @@ export function AppShell() {
                         primary={item.label}
                         primaryTypographyProps={{
                           fontWeight: selected ? 700 : 600,
-                          color: "common.white",
-                          fontSize: "0.94rem",
-                          lineHeight: 1.25,
+                          fontSize: ".92rem",
+                          color: "inherit",
                         }}
                       />
                     </ListItemButton>
@@ -222,22 +222,17 @@ export function AppShell() {
         </Stack>
       </Box>
 
-      <Divider />
-      <Box sx={{ px: 2.5, py: 2.5, color: "white", "& .MuiButton-root": { color: "rgba(255,255,255,.72)" }, "& .MuiChip-root": { color: "white", borderColor: "rgba(255,255,255,.22)" } }}>
-        <Stack spacing={1.25}>
-          <Chip
-            label={
-              (session?.identity.roles ?? []).map(getRoleLabel).join(", ") ||
-              "No roles"
-            }
-            color="secondary"
-            variant="outlined"
-            sx={{ justifyContent: "flex-start" }}
-          />
+      <Divider sx={{ borderColor: "rgba(255,255,255,.08)" }} />
+      <Box sx={{ px: 1.6, py: 1.4 }}>
+        <Stack spacing={1}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1 }}>
+            <CircleIcon sx={{ fontSize: 8, color: "#5fc58b" }} />
+            <Typography variant="caption" sx={{ color: "#9fb0b6" }}>System operational</Typography>
+          </Stack>
           <Button
             component={RouterLink}
             to="/"
-            color="inherit"
+            sx={{ color: "#aebdc2", justifyContent: "flex-start", fontSize: ".75rem" }}
             endIcon={<LaunchRoundedIcon />}
           >
             Open public site
@@ -312,11 +307,12 @@ export function AppShell() {
           ml: { md: `${drawerWidth}px` },
           borderBottom: "1px solid",
           borderColor: "divider",
-          backgroundColor: "rgba(255, 255, 255, 0.82)",
-          backdropFilter: "blur(18px)",
+          backgroundColor: "rgba(248,251,253,.92)",
+          backdropFilter: "blur(14px)",
+          boxShadow: "0 1px 0 rgba(255,255,255,.8), 0 10px 28px rgba(16,30,38,.05)",
         }}
       >
-        <Toolbar sx={{ gap: 2, minHeight: `${appBarHeight}px !important` }}>
+        <Toolbar sx={{ gap: 1.5, px: { xs: 1.5, md: 3 } }}>
           <IconButton
             color="inherit"
             edge="start"
@@ -326,14 +322,14 @@ export function AppShell() {
             <MenuRoundedIcon />
           </IconButton>
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Typography variant="overline" color="secondary.main">
-              {shellView.scopeLabel}
+            <Typography variant="subtitle1" sx={{ lineHeight: 1.1, fontWeight: 800, fontSize: "1.05rem" }} noWrap>
+              {currentTitle}
             </Typography>
-            <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
-              {workspaceLabel}
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "none", sm: "block" } }}>
+              {workspaceLabel} / {shellView.scopeLabel}
             </Typography>
           </Box>
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={.75} alignItems="center">
             <IconButton
               color="inherit"
               onClick={(event) => setNotificationAnchorEl(event.currentTarget)}
@@ -354,20 +350,20 @@ export function AppShell() {
               }
               color="primary"
               variant="outlined"
-              sx={{ display: { xs: "none", lg: "flex" } }}
+              sx={{ display: { xs: "none", lg: "inline-flex" }, bgcolor: "rgba(37,76,99,.045)", borderRadius: 999 }}
             />
             <Button
               color="inherit"
               onClick={(event) => setUserMenuAnchorEl(event.currentTarget)}
               startIcon={
-                <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main" }}>
+                <Avatar sx={{ width: 26, height: 26, bgcolor: "primary.main", fontSize: ".72rem" }}>
                   {getInitials(displayName)}
                 </Avatar>
               }
               endIcon={<MoreHorizRoundedIcon />}
-              sx={{ minWidth: 0, "& .MuiButton-startIcon": { mr: { xs: 0, sm: 1 } } }}
+              sx={{ borderLeft: "1px solid", borderColor: "divider", borderRadius: 0, pl: 2, ml: .25, minWidth: 0 }}
             >
-              <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>{displayName}</Box>
+              {displayName}
             </Button>
           </Stack>
         </Toolbar>
@@ -493,8 +489,7 @@ export function AppShell() {
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: drawerWidth,
-              color: "common.white",
-              background: "radial-gradient(circle at 0 0, #174e5b 0, transparent 28%), linear-gradient(180deg, #0a2932 0%, #071e25 100%)",
+              borderRadius: 0,
             },
           }}
         >
@@ -509,9 +504,9 @@ export function AppShell() {
               boxSizing: "border-box",
               width: drawerWidth,
               borderRight: "1px solid",
-              borderColor: "rgba(255,255,255,.06)",
-              color: "common.white",
-              background: "radial-gradient(circle at 0 0, #174e5b 0, transparent 28%), linear-gradient(180deg, #0a2932 0%, #071e25 100%)",
+              borderColor: "divider",
+              backgroundColor: "#25313a",
+              borderRadius: 0,
             },
           }}
         >
@@ -526,37 +521,34 @@ export function AppShell() {
           width: { md: `calc(100% - ${drawerWidth}px)` },
           display: "flex",
           flexDirection: "column",
-          backgroundImage: "radial-gradient(rgba(15,76,92,.075) 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
+          minWidth: 0,
         }}
       >
-        <Toolbar sx={{ minHeight: `${appBarHeight}px !important` }} />
+        <Toolbar />
         <Container
           maxWidth={false}
           sx={{
-            px: { xs: 2, md: 4 },
-            py: { xs: 2.5, md: 4 },
-            maxWidth: 1480,
+            px: { xs: 1.25, md: 2.5 },
+            py: { xs: 1.5, md: 2 },
             width: "100%",
             flexGrow: 1,
             display: "flex",
             flexDirection: "column",
-            gap: 3,
+            gap: 2,
           }}
         >
           <Box
             sx={{
               border: "1px solid",
-              borderColor: "divider",
-              bgcolor: "rgba(255,255,255,.72)",
-              backdropFilter: "blur(12px)",
-              borderRadius: 2,
-              px: { xs: 2.5, md: 3 },
-              py: { xs: 2, md: 2.25 },
-              boxShadow: "0 12px 30px rgba(15,50,60,.06)",
+              borderColor: "rgba(37,76,99,.1)",
+              bgcolor: "rgba(255,255,255,.8)",
+              px: 1.75,
+              py: 1.2,
+              borderRadius: 2.5,
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,.72), 0 4px 18px rgba(16,30,38,.025)",
             }}
           >
-            <Stack spacing={0.75}>
+            <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ sm: "center" }} justifyContent="space-between" spacing={.5}>
               <Breadcrumbs separator="/" aria-label="breadcrumb">
                 <Link
                   component={RouterLink}
@@ -568,52 +560,37 @@ export function AppShell() {
                 </Link>
                 <Typography color="text.primary">{currentTitle}</Typography>
               </Breadcrumbs>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: { sm: "55%" } }}>
                 {currentDescription}
               </Typography>
             </Stack>
           </Box>
 
-          <Box sx={{ flexGrow: 1 }}>
+          <Box sx={{ flexGrow: 1, minHeight: 0 }}>
             <Suspense
               fallback={
-                <Box
-                  aria-label="Loading workspace"
-                  aria-busy="true"
-                  sx={{ minHeight: 360, pt: 0.5 }}
-                >
-                  <Skeleton variant="rounded" height={180} animation={false} />
-                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 2 }}>
-                    <Skeleton variant="rounded" height={112} sx={{ flex: 1 }} animation={false} />
-                    <Skeleton variant="rounded" height={112} sx={{ flex: 1 }} animation={false} />
-                    <Skeleton variant="rounded" height={112} sx={{ flex: 1 }} animation={false} />
-                  </Stack>
-                </Box>
+                <LoadingState
+                  title="Loading workspace"
+                  description="Please wait while the selected workspace view is prepared."
+                  minHeight={360}
+                />
               }
             >
               <Outlet />
             </Suspense>
           </Box>
 
-          <Box
-            component="footer"
-            sx={{
-              borderTop: "1px solid",
-              borderColor: "divider",
-              pt: 2,
-              pb: 1,
-            }}
-          >
+          <Box component="footer" sx={{ borderTop: "1px solid", borderColor: "divider", pt: 1.25, pb: .4 }}>
             <Stack
               direction={{ xs: "column", md: "row" }}
               spacing={1}
               justifyContent="space-between"
             >
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary">
                 {branding?.displayName || "Transport Platform"} authenticated
                 workspace for {workspaceLabel.toLowerCase()}.
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary">
                 Support:{" "}
                 {branding?.supportEmail || "support@transportplatform.com"}
               </Typography>

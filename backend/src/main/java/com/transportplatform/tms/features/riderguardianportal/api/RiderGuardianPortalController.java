@@ -3,6 +3,7 @@ package com.transportplatform.tms.features.riderguardianportal.api;
 import com.transportplatform.tms.common.response.ApiResponse;
 import com.transportplatform.tms.common.response.PageResponse;
 import com.transportplatform.tms.features.billing.api.response.InvoiceSummaryResponse;
+import com.transportplatform.tms.features.location.api.response.DriverLocationSnapshotResponse;
 import com.transportplatform.tms.features.billing.api.response.PaymentSummaryResponse;
 import com.transportplatform.tms.features.portalcommon.api.response.PortalRideSummaryResponse;
 import com.transportplatform.tms.features.riderguardianportal.api.request.RiderGuardianPortalProfileUpdateRequest;
@@ -74,6 +75,11 @@ public class RiderGuardianPortalController {
     @GetMapping("/portal/rider/rides/{rideId}")
     public ApiResponse<RiderGuardianPortalRideDetailResponse> getRide(@PathVariable Long rideId) {
         return ApiResponse.success(service.getRide(rideId));
+    }
+
+    @GetMapping("/portal/rider/rides/{rideId}/location-snapshot")
+    public ApiResponse<DriverLocationSnapshotResponse> getRideLocationSnapshot(@PathVariable Long rideId) {
+        return ApiResponse.success(service.getRideLocationSnapshot(rideId));
     }
 
     @GetMapping("/portal/rider/invoices")

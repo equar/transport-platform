@@ -45,7 +45,9 @@ import com.transportplatform.tms.features.route.application.RouteSpecifications;
 import com.transportplatform.tms.features.route.domain.Route;
 import com.transportplatform.tms.features.route.domain.RouteRepository;
 import com.transportplatform.tms.features.route.domain.RouteStatus;
+import com.transportplatform.tms.features.route.domain.RouteStop;
 import com.transportplatform.tms.features.route.domain.RouteStopRepository;
+import com.transportplatform.tms.features.route.domain.RouteStopStatus;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -443,10 +445,27 @@ public class DriverPortalService {
             ride.setCancelledBy(null);
         }
         Ride saved = rideRepository.save(ride);
+        syncRouteStopStatus(saved);
         persistRideEvent(saved, eventType, previousStatus, targetStatus, summary);
         recordRideAudit(saved, auditAction, summary, oldSnapshot, snapshotRide(saved));
         notificationEventService.publishRideStatusChanged(saved, previousStatus, targetStatus);
         return saved;
+    }
+
+    private void syncRouteStopStatus(Ride ride) {
+        List<RouteStop> routeStops = routeStopRepository.findAllByTenantIdAndRide_Id(ride.getTenantId(), ride.getId());
+        routeStops.forEach(stop -> stop.setStatus(resolveRouteStopStatus(ride.getStatus())));
+        if (!routeStops.isEmpty()) {
+            routeStopRepository.saveAll(routeStops);
+        }
+    }
+
+    private RouteStopStatus resolveRouteStopStatus(RideStatus rideStatus) {
+        return switch (rideStatus) {
+            case ASSIGNED, DRIVER_EN_ROUTE, ARRIVED, PICKED_UP, DROPPED_OFF -> RouteStopStatus.ACTIVE;
+            case COMPLETED, RIDER_NO_SHOW, MISSED, FAILED, CANCELLED -> RouteStopStatus.COMPLETED;
+            default -> RouteStopStatus.PLANNED;
+        };
     }
 
     private void persistRideEvent(Ride ride,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
+import { Colors, Spacing, Typography } from '@theme/tokens';
 
 interface MetricTileProps {
   label: string;
@@ -13,6 +13,7 @@ export function MetricTile({ label, value, accent, warning }: MetricTileProps) {
   const valueColor = warning ? Colors.error : accent ? Colors.primary : Colors.textPrimary;
   return (
     <View style={styles.tile}>
+      <View style={[styles.accentBar, accent && styles.accentBarActive, warning && styles.accentBarWarning]} />
       <Text style={[styles.value, { color: valueColor }]}>{value}</Text>
       <Text style={styles.label}>{label}</Text>
     </View>
@@ -25,17 +26,28 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
+    borderRadius: 20,
     padding: Spacing.lg,
     alignItems: 'flex-start',
-    gap: Spacing.xs,
-    minWidth: 100,
-    minHeight: 112,
-    borderRadius: Radius.lg,
-    ...Shadow.card,
+    gap: Spacing.sm,
+    minWidth: 120,
+    overflow: 'hidden',
+  },
+  accentBar: {
+    height: 4,
+    width: 40,
+    borderRadius: 999,
+    backgroundColor: Colors.canvas,
+  },
+  accentBarActive: {
+    backgroundColor: Colors.primary,
+  },
+  accentBarWarning: {
+    backgroundColor: Colors.error,
   },
   value: {
     fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: Typography.sizeXxl,
+    fontSize: Typography.sizeXxxl,
     color: Colors.textPrimary,
   },
   label: {

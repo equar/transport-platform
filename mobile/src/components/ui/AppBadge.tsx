@@ -10,27 +10,27 @@ type StatusVariant =
   | 'PLANNED' | string;
 
 const colorMap: Record<string, { bg: string; text: string }> = {
-  ACTIVE: { bg: '#e8f5e9', text: Colors.statusActive },
-  READY: { bg: '#e8f5e9', text: Colors.statusActive },
-  COMPLETED: { bg: '#e3f2fd', text: Colors.statusCompleted },
-  DROPPED_OFF: { bg: '#e3f2fd', text: Colors.statusCompleted },
-  ASSIGNED: { bg: '#ede7f6', text: Colors.statusEnRoute },
-  DRIVER_EN_ROUTE: { bg: '#f3e5f5', text: Colors.statusEnRoute },
-  ARRIVED: { bg: '#e8eaf6', text: '#3949ab' },
-  PICKED_UP: { bg: '#e1f5fe', text: Colors.info },
-  IN_PROGRESS: { bg: '#e1f5fe', text: Colors.info },
-  SCHEDULED: { bg: '#e1f5fe', text: Colors.info },
-  PLANNED: { bg: '#e1f5fe', text: Colors.info },
-  PENDING: { bg: '#fff3e0', text: Colors.statusPending },
-  REQUESTED: { bg: '#fff3e0', text: Colors.statusPending },
-  SUSPENDED: { bg: '#ffebee', text: Colors.statusSuspended },
-  FAILED: { bg: '#ffebee', text: Colors.statusSuspended },
-  CANCELLED: { bg: '#f5f5f5', text: Colors.statusCancelled },
-  INACTIVE: { bg: '#f5f5f5', text: Colors.statusInactive },
-  DRAFT: { bg: '#f5f5f5', text: Colors.statusInactive },
-  MISSED: { bg: '#ffebee', text: Colors.statusSuspended },
-  TERMINATED: { bg: '#ffebee', text: Colors.statusSuspended },
-  ON_LEAVE: { bg: '#fff8e1', text: '#f57f17' },
+  ACTIVE: { bg: '#e7f4ec', text: Colors.statusActive },
+  READY: { bg: '#e7f4ec', text: Colors.statusActive },
+  COMPLETED: { bg: '#e8f0fb', text: Colors.statusCompleted },
+  DROPPED_OFF: { bg: '#e8f0fb', text: Colors.statusCompleted },
+  ASSIGNED: { bg: '#ecf3f6', text: Colors.primaryDark },
+  DRIVER_EN_ROUTE: { bg: '#ebe8fb', text: Colors.statusEnRoute },
+  ARRIVED: { bg: '#e6eefc', text: '#3551b3' },
+  PICKED_UP: { bg: '#e1f2fb', text: Colors.info },
+  IN_PROGRESS: { bg: '#e1f2fb', text: Colors.info },
+  SCHEDULED: { bg: '#eef5f7', text: Colors.primaryDark },
+  PLANNED: { bg: '#eef5f7', text: Colors.primaryDark },
+  PENDING: { bg: '#fdf0dd', text: Colors.statusPending },
+  REQUESTED: { bg: '#fdf0dd', text: Colors.statusPending },
+  SUSPENDED: { bg: '#fde9e8', text: Colors.statusSuspended },
+  FAILED: { bg: '#fde9e8', text: Colors.statusSuspended },
+  CANCELLED: { bg: '#eef1f3', text: Colors.statusCancelled },
+  INACTIVE: { bg: '#eef1f3', text: Colors.statusInactive },
+  DRAFT: { bg: '#eef1f3', text: Colors.statusInactive },
+  MISSED: { bg: '#fde9e8', text: Colors.statusSuspended },
+  TERMINATED: { bg: '#fde9e8', text: Colors.statusSuspended },
+  ON_LEAVE: { bg: '#fdf5de', text: '#a16207' },
 };
 
 function getColor(status: string) {
@@ -49,14 +49,9 @@ interface AppBadgeProps {
 
 export function AppBadge({ status, label, style }: AppBadgeProps) {
   const { bg, text } = getColor(status);
-  const displayLabel = label ?? formatLabel(status);
   return (
-    <View
-      style={[styles.badge, { backgroundColor: bg, borderRadius: Radius.chip }, style]}
-      accessibilityRole="text"
-      accessibilityLabel={`Status: ${displayLabel}`}
-    >
-      <Text style={[styles.text, { color: text }]}>{displayLabel}</Text>
+    <View style={[styles.badge, { backgroundColor: bg, borderRadius: Radius.chip }, style]}>
+      <Text style={[styles.text, { color: text }]}>{label ?? formatLabel(status)}</Text>
     </View>
   );
 }
@@ -71,6 +66,6 @@ const styles = StyleSheet.create({
     fontFamily: 'SourceSans3_700Bold',
     fontSize: Typography.sizeXs,
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.8,
   },
 });

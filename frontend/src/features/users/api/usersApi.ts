@@ -53,6 +53,10 @@ export interface UserUpsertPayload {
   portalSubjectId?: number | null;
 }
 
+export interface AdminResetPasswordPayload {
+  password: string;
+}
+
 function normalizePayload(payload: UserUpsertPayload) {
   return {
     ...payload,
@@ -94,6 +98,12 @@ export const usersApi = {
   },
   async update(scope: UserScope, userId: number, payload: UserUpsertPayload) {
     const response = await apiClient.put(`${buildBasePath(scope)}/${userId}`, normalizePayload(payload));
+    return unwrapResponse<UserRecord>(response.data);
+  },
+  async resetPassword(scope: UserScope, userId: number, payload: AdminResetPasswordPayload) {
+    const response = await apiClient.post(`${buildBasePath(scope)}/${userId}/reset-password`, {
+      password: payload.password.trim(),
+    });
     return unwrapResponse<UserRecord>(response.data);
   },
   async activate(scope: UserScope, userId: number) {

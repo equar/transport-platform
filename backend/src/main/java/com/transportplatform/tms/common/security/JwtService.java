@@ -67,6 +67,7 @@ public class JwtService {
                 claims.get("lastName", String.class),
                 claims.get("tenantId", String.class),
                 extractParsedRoles(rawRoles),
+                claims.get("mustChangePassword", Boolean.class),
                 claims.get("tokenType", String.class),
                 claims.getIssuedAt().toInstant(),
                 claims.getExpiration().toInstant());
@@ -84,6 +85,7 @@ public class JwtService {
                 .claim("lastName", user.lastName())
                 .claim("tenantId", user.tenantId())
                 .claim("roles", extractRoles(user.getAuthorities()))
+                .claim("mustChangePassword", user.mustChangePassword())
                 .claim("tokenType", tokenType)
                 .signWith(signingKey())
                 .compact();

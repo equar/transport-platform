@@ -21,6 +21,9 @@ import com.transportplatform.tms.features.billing.domain.PaymentStatus;
 import com.transportplatform.tms.features.notification.domain.NotificationReadStatus;
 import com.transportplatform.tms.features.notification.domain.NotificationRepository;
 import com.transportplatform.tms.features.notification.domain.NotificationStatus;
+import com.transportplatform.tms.features.location.api.response.DriverLocationSnapshotResponse;
+import com.transportplatform.tms.features.location.application.DriverLocationSnapshotMapper;
+import com.transportplatform.tms.features.location.domain.DriverLocationSnapshotRepository;
 import com.transportplatform.tms.features.portalaccess.domain.PortalSubjectType;
 import com.transportplatform.tms.features.portalcommon.api.response.PortalRideSummaryResponse;
 import com.transportplatform.tms.features.rider.domain.Guardian;
@@ -68,6 +71,8 @@ public class RiderGuardianPortalService {
     private final InvoiceRepository invoiceRepository;
     private final PaymentRepository paymentRepository;
     private final NotificationRepository notificationRepository;
+    private final DriverLocationSnapshotRepository driverLocationSnapshotRepository;
+    private final DriverLocationSnapshotMapper driverLocationSnapshotMapper;
     private final InvoiceMapper invoiceMapper;
     private final PaymentMapper paymentMapper;
     private final InvoiceFinancialService invoiceFinancialService;
@@ -79,6 +84,8 @@ public class RiderGuardianPortalService {
             InvoiceRepository invoiceRepository,
             PaymentRepository paymentRepository,
             NotificationRepository notificationRepository,
+            DriverLocationSnapshotRepository driverLocationSnapshotRepository,
+            DriverLocationSnapshotMapper driverLocationSnapshotMapper,
             InvoiceMapper invoiceMapper,
             PaymentMapper paymentMapper,
             InvoiceFinancialService invoiceFinancialService,
@@ -89,6 +96,8 @@ public class RiderGuardianPortalService {
         this.invoiceRepository = invoiceRepository;
         this.paymentRepository = paymentRepository;
         this.notificationRepository = notificationRepository;
+        this.driverLocationSnapshotRepository = driverLocationSnapshotRepository;
+        this.driverLocationSnapshotMapper = driverLocationSnapshotMapper;
         this.invoiceMapper = invoiceMapper;
         this.paymentMapper = paymentMapper;
         this.invoiceFinancialService = invoiceFinancialService;
@@ -260,6 +269,22 @@ public class RiderGuardianPortalService {
                     "The current rider or guardian portal account cannot access this ride.");
         }
         return toRideDetail(ride);
+    }
+
+    @Transactional(readOnly = true)
+    public DriverLocationSnapshotResponse getRideLocationSnapshot(Long rideId) {
+        var scope = accessService.resolveCurrentScope();
+        Ride ride = rideRepository.findByIdAndTenantId(rideId, scope.user().tenantId())
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND,
+                        "Ride not found for the current portal scope."));
+        if (!canAccessRide(scope, ride)) {
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                    "The current rider or guardian portal account cannot access this ride.");
+        }
+        return driverLocationSnapshotRepository
+                .findTopByTenantIdAndRide_IdOrderByCapturedAtDescIdDesc(ride.getTenantId(), ride.getId())
+                .map(driverLocationSnapshotMapper::toResponse)
+                .orElse(null);
     }
 
     @Transactional(readOnly = true)

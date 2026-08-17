@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Pressable, ActivityIndicator, ViewStyle } from 'react-native';
+import { StyleSheet, TouchableOpacity, ActivityIndicator, ViewStyle } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
 
@@ -15,15 +15,12 @@ interface AppButtonProps {
   disabled?: boolean;
   style?: ViewStyle;
   fullWidth?: boolean;
-  accessibilityLabel?: string;
-  accessibilityHint?: string;
 }
 
-// Minimum height satisfies the 44x44dp/pt tappable-area guideline on both platforms.
 const sizeMap = {
-  sm: { height: 44, px: Spacing.md, fontSize: Typography.sizeSm },
-  md: { height: 48, px: Spacing.lg, fontSize: Typography.sizeMd },
-  lg: { height: 52, px: Spacing.xl, fontSize: Typography.sizeLg },
+  sm: { height: 32, px: Spacing.md, fontSize: Typography.sizeSm },
+  md: { height: 40, px: Spacing.lg, fontSize: Typography.sizeMd },
+  lg: { height: 48, px: Spacing.xl, fontSize: Typography.sizeLg },
 };
 
 export function AppButton({
@@ -35,11 +32,21 @@ export function AppButton({
   disabled = false,
   style,
   fullWidth = false,
-  accessibilityLabel,
-  accessibilityHint,
 }: AppButtonProps) {
   const dim = sizeMap[size];
   const isDisabled = disabled || loading;
+
+  const containerStyle = [
+    styles.base,
+    { height: dim.height, paddingHorizontal: dim.px, borderRadius: Radius.input },
+    variant === 'primary' && styles.primary,
+    variant === 'secondary' && styles.secondary,
+    variant === 'outlined' && styles.outlined,
+    variant === 'ghost' && styles.ghost,
+    fullWidth && styles.fullWidth,
+    isDisabled && styles.disabled,
+    style,
+  ];
 
   const textStyle = [
     styles.label,
@@ -49,27 +56,11 @@ export function AppButton({
   ];
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.base,
-        { height: dim.height, paddingHorizontal: dim.px, borderRadius: Radius.md },
-        variant === 'primary' && styles.primary,
-        variant === 'secondary' && styles.secondary,
-        variant === 'outlined' && styles.outlined,
-        variant === 'ghost' && styles.ghost,
-        fullWidth && styles.fullWidth,
-        isDisabled && styles.disabled,
-        pressed && !isDisabled && styles.pressed,
-        style,
-      ]}
+    <TouchableOpacity
+      style={containerStyle}
       onPress={onPress}
       disabled={isDisabled}
-      android_ripple={isDisabled ? undefined : { color: 'rgba(0,0,0,0.12)', foreground: true }}
-      hitSlop={8}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      activeOpacity={0.8}
     >
       {loading ? (
         <ActivityIndicator
@@ -79,7 +70,7 @@ export function AppButton({
       ) : (
         <Text style={textStyle}>{label}</Text>
       )}
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -91,21 +82,19 @@ const styles = StyleSheet.create({
   },
   primary: {
     backgroundColor: Colors.primary,
-    ...Shadow.card,
+    ...StyleSheet.flatten(Shadow.soft),
   },
   secondary: {
     backgroundColor: Colors.secondary,
+    ...StyleSheet.flatten(Shadow.soft),
   },
   outlined: {
     backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: Colors.borderStrong,
   },
   ghost: {
-    backgroundColor: 'transparent',
-  },
-  pressed: {
-    opacity: 0.85,
+    backgroundColor: Colors.overlay,
   },
   disabled: {
     opacity: 0.4,

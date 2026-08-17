@@ -13,6 +13,7 @@ public record AuthenticatedUser(
         String password,
         boolean enabled,
         boolean accountNonLocked,
+        boolean mustChangePassword,
         Collection<? extends GrantedAuthority> authorities) implements UserDetails {
 
     public String displayName() {

@@ -11,19 +11,41 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import NetInfo from '@react-native-community/netinfo';
+import * as Location from 'expo-location';
 import { driverPortalApi, type DriverRideAction } from '@api/driverPortalApi';
+import { TripTrackingCard } from '@components/TripTrackingCard';
 import { useOfflineQueue } from '@stores/offlineQueueStore';
 import { AppBadge, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { Colors, Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 
-const STATUS_ACTIONS: Record<string, { action: DriverRideAction; label: string } | undefined> = {
-  ASSIGNED: { action: 'en-route', label: 'Mark En Route' },
+const PRIMARY_STATUS_ACTIONS: Record<string, { action: DriverRideAction; label: string } | undefined> = {
+  ASSIGNED: { action: 'driver-en-route', label: 'Mark En Route' },
   DRIVER_EN_ROUTE: { action: 'arrived', label: 'Mark Arrived' },
-  ARRIVED: { action: 'pickup-complete', label: 'Confirm Pickup' },
-  PICKED_UP: { action: 'dropoff-complete', label: 'Confirm Drop Off' },
+  ARRIVED: { action: 'picked-up', label: 'Confirm Pickup' },
+  PICKED_UP: { action: 'dropped-off', label: 'Confirm Drop Off' },
+  DROPPED_OFF: { action: 'complete', label: 'Complete Ride' },
 };
+
+const SECONDARY_STATUS_ACTIONS: Record<string, { action: DriverRideAction; label: string }[]> = {
+  ASSIGNED: [{ action: 'no-show', label: 'Mark No-Show' }],
+  DRIVER_EN_ROUTE: [{ action: 'failed', label: 'Report Failed Trip' }],
+  ARRIVED: [
+    { action: 'no-show', label: 'Mark No-Show' },
+    { action: 'failed', label: 'Report Failed Trip' },
+  ],
+  PICKED_UP: [{ action: 'failed', label: 'Report Failed Trip' }],
+  DROPPED_OFF: [{ action: 'failed', label: 'Report Failed Trip' }],
+};
+
+const TRACKABLE_STATUSES = new Set([
+  'ASSIGNED',
+  'DRIVER_EN_ROUTE',
+  'ARRIVED',
+  'PICKED_UP',
+  'DROPPED_OFF',
+]);
 
 export default function DriverRideDetailPage() {
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
@@ -35,6 +57,17 @@ export default function DriverRideDetailPage() {
     queryKey: ['driver-ride', rideId],
     queryFn: () => driverPortalApi.getRide(Number(rideId)),
     enabled: !!rideId,
+  });
+
+  const {
+    data: locationSnapshot,
+    refetch: refetchLocationSnapshot,
+    isRefetching: locationRefreshing,
+  } = useQuery({
+    queryKey: ['driver-ride-location', rideId],
+    queryFn: () => driverPortalApi.getRideLocationSnapshot(Number(rideId)),
+    enabled: !!rideId,
+    refetchInterval: ride && TRACKABLE_STATUSES.has(ride.status) ? 30000 : false,
   });
 
   const { mutate: performAction, isPending: actionPending } = useMutation({
@@ -67,9 +100,54 @@ export default function DriverRideDetailPage() {
     ]);
   }
 
+  React.useEffect(() => {
+    if (!rideId || !ride || !TRACKABLE_STATUSES.has(ride.status)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function captureSnapshot() {
+      try {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (permission.status !== 'granted' || cancelled) {
+          return;
+        }
+        const position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        if (cancelled) {
+          return;
+        }
+        await driverPortalApi.captureRideLocationSnapshot(Number(rideId), {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracyMeters: position.coords.accuracy ?? null,
+          speedMps: position.coords.speed ?? null,
+          headingDegrees: position.coords.heading ?? null,
+          capturedAt: new Date(position.timestamp).toISOString(),
+        });
+        void refetchLocationSnapshot();
+      } catch {
+        // Location reporting should never block the trip workflow.
+      }
+    }
+
+    void captureSnapshot();
+    const timer = setInterval(() => {
+      void captureSnapshot();
+    }, 60000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [rideId, ride?.status]);
+
   if (isLoading || !ride) return <LoadingState />;
 
-  const nextAction = STATUS_ACTIONS[ride.status];
+  const primaryAction = PRIMARY_STATUS_ACTIONS[ride.status];
+  const secondaryActions = SECONDARY_STATUS_ACTIONS[ride.status] ?? [];
 
   return (
     <ScrollView
@@ -111,6 +189,17 @@ export default function DriverRideDetailPage() {
         <Row label="To" value={ride.dropoffAddress ?? '—'} />
       </Section>
 
+      <TripTrackingCard
+        title="Route Tracking"
+        snapshot={locationSnapshot ?? null}
+        pickupAddress={ride.pickupAddress}
+        dropoffAddress={ride.dropoffAddress}
+        onRefresh={() => {
+          void refetchLocationSnapshot();
+        }}
+        refreshing={locationRefreshing}
+      />
+
       {/* Instructions */}
       {ride.specialInstructions ? (
         <Section title="Special Instructions">
@@ -119,14 +208,32 @@ export default function DriverRideDetailPage() {
       ) : null}
 
       {/* Action */}
-      {nextAction && (
-        <AppButton
-          label={nextAction.label}
-          onPress={() => handleAction(nextAction.action, nextAction.label)}
-          loading={actionPending}
-          fullWidth
-          size="lg"
-        />
+      {(primaryAction || secondaryActions.length > 0) && (
+        <Section title="Trip Actions">
+          {primaryAction ? (
+            <AppButton
+              label={primaryAction.label}
+              onPress={() => handleAction(primaryAction.action, primaryAction.label)}
+              loading={actionPending}
+              fullWidth
+              size="lg"
+            />
+          ) : null}
+          {secondaryActions.length > 0 ? (
+            <View style={styles.secondaryActionGroup}>
+              {secondaryActions.map((item) => (
+                <AppButton
+                  key={item.action}
+                  label={item.label}
+                  onPress={() => handleAction(item.action, item.label)}
+                  disabled={actionPending}
+                  variant="outlined"
+                  fullWidth
+                />
+              ))}
+            </View>
+          ) : null}
+        </Section>
       )}
     </ScrollView>
   );
@@ -172,6 +279,10 @@ const styles = StyleSheet.create({
     fontFamily: 'SourceSans3_400Regular',
     fontSize: Typography.sizeMd,
     color: Colors.textPrimary,
+  },
+  secondaryActionGroup: {
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
   },
 });
 

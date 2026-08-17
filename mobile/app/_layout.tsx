@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
   useFonts,
   SourceSans3_400Regular,
@@ -27,7 +27,7 @@ const queryClient = new QueryClient({
 });
 
 function AuthGate() {
-  const { isAuthenticated, isLoading, getDefaultRoute, session } = useAuth();
+  const { isAuthenticated, isLoading, getDefaultRoute } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const { drain } = useOfflineQueue();
@@ -48,20 +48,8 @@ function AuthGate() {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuth) {
       router.replace(getDefaultRoute() as never);
-    } else if (isAuthenticated) {
-      const roles = session?.identity.roles ?? [];
-      const currentGroup = segments[0];
-      const canAccessCurrentGroup =
-        currentGroup === 'unsupported' ||
-        (currentGroup === '(driver)' && roles.includes('ROLE_DRIVER')) ||
-        (currentGroup === '(rider)' && roles.includes('ROLE_RIDER')) ||
-        (currentGroup === '(guardian)' && roles.includes('ROLE_GUARDIAN'));
-
-      if (!canAccessCurrentGroup) {
-        router.replace(getDefaultRoute() as never);
-      }
     }
-  }, [getDefaultRoute, isAuthenticated, isLoading, router, segments, session]);
+  }, [isAuthenticated, isLoading, segments]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -69,7 +57,6 @@ function AuthGate() {
       <Stack.Screen name="(driver)" />
       <Stack.Screen name="(rider)" />
       <Stack.Screen name="(guardian)" />
-      <Stack.Screen name="unsupported" />
       <Stack.Screen name="+not-found" />
     </Stack>
   );
@@ -93,13 +80,15 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider>
-            <AuthProvider>
-              <AuthGate />
-            </AuthProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
+        <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider>
+              <AuthProvider>
+                <AuthGate />
+              </AuthProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </SafeAreaView>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

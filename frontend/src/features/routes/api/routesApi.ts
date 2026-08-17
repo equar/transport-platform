@@ -83,6 +83,13 @@ export interface AddRouteStopPayload {
   notes?: string | null;
 }
 
+export interface UpdateRouteStopPayload {
+  stopSequence?: number | null;
+  plannedPickupAt?: string | null;
+  plannedDropoffAt?: string | null;
+  notes?: string | null;
+}
+
 export interface RouteReorderItem {
   routeStopId: number;
   stopSequence: number;
@@ -157,6 +164,13 @@ export const routesApi = {
   },
   async addStop(routeId: number, payload: AddRouteStopPayload) {
     const response = await apiClient.post(`/company/routes/${routeId}/stops`, payload);
+    return unwrapResponse<RouteRecord>(response.data);
+  },
+  async updateStop(routeId: number, routeStopId: number, payload: UpdateRouteStopPayload) {
+    const response = await apiClient.put(
+      `/company/routes/${routeId}/stops/${routeStopId}`,
+      payload,
+    );
     return unwrapResponse<RouteRecord>(response.data);
   },
   async removeStop(routeId: number, routeStopId: number) {

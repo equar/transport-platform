@@ -7,9 +7,10 @@ import React, {
 } from 'react';
 import { authApi, type LoginPayload } from '@api/authApi';
 import { SESSION_KEY, onSessionExpired } from '@api/client';
-import { deleteSessionValue, getSessionValue, setSessionValue } from './sessionStorage';
 import type { AuthSession } from './types';
 import { Roles } from './types';
+import { deleteSessionValue, getSessionValue, setSessionValue } from './sessionStorage';
+import { unregisterCurrentPushToken } from '@hooks/usePushNotifications';
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -34,13 +35,13 @@ async function readStoredSession(): Promise<AuthSession | null> {
   }
 }
 
-export function resolveDefaultRoute(session: AuthSession | null): string {
+function resolveDefaultRoute(session: AuthSession | null): string {
   if (!session) return '/(auth)/login';
   const roles = session.identity.roles;
   if (roles.includes(Roles.DRIVER)) return '/(driver)';
   if (roles.includes(Roles.GUARDIAN)) return '/(guardian)';
   if (roles.includes(Roles.RIDER)) return '/(rider)';
-  return '/unsupported';
+  return '/(auth)/login';
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
@@ -57,7 +58,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setSession(null);
     });
 
-    return () => { unsubscribe(); };
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const value: AuthContextValue = {
@@ -73,6 +76,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     },
 
     async signOut() {
+      try {
+        await unregisterCurrentPushToken();
+      } catch {
+        // Best-effort cleanup only.
+      }
       await deleteSessionValue(SESSION_KEY);
       setSession(null);
     },

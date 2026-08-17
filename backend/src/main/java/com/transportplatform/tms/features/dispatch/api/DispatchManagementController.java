@@ -6,6 +6,7 @@ import com.transportplatform.tms.features.dispatch.api.request.AssignRideDriverR
 import com.transportplatform.tms.features.dispatch.api.request.AssignRideResourcesRequest;
 import com.transportplatform.tms.features.dispatch.api.request.AssignRideVehicleRequest;
 import com.transportplatform.tms.features.dispatch.api.response.DispatchBoardSummaryResponse;
+import com.transportplatform.tms.features.dispatch.api.response.DispatchRideMapResponse;
 import com.transportplatform.tms.features.dispatch.api.response.DispatchRideSummaryResponse;
 import com.transportplatform.tms.features.dispatch.application.DispatchRideView;
 import com.transportplatform.tms.features.dispatch.application.DispatchService;
@@ -79,6 +80,28 @@ public class DispatchManagementController {
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate) {
         return ApiResponse.success(dispatchService.getCompanyDispatchBoardSummary(
+                keyword,
+                status,
+                serviceType,
+                driverId,
+                vehicleId,
+                organizationId,
+                fromDate,
+                toDate));
+    }
+
+    @GetMapping("/company/dispatch/map")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
+    public ApiResponse<java.util.List<DispatchRideMapResponse>> getCompanyDispatchMap(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(required = false) RideStatus status,
+            @RequestParam(required = false) ServiceType serviceType,
+            @RequestParam(required = false) Long driverId,
+            @RequestParam(required = false) Long vehicleId,
+            @RequestParam(required = false) Long organizationId,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate) {
+        return ApiResponse.success(dispatchService.getCompanyDispatchMap(
                 keyword,
                 status,
                 serviceType,

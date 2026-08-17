@@ -20,7 +20,7 @@ import PersonOffRoundedIcon from "@mui/icons-material/PersonOffRounded";
 import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
 import { EmptyState } from "../../../shared/components/EmptyState";
@@ -58,6 +58,7 @@ function booleanFilterLabel(value: boolean | "") {
 }
 
 export function GuardianManagementPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
   const [items, setItems] = useState<GuardianRecord[]>([]);
@@ -108,6 +109,19 @@ export function GuardianManagementPage() {
   useEffect(() => {
     void loadGuardians();
   }, [keyword, status, authorizedForPickup, billingContact, page, size]);
+
+  useEffect(() => {
+    if (searchParams.get("create") !== "1") {
+      return;
+    }
+
+    setSelectedGuardian(null);
+    setDialogOpen(true);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("create");
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   async function handleSubmit(payload: GuardianPayload) {
     setSaving(true);

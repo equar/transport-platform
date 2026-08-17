@@ -321,6 +321,21 @@ export interface RideEventRecord {
   createdAt: string;
 }
 
+export interface RideLocationSnapshotRecord {
+  id: number;
+  rideId: number;
+  driverId: number;
+  vehicleId: number | null;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number | null;
+  speedMps: number | null;
+  headingDegrees: number | null;
+  capturedAt: string;
+  createdAt: string;
+  createdBy: string;
+}
+
 export const rideStatusOptions: RideStatus[] = [
   "DRAFT",
   "REQUESTED",
@@ -420,6 +435,10 @@ export const ridesApi = {
   async getById(rideId: number) {
     const response = await apiClient.get(`/company/rides/${rideId}`);
     return unwrapResponse<RideRecord>(response.data);
+  },
+  async getLocationSnapshot(rideId: number) {
+    const response = await apiClient.get(`/company/rides/${rideId}/location-snapshot`);
+    return unwrapResponse<RideLocationSnapshotRecord | null>(response.data);
   },
   async create(payload: RidePayload) {
     const response = await apiClient.post("/company/rides", payload);

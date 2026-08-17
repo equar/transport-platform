@@ -54,10 +54,9 @@ export function ResetPasswordPage() {
       setSuccessMessage(response.message);
       setSubmitted(true);
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : "invalid";
+      const message = nextError instanceof Error ? nextError.message : "invalid";
       setError(
-        message === "expired"
+        message.toLowerCase().includes("expired")
           ? "This reset link has expired. Request a new one to continue."
           : "This reset link is invalid. Request a new one to continue.",
       );

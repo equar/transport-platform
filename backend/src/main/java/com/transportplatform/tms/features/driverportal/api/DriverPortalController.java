@@ -13,6 +13,9 @@ import com.transportplatform.tms.features.driverportal.api.response.DriverPortal
 import com.transportplatform.tms.features.driverportal.api.response.DriverPortalRouteSummaryResponse;
 import com.transportplatform.tms.features.driverportal.api.response.DriverPortalDocumentResponse;
 import com.transportplatform.tms.features.driver.domain.DriverDocumentType;
+import com.transportplatform.tms.features.location.api.request.DriverLocationSnapshotRequest;
+import com.transportplatform.tms.features.location.api.response.DriverLocationSnapshotResponse;
+import com.transportplatform.tms.features.location.application.DriverLocationSnapshotService;
 import com.transportplatform.tms.features.driverportal.application.DriverPortalService;
 import com.transportplatform.tms.features.ride.domain.RideStatus;
 import com.transportplatform.tms.features.route.domain.RouteStatus;
@@ -38,9 +41,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class DriverPortalController {
 
     private final DriverPortalService driverPortalService;
+    private final DriverLocationSnapshotService driverLocationSnapshotService;
 
-    public DriverPortalController(DriverPortalService driverPortalService) {
+    public DriverPortalController(DriverPortalService driverPortalService,
+            DriverLocationSnapshotService driverLocationSnapshotService) {
         this.driverPortalService = driverPortalService;
+        this.driverLocationSnapshotService = driverLocationSnapshotService;
     }
 
     @GetMapping("/portal/driver/dashboard")
@@ -137,6 +143,17 @@ public class DriverPortalController {
     @PostMapping("/portal/driver/rides/{rideId}/actions/failed")
     public ApiResponse<DriverPortalRideDetailResponse> markRideFailed(@PathVariable Long rideId) {
         return ApiResponse.success(driverPortalService.markRideFailed(rideId));
+    }
+
+    @GetMapping("/portal/driver/rides/{rideId}/location-snapshot")
+    public ApiResponse<DriverLocationSnapshotResponse> getRideLocationSnapshot(@PathVariable Long rideId) {
+        return ApiResponse.success(driverLocationSnapshotService.getLatestDriverRideSnapshot(rideId));
+    }
+
+    @PostMapping("/portal/driver/rides/{rideId}/location-snapshots")
+    public ApiResponse<DriverLocationSnapshotResponse> captureRideLocationSnapshot(@PathVariable Long rideId,
+            @Valid @RequestBody DriverLocationSnapshotRequest request) {
+        return ApiResponse.success(driverLocationSnapshotService.captureDriverRideSnapshot(rideId, request));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/notes")

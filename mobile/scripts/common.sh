@@ -66,6 +66,7 @@ resolve_android_java() {
 AWS_DEFAULT_API_BASE_URL="https://transport.bakaroo.com/api"
 LOCAL_DEFAULT_API_BASE_URL_ANDROID_EMULATOR="http://10.0.2.2:8087/api"
 LOCAL_DEFAULT_API_BASE_URL_IOS_SIMULATOR="http://127.0.0.1:8087/api"
+TRANSPORT_DEFAULT_EAS_PROJECT_ID="80182d4a-8191-4f8c-9d44-7937ad4d94c2"
 
 validate_env_name() {
   case "$1" in
@@ -124,6 +125,33 @@ resolve_api_base_url() {
       return 1
       ;;
   esac
+}
+
+configure_push_runtime_env() {
+  export EXPO_PUBLIC_EAS_PROJECT_ID="${EXPO_PUBLIC_EAS_PROJECT_ID:-$TRANSPORT_DEFAULT_EAS_PROJECT_ID}"
+  export EXPO_PUBLIC_EXPO_PROJECT_ID="${EXPO_PUBLIC_EXPO_PROJECT_ID:-$EXPO_PUBLIC_EAS_PROJECT_ID}"
+
+  if [[ -z "${EXPO_ANDROID_GOOGLE_SERVICES_FILE:-}" && -z "${GOOGLE_SERVICES_JSON:-}" ]]; then
+    local candidate
+    for candidate in \
+      "$PROJECT_ROOT/google-services.json" \
+      "$PROJECT_ROOT/android/app/google-services.json"
+    do
+      if [[ -f "$candidate" ]]; then
+        export EXPO_ANDROID_GOOGLE_SERVICES_FILE="$candidate"
+        break
+      fi
+    done
+  fi
+}
+
+warn_if_android_push_native_config_missing() {
+  if [[ -n "${EXPO_ANDROID_GOOGLE_SERVICES_FILE:-}" || -n "${GOOGLE_SERVICES_JSON:-}" ]]; then
+    return
+  fi
+
+  echo "Warning: Android Firebase config not found (google-services.json)." >&2
+  echo "Android push token registration may be unavailable until that file is added." >&2
 }
 
 load_mobile_env

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, FlatList, View, Text, Pressable, RefreshControl } from 'react-native';
+import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { riderPortalApi } from '@api/riderPortalApi';
@@ -7,7 +7,7 @@ import { AppBadge } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
-import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
+import { Colors, Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 
 export default function RiderRidesPage() {
@@ -34,12 +34,10 @@ export default function RiderRidesPage() {
         data={rides}
         keyExtractor={(r) => String(r.id)}
         renderItem={({ item }) => (
-          <Pressable
-            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          <TouchableOpacity
+            style={styles.card}
             onPress={() => router.push(`/(rider)/rides/${item.id}`)}
-            android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
-            accessibilityRole="button"
-            accessibilityLabel={`Ride ${item.rideNumber} for ${item.riderName}`}
+            activeOpacity={0.85}
           >
             <View style={styles.row}>
               <Text style={styles.rideNumber}>{item.rideNumber}</Text>
@@ -52,14 +50,14 @@ export default function RiderRidesPage() {
             <Text style={styles.address} numberOfLines={1}>
               {item.pickupAddress ?? '—'} → {item.dropoffAddress ?? '—'}
             </Text>
-          </Pressable>
+          </TouchableOpacity>
         )}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
         ListEmptyComponent={<EmptyState title="No rides" description="No upcoming rides scheduled." />}
         onEndReached={() => hasNextPage && fetchNextPage()}
         onEndReachedThreshold={0.3}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-        contentContainerStyle={rides.length === 0 ? styles.emptyContent : styles.listContent}
+        contentContainerStyle={rides.length === 0 && styles.emptyContent}
       />
     </View>
   );
@@ -67,15 +65,13 @@ export default function RiderRidesPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: { padding: Spacing.lg, paddingTop: Spacing.xxl, backgroundColor: Colors.surface },
-  listContent: { padding: Spacing.lg },
-  card: { padding: Spacing.lg, gap: Spacing.xs, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, ...Shadow.card },
-  cardPressed: { backgroundColor: Colors.surfaceMuted },
+  header: { padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  card: { padding: Spacing.lg, gap: Spacing.xs },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rideNumber: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
   riderName: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
   meta: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
-  address: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary, marginTop: Spacing.sm, backgroundColor: Colors.surfaceMuted, borderRadius: Radius.md, padding: Spacing.md },
-  sep: { height: Spacing.md },
+  address: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
+  sep: { height: 1, backgroundColor: Colors.divider },
   emptyContent: { flex: 1 },
 });

@@ -6,7 +6,33 @@ export type DriverPortalRideStatus =
   | 'DRIVER_EN_ROUTE' | 'ARRIVED' | 'RIDER_NO_SHOW' | 'PICKED_UP'
   | 'DROPPED_OFF' | 'COMPLETED' | 'CANCELLED' | 'MISSED' | 'FAILED';
 
-export type DriverRideAction = 'en-route' | 'arrived' | 'pickup-complete' | 'dropoff-complete';
+export type DriverRideAction =
+  | 'driver-en-route'
+  | 'arrived'
+  | 'picked-up'
+  | 'dropped-off'
+  | 'complete'
+  | 'no-show'
+  | 'failed';
+
+export interface DriverLocationSnapshotPayload {
+  latitude: number;
+  longitude: number;
+  accuracyMeters?: number | null;
+  speedMps?: number | null;
+  headingDegrees?: number | null;
+  capturedAt?: string | null;
+}
+
+export interface DriverRideLocationSnapshotRecord extends DriverLocationSnapshotPayload {
+  id: number;
+  rideId: number;
+  driverId: number;
+  vehicleId: number | null;
+  capturedAt: string;
+  createdAt: string;
+  createdBy: string;
+}
 
 export interface DriverPortalDashboardRecord {
   ridesToday: number;
@@ -86,13 +112,6 @@ export interface DriverPortalComplianceSummaryRecord {
   expiringDocumentsSoon: number;
   issues: DriverPortalComplianceIssueRecord[];
   documents: DriverPortalDocumentRecord[];
-}
-
-export interface DriverDocumentUploadPayload {
-  documentType: string;
-  uri: string;
-  fileName: string;
-  contentType: string;
 }
 
 export interface DriverPortalRideSummaryRecord {
@@ -179,9 +198,17 @@ export const driverPortalApi = {
     const r = await apiClient.get(`${base}/rides/${rideId}`);
     return unwrapResponse<DriverPortalRideDetailRecord>(r.data);
   },
+  async getRideLocationSnapshot(rideId: number) {
+    const r = await apiClient.get(`${base}/rides/${rideId}/location-snapshot`);
+    return unwrapResponse<DriverRideLocationSnapshotRecord | null>(r.data);
+  },
   async postRideAction(rideId: number, action: DriverRideAction) {
-    const r = await apiClient.post(`${base}/rides/${rideId}/${action}`);
+    const r = await apiClient.post(`${base}/rides/${rideId}/actions/${action}`);
     return unwrapResponse<DriverPortalRideDetailRecord>(r.data);
+  },
+  async captureRideLocationSnapshot(rideId: number, payload: DriverLocationSnapshotPayload) {
+    const r = await apiClient.post(`${base}/rides/${rideId}/location-snapshots`, payload);
+    return unwrapResponse(r.data);
   },
   async addRideNote(rideId: number, note: string) {
     const r = await apiClient.post(`${base}/rides/${rideId}/notes`, { note });
@@ -198,18 +225,5 @@ export const driverPortalApi = {
   async getDocuments() {
     const r = await apiClient.get(`${base}/documents`);
     return unwrapResponse<DriverPortalDocumentRecord[]>(r.data);
-  },
-  async uploadDocument(payload: DriverDocumentUploadPayload) {
-    const form = new FormData();
-    form.append('documentType', payload.documentType);
-    form.append('file', {
-      uri: payload.uri,
-      name: payload.fileName,
-      type: payload.contentType,
-    } as unknown as Blob);
-    const r = await apiClient.post(`${base}/documents`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return unwrapResponse<DriverPortalDocumentRecord>(r.data);
   },
 };

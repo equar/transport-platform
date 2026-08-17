@@ -1,55 +1,67 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
-import { deleteSessionValue, getSessionValue, setSessionValue } from '@auth/sessionStorage';
 import type { ApiResponse } from './types';
+import type { AuthSession } from '@auth/types';
+import { deleteSessionValue, getSessionValue, setSessionValue } from '@auth/sessionStorage';
 
 export const SESSION_KEY = 'auth_session';
 export const SESSION_EXPIRED_EVENT = 'SESSION_EXPIRED';
 
 const apiBaseUrl: string =
-  process.env.EXPO_PUBLIC_API_BASE_URL ??
   (Constants.expoConfig?.extra as { apiBaseUrl?: string } | undefined)?.apiBaseUrl ??
-  'https://transport.bakaroo.com/api';
+  'http://localhost:8080/api';
 
 async function readSession() {
   try {
     const raw = await getSessionValue(SESSION_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as { accessToken?: string; identity?: { tenantId?: string } };
+    return JSON.parse(raw) as AuthSession;
   } catch {
     return null;
   }
 }
 
-let refreshPromise: Promise<string | null> | null = null;
+async function writeSession(session: AuthSession) {
+  await setSessionValue(SESSION_KEY, JSON.stringify(session));
+}
+
+let refreshPromise: Promise<AuthSession | null> | null = null;
 
 async function refreshAccessToken() {
-  const session = await readSession() as {
-    refreshToken?: string;
-  } | null;
+  const session = await readSession();
   if (!session?.refreshToken) return null;
 
-  const response = await axios.post(`${apiBaseUrl}/v1/auth/refresh`, {
-    refreshToken: session.refreshToken,
-  });
-  const tokens = unwrapResponse<{
-    accessToken: string;
-    refreshToken: string;
-    tokenType: string;
-    expiresInSeconds: number;
-    user: unknown;
-  }>(response.data);
-  await setSessionValue(
-    SESSION_KEY,
-    JSON.stringify({
+  try {
+    const response = await axios.post<ApiResponse<{
+      accessToken: string;
+      refreshToken: string;
+      tokenType: string;
+      expiresInSeconds: number;
+      user: AuthSession['identity'];
+    }>>(`${apiBaseUrl}/v1/auth/refresh`, {
+      refreshToken: session.refreshToken,
+    }, {
+      timeout: 10_000,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.data.success || !response.data.data) {
+      return null;
+    }
+
+    const tokens = response.data.data;
+    const refreshed: AuthSession = {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       tokenType: tokens.tokenType,
       expiresInSeconds: tokens.expiresInSeconds,
       identity: tokens.user,
-    }),
-  );
-  return tokens.accessToken;
+    };
+    await writeSession(refreshed);
+    return refreshed;
+  } catch {
+    return null;
+  }
 }
 
 export const apiClient = axios.create({
@@ -72,29 +84,26 @@ apiClient.interceptors.request.use(async (config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const status = error?.response?.status as number | undefined;
     const originalRequest = error?.config as
-      | (typeof error.config & { _authRetry?: boolean })
+      | ({ _retry?: boolean; headers?: Record<string, string> } & Record<string, unknown>)
       | undefined;
+    const status = error?.response?.status as number | undefined;
 
-    if (
-      status === 401 &&
-      originalRequest &&
-      !originalRequest._authRetry &&
-      !String(originalRequest.url ?? '').includes('/v1/auth/')
-    ) {
-      originalRequest._authRetry = true;
-      try {
-        refreshPromise ??= refreshAccessToken().finally(() => {
-          refreshPromise = null;
-        });
-        const accessToken = await refreshPromise;
-        if (accessToken) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return apiClient(originalRequest);
+    if (status === 401 && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+      refreshPromise ??= refreshAccessToken().finally(() => {
+        refreshPromise = null;
+      });
+      const refreshedSession = await refreshPromise;
+      if (refreshedSession?.accessToken) {
+        originalRequest.headers = {
+          ...(originalRequest.headers ?? {}),
+          Authorization: `Bearer ${refreshedSession.accessToken}`,
+        };
+        if (refreshedSession.identity.tenantId) {
+          originalRequest.headers['X-Tenant-Id'] = refreshedSession.identity.tenantId;
         }
-      } catch {
-        // Fall through and invalidate the session when refresh is rejected.
+        return apiClient.request(originalRequest);
       }
     }
 
@@ -102,10 +111,10 @@ apiClient.interceptors.response.use(
       const session = await readSession();
       if (session?.accessToken) {
         await deleteSessionValue(SESSION_KEY);
-        // Notify AuthContext — use a global event emitter pattern
         sessionExpiredCallbacks.forEach((cb) => cb(status));
       }
     }
+
     return Promise.reject(error);
   },
 );

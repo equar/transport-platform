@@ -41,6 +41,8 @@ require_command node
 require_command npm
 resolve_android_sdk
 resolve_android_java
+configure_push_runtime_env
+warn_if_android_push_native_config_missing
 export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
 require_command adb
 ensure_node_modules
@@ -48,7 +50,7 @@ ensure_node_modules
 # Local test builds intentionally prefill the primary driver account so repeated
 # simulator and physical-device login testing does not require manual entry.
 export EXPO_PUBLIC_TEST_DRIVER_EMAIL="${EXPO_PUBLIC_TEST_DRIVER_EMAIL:-samuelweld2018+d1@gmail.com}"
-export EXPO_PUBLIC_TEST_DRIVER_PASSWORD="${EXPO_PUBLIC_TEST_DRIVER_PASSWORD:-DriverTest123!}"
+export EXPO_PUBLIC_TEST_DRIVER_PASSWORD="${EXPO_PUBLIC_TEST_DRIVER_PASSWORD:-Password123}"
 
 if [[ -z "$API_URL" ]]; then
   API_TARGET="android-emulator"
@@ -77,6 +79,7 @@ fi
 
 echo "Building $BUILD_TYPE for $TARGET $SERIAL"
 echo "API: $EXPO_PUBLIC_API_BASE_URL"
+echo "Expo project: ${EXPO_PUBLIC_EAS_PROJECT_ID}"
 
 DEVICE_ABI="$(adb -s "$SERIAL" shell getprop ro.product.cpu.abi | tr -d '\r')"
 case "$DEVICE_ABI" in

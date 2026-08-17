@@ -36,11 +36,11 @@ export function RecentActivityList({
   items,
 }: RecentActivityListProps) {
   return (
-    <PageCard>
+    <PageCard sx={{ height: "100%" }}>
       <Stack spacing={2}>
         <Stack spacing={0.5}>
           <Typography variant="h5">{title}</Typography>
-          <Typography color="text.secondary">{description}</Typography>
+          <Typography variant="body2" color="text.secondary">{description}</Typography>
         </Stack>
         {items.length === 0 ? (
           <EmptyState
@@ -51,9 +51,10 @@ export function RecentActivityList({
           <List disablePadding>
             {items.map((item, index) => (
               <div key={item.id}>
-                <ListItem disableGutters sx={{ py: 1.5 }}>
+                <ListItem disableGutters sx={{ py: 1.25, px: 1, borderRadius: 1, "&:hover": { bgcolor: "#f7fafb" } }}>
                   <ListItemText
                     primary={item.summary}
+                    primaryTypographyProps={{ fontWeight: 700, sx: { mb: 0.4 } }}
                     secondary={`${formatDateTime(item.createdAt)} • ${item.actorName || item.actorEmail || "System"} • ${formatStatusLabel(item.module)} / ${formatStatusLabel(item.action)}`}
                   />
                 </ListItem>

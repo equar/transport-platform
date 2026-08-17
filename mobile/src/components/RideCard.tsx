@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { AppBadge } from './ui';
-import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
+import { Colors, Shadow, Spacing, Typography } from '@theme/tokens';
 import type { DriverPortalRideSummaryRecord } from '@api/driverPortalApi';
 import { formatShortDateTime } from '@utils/formatDate';
 
@@ -14,7 +14,10 @@ export function RideCard({ ride, onPress }: RideCardProps) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
       <View style={styles.row}>
-        <Text style={styles.rideNumber}>{ride.rideNumber}</Text>
+        <View style={styles.headerBlock}>
+          <Text style={styles.eyebrow}>Active trip</Text>
+          <Text style={styles.rideNumber}>{ride.rideNumber}</Text>
+        </View>
         <AppBadge status={ride.status} />
       </View>
       <Text style={styles.riderName}>{ride.riderName}</Text>
@@ -32,7 +35,10 @@ export function RideCard({ ride, onPress }: RideCardProps) {
           <Text style={styles.addressText} numberOfLines={1}>{ride.dropoffAddress ?? '—'}</Text>
         </View>
       </View>
-      <Text style={styles.time}>{formatShortDateTime(ride.scheduledPickupAt)}</Text>
+      <View style={styles.footerRow}>
+        <Text style={styles.time}>{formatShortDateTime(ride.scheduledPickupAt)}</Text>
+        <Text style={styles.footerLink}>Open trip</Text>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -42,9 +48,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.lg,
-    gap: Spacing.xs,
-    borderRadius: Radius.lg,
+    borderRadius: 24,
+    padding: Spacing.xl,
+    gap: Spacing.sm,
     ...Shadow.card,
   },
   row: {
@@ -52,14 +58,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerBlock: {
+    gap: 2,
+  },
+  eyebrow: {
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeXs,
+    color: Colors.secondaryDark,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
   rideNumber: {
     fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: Typography.sizeMd,
+    fontSize: Typography.sizeLg,
     color: Colors.textPrimary,
+    letterSpacing: -0.3,
   },
   riderName: {
     fontFamily: 'SourceSans3_600SemiBold',
-    fontSize: Typography.sizeLg,
+    fontSize: Typography.sizeXl,
     color: Colors.textPrimary,
   },
   meta: {
@@ -71,10 +88,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginTop: Spacing.xs,
-    backgroundColor: Colors.surfaceMuted,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
   },
   addressItem: { flex: 1, gap: 2 },
   addressLabel: {
@@ -92,10 +107,20 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: Typography.sizeMd,
   },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
   time: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'SourceSans3_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
-    marginTop: Spacing.xs,
+  },
+  footerLink: {
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeSm,
+    color: Colors.primary,
   },
 });

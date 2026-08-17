@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   MenuItem,
   Table,
@@ -37,6 +38,7 @@ import {
 const userStatuses = ["", "ACTIVE", "INVITED", "SUSPENDED", "DEACTIVATED"];
 
 export function UserManagementPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { session } = useAuth();
   const platformAdmin = isPlatformAdmin(session);
   const scope: UserScope = platformAdmin ? "platform" : "company";
@@ -54,6 +56,7 @@ export function UserManagementPage() {
   const [error, setError] = useState<BusinessError | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
+  const [initialDraft, setInitialDraft] = useState<Partial<UserUpsertPayload> | null>(null);
   const [saving, setSaving] = useState(false);
   const [statusAction, setStatusAction] = useState<{
     type: "activate" | "suspend" | "deactivate";
@@ -100,6 +103,33 @@ export function UserManagementPage() {
     void loadUsers();
   }, [scope, keyword, status, role, tenantId, page, size]);
 
+  useEffect(() => {
+    if (scope !== "platform") {
+      return;
+    }
+
+    if (searchParams.get("create") !== "1") {
+      return;
+    }
+
+    const requestedTenantId = searchParams.get("tenantId") ?? "";
+    const requestedRole = searchParams.get("role") ?? "ROLE_TENANT_ADMIN";
+
+    setSelectedUser(null);
+    setInitialDraft({
+      tenantId: requestedTenantId,
+      status: "ACTIVE",
+      roles: [requestedRole],
+    });
+    setDialogOpen(true);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("create");
+    nextParams.delete("tenantId");
+    nextParams.delete("role");
+    setSearchParams(nextParams, { replace: true });
+  }, [scope, searchParams, setSearchParams]);
+
   async function handleSubmit(payload: UserUpsertPayload) {
     setSaving(true);
     try {
@@ -112,9 +142,26 @@ export function UserManagementPage() {
       }
       setDialogOpen(false);
       setSelectedUser(null);
+      setInitialDraft(null);
       await loadUsers();
     } catch (saveError) {
       showError(saveError, "The user change could not be saved.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleResetPassword(password: string) {
+    if (!selectedUser) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await usersApi.resetPassword(scope, selectedUser.id, { password });
+      showSuccess("Temporary password set successfully. The user must change it after login.");
+      await loadUsers();
+    } catch (error) {
+      showError(error, "The user password could not be reset.");
     } finally {
       setSaving(false);
     }
@@ -157,6 +204,7 @@ export function UserManagementPage() {
         }
         primaryAction={{ label: "Create User", onClick: () => {
             setSelectedUser(null);
+            setInitialDraft(null);
             setDialogOpen(true);
           } }}
       >
@@ -314,8 +362,11 @@ export function UserManagementPage() {
         onClose={() => {
           setDialogOpen(false);
           setSelectedUser(null);
+          setInitialDraft(null);
         }}
+        initialDraft={initialDraft}
         onSubmit={handleSubmit}
+        onResetPassword={selectedUser ? handleResetPassword : undefined}
       />
 
       <ConfirmDialog

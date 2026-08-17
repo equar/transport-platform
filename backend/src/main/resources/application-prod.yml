@@ -20,5 +20,9 @@ app:
 
 logging:
   level:
-    root: WARN
-    "[com.transportplatform.tms]": INFO
+    root: ${APP_LOGGING_LEVEL_ROOT:INFO}
+    "[com.transportplatform.tms]": ${APP_LOGGING_LEVEL_APP:DEBUG}
+    "[org.springframework.web]": ${APP_LOGGING_LEVEL_WEB:DEBUG}
+    "[org.springframework.security]": ${APP_LOGGING_LEVEL_SECURITY:INFO}
+    "[org.hibernate.SQL]": ${APP_LOGGING_LEVEL_SQL:INFO}
+    "[org.hibernate.orm.jdbc.bind]": ${APP_LOGGING_LEVEL_SQL_BIND:INFO}

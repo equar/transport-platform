@@ -11,13 +11,12 @@ export function PageCard({ children, sx }: PageCardProps) {
     <Paper
       elevation={0}
       sx={{
-        p: { xs: 3, md: 4 },
+        p: { xs: 2.25, md: 2.75 },
         border: "1px solid",
-        borderColor: "divider",
+        borderColor: "rgba(37,76,99,.12)",
         backgroundColor: "background.paper",
-        borderRadius: 2.75,
-        boxShadow: 1,
-        transition: "box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease",
+        borderRadius: 3,
+        boxShadow: "0 1px 2px rgba(16,30,38,.04), 0 14px 34px rgba(16,30,38,.05)",
         ...sx,
       }}
     >

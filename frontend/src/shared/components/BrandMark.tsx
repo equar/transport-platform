@@ -15,7 +15,7 @@ export function BrandMark({ compact = false }: BrandMarkProps) {
       src={logoUrl}
       alt={`${branding?.displayName || "Bakaroo Transports"} logo`}
       sx={compact
-        ? { width: 176, maxWidth: "100%", height: 72, objectFit: "contain", flexShrink: 0 }
+        ? { width: 138, maxWidth: "100%", height: 36, objectFit: "contain", objectPosition: "left center", flexShrink: 0 }
         : { width: "min(100%, 320px)", height: "auto", objectFit: "contain" }}
     />
   );

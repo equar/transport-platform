@@ -29,12 +29,15 @@ require_command node
 require_command npm
 require_command xcodebuild
 require_command xcrun
+configure_push_runtime_env
 ensure_node_modules
 
 if [[ -z "$API_URL" ]]; then
   API_URL="$(resolve_api_base_url "$ENV_NAME" "ios-device")"
 fi
 export EXPO_PUBLIC_API_BASE_URL="$API_URL"
+export EXPO_PUBLIC_TEST_DRIVER_EMAIL="${EXPO_PUBLIC_TEST_DRIVER_EMAIL:-samuelweld2018+d1@gmail.com}"
+export EXPO_PUBLIC_TEST_DRIVER_PASSWORD="${EXPO_PUBLIC_TEST_DRIVER_PASSWORD:-Password123}"
 export NODE_ENV=production
 
 DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-}"
@@ -51,7 +54,11 @@ if [[ -z "$DEVELOPMENT_TEAM" ]]; then
 fi
 
 if [[ -z "$DEVICE_UDID" ]]; then
-  DEVICE_UDID="$(xcrun xctrace list devices 2>/dev/null | sed -n 's/.*(\([A-F0-9-]\{8\}-[A-F0-9-]*\))$/\1/p' | head -n 1)"
+  DEVICE_UDID="$(
+    xcrun devicectl list devices 2>/dev/null \
+      | sed -n 's/.*identifier: \([A-Za-z0-9.-]\+\).*(transport: local).*/\1/p' \
+      | head -n 1
+  )"
 fi
 if [[ -z "$DEVICE_UDID" ]]; then
   echo "No connected iOS device found. Unlock it, trust this Mac, and enable Developer Mode." >&2
@@ -64,6 +71,7 @@ fi
 
 echo "Building signed iOS app for $DEVICE_UDID"
 echo "API: $EXPO_PUBLIC_API_BASE_URL"
+echo "Expo project: $EXPO_PUBLIC_EAS_PROJECT_ID"
 (cd "$PROJECT_ROOT/ios" && xcodebuild \
   -workspace "$WORKSPACE" \
   -scheme "$SCHEME" \

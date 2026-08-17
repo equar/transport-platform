@@ -35,9 +35,11 @@ interface UserUpsertDialogProps {
   scope: UserScope;
   roles: RoleCatalogItem[];
   user: UserRecord | null;
+  initialDraft?: Partial<UserUpsertPayload> | null;
   loading: boolean;
   onClose: () => void;
   onSubmit: (payload: UserUpsertPayload) => Promise<void>;
+  onResetPassword?: (password: string) => Promise<void>;
 }
 
 const userStatuses = ["ACTIVE", "INVITED", "SUSPENDED", "DEACTIVATED"];
@@ -47,9 +49,11 @@ export function UserUpsertDialog({
   scope,
   roles,
   user,
+  initialDraft,
   loading,
   onClose,
   onSubmit,
+  onResetPassword,
 }: UserUpsertDialogProps) {
   const [form, setForm] = useState<UserUpsertPayload>({
     tenantId: "",
@@ -66,6 +70,8 @@ export function UserUpsertDialog({
   const [portalOptions, setPortalOptions] = useState<PortalSubjectOption[]>([]);
   const [portalOptionsLoading, setPortalOptionsLoading] = useState(false);
   const [portalOptionsError, setPortalOptionsError] = useState<string | null>(null);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminPasswordError, setAdminPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -73,18 +79,20 @@ export function UserUpsertDialog({
     }
 
     setForm({
-      tenantId: user?.tenantId ?? "",
-      firstName: user?.firstName ?? "",
-      lastName: user?.lastName ?? "",
-      email: user?.email ?? "",
+      tenantId: user?.tenantId ?? initialDraft?.tenantId ?? "",
+      firstName: user?.firstName ?? initialDraft?.firstName ?? "",
+      lastName: user?.lastName ?? initialDraft?.lastName ?? "",
+      email: user?.email ?? initialDraft?.email ?? "",
       password: "",
-      status: user?.status ?? "ACTIVE",
-      roles: user?.roles ?? [],
-      portalSubjectType: user?.portalSubjectType ?? null,
-      portalSubjectId: user?.portalSubjectId ?? null,
+      status: user?.status ?? initialDraft?.status ?? "ACTIVE",
+      roles: user?.roles ?? initialDraft?.roles ?? [],
+      portalSubjectType: user?.portalSubjectType ?? initialDraft?.portalSubjectType ?? null,
+      portalSubjectId: user?.portalSubjectId ?? initialDraft?.portalSubjectId ?? null,
     });
     setValidationError(null);
-  }, [open, user]);
+    setAdminPassword("");
+    setAdminPasswordError(null);
+  }, [initialDraft, open, user]);
 
   useEffect(() => {
     if (!open || scope !== "company" || !form.portalSubjectType) {
@@ -179,6 +187,19 @@ export function UserUpsertDialog({
     }
     setValidationError(null);
     await onSubmit(form);
+  }
+
+  async function submitPasswordReset() {
+    if (!user || !onResetPassword) {
+      return;
+    }
+    if (adminPassword.trim().length < 8) {
+      setAdminPasswordError("Use a password with at least 8 characters.");
+      return;
+    }
+    setAdminPasswordError(null);
+    await onResetPassword(adminPassword);
+    setAdminPassword("");
   }
 
   return (
@@ -289,25 +310,55 @@ export function UserUpsertDialog({
               </Stack>
             </Stack>
           </FormSection>
-          <FormSection title="Security" description={user ? "Set a new password only when access needs to be reset." : "Create the user’s initial sign-in credential."}>
-            <TextField
-            label={user ? "New password (optional)" : "Password"}
-            type="password"
-            value={form.password ?? ""}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                password: event.target.value,
-              }))
-            }
-            helperText={
-              user
-                ? "Leave blank to keep the current password."
-                : "Minimum 8 characters."
-            }
-            fullWidth
-            />
-          </FormSection>
+          {!user ? (
+            <FormSection
+              title="Initial password"
+              description="Create the user’s initial sign-in credential. They will be required to change it after sign-in."
+            >
+              <TextField
+                label="Temporary password"
+                type="password"
+                value={form.password ?? ""}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    password: event.target.value,
+                  }))
+                }
+                helperText="Minimum 8 characters."
+                fullWidth
+              />
+            </FormSection>
+          ) : null}
+          {user && onResetPassword ? (
+            <FormSection
+              title="Admin password reset"
+              description="Assign a new temporary password without mixing it into profile edits."
+            >
+              <Stack spacing={2}>
+                <TextField
+                  label="New temporary password"
+                  type="password"
+                  value={adminPassword}
+                  onChange={(event) => setAdminPassword(event.target.value)}
+                  error={Boolean(adminPasswordError)}
+                  helperText={
+                    adminPasswordError ??
+                    "Minimum 8 characters. The user will be required to change it on next sign-in."
+                  }
+                  fullWidth
+                />
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ sm: "center" }}>
+                  <Button variant="outlined" onClick={() => void submitPasswordReset()} disabled={loading}>
+                    Reset password
+                  </Button>
+                  <Typography variant="body2" color="text.secondary">
+                    Use this only when access needs to be reissued.
+                  </Typography>
+                </Stack>
+              </Stack>
+            </FormSection>
+          ) : null}
           {selectedPortalTypes.length > 0 ? (
             <FormSection title="Portal identity" description="Connect this login to the operational record it represents. Each record can be linked to only one user.">
               <Stack spacing={2}>

@@ -9,6 +9,8 @@ public interface RouteStopRepository extends JpaRepository<RouteStop, Long> {
 
     Optional<RouteStop> findByIdAndTenantId(Long id, String tenantId);
 
+    java.util.List<RouteStop> findAllByTenantIdAndRide_Id(String tenantId, Long rideId);
+
     List<RouteStop> findAllByTenantIdAndRoute_IdOrderByStopSequenceAsc(String tenantId, Long routeId);
 
     boolean existsByTenantIdAndRide_Id(String tenantId, Long rideId);

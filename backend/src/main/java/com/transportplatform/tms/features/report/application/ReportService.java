@@ -139,7 +139,7 @@ public class ReportService {
         return ReportType.values().length;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<DriverReportRowResponse> runDriverReport(String keyword,
             DriverStatus status,
             DriverType driverType,
@@ -174,7 +174,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<VehicleReportRowResponse> runVehicleReport(String keyword,
             VehicleStatus status,
             VehicleOwnershipType ownershipType,
@@ -211,7 +211,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<RiderReportRowResponse> runRiderReport(String keyword,
             RiderStatus status,
             RiderType riderType,
@@ -249,7 +249,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<RideReportRowResponse> runRideReport(String keyword,
             RideStatus status,
             ServiceType serviceType,
@@ -305,7 +305,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<RouteReportRowResponse> runRouteReport(String keyword,
             RouteStatus status,
             ServiceType serviceType,
@@ -343,7 +343,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<InvoiceReportRowResponse> runInvoiceReport(String keyword,
             InvoiceStatus status,
             BillToType billToType,
@@ -379,7 +379,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<PaymentReportRowResponse> runPaymentReport(String keyword,
             PaymentStatus status,
             PaymentMethod paymentMethod,
@@ -465,7 +465,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<IncidentReportRowResponse> runIncidentReport(String keyword,
             IncidentType incidentType,
             IncidentSeverity severity,

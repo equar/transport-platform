@@ -3,6 +3,7 @@ import { StyleSheet, ScrollView, View, Text, Alert, RefreshControl } from 'react
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { riderPortalApi } from '@api/riderPortalApi';
+import { TripTrackingCard } from '@components/TripTrackingCard';
 import { AppBadge, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { Colors, Spacing, Typography } from '@theme/tokens';
@@ -19,6 +20,17 @@ export default function RiderRideDetailPage() {
     queryKey: ['rider-ride', rideId],
     queryFn: () => riderPortalApi.getRide(Number(rideId)),
     enabled: !!rideId,
+  });
+
+  const {
+    data: locationSnapshot,
+    refetch: refetchLocationSnapshot,
+    isRefetching: locationRefreshing,
+  } = useQuery({
+    queryKey: ['rider-ride-location', rideId],
+    queryFn: () => riderPortalApi.getRideLocationSnapshot(Number(rideId)),
+    enabled: !!rideId,
+    refetchInterval: 30000,
   });
 
   const { mutate: cancel, isPending } = useMutation({
@@ -67,6 +79,17 @@ export default function RiderRideDetailPage() {
         <Row label="From" value={ride.pickupAddress ?? '—'} />
         <Row label="To" value={ride.dropoffAddress ?? '—'} />
       </View>
+
+      <TripTrackingCard
+        title="Trip Tracking"
+        snapshot={locationSnapshot ?? null}
+        pickupAddress={ride.pickupAddress}
+        dropoffAddress={ride.dropoffAddress}
+        onRefresh={() => {
+          void refetchLocationSnapshot();
+        }}
+        refreshing={locationRefreshing}
+      />
 
       {ride.guardianName ? (
         <View style={styles.section}>

@@ -127,7 +127,7 @@ export function DriverPortalLayout() {
                 alignItems: "flex-start",
                 py: 1,
                 "&.Mui-selected": {
-                  bgcolor: "rgba(15, 76, 92, 0.10)",
+                  bgcolor: "rgba(49, 91, 125, 0.10)",
                 },
               }}
             >

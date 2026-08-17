@@ -1,6 +1,6 @@
 # Mobile installation
 
-The native application uses Expo SDK 54 with checked-in Android and iOS projects. Run commands from `mobile/`.
+The native application uses Expo SDK 52 with checked-in Android and iOS projects. Run commands from `mobile/`.
 
 ## Prerequisites
 
@@ -36,12 +36,28 @@ selects which backend API URL gets embedded in the build:
 
 An explicit `--api-url <url>` always takes precedence over `--env`.
 
+## Push notifications
+
+Ride tracking notifications for drivers, riders, and guardians require:
+
+- a physical iOS or Android device
+- an Expo project ID exposed to the app build through `EXPO_PUBLIC_EAS_PROJECT_ID`
+  or `EAS_PROJECT_ID`
+- backend push delivery enabled with:
+  - `APP_PUSH_ENABLED=true`
+  - `APP_PUSH_PROVIDER=expo`
+  - `EXPO_ACCESS_TOKEN=...`
+
+Simulator and emulator builds can still test in-app ride flows, but native push
+delivery should be validated on a real device.
+
 ```bash
-# Emulator/simulator against the local backend (default)
+# Native emulator/simulator install against the local backend (default)
 npm run android
 npm run ios
+npm run web
 
-# Emulator/simulator against the deployed AWS backend
+# Native emulator/simulator install against the deployed AWS backend
 npm run android -- --env aws
 npm run ios -- --env aws
 
@@ -62,8 +78,15 @@ Start an Android Studio emulator, then run:
 npm run android
 ```
 
-The script automatically uses `http://10.0.2.2:8087/api` for `--env local`
-(default) or the AWS backend for `--env aws`, detects the emulator CPU
+This builds, installs, and launches the standalone app on a running emulator
+using the local backend by default. To use Expo's development client instead:
+
+```bash
+npm run expo:android
+```
+
+The native install flow automatically uses `http://10.0.2.2:8087/api` for
+`--env local` or the AWS backend for `--env aws`, detects the emulator CPU
 architecture, builds a standalone APK, installs it, and launches it.
 
 ## Physical Android device
@@ -99,10 +122,17 @@ app store.
 npm run ios
 ```
 
-The script boots an available simulator when needed, builds a standalone Release
-app using `http://127.0.0.1:8087/api` for `--env local` (default) or the AWS
-backend for `--env aws`, installs it, and launches it. Set `SIMULATOR_UDID` to
-select a specific simulator.
+This builds, installs, and launches the standalone app on an iOS simulator
+using the local backend by default. To use Expo's development client instead:
+
+```bash
+npm run expo:ios
+```
+
+That flow boots an available simulator when needed, builds a standalone Release
+app using `http://127.0.0.1:8087/api` for `--env local` or the AWS backend for
+`--env aws`, installs it, and launches it. Set `SIMULATOR_UDID` to select a
+specific simulator.
 
 ## Physical iPhone or iPad
 
@@ -128,4 +158,3 @@ Local Android builds permit cleartext traffic so a standalone release can reach
 a development backend. Production builds should use HTTPS and pass
 `-PtransportUsesCleartextTraffic=false` in the release pipeline. iOS permits
 local-network access; use an HTTPS API endpoint for production devices.
-

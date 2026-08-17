@@ -1,6 +1,7 @@
 package com.transportplatform.tms.common.security;
 
 import com.transportplatform.tms.common.tenant.TenantContext;
+import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.features.tenant.domain.TenantStatus;
 import io.jsonwebtoken.JwtException;
@@ -22,10 +23,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final TenantRepository tenantRepository;
+    private final AppUserRepository appUserRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService, TenantRepository tenantRepository) {
+    public JwtAuthenticationFilter(JwtService jwtService,
+            TenantRepository tenantRepository,
+            AppUserRepository appUserRepository) {
         this.jwtService = jwtService;
         this.tenantRepository = tenantRepository;
+        this.appUserRepository = appUserRepository;
     }
 
     @Override
@@ -42,6 +47,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             JwtClaims claims = jwtService.parseAccessToken(token);
+            var storedUser = appUserRepository.findById(claims.userId()).orElse(null);
+            if (storedUser == null
+                    || (storedUser.getPasswordChangedAt() != null
+                            && claims.issuedAt().isBefore(storedUser.getPasswordChangedAt()))) {
+                SecurityContextHolder.clearContext();
+                TenantContext.clear();
+                filterChain.doFilter(request, response);
+                return;
+            }
             if (claims.tenantId() != null && !claims.tenantId().isBlank()
                     && tenantRepository.findById(claims.tenantId())
                             .map(tenant -> tenant.getStatus() != TenantStatus.ACTIVE)
@@ -60,6 +74,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     "",
                     true,
                     true,
+                    Boolean.TRUE.equals(claims.mustChangePassword()),
                     claims.roles().stream().map(SimpleGrantedAuthority::new).toList());
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null,
                     List.copyOf(user.getAuthorities()));

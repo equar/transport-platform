@@ -3,6 +3,8 @@ package com.transportplatform.tms.features.ride.api;
 import com.transportplatform.tms.common.response.ApiResponse;
 import com.transportplatform.tms.common.response.PageResponse;
 import com.transportplatform.tms.features.organization.domain.ServiceType;
+import com.transportplatform.tms.features.location.api.response.DriverLocationSnapshotResponse;
+import com.transportplatform.tms.features.location.application.DriverLocationSnapshotService;
 import com.transportplatform.tms.features.ride.api.request.CancelRideRequest;
 import com.transportplatform.tms.features.ride.api.request.RideUpsertRequest;
 import com.transportplatform.tms.features.ride.api.response.RideResponse;
@@ -27,9 +29,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class RideManagementController {
 
     private final RideService rideService;
+    private final DriverLocationSnapshotService driverLocationSnapshotService;
 
-    public RideManagementController(RideService rideService) {
+    public RideManagementController(RideService rideService,
+            DriverLocationSnapshotService driverLocationSnapshotService) {
         this.rideService = rideService;
+        this.driverLocationSnapshotService = driverLocationSnapshotService;
     }
 
     @GetMapping("/company/rides")
@@ -70,6 +75,12 @@ public class RideManagementController {
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> getCompanyRide(@PathVariable Long rideId) {
         return ApiResponse.success(rideService.getCompanyRide(rideId));
+    }
+
+    @GetMapping("/company/rides/{rideId}/location-snapshot")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
+    public ApiResponse<DriverLocationSnapshotResponse> getCompanyRideLocationSnapshot(@PathVariable Long rideId) {
+        return ApiResponse.success(driverLocationSnapshotService.getLatestCompanyRideSnapshot(rideId));
     }
 
     @PostMapping("/company/rides")

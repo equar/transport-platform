@@ -5,6 +5,7 @@ export interface AuthIdentity {
   lastName: string | null;
   tenantId: string | null;
   status: string;
+  mustChangePassword: boolean;
   roles: string[];
 }
 

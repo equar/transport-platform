@@ -1,14 +1,10 @@
 import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography } from '@theme/tokens';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RiderLayout() {
-  const insets = useSafeAreaInsets();
-
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }} edges={['top']}>
-      <Tabs
+    <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: Colors.primary,
@@ -17,22 +13,44 @@ export default function RiderLayout() {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          height: 66 + insets.bottom, paddingTop: 7, paddingBottom: 8 + insets.bottom,
-          shadowColor: '#0f2630', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.06, shadowRadius: 12,
-          elevation: 8,
         },
         tabBarLabelStyle: {
           fontFamily: 'SourceSans3_600SemiBold',
           fontSize: Typography.sizeXs,
         },
+        tabBarIconStyle: {
+          marginBottom: 2,
+        },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="home-heart" color={color} size={size} /> }} />
-      <Tabs.Screen name="rides" options={{ title: 'Rides', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="car-clock" color={color} size={size} /> }} />
-      <Tabs.Screen name="billing" options={{ title: 'Billing', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="credit-card-outline" color={color} size={size} /> }} />
-      <Tabs.Screen name="notifications" options={{ title: 'Inbox', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="bell-outline" color={color} size={size} /> }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="account-circle-outline" color={color} size={size} /> }} />
-      </Tabs>
-    </SafeAreaView>
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="rides"
+        options={{
+          title: 'Rides',
+          tabBarIcon: ({ color, size }) => <Ionicons name="car-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Inbox',
+          tabBarIcon: ({ color, size }) => <Ionicons name="notifications-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
+        }}
+      />
+    </Tabs>
   );
 }

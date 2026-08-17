@@ -159,6 +159,7 @@ class RideServiceTest {
                                 "secret",
                                 true,
                                 true,
+                                false,
                                 List.of(new SimpleGrantedAuthority("ROLE_TENANT_ADMIN"))));
                 when(rideRepository.save(any(Ride.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

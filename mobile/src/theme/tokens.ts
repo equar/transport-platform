@@ -1,24 +1,29 @@
 // Design tokens mirroring frontend/src/shared/theme/theme.ts
 export const Colors = {
-  primary: '#0f4c5c',
-  primaryDark: '#0b3540',
-  primaryLight: '#387080',
-  secondary: '#c46a22',
-  secondaryDark: '#8f4c18',
-  secondaryLight: '#da8b4c',
-  background: '#f4f7f9',
+  primary: '#1f4d5f',
+  primaryDark: '#143441',
+  primaryLight: '#4f7b8a',
+  primarySoft: 'rgba(31, 77, 95, 0.12)',
+  secondary: '#d38c3c',
+  secondaryDark: '#9a6426',
+  secondaryLight: '#e5b16e',
+  secondarySoft: 'rgba(211, 140, 60, 0.14)',
+  background: '#ffffff',
   surface: '#ffffff',
-  textPrimary: '#111827',
-  textSecondary: '#55606a',
-  divider: 'rgba(15, 76, 92, 0.09)',
-  border: 'rgba(15, 76, 92, 0.13)',
-  surfaceMuted: '#f7faf9',
-  primarySoft: '#e7f0f1',
-  secondarySoft: '#fff1e6',
+  surfaceMuted: '#f8fafc',
+  surfaceStrong: '#183845',
+  canvas: '#f3f6f8',
+  textPrimary: '#14212b',
+  textSecondary: '#5f6d77',
+  textInverse: '#f4f8fa',
+  divider: 'rgba(20, 33, 43, 0.08)',
+  border: 'rgba(31, 77, 95, 0.14)',
+  borderStrong: 'rgba(20, 33, 43, 0.2)',
+  overlay: 'rgba(20, 33, 43, 0.04)',
   error: '#d32f2f',
-  warning: '#e65100',
-  success: '#2e7d32',
-  info: '#0288d1',
+  warning: '#d97706',
+  success: '#2f7a52',
+  info: '#2563eb',
   white: '#ffffff',
   black: '#000000',
 
@@ -40,15 +45,17 @@ export const Spacing = {
   xl: 20,
   xxl: 24,
   xxxl: 32,
+  xxxxl: 40,
 } as const;
 
 export const Radius = {
   none: 0,
-  sm: 8,
-  md: 12,
-  lg: 18,
-  input: 12,
-  chip: 9999,
+  sm: 10,
+  md: 16,
+  lg: 22,
+  xl: 30,
+  input: 18,
+  chip: 999,
   // keep full circle for avatars only
   full: 9999,
 } as const;
@@ -69,7 +76,6 @@ export const Typography = {
 } as const;
 
 export const Shadow = {
-  // No shadows per design system — use border for separation
   none: {
     shadowColor: 'transparent',
     shadowOffset: { width: 0, height: 0 },
@@ -77,11 +83,18 @@ export const Shadow = {
     shadowRadius: 0,
     elevation: 0,
   },
+  soft: {
+    shadowColor: '#0f2230',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 6,
+  },
   card: {
-    shadowColor: '#0f2630',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.07,
-    shadowRadius: 14,
-    elevation: 3,
+    shadowColor: '#102330',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.1,
+    shadowRadius: 28,
+    elevation: 8,
   },
 } as const;

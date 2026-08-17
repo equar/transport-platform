@@ -29,6 +29,7 @@ require_command node
 require_command npm
 require_command xcodebuild
 require_command xcrun
+configure_push_runtime_env
 ensure_node_modules
 
 if [[ -n "$API_URL" ]]; then
@@ -38,7 +39,7 @@ elif [[ -z "${EXPO_PUBLIC_API_BASE_URL:-}" ]]; then
 fi
 export EXPO_PUBLIC_SIMULATOR_SESSION_STORAGE=true
 export EXPO_PUBLIC_TEST_DRIVER_EMAIL="${EXPO_PUBLIC_TEST_DRIVER_EMAIL:-samuelweld2018+d1@gmail.com}"
-export EXPO_PUBLIC_TEST_DRIVER_PASSWORD="${EXPO_PUBLIC_TEST_DRIVER_PASSWORD:-DriverTest123!}"
+export EXPO_PUBLIC_TEST_DRIVER_PASSWORD="${EXPO_PUBLIC_TEST_DRIVER_PASSWORD:-Password123}"
 export NODE_ENV=production
 WORKSPACE="${WORKSPACE:-TransportPlatform.xcworkspace}"
 SCHEME="${SCHEME:-TransportPlatform}"
@@ -87,6 +88,7 @@ fi
 
 echo "Building standalone iOS Simulator app"
 echo "API: $EXPO_PUBLIC_API_BASE_URL"
+echo "Expo project: $EXPO_PUBLIC_EAS_PROJECT_ID"
 pushd "$PROJECT_ROOT/ios" >/dev/null
 xcodebuild \
   -quiet \
@@ -108,37 +110,20 @@ if [[ ! -d "$APP_PATH" ]]; then
   exit 1
 fi
 
-RUNNING_SIMULATORS="$(xcrun simctl list devices available \
-  | sed -n 's/.*(\([A-F0-9-]\{36\}\)) (Booted)[[:space:]]*$/\1/p')"
-
-if [[ -z "$RUNNING_SIMULATORS" ]]; then
-  echo "No booted iOS simulators were found after the build completed." >&2
+if ! xcrun simctl list devices available | grep -q "($SIMULATOR_UDID) (Booted)"; then
+  echo "Selected iOS Simulator $SIMULATOR_UDID is not booted after the build completed." >&2
   exit 1
 fi
 
-INSTALL_COUNT=0
-INSTALL_FAILURES=0
-while IFS= read -r DEVICE_UDID; do
-  [[ -n "$DEVICE_UDID" ]] || continue
-  INSTALL_COUNT=$((INSTALL_COUNT + 1))
-  echo "Installing on booted iOS Simulator $DEVICE_UDID..."
-  xcrun simctl uninstall "$DEVICE_UDID" "$APP_ID" >/dev/null 2>&1 || true
-  if ! xcrun simctl install "$DEVICE_UDID" "$APP_PATH"; then
-    echo "Failed to install on iOS Simulator $DEVICE_UDID." >&2
-    INSTALL_FAILURES=$((INSTALL_FAILURES + 1))
-    continue
-  fi
-  if ! xcrun simctl launch --terminate-running-process "$DEVICE_UDID" "$APP_ID"; then
-    echo "Installed but failed to launch on iOS Simulator $DEVICE_UDID." >&2
-    INSTALL_FAILURES=$((INSTALL_FAILURES + 1))
-    continue
-  fi
-  echo "Installed and launched Transport Platform on iOS Simulator $DEVICE_UDID."
-done <<< "$RUNNING_SIMULATORS"
-
-if [[ "$INSTALL_FAILURES" -gt 0 ]]; then
-  echo "Installation completed with $INSTALL_FAILURES failure(s) across $INSTALL_COUNT booted simulator(s)." >&2
+echo "Installing on iOS Simulator $SIMULATOR_UDID..."
+xcrun simctl uninstall "$SIMULATOR_UDID" "$APP_ID" >/dev/null 2>&1 || true
+if ! xcrun simctl install "$SIMULATOR_UDID" "$APP_PATH"; then
+  echo "Failed to install on iOS Simulator $SIMULATOR_UDID." >&2
+  exit 1
+fi
+if ! xcrun simctl launch --terminate-running-process "$SIMULATOR_UDID" "$APP_ID"; then
+  echo "Installed but failed to launch on iOS Simulator $SIMULATOR_UDID." >&2
   exit 1
 fi
 
-echo "Installed and launched Transport Platform on all $INSTALL_COUNT booted iOS simulator(s)."
+echo "Installed and launched Transport Platform on iOS Simulator $SIMULATOR_UDID."

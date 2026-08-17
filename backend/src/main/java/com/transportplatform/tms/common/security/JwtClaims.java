@@ -10,6 +10,7 @@ public record JwtClaims(
         String lastName,
         String tenantId,
         Set<String> roles,
+        Boolean mustChangePassword,
         String tokenType,
         Instant issuedAt,
         Instant expiresAt) {

@@ -10,16 +10,19 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { resolveDefaultRoute, useAuth } from '@auth/AuthContext';
+import { useAuth } from '@auth/AuthContext';
 import { AppInput, AppButton } from '@components/ui';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
+
+const defaultDriverEmail = process.env.EXPO_PUBLIC_TEST_DRIVER_EMAIL ?? 'samuelweld2018+d1@gmail.com';
+const defaultDriverPassword = process.env.EXPO_PUBLIC_TEST_DRIVER_PASSWORD ?? 'Password123';
 
 export default function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, getDefaultRoute } = useAuth();
   const router = useRouter();
 
-  const [email, setEmail] = useState('samuelweld2018+d1@gmail.com');
-  const [password, setPassword] = useState('DriverTest123!');
+  const [email, setEmail] = useState(defaultDriverEmail);
+  const [password, setPassword] = useState(defaultDriverPassword);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -35,11 +38,11 @@ export default function LoginPage() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const nextSession = await signIn({
+      await signIn({
         email: email.trim().toLowerCase(),
         password,
       });
-      router.replace(resolveDefaultRoute(nextSession) as never);
+      router.replace(getDefaultRoute() as never);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'Invalid credentials. Please try again.';
@@ -58,18 +61,18 @@ export default function LoginPage() {
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Brand header */}
         <View style={styles.header}>
-          <Image
-            source={require('../../src/assets/bakaroo-logo.png')}
-            style={styles.brandLogo}
-            resizeMode="contain"
-            accessibilityLabel="Bakaroo Transports"
-          />
-          <Text style={styles.tagline}>Sign in to your account</Text>
+          <View style={styles.logoWrap}>
+            <View style={styles.logoCrop}>
+              <Image
+                source={require('../../src/assets/bakaroo-logo.png')}
+                style={styles.logoMark}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
         </View>
 
-        {/* Form card */}
         <View style={styles.card}>
           <AppInput
             label="Email"
@@ -118,20 +121,38 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.md,
     marginBottom: Spacing.lg,
   },
-  brandLogo: { width: 260, height: 260 },
-  tagline: {
-    fontFamily: 'SourceSans3_400Regular',
-    fontSize: Typography.sizeMd,
-    color: Colors.textSecondary,
+  logoWrap: {
+    width: 296,
+    height: 296,
+    borderRadius: Radius.none,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+  },
+  logoCrop: {
+    width: 240,
+    height: 240,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  logoMark: {
+    width: 240,
+    height: 308,
+    transform: [{ translateY: -2 }],
   },
   card: {
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
+    borderRadius: Radius.lg,
     padding: Spacing.xl,
     gap: Spacing.lg,
+    ...Shadow.card,
   },
   forgotLink: {
     fontFamily: 'SourceSans3_400Regular',

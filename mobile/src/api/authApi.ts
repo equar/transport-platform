@@ -13,6 +13,7 @@ interface AuthTokensResponse {
     lastName: string | null;
     tenantId: string | null;
     status: string;
+    mustChangePassword: boolean;
     roles: string[];
   };
 }
@@ -20,6 +21,7 @@ interface AuthTokensResponse {
 export interface LoginPayload {
   email: string;
   password: string;
+  tenantId?: string | null;
 }
 
 export interface ChangePasswordPayload {

@@ -20,6 +20,7 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded";
 import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import PlaylistAddRoundedIcon from "@mui/icons-material/PlaylistAddRounded";
 import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
@@ -42,6 +43,8 @@ import {
   routesApi,
   type AddRouteStopPayload,
   type RouteRecord,
+  type RouteStopRecord,
+  type UpdateRouteStopPayload,
 } from "../api/routesApi";
 
 export function RouteDetailsPage() {
@@ -57,6 +60,7 @@ export function RouteDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
+  const [editingStop, setEditingStop] = useState<RouteStopRecord | null>(null);
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
   const [selectedDriverId, setSelectedDriverId] = useState<number | "">("");
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | "">("");
@@ -68,6 +72,7 @@ export function RouteDetailsPage() {
     notes: "",
   });
   const [saving, setSaving] = useState(false);
+  const routeIsEditable = route?.status === "DRAFT" || route?.status === "PLANNED" || route?.status === "READY";
 
   async function loadRoute() {
     if (!resolvedRouteId) {
@@ -172,6 +177,23 @@ export function RouteDetailsPage() {
     }
   }
 
+  async function handleUpdateStop(payload: UpdateRouteStopPayload) {
+    if (!route || !editingStop) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await routesApi.updateStop(route.id, editingStop.id, payload);
+      showSuccess("Route stop updated successfully.");
+      setEditingStop(null);
+      await loadRoute();
+    } catch {
+      showError("Route stop could not be updated.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleRemoveStop(stopId: number) {
     if (!route) {
       return;
@@ -269,6 +291,7 @@ export function RouteDetailsPage() {
             variant="outlined"
             startIcon={<TaskAltRoundedIcon />}
             onClick={() => setAssignmentDialogOpen(true)}
+            disabled={!routeIsEditable}
           >
             Assign Resources
           </Button>
@@ -276,6 +299,7 @@ export function RouteDetailsPage() {
             variant="contained"
             startIcon={<PlaylistAddRoundedIcon />}
             onClick={() => setStopDialogOpen(true)}
+            disabled={!routeIsEditable}
           >
             Add Ride Stop
           </Button>
@@ -380,18 +404,28 @@ export function RouteDetailsPage() {
                 <TableCell align="right">
                   <Stack direction="row" spacing={1} justifyContent="flex-end">
                     <TableActionButton
+                      buttonProps={{ disabled: !routeIsEditable || index === 0 }}
                       title="Move Up"
                       onClick={() => void handleReorder(stop.id, "up")}
                     >
                       <ArrowUpwardRoundedIcon />
                     </TableActionButton>
                     <TableActionButton
+                      buttonProps={{ disabled: !routeIsEditable || index === (route.stops?.length ?? 0) - 1 }}
                       title="Move Down"
                       onClick={() => void handleReorder(stop.id, "down")}
                     >
                       <ArrowDownwardRoundedIcon />
                     </TableActionButton>
                     <TableActionButton
+                      buttonProps={{ disabled: !routeIsEditable }}
+                      title="Edit Stop"
+                      onClick={() => setEditingStop(stop)}
+                    >
+                      <EditRoundedIcon />
+                    </TableActionButton>
+                    <TableActionButton
+                      buttonProps={{ disabled: !routeIsEditable }}
                       title="Remove Stop"
                       onClick={() => void handleRemoveStop(stop.id)}
                     >
@@ -502,6 +536,23 @@ export function RouteDetailsPage() {
       </Dialog>
 
       <Dialog
+        open={Boolean(editingStop)}
+        onClose={() => setEditingStop(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Edit Route Stop</DialogTitle>
+        {editingStop ? (
+          <RouteStopEditForm
+            stop={editingStop}
+            saving={saving}
+            onCancel={() => setEditingStop(null)}
+            onSave={handleUpdateStop}
+          />
+        ) : null}
+      </Dialog>
+
+      <Dialog
         open={assignmentDialogOpen}
         onClose={() => setAssignmentDialogOpen(false)}
         fullWidth
@@ -558,5 +609,75 @@ export function RouteDetailsPage() {
         </DialogActions>
       </Dialog>
     </Stack>
+  );
+}
+
+function toDateTimeLocal(value: string | null) {
+  return value ? value.slice(0, 16) : "";
+}
+
+function RouteStopEditForm({
+  stop,
+  saving,
+  onCancel,
+  onSave,
+}: {
+  stop: RouteStopRecord;
+  saving: boolean;
+  onCancel: () => void;
+  onSave: (payload: UpdateRouteStopPayload) => Promise<void>;
+}) {
+  const [payload, setPayload] = useState<UpdateRouteStopPayload>({
+    stopSequence: stop.stopSequence,
+    plannedPickupAt: toDateTimeLocal(stop.plannedPickupAt),
+    plannedDropoffAt: toDateTimeLocal(stop.plannedDropoffAt),
+    notes: stop.notes ?? "",
+  });
+
+  return (
+    <>
+      <DialogContent>
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <TextField label="Ride" value={`${stop.rideNumber} · ${stop.riderName}`} disabled />
+          <TextField
+            label="Stop Sequence"
+            type="number"
+            value={payload.stopSequence ?? ""}
+            onChange={(event) => setPayload((current) => ({
+              ...current,
+              stopSequence: event.target.value ? Number(event.target.value) : null,
+            }))}
+            inputProps={{ min: 1 }}
+          />
+          <TextField
+            label="Planned Pickup"
+            type="datetime-local"
+            value={payload.plannedPickupAt ?? ""}
+            onChange={(event) => setPayload((current) => ({ ...current, plannedPickupAt: event.target.value }))}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Planned Dropoff"
+            type="datetime-local"
+            value={payload.plannedDropoffAt ?? ""}
+            onChange={(event) => setPayload((current) => ({ ...current, plannedDropoffAt: event.target.value }))}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Notes"
+            value={payload.notes ?? ""}
+            onChange={(event) => setPayload((current) => ({ ...current, notes: event.target.value }))}
+            multiline
+            minRows={3}
+          />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onCancel} disabled={saving}>Cancel</Button>
+        <Button variant="contained" onClick={() => void onSave(payload)} disabled={saving}>
+          Save Stop
+        </Button>
+      </DialogActions>
+    </>
   );
 }

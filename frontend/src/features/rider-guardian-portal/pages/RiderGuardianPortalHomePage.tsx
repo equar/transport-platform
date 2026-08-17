@@ -150,7 +150,7 @@ export function RiderGuardianPortalHomePage() {
               </Typography>
             ) : (
               upcomingRides.map((ride) => (
-                <PageCard key={ride.id} sx={{ p: { xs: 2, md: 2.5 }, boxShadow: "none", bgcolor: "rgba(15,76,92,.025)", borderLeft: "4px solid", borderLeftColor: "primary.main" }}>
+                <PageCard key={ride.id} sx={{ p: { xs: 2, md: 2.5 }, boxShadow: "none", bgcolor: "rgba(49,91,125,.025)", borderLeft: "4px solid", borderLeftColor: "primary.main" }}>
                   <Stack spacing={1.25}>
                     <Stack
                       direction={{ xs: "column", sm: "row" }}

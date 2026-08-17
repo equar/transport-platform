@@ -18,6 +18,7 @@ import com.transportplatform.tms.features.auth.domain.UserStatus;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.features.tenant.domain.Tenant;
 import com.transportplatform.tms.features.tenant.domain.TenantStatus;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Set;
 import java.util.Optional;
@@ -45,6 +46,9 @@ class AuthFacadeTest {
     @Mock
     private TenantRepository tenantRepository;
 
+    @Mock
+    private Clock clock;
+
     @InjectMocks
     private AuthFacade authFacade;
 
@@ -63,6 +67,7 @@ class AuthFacadeTest {
     @Test
     void loginReturnsRicherIdentityPayload() {
         AppUser user = buildUser(UserStatus.ACTIVE);
+        when(clock.instant()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
         when(appUserRepository.findForAuthenticationByEmail("ops@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
         when(jwtService.generateAccessToken(org.mockito.ArgumentMatchers.any(AuthenticatedUser.class)))
@@ -76,6 +81,7 @@ class AuthFacadeTest {
                 "Morgan",
                 null,
                 Set.of(RoleName.ROLE_PLATFORM_ADMIN.name()),
+                false,
                 "ACCESS",
                 Instant.parse("2025-01-01T00:00:00Z"),
                 Instant.parse("2025-01-01T00:15:00Z")));

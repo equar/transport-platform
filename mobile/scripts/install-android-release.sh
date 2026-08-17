@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/common.sh"
+configure_push_runtime_env
+warn_if_android_push_native_config_missing
 
 ENV_NAME="aws"
 ARGS=()

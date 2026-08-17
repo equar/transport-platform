@@ -49,6 +49,11 @@ if [[ -n "$graph_client_id" && -n "$graph_tenant_id" && -n "$graph_client_secret
   email_provider=microsoft-graph
 fi
 
+push_enabled="$(read_value APP_PUSH_ENABLED || printf 'false')"
+push_provider="$(read_value APP_PUSH_PROVIDER || printf 'logging')"
+push_expo_url="$(read_value APP_PUSH_EXPO_URL || printf 'https://exp.host/--/api/v2/push/send')"
+expo_access_token="$(read_value EXPO_ACCESS_TOKEN || true)"
+
 jwt_secret="$(openssl rand -base64 64 | tr -d '\n')"
 umask 077
 {
@@ -61,6 +66,12 @@ umask 077
   printf '%s\n' 'APP_SECURITY_ALLOWED_ORIGINS=https://transport.bakaroo.com'
   printf '%s\n' "APP_SECURITY_JWT_SECRET=${jwt_secret}"
   printf '%s\n' 'APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED=false'
+  printf '%s\n' 'APP_LOGGING_LEVEL_ROOT=INFO'
+  printf '%s\n' 'APP_LOGGING_LEVEL_APP=DEBUG'
+  printf '%s\n' 'APP_LOGGING_LEVEL_WEB=DEBUG'
+  printf '%s\n' 'APP_LOGGING_LEVEL_SECURITY=INFO'
+  printf '%s\n' 'APP_LOGGING_LEVEL_SQL=INFO'
+  printf '%s\n' 'APP_LOGGING_LEVEL_SQL_BIND=INFO'
   printf '%s\n' 'APP_DRIVER_DOCUMENT_STORAGE_ROOT=/opt/transport-platform/documents/driver-documents'
   printf '%s\n' "APP_EMAIL_ENABLED=${email_enabled}"
   printf '%s\n' "APP_EMAIL_PROVIDER=${email_provider}"
@@ -68,6 +79,10 @@ umask 077
   printf '%s\n' "MICROSOFT_GRAPH_CLIENT_ID=${graph_client_id}"
   printf '%s\n' "MICROSOFT_GRAPH_TENANT_ID=${graph_tenant_id}"
   printf '%s\n' "MICROSOFT_GRAPH_CLIENT_SECRET=${graph_client_secret}"
+  printf '%s\n' "APP_PUSH_ENABLED=${push_enabled}"
+  printf '%s\n' "APP_PUSH_PROVIDER=${push_provider}"
+  printf '%s\n' "APP_PUSH_EXPO_URL=${push_expo_url}"
+  printf '%s\n' "EXPO_ACCESS_TOKEN=${expo_access_token}"
 } > "$TARGET_ENV"
 chmod 600 "$TARGET_ENV"
 

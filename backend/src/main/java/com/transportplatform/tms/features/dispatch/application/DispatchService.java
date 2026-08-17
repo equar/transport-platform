@@ -6,11 +6,14 @@ import com.transportplatform.tms.common.response.PageResponse;
 import com.transportplatform.tms.features.audit.application.AuditLogCommand;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
 import com.transportplatform.tms.features.dispatch.api.response.DispatchBoardSummaryResponse;
+import com.transportplatform.tms.features.dispatch.api.response.DispatchRideMapResponse;
 import com.transportplatform.tms.features.dispatch.api.response.DispatchRideSummaryResponse;
 import com.transportplatform.tms.features.driver.domain.Driver;
 import com.transportplatform.tms.features.driver.domain.DriverRepository;
 import com.transportplatform.tms.features.organization.domain.ServiceType;
 import com.transportplatform.tms.features.notification.application.NotificationEventService;
+import com.transportplatform.tms.features.location.domain.DriverLocationSnapshot;
+import com.transportplatform.tms.features.location.domain.DriverLocationSnapshotRepository;
 import com.transportplatform.tms.features.ride.application.RideAccessService;
 import com.transportplatform.tms.features.ride.application.RideStatusWorkflow;
 import com.transportplatform.tms.features.ride.domain.Ride;
@@ -50,7 +53,15 @@ public class DispatchService {
                         RideStatus.MISSED,
                         RideStatus.FAILED);
 
+        private static final EnumSet<RideStatus> MAP_ACTIVE_STATUSES = EnumSet.of(
+                        RideStatus.ASSIGNED,
+                        RideStatus.DRIVER_EN_ROUTE,
+                        RideStatus.ARRIVED,
+                        RideStatus.PICKED_UP,
+                        RideStatus.DROPPED_OFF);
+
         private final RideRepository rideRepository;
+        private final DriverLocationSnapshotRepository driverLocationSnapshotRepository;
         private final DriverRepository driverRepository;
         private final VehicleRepository vehicleRepository;
         private final RideAccessService rideAccessService;
@@ -61,6 +72,7 @@ public class DispatchService {
         private final NotificationEventService notificationEventService;
 
         public DispatchService(RideRepository rideRepository,
+                        DriverLocationSnapshotRepository driverLocationSnapshotRepository,
                         DriverRepository driverRepository,
                         VehicleRepository vehicleRepository,
                         RideAccessService rideAccessService,
@@ -70,6 +82,7 @@ public class DispatchService {
                         AuditLogService auditLogService,
                         NotificationEventService notificationEventService) {
                 this.rideRepository = rideRepository;
+                this.driverLocationSnapshotRepository = driverLocationSnapshotRepository;
                 this.driverRepository = driverRepository;
                 this.vehicleRepository = vehicleRepository;
                 this.rideAccessService = rideAccessService;
@@ -190,6 +203,79 @@ public class DispatchService {
                                 noShowTodayCount);
         }
 
+        @Transactional(readOnly = true)
+        public List<DispatchRideMapResponse> getCompanyDispatchMap(String keyword,
+                        RideStatus status,
+                        ServiceType serviceType,
+                        Long driverId,
+                        Long vehicleId,
+                        Long organizationId,
+                        LocalDate fromDate,
+                        LocalDate toDate) {
+                String tenantId = rideAccessService.requireCompanyTenantId();
+                LocalDateTime fromDateTime = fromDate == null ? LocalDate.now().atStartOfDay()
+                                : fromDate.atStartOfDay();
+                LocalDateTime toDateTime = toDate == null ? LocalDateTime.of(LocalDate.now(), LocalTime.MAX)
+                                : LocalDateTime.of(toDate, LocalTime.MAX);
+
+                List<Ride> rides = rideRepository.findAll(
+                                DispatchRideSpecifications.search(
+                                                tenantId,
+                                                keyword,
+                                                null,
+                                                status,
+                                                serviceType,
+                                                driverId,
+                                                vehicleId,
+                                                organizationId,
+                                                fromDateTime,
+                                                toDateTime),
+                                Sort.by(Sort.Direction.ASC, "scheduledPickupAt")).stream()
+                                .filter(ride -> MAP_ACTIVE_STATUSES.contains(ride.getStatus()))
+                                .filter(ride -> ride.getDriverId() != null)
+                                .toList();
+                if (rides.isEmpty()) {
+                        return List.of();
+                }
+
+                Map<Long, DriverLocationSnapshot> latestSnapshotsByRideId = driverLocationSnapshotRepository
+                                .findAllByTenantIdAndRide_IdInOrderByCapturedAtDescIdDesc(
+                                                tenantId,
+                                                rides.stream().map(Ride::getId).toList())
+                                .stream()
+                                .collect(Collectors.toMap(
+                                                snapshot -> snapshot.getRide().getId(),
+                                                Function.identity(),
+                                                (first, ignored) -> first,
+                                                LinkedHashMap::new));
+
+                Map<Long, Driver> driversById = driverRepository.findAllByTenantIdAndIdIn(
+                                tenantId,
+                                rides.stream().map(Ride::getDriverId).toList()).stream()
+                                .collect(Collectors.toMap(Driver::getId, Function.identity()));
+                Map<Long, Vehicle> vehiclesById = vehicleRepository.findAllByTenantIdAndIdIn(
+                                tenantId,
+                                rides.stream()
+                                                .map(Ride::getVehicleId)
+                                                .filter(java.util.Objects::nonNull)
+                                                .toList()).stream()
+                                .collect(Collectors.toMap(Vehicle::getId, Function.identity()));
+
+                return rides.stream()
+                                .map(ride -> {
+                                        DriverLocationSnapshot snapshot = latestSnapshotsByRideId.get(ride.getId());
+                                        if (snapshot == null) {
+                                                return null;
+                                        }
+                                        Driver driver = driversById.get(ride.getDriverId());
+                                        Vehicle vehicle = ride.getVehicleId() == null ? null
+                                                        : vehiclesById.get(ride.getVehicleId());
+                                        return dispatchMapper.toMapResponse(ride, driver, vehicle, snapshot);
+                                })
+                                .filter(java.util.Objects::nonNull)
+                                .toList();
+        }
+
         @Transactional
         public void assignRideDriver(Long rideId, Long driverId) {
                 Ride ride = rideAccessService.findRideForCompanyScope(rideId);
@@ -199,7 +285,7 @@ public class DispatchService {
                                 driverId);
                 RideStatus previousStatus = ride.getStatus();
                 ride.setDriverId(driver.getId());
-                if (ride.getVehicleId() != null && ride.getStatus() == RideStatus.SCHEDULED) {
+                if (ride.getStatus() == RideStatus.SCHEDULED) {
                         ride.setStatus(RideStatus.ASSIGNED);
                 }
                 Ride saved = rideRepository.save(ride);
@@ -207,6 +293,7 @@ public class DispatchService {
                 if (previousStatus != saved.getStatus()) {
                         rideEventService.recordStatusChanged(saved, previousStatus, saved.getStatus(),
                                         "Ride resources are fully assigned.");
+                        notificationEventService.publishRideStatusChanged(saved, previousStatus, saved.getStatus());
                 }
                 recordAudit(saved, "DRIVER_ASSIGNED", "Driver assigned to ride " + saved.getRideNumber() + ".",
                                 oldSnapshot, snapshot(saved));
@@ -230,6 +317,7 @@ public class DispatchService {
                 if (previousStatus != saved.getStatus()) {
                         rideEventService.recordStatusChanged(saved, previousStatus, saved.getStatus(),
                                         "Ride resources are fully assigned.");
+                        notificationEventService.publishRideStatusChanged(saved, previousStatus, saved.getStatus());
                 }
                 recordAudit(saved, "VEHICLE_ASSIGNED", "Vehicle assigned to ride " + saved.getRideNumber() + ".",
                                 oldSnapshot, snapshot(saved));

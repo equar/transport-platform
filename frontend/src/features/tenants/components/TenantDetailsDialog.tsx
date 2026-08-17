@@ -1,12 +1,18 @@
 import {
   Alert,
+  Button,
   Dialog,
+  DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
   Stack,
   Typography,
 } from "@mui/material";
+import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { Link as RouterLink } from "react-router-dom";
 import type { Tenant } from "../api/tenantsApi";
 import { StatusChip } from "../../../shared/components/StatusChip";
 import { formatDateTime } from "../../../shared/utils/format";
@@ -35,7 +41,12 @@ export function TenantDetailsDialog({
 }: TenantDetailsDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>Tenant Details</DialogTitle>
+      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
+        Tenant Details
+        <IconButton aria-label="Close tenant details" onClick={onClose} size="small">
+          <CloseRoundedIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
       <DialogContent>
         {tenant ? (
           <Stack spacing={3} sx={{ mt: 1 }}>
@@ -104,6 +115,22 @@ export function TenantDetailsDialog({
           </Stack>
         ) : null}
       </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        {tenant ? (
+          <Button
+            component={RouterLink}
+            to={`/platform/users?create=1&tenantId=${encodeURIComponent(tenant.id)}&role=ROLE_TENANT_ADMIN`}
+            startIcon={<PersonAddRoundedIcon />}
+            variant="contained"
+            onClick={onClose}
+          >
+            Create tenant admin
+          </Button>
+        ) : null}
+        <Button onClick={onClose} color="inherit">
+          Close
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }

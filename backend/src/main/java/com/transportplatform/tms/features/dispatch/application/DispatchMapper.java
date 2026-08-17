@@ -1,7 +1,9 @@
 package com.transportplatform.tms.features.dispatch.application;
 
+import com.transportplatform.tms.features.dispatch.api.response.DispatchRideMapResponse;
 import com.transportplatform.tms.features.dispatch.api.response.DispatchRideSummaryResponse;
 import com.transportplatform.tms.features.driver.domain.Driver;
+import com.transportplatform.tms.features.location.domain.DriverLocationSnapshot;
 import com.transportplatform.tms.features.ride.domain.Ride;
 import com.transportplatform.tms.features.vehicle.domain.Vehicle;
 import org.springframework.stereotype.Component;
@@ -38,6 +40,29 @@ public class DispatchMapper {
                 warnings.conflictWarning(),
                 warnings.warningMessages(),
                 ride.getUpdatedAt());
+    }
+
+    public DispatchRideMapResponse toMapResponse(Ride ride,
+            Driver driver,
+            Vehicle vehicle,
+            DriverLocationSnapshot snapshot) {
+        return new DispatchRideMapResponse(
+                ride.getId(),
+                ride.getRideNumber(),
+                formatRiderName(ride),
+                driver == null ? null : formatDriverName(driver),
+                vehicle == null ? null : formatVehicle(vehicle),
+                ride.getServiceType(),
+                ride.getStatus(),
+                formatAddress(ride.getPickupAddressLine1(), ride.getPickupCity(), ride.getPickupState()),
+                formatAddress(ride.getDropoffAddressLine1(), ride.getDropoffCity(), ride.getDropoffState()),
+                ride.getScheduledPickupAt(),
+                snapshot.getLatitude(),
+                snapshot.getLongitude(),
+                snapshot.getAccuracyMeters(),
+                snapshot.getSpeedMps(),
+                snapshot.getHeadingDegrees(),
+                snapshot.getCapturedAt());
     }
 
     private String formatRiderName(Ride ride) {

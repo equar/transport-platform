@@ -25,7 +25,7 @@ export function PublicCtaBand({
     <PageCard
       sx={{
         background:
-          "linear-gradient(135deg, rgba(15, 76, 92, 0.12) 0%, rgba(255, 255, 255, 0.95) 55%, rgba(196, 106, 34, 0.1) 100%)",
+          "linear-gradient(135deg, rgba(75, 85, 99, 0.10) 0%, rgba(255, 255, 255, 0.95) 55%, rgba(196, 106, 34, 0.1) 100%)",
       }}
     >
       <Box

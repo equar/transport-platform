@@ -17,6 +17,8 @@ import com.transportplatform.tms.features.notification.application.NotificationE
 import com.transportplatform.tms.features.portalaccess.application.PortalAccessService;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.features.user.api.request.UserUpsertRequest;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -52,6 +54,9 @@ class UserManagementServiceTest {
     @Mock
     private PortalAccessService portalAccessService;
 
+    @Mock
+    private Clock clock;
+
     @InjectMocks
     private UserManagementService userManagementService;
 
@@ -77,6 +82,7 @@ class UserManagementServiceTest {
     @Test
     void companyUserCreationUsesCurrentTenantScope() {
         when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
+        when(clock.instant()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
         when(passwordEncoder.encode("secret123")).thenReturn("encoded-password");
         when(appUserRepository.save(org.mockito.ArgumentMatchers.any(AppUser.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -100,6 +106,7 @@ class UserManagementServiceTest {
     @Test
     void portalUserCreationRequiresOperationalIdentityLink() {
         when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
+        when(clock.instant()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
         when(passwordEncoder.encode("secret123")).thenReturn("encoded-password");
         when(appUserRepository.save(org.mockito.ArgumentMatchers.any(AppUser.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -132,6 +139,7 @@ class UserManagementServiceTest {
                 "password",
                 true,
                 true,
+                false,
                 List.of(new SimpleGrantedAuthority(RoleName.ROLE_TENANT_ADMIN.name())));
     }
 }

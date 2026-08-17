@@ -1,5 +1,6 @@
 import { apiClient, unwrapResponse } from './client';
 import type { PageResponse } from './types';
+import type { DriverLocationSnapshotPayload } from './driverPortalApi';
 
 export interface RiderPortalDashboardRecord {
   scopeType: 'RIDER' | 'GUARDIAN';
@@ -83,6 +84,16 @@ export interface RiderPortalRideDetailRecord extends RiderPortalRideRecord {
   specialInstructions?: string | null;
 }
 
+export interface RiderRideLocationSnapshotRecord extends DriverLocationSnapshotPayload {
+  id: number;
+  rideId: number;
+  driverId: number;
+  vehicleId: number | null;
+  capturedAt: string;
+  createdAt: string;
+  createdBy: string;
+}
+
 export interface RiderPortalInvoiceRecord {
   id: number;
   invoiceNumber: string;
@@ -130,6 +141,10 @@ export const riderPortalApi = {
   async getRide(rideId: number) {
     const r = await apiClient.get(`${base}/rides/${rideId}`);
     return unwrapResponse<RiderPortalRideDetailRecord>(r.data);
+  },
+  async getRideLocationSnapshot(rideId: number) {
+    const r = await apiClient.get(`${base}/rides/${rideId}/location-snapshot`);
+    return unwrapResponse<RiderRideLocationSnapshotRecord | null>(r.data);
   },
   async cancelRide(rideId: number, reason?: string) {
     const r = await apiClient.post(`${base}/rides/${rideId}/cancel`, { reason });

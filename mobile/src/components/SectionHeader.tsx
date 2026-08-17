@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import { Colors, Typography } from '@theme/tokens';
+import { Colors, Spacing, Typography } from '@theme/tokens';
 
 interface SectionHeaderProps {
   title: string;
@@ -17,11 +17,12 @@ export function SectionHeader({ title, subtitle }: SectionHeaderProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 2 },
+  container: { gap: 4, marginBottom: Spacing.xs },
   title: {
     fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: Typography.sizeXl,
+    fontSize: Typography.sizeXxl,
     color: Colors.textPrimary,
+    letterSpacing: -0.4,
   },
   subtitle: {
     fontFamily: 'SourceSans3_400Regular',

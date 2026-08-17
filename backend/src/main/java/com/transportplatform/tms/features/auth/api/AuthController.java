@@ -2,8 +2,10 @@ package com.transportplatform.tms.features.auth.api;
 
 import com.transportplatform.tms.common.response.ApiResponse;
 import com.transportplatform.tms.features.auth.api.request.ChangePasswordRequest;
+import com.transportplatform.tms.features.auth.api.request.ForgotPasswordRequest;
 import com.transportplatform.tms.features.auth.api.request.LoginRequest;
 import com.transportplatform.tms.features.auth.api.request.RefreshTokenRequest;
+import com.transportplatform.tms.features.auth.api.request.ResetPasswordRequest;
 import com.transportplatform.tms.features.auth.api.response.AuthTokensResponse;
 import com.transportplatform.tms.features.auth.application.AuthFacade;
 import jakarta.validation.Valid;
@@ -36,6 +38,16 @@ public class AuthController {
     @PostMapping("/change-password")
     public ApiResponse<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         return ApiResponse.success(authFacade.changePassword(request));
+    }
+
+    @PostMapping("/forgot-password")
+    public ApiResponse<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        return ApiResponse.success(authFacade.requestPasswordReset(request));
+    }
+
+    @PostMapping("/reset-password")
+    public ApiResponse<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        return ApiResponse.success(authFacade.resetPassword(request));
     }
 
     @GetMapping("/status")

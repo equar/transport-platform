@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, FlatList, View, RefreshControl } from 'react-native';
+import { StyleSheet, FlatList, View, RefreshControl, Text } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { driverPortalApi } from '@api/driverPortalApi';
@@ -7,7 +7,7 @@ import { RideCard } from '@components/RideCard';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
-import { Colors, Spacing } from '@theme/tokens';
+import { Colors, Shadow, Spacing, Typography } from '@theme/tokens';
 
 const PAGE_SIZE = 20;
 
@@ -30,8 +30,11 @@ export default function DriverRidesPage() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <SectionHeader title="Ride Queue" subtitle="Your assigned rides" />
+      <View style={styles.headerShell}>
+        <View style={styles.header}>
+          <SectionHeader title="Ride Queue" subtitle="Your assigned workstream for today" />
+          <Text style={styles.headerMeta}>{rides.length} trips in view</Text>
+        </View>
       </View>
       <FlatList
         data={rides}
@@ -46,7 +49,7 @@ export default function DriverRidesPage() {
         onEndReached={() => hasNextPage && fetchNextPage()}
         onEndReachedThreshold={0.3}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-        contentContainerStyle={rides.length === 0 ? styles.emptyContent : styles.listContent}
+        contentContainerStyle={rides.length === 0 && styles.emptyContent}
       />
     </View>
   );
@@ -54,8 +57,21 @@ export default function DriverRidesPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: { padding: Spacing.lg, paddingTop: Spacing.xxl, backgroundColor: Colors.surface },
-  listContent: { padding: Spacing.lg },
+  headerShell: { padding: Spacing.lg, paddingBottom: 0 },
+  header: {
+    padding: Spacing.xl,
+    borderRadius: 26,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadow.soft,
+  },
+  headerMeta: {
+    marginTop: Spacing.sm,
+    fontFamily: 'SourceSans3_600SemiBold',
+    fontSize: Typography.sizeSm,
+    color: Colors.textSecondary,
+  },
   sep: { height: Spacing.md },
   emptyContent: { flex: 1 },
 });

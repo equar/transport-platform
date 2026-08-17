@@ -21,12 +21,15 @@ import com.transportplatform.tms.features.rider.domain.GuardianRepository;
 import com.transportplatform.tms.features.organization.domain.OrganizationContactRepository;
 import com.transportplatform.tms.features.user.api.response.PortalSubjectOptionResponse;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
+import com.transportplatform.tms.features.user.api.request.AdminResetPasswordRequest;
 import com.transportplatform.tms.features.user.api.request.UserUpsertRequest;
 import com.transportplatform.tms.features.user.api.response.UserResponse;
+import java.time.Clock;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -51,6 +54,7 @@ public class UserManagementService {
     private final RiderRepository riderRepository;
     private final GuardianRepository guardianRepository;
     private final OrganizationContactRepository organizationContactRepository;
+    private final Clock clock;
 
     public UserManagementService(AppUserRepository appUserRepository,
             TenantRepository tenantRepository,
@@ -63,7 +67,8 @@ public class UserManagementService {
             DriverRepository driverRepository,
             RiderRepository riderRepository,
             GuardianRepository guardianRepository,
-            OrganizationContactRepository organizationContactRepository) {
+            OrganizationContactRepository organizationContactRepository,
+            Clock clock) {
         this.appUserRepository = appUserRepository;
         this.tenantRepository = tenantRepository;
         this.passwordEncoder = passwordEncoder;
@@ -76,6 +81,7 @@ public class UserManagementService {
         this.riderRepository = riderRepository;
         this.guardianRepository = guardianRepository;
         this.organizationContactRepository = organizationContactRepository;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -229,6 +235,19 @@ public class UserManagementService {
     }
 
     @Transactional
+    public UserResponse resetPlatformUserPassword(Long userId, AdminResetPasswordRequest request) {
+        requireRole(RoleName.ROLE_PLATFORM_ADMIN);
+        AppUser user = findUser(userId);
+        return resetUserPassword(user, request.password());
+    }
+
+    @Transactional
+    public UserResponse resetCompanyUserPassword(Long userId, AdminResetPasswordRequest request) {
+        AppUser user = findUserForCompanyScope(userId);
+        return resetUserPassword(user, request.password());
+    }
+
+    @Transactional
     public UserResponse activatePlatformUser(Long userId) {
         requireRole(RoleName.ROLE_PLATFORM_ADMIN);
         AppUser user = findUser(userId);
@@ -328,7 +347,31 @@ public class UserManagementService {
         user.setStatus(request.status() == null ? UserStatus.ACTIVE : request.status());
         if (request.password() != null && !request.password().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.password()));
+            user.setPasswordChangedAt(clock.instant());
+            user.setMustChangePassword(true);
         }
+    }
+
+    private UserResponse resetUserPassword(AppUser user, String password) {
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setPasswordChangedAt(clock.instant());
+        user.setMustChangePassword(true);
+        user.setPasswordResetTokenHash(null);
+        user.setPasswordResetRequestedAt(null);
+        user.setPasswordResetTokenExpiresAt(null);
+        AppUser saved = appUserRepository.save(user);
+        auditLogService.record(new AuditLogCommand(
+                null,
+                saved.getTenantId(),
+                "USER",
+                "PASSWORD_RESET_BY_ADMIN",
+                "USER",
+                resolveEntityId(saved),
+                "An administrator reset the user's password.",
+                null,
+                Map.of("userId", saved.getId(), "email", saved.getEmail(), "mustChangePassword", true)));
+        notificationEventService.publishCompanyUserCreated(saved);
+        return toResponse(saved);
     }
 
     private Set<RoleName> validateRoles(Set<RoleName> roles, AdminScope scope, String tenantId) {

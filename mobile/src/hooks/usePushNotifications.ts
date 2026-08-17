@@ -4,6 +4,11 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@auth/AuthContext';
+import Constants from 'expo-constants';
+import { pushNotificationsApi } from '@api/pushNotificationsApi';
+import { getSessionValue, setSessionValue, deleteSessionValue } from '@auth/sessionStorage';
+
+const PUSH_TOKEN_KEY = 'device_push_token';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -14,6 +19,21 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
+
+function resolveProjectId(): string | undefined {
+  const easProjectId = Constants.easConfig?.projectId;
+  if (easProjectId && easProjectId.trim().length > 0) {
+    return easProjectId.trim();
+  }
+
+  const expoProjectId =
+    (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
+  if (expoProjectId && expoProjectId.trim().length > 0) {
+    return expoProjectId.trim();
+  }
+
+  return undefined;
+}
 
 async function registerForPushNotifications(): Promise<string | null> {
   if (!Device.isDevice) return null;
@@ -34,7 +54,13 @@ async function registerForPushNotifications(): Promise<string | null> {
     });
   }
 
-  const token = await Notifications.getExpoPushTokenAsync();
+  const resolvedProjectId = resolveProjectId();
+  if (!resolvedProjectId) {
+    return null;
+  }
+  const token = await Notifications.getExpoPushTokenAsync(
+    { projectId: resolvedProjectId },
+  );
   return token.data;
 }
 
@@ -45,12 +71,26 @@ export function usePushNotifications() {
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
 
   useEffect(() => {
-    registerForPushNotifications().then((token) => {
-      if (token) {
-        // Token registered; backend device-token endpoint can be called here
-        // when the backend endpoint is available: apiClient.put('/portal/driver/device-token', { token })
-      }
-    });
+    const portalUser =
+      session?.identity.roles.includes('ROLE_DRIVER') ||
+      session?.identity.roles.includes('ROLE_RIDER') ||
+      session?.identity.roles.includes('ROLE_GUARDIAN');
+
+    if (portalUser) {
+      registerForPushNotifications().then(async (token) => {
+        if (!token) {
+          return;
+        }
+        const platform =
+          Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web'
+            ? Platform.OS
+            : 'web';
+        await pushNotificationsApi.register({ token, platform });
+        await setSessionValue(PUSH_TOKEN_KEY, token);
+      }).catch(() => {
+        // Push registration should never break app navigation.
+      });
+    }
 
     notificationListener.current = Notifications.addNotificationReceivedListener(() => {
       // Foreground notification received — PaperProvider toasts can be triggered here
@@ -58,15 +98,23 @@ export function usePushNotifications() {
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as Record<string, unknown>;
+      const deepLink = typeof data?.deepLink === 'string' ? data.deepLink : '';
+      if (deepLink) {
+        router.push(deepLink as never);
+        return;
+      }
       // Navigate to relevant detail screen based on notification payload
       if (data?.rideId) {
-        const roles = session?.identity.roles ?? [];
-        const ridePath = roles.includes('ROLE_DRIVER')
-          ? `/(driver)/rides/${data.rideId}`
-          : roles.includes('ROLE_GUARDIAN')
-            ? `/(guardian)/rides/${data.rideId}`
-            : `/(rider)/rides/${data.rideId}`;
-        router.push(ridePath as never);
+        const explicitScope = typeof data.portalScope === 'string' ? data.portalScope.toLowerCase() : '';
+        const roleScope = session?.identity.roles.includes('ROLE_DRIVER')
+          ? 'driver'
+          : session?.identity.roles.includes('ROLE_GUARDIAN')
+            ? 'guardian'
+            : session?.identity.roles.includes('ROLE_RIDER')
+              ? 'rider'
+              : '';
+        const scope = explicitScope || roleScope || 'driver';
+        router.push(`/${`(${scope})`}/rides/${data.rideId}` as never);
       }
     });
 
@@ -75,4 +123,16 @@ export function usePushNotifications() {
       responseListener.current?.remove();
     };
   }, [router, session]);
+}
+
+export async function unregisterCurrentPushToken() {
+  const token = await getSessionValue(PUSH_TOKEN_KEY);
+  if (!token) {
+    return;
+  }
+  try {
+    await pushNotificationsApi.unregister(token);
+  } finally {
+    await deleteSessionValue(PUSH_TOKEN_KEY);
+  }
 }

@@ -183,6 +183,7 @@ public class RouteService {
             route.setAssignedVehicleId(vehicle.getId());
         }
         Route saved = routeRepository.save(route);
+        syncLinkedRideResourcesFromRoute(saved);
         recordRouteAudit(saved, "RESOURCES_ASSIGNED",
                 "Route resources were assigned for route " + saved.getRouteCode() + ".",
                 oldSnapshot,
@@ -301,7 +302,7 @@ public class RouteService {
         RouteStop savedStop = routeStopRepository.save(routeStop);
 
         ride.setRouteId(route.getId());
-        rideRepository.save(ride);
+        applyRouteResourcesToRide(ride, route);
         rideEventService.recordRouteAssigned(ride, route.getRouteCode(), savedStop.getNotes());
         recordRouteStopAudit(savedStop, "STOP_ADDED",
                 "Ride " + ride.getRideNumber() + " was added to route " + route.getRouteCode() + ".",
@@ -405,6 +406,41 @@ public class RouteService {
         Route saved = routeRepository.save(route);
         recordRouteAudit(saved, action, summary, oldSnapshot, snapshot(saved));
         return getCompanyRoute(saved.getId());
+    }
+
+    private void syncLinkedRideResourcesFromRoute(Route route) {
+        List<RouteStop> linkedStops = routeStopRepository.findAllByTenantIdAndRoute_IdOrderByStopSequenceAsc(
+                route.getTenantId(),
+                route.getId());
+        if (linkedStops.isEmpty()) {
+            return;
+        }
+        linkedStops.stream()
+                .map(RouteStop::getRide)
+                .forEach(ride -> applyRouteResourcesToRide(ride, route));
+    }
+
+    private void applyRouteResourcesToRide(Ride ride, Route route) {
+        boolean changed = false;
+        if (ride.getRouteId() == null || !ride.getRouteId().equals(route.getId())) {
+            ride.setRouteId(route.getId());
+            changed = true;
+        }
+        if (ride.getDriverId() == null && route.getAssignedDriverId() != null) {
+            ride.setDriverId(route.getAssignedDriverId());
+            changed = true;
+        }
+        if (ride.getVehicleId() == null && route.getAssignedVehicleId() != null) {
+            ride.setVehicleId(route.getAssignedVehicleId());
+            changed = true;
+        }
+        if (ride.getDriverId() != null && ride.getStatus() == RideStatus.SCHEDULED) {
+            ride.setStatus(RideStatus.ASSIGNED);
+            changed = true;
+        }
+        if (changed) {
+            rideRepository.save(ride);
+        }
     }
 
     private Driver requireAssignableDriver(String tenantId, Long driverId) {

@@ -42,6 +42,14 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long>, JpaSpec
 
         Optional<AppUser> findByIdAndTenantId(Long id, String tenantId);
 
+        @Query("""
+                        select distinct user
+                        from AppUser user
+                        left join fetch user.roles
+                        where user.passwordResetTokenHash = :tokenHash
+                        """)
+        Optional<AppUser> findByPasswordResetTokenHash(@Param("tokenHash") String tokenHash);
+
         List<AppUser> findAllByTenantId(String tenantId);
 
         long countByStatus(UserStatus status);

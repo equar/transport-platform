@@ -32,16 +32,47 @@ import { dispatchApi, type LookupOption } from "../../dispatch/api/dispatchApi";
 import {
   ridesApi,
   type RideEventRecord,
+  type RideLocationSnapshotRecord,
   type RidePayload,
   type RideRecord,
 } from "../api/ridesApi";
 import { RideCancellationDialog } from "../components/RideCancellationDialog";
 import { RideUpsertDialog } from "../components/RideUpsertDialog";
+import { env } from "../../../shared/config/env";
 
 type RideAction = "request" | "review" | "schedule";
+const ACTIVE_LOCATION_STATUSES = new Set([
+  "ASSIGNED",
+  "DRIVER_EN_ROUTE",
+  "ARRIVED",
+  "PICKED_UP",
+  "DROPPED_OFF",
+]);
 
 function formatValue(value?: string | null) {
   return value?.trim() ? value : "-";
+}
+
+function formatCoordinate(value: number) {
+  return value.toFixed(6);
+}
+
+function formatSpeed(speedMps: number | null) {
+  if (speedMps == null) {
+    return "-";
+  }
+  const speedKph = speedMps * 3.6;
+  return `${speedKph.toFixed(1)} km/h`;
+}
+
+function buildSnapshotMapUrl(snapshot: RideLocationSnapshotRecord) {
+  const params = new URLSearchParams({
+    key: env.googleMapsApiKey,
+    center: `${snapshot.latitude},${snapshot.longitude}`,
+    zoom: "15",
+    maptype: "roadmap",
+  });
+  return `https://www.google.com/maps/embed/v1/view?${params.toString()}`;
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
@@ -75,6 +106,8 @@ export function RideDetailsPage() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | "">("");
   const [assignmentLoading, setAssignmentLoading] = useState(false);
   const [events, setEvents] = useState<RideEventRecord[]>([]);
+  const [locationSnapshot, setLocationSnapshot] =
+    useState<RideLocationSnapshotRecord | null>(null);
   const [note, setNote] = useState("");
   const [noteLoading, setNoteLoading] = useState(false);
 
@@ -82,14 +115,16 @@ export function RideDetailsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [response, eventResponse, drivers, vehicles] = await Promise.all([
+      const [response, eventResponse, snapshotResponse, drivers, vehicles] = await Promise.all([
         ridesApi.getById(resolvedRideId),
         ridesApi.getEvents(resolvedRideId),
+        ridesApi.getLocationSnapshot(resolvedRideId),
         dispatchApi.listDriverOptions(),
         dispatchApi.listVehicleOptions(),
       ]);
       setRide(response);
       setEvents(eventResponse);
+      setLocationSnapshot(snapshotResponse);
       setDriverOptions(drivers);
       setVehicleOptions(vehicles);
       setSelectedDriverId(response.driverId ?? "");
@@ -97,6 +132,7 @@ export function RideDetailsPage() {
     } catch {
       setError("Ride details could not be loaded.");
       setRide(null);
+      setLocationSnapshot(null);
     } finally {
       setLoading(false);
     }
@@ -110,6 +146,19 @@ export function RideDetailsPage() {
     }
     void loadRide();
   }, [resolvedRideId]);
+
+  useEffect(() => {
+    if (!ride || !ACTIVE_LOCATION_STATUSES.has(ride.status)) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      void ridesApi
+        .getLocationSnapshot(resolvedRideId)
+        .then(setLocationSnapshot)
+        .catch(() => undefined);
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, [ride?.status, resolvedRideId]);
 
   async function handleSubmit(payload: RidePayload) {
     if (!ride) {
@@ -616,6 +665,90 @@ export function RideDetailsPage() {
                 </Button>
               ) : null}
             </Stack>
+          </Stack>
+        </PageCard>
+
+        <PageCard>
+          <Stack spacing={2}>
+            <Typography variant="h5">Driver Location Snapshot</Typography>
+            {locationSnapshot ? (
+              <>
+                <DetailField
+                  label="Captured"
+                  value={formatDateTime(locationSnapshot.capturedAt)}
+                />
+                <DetailField
+                  label="Latitude"
+                  value={formatCoordinate(locationSnapshot.latitude)}
+                />
+                <DetailField
+                  label="Longitude"
+                  value={formatCoordinate(locationSnapshot.longitude)}
+                />
+                <DetailField
+                  label="Accuracy"
+                  value={
+                    locationSnapshot.accuracyMeters != null
+                      ? `${locationSnapshot.accuracyMeters.toFixed(1)} m`
+                      : "-"
+                  }
+                />
+                <DetailField
+                  label="Speed"
+                  value={formatSpeed(locationSnapshot.speedMps)}
+                />
+                <DetailField
+                  label="Heading"
+                  value={
+                    locationSnapshot.headingDegrees != null
+                      ? `${locationSnapshot.headingDegrees.toFixed(0)}°`
+                      : "-"
+                  }
+                />
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                  <Button
+                    variant="outlined"
+                    component="a"
+                    href={`https://maps.google.com/?q=${locationSnapshot.latitude},${locationSnapshot.longitude}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open in Maps
+                  </Button>
+                  <Button
+                    variant="text"
+                    onClick={() =>
+                      void ridesApi
+                        .getLocationSnapshot(ride.id)
+                        .then(setLocationSnapshot)
+                        .catch(() =>
+                          showError("Driver location snapshot could not be refreshed."),
+                        )
+                    }
+                  >
+                    Refresh Snapshot
+                  </Button>
+                </Stack>
+                <Box
+                  component="iframe"
+                  title="Driver location map"
+                  src={buildSnapshotMapUrl(locationSnapshot)}
+                  sx={{
+                    border: 0,
+                    width: "100%",
+                    minHeight: 320,
+                    borderRadius: 3,
+                    overflow: "hidden",
+                  }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </>
+            ) : (
+              <Alert severity="info">
+                No driver location snapshot has been captured for this ride yet.
+              </Alert>
+            )}
           </Stack>
         </PageCard>
 

@@ -9,25 +9,26 @@ interface EmptyStateProps {
 export function EmptyState({ title, description }: EmptyStateProps) {
   return (
     <Stack
-      spacing={1.5}
+      spacing={2}
       alignItems="center"
-      sx={{ py: 8, px: 3, textAlign: "center" }}
+      sx={{ py: 10, px: 4, textAlign: "center" }}
     >
       <Box
         sx={{
-          width: 64,
-          height: 64,
+          width: 76,
+          height: 76,
           display: "grid",
           placeItems: "center",
           borderRadius: "50%",
-          bgcolor: "rgba(15, 76, 92, 0.08)",
+          bgcolor: "rgba(37, 76, 99, 0.08)",
           color: "primary.main",
+          "& svg": { fontSize: 30 },
         }}
       >
         <InboxRoundedIcon />
       </Box>
       <Typography variant="h5">{title}</Typography>
-      <Typography color="text.secondary" sx={{ maxWidth: 420 }}>
+      <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 460 }}>
         {description}
       </Typography>
     </Stack>

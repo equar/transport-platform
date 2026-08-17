@@ -14,8 +14,10 @@ import com.transportplatform.tms.features.notification.domain.NotificationTempla
 import com.transportplatform.tms.features.notification.domain.NotificationTemplateRepository;
 import com.transportplatform.tms.features.notification.domain.NotificationTemplateStatus;
 import com.transportplatform.tms.features.notification.domain.NotificationType;
+import com.transportplatform.tms.features.notification.domain.PortalPushDeviceToken;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,8 @@ public class NotificationDispatchService {
     private final NotificationCodeGenerator notificationCodeGenerator;
     private final NotificationTemplateRenderer notificationTemplateRenderer;
     private final NotificationEmailSender notificationEmailSender;
+    private final NotificationPushSender notificationPushSender;
+    private final PortalPushDeviceTokenService portalPushDeviceTokenService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -37,6 +41,8 @@ public class NotificationDispatchService {
             NotificationCodeGenerator notificationCodeGenerator,
             NotificationTemplateRenderer notificationTemplateRenderer,
             NotificationEmailSender notificationEmailSender,
+            NotificationPushSender notificationPushSender,
+            PortalPushDeviceTokenService portalPushDeviceTokenService,
             ObjectMapper objectMapper,
             Clock clock) {
         this.notificationRepository = notificationRepository;
@@ -44,6 +50,8 @@ public class NotificationDispatchService {
         this.notificationCodeGenerator = notificationCodeGenerator;
         this.notificationTemplateRenderer = notificationTemplateRenderer;
         this.notificationEmailSender = notificationEmailSender;
+        this.notificationPushSender = notificationPushSender;
+        this.portalPushDeviceTokenService = portalPushDeviceTokenService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -69,7 +77,9 @@ public class NotificationDispatchService {
                 relatedEntityType, relatedEntityId, rendered.title(), rendered.body(), context);
         notification.setDeliveryStatus(NotificationDeliveryStatus.SENT);
         notification.setSentAt(Instant.now(clock));
-        return notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+        dispatchPushNotifications(saved, context);
+        return saved;
     }
 
     @Transactional
@@ -168,5 +178,23 @@ public class NotificationDispatchService {
 
     private String trimToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private void dispatchPushNotifications(Notification notification, Map<String, Object> context) {
+        if (notification.getTenantId() == null || notification.getRecipientUserId() == null) {
+            return;
+        }
+        List<PortalPushDeviceToken> tokens = portalPushDeviceTokenService.findActiveTokens(
+                notification.getTenantId(),
+                notification.getRecipientUserId());
+        for (PortalPushDeviceToken token : tokens) {
+            NotificationPushSender.DeliveryResult result = notificationPushSender.send(
+                    new NotificationPushSender.PushNotificationCommand(
+                            token.getPushToken(),
+                            notification.getTitle(),
+                            notification.getMessage(),
+                            context));
+            portalPushDeviceTokenService.markDeliveryResult(token.getId(), result.sent(), result.errorMessage());
+        }
     }
 }

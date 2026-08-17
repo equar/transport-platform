@@ -13,8 +13,37 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect deploy targets
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'deployment/deploy-backend-aws.sh'
+              - 'deployment/deploy-aws.sh'
+              - 'deployment/aws/deploy-common.sh'
+              - 'deployment/transport-platform-backend.service'
+              - '.github/workflows/deploy.yml'
+            frontend:
+              - 'frontend/**'
+              - 'deployment/deploy-frontend-aws.sh'
+              - 'deployment/deploy-aws.sh'
+              - 'deployment/aws/deploy-common.sh'
+              - 'deployment/nginx-transport-platform.conf.template'
+              - '.github/workflows/deploy.yml'
+
   backend:
     name: Build and deploy backend
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,6 +71,12 @@ jobs:
           APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED=${{ vars.APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED }}
           APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL=${{ vars.APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL }}
           APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD=${{ secrets.APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD }}
+          APP_LOGGING_LEVEL_ROOT=${{ vars.APP_LOGGING_LEVEL_ROOT }}
+          APP_LOGGING_LEVEL_APP=${{ vars.APP_LOGGING_LEVEL_APP }}
+          APP_LOGGING_LEVEL_WEB=${{ vars.APP_LOGGING_LEVEL_WEB }}
+          APP_LOGGING_LEVEL_SECURITY=${{ vars.APP_LOGGING_LEVEL_SECURITY }}
+          APP_LOGGING_LEVEL_SQL=${{ vars.APP_LOGGING_LEVEL_SQL }}
+          APP_LOGGING_LEVEL_SQL_BIND=${{ vars.APP_LOGGING_LEVEL_SQL_BIND }}
           APP_DRIVER_DOCUMENT_STORAGE_ROOT=/opt/transport-platform/documents/driver-documents
           APP_EMAIL_ENABLED=${{ vars.APP_EMAIL_ENABLED }}
           APP_EMAIL_PROVIDER=${{ vars.APP_EMAIL_PROVIDER }}
@@ -83,7 +118,8 @@ jobs:
 
   frontend:
     name: Build and deploy frontend
-    needs: backend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -113,9 +149,20 @@ jobs:
           ssh -i ~/.ssh/transport-platform-aws '${{ vars.LIGHTSAIL_USER }}@${{ vars.LIGHTSAIL_HOST }}' <<'REMOTE'
             set -euo pipefail
             sudo mkdir -p /var/www/transport-platform
-            sudo find /var/www/transport-platform -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
-            sudo tar -xzf /tmp/transport-platform-frontend.tar.gz -C /var/www/transport-platform
+            release_dir="/tmp/transport-platform-frontend-release"
+            rm -rf "$release_dir"
+            mkdir -p "$release_dir"
+            tar -xzf /tmp/transport-platform-frontend.tar.gz -C "$release_dir"
+            sudo mkdir -p /var/www/transport-platform/assets
+            sudo cp -f "$release_dir"/index.html /var/www/transport-platform/index.html
+            if [ -f "$release_dir"/favicon.ico ]; then
+              sudo cp -f "$release_dir"/favicon.ico /var/www/transport-platform/favicon.ico
+            fi
+            if [ -d "$release_dir"/assets ]; then
+              sudo cp -a "$release_dir"/assets/. /var/www/transport-platform/assets/
+            fi
             sudo chown -R www-data:www-data /var/www/transport-platform
+            rm -rf "$release_dir"
             rm /tmp/transport-platform-frontend.tar.gz
             sudo nginx -t
             sudo systemctl reload nginx

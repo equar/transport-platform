@@ -17,7 +17,6 @@ import { useAuth } from "../context/AuthContext";
 import { consumeAuthNotice } from "../utils/authNotices";
 import { publicSecondaryCta } from "../../public/content/siteContent";
 import { useToast } from "../../../shared/providers/ToastProvider";
-import { normalizeBusinessError } from "../../../shared/api/businessError";
 
 interface RouterState {
   from?: {
@@ -71,11 +70,10 @@ export function LoginPage() {
       });
       showSuccess("Signed in successfully.");
       navigate(resolvePostLoginRoute(session, targetPath), { replace: true });
-    } catch (signInError) {
-      setError(normalizeBusinessError(
-        signInError,
-        "Sign-in failed. Verify your email, password, and account status.",
-      ).message);
+    } catch {
+      setError(
+        "Sign-in failed. Verify your email, password, and account status, then try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -98,6 +96,7 @@ export function LoginPage() {
     if (authNotice) {
       setNotice(authNotice.message);
     }
+
   }, []);
 
   const status = error
@@ -109,8 +108,8 @@ export function LoginPage() {
   return (
     <AuthFormShell
       eyebrow="Secure sign in"
-      title="Sign in to your transportation account."
-      description="Use your email address and password. Your assigned role determines the tools and information available after sign-in."
+      title="Sign in to your transportation workspace."
+      description="Use your email address and password. Your workspace and permissions are resolved automatically from your account."
       status={status}
       footer={
         <Typography variant="body2" color="text.secondary">
@@ -141,7 +140,7 @@ export function LoginPage() {
           value={email}
           onChange={handleEmailChange}
           required
-          helperText="Use the email address assigned to your account."
+          helperText="Use the email address assigned to your workspace account."
           error={
             Boolean(error) &&
             (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim()))
@@ -154,7 +153,7 @@ export function LoginPage() {
           onChange={handlePasswordChange}
           required
           error={Boolean(error) && !password.trim()}
-          helperText="Use the password assigned to your account."
+          helperText="Use the password assigned to your workspace account."
           slotProps={{
             input: {
               endAdornment: (
@@ -192,7 +191,7 @@ export function LoginPage() {
             {submitting ? "Signing in..." : "Sign in"}
           </Button>
           <Typography variant="body2" color="text.secondary">
-            Access is granted according to your assigned role.
+            Your workspace is selected automatically after authentication.
           </Typography>
         </Stack>
 
