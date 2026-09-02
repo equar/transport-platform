@@ -3,7 +3,7 @@ import type { AuthSession, LoginPayload } from '../types';
 
 interface AuthTokensResponse {
   accessToken: string;
-  refreshToken: string;
+  refreshToken: string | null;
   tokenType: string;
   expiresInSeconds: number;
   user: {
@@ -44,6 +44,21 @@ export const authApi = {
       expiresInSeconds: tokens.expiresInSeconds,
       identity: tokens.user,
     };
+  },
+
+  async restoreSession(): Promise<AuthSession> {
+    const response = await apiClient.post('/v1/auth/refresh');
+    const tokens = unwrapResponse<AuthTokensResponse>(response.data);
+    return {
+      accessToken: tokens.accessToken,
+      tokenType: tokens.tokenType,
+      expiresInSeconds: tokens.expiresInSeconds,
+      identity: tokens.user,
+    };
+  },
+
+  async signOut() {
+    await apiClient.post('/v1/auth/logout');
   },
 
   async changePassword(payload: ChangePasswordPayload) {

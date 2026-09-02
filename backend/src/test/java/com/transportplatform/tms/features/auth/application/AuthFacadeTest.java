@@ -44,6 +44,9 @@ class AuthFacadeTest {
     private JwtService jwtService;
 
     @Mock
+    private AuthSessionService authSessionService;
+
+    @Mock
     private TenantRepository tenantRepository;
 
     @Mock
@@ -59,7 +62,7 @@ class AuthFacadeTest {
         when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
 
         ApiException exception = assertThrows(ApiException.class,
-                () -> authFacade.login(new LoginRequest("ops@example.com", "secret123")));
+                () -> authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB"));
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
     }
@@ -72,8 +75,8 @@ class AuthFacadeTest {
         when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
         when(jwtService.generateAccessToken(org.mockito.ArgumentMatchers.any(AuthenticatedUser.class)))
                 .thenReturn("access");
-        when(jwtService.generateRefreshToken(org.mockito.ArgumentMatchers.any(AuthenticatedUser.class)))
-                .thenReturn("refresh");
+        when(authSessionService.issue(user, "WEB")).thenReturn(new AuthSessionService.IssuedRefreshToken(
+                "refresh", Instant.parse("2025-01-08T00:00:00Z"), "WEB"));
         when(jwtService.parseAccessToken("access")).thenReturn(new JwtClaims(
                 42L,
                 "ops@example.com",
@@ -86,7 +89,7 @@ class AuthFacadeTest {
                 Instant.parse("2025-01-01T00:00:00Z"),
                 Instant.parse("2025-01-01T00:15:00Z")));
 
-        AuthTokensResponse response = authFacade.login(new LoginRequest("ops@example.com", "secret123"));
+        AuthTokensResponse response = authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB");
 
         assertEquals(42L, response.user().id());
         assertEquals("Alex", response.user().firstName());
@@ -105,7 +108,7 @@ class AuthFacadeTest {
         when(passwordEncoder.matches("wrong-password", "hashed-password")).thenReturn(false);
 
         assertThrows(ApiException.class,
-                () -> authFacade.login(new LoginRequest("owner@example.com", "wrong-password")));
+                () -> authFacade.login(new LoginRequest("owner@example.com", "wrong-password"), "WEB"));
 
         verify(appUserRepository).findForAuthenticationByEmail("owner@example.com");
     }
@@ -124,7 +127,7 @@ class AuthFacadeTest {
         when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
 
         ApiException exception = assertThrows(ApiException.class,
-                () -> authFacade.login(new LoginRequest("ops@example.com", "secret123")));
+                () -> authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB"));
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
     }
@@ -135,7 +138,7 @@ class AuthFacadeTest {
                 .thenReturn(Optional.empty());
 
         ApiException exception = assertThrows(ApiException.class,
-                () -> authFacade.login(new LoginRequest("ops@example.com", "secret123")));
+                () -> authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB"));
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
         verify(passwordEncoder, org.mockito.Mockito.never()).matches(

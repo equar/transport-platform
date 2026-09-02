@@ -42,7 +42,7 @@ async function refreshAccessToken() {
       refreshToken: session.refreshToken,
     }, {
       timeout: 10_000,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Client-Platform': 'mobile' },
     });
 
     if (!response.data.success || !response.data.data) {
@@ -71,6 +71,7 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(async (config) => {
+  config.headers['X-Client-Platform'] = 'mobile';
   const session = await readSession();
   if (session?.accessToken) {
     config.headers.Authorization = `Bearer ${session.accessToken}`;
@@ -89,7 +90,8 @@ apiClient.interceptors.response.use(
       | undefined;
     const status = error?.response?.status as number | undefined;
 
-    if (status === 401 && originalRequest && !originalRequest._retry) {
+    if (status === 401 && originalRequest && !originalRequest._retry
+        && !String(originalRequest.url ?? '').includes('/v1/auth/')) {
       originalRequest._retry = true;
       refreshPromise ??= refreshAccessToken().finally(() => {
         refreshPromise = null;

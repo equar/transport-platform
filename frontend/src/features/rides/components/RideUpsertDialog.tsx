@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -12,6 +13,10 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
+import {
+  ridersApi,
+  type RiderRecord,
+} from "../../riders/api/ridersApi";
 import {
   rideBillingTypeOptions,
   rideCreateStatusOptions,
@@ -81,6 +86,28 @@ function toNullableNumber(value: string) {
   return value ? Number(value) : null;
 }
 
+function serviceTypeForRider(rider: RiderRecord): RidePayload["serviceType"] {
+  if (rider.riderType === "STUDENT") {
+    return "SCHOOL_TRANSPORT";
+  }
+  if (rider.riderType === "EMPLOYEE_COMMUTER") {
+    return "EMPLOYER_COMMUTER";
+  }
+  if (rider.riderType === "NEMT") {
+    return "NEMT";
+  }
+  return "GENERAL_TRANSPORT";
+}
+
+function riderOperationalNotes(rider: RiderRecord) {
+  return [
+    rider.pickupNotes ? `Pickup: ${rider.pickupNotes}` : null,
+    rider.dropoffNotes ? `Dropoff: ${rider.dropoffNotes}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export function RideUpsertDialog({
   open,
   ride,
@@ -91,6 +118,8 @@ export function RideUpsertDialog({
   const [form, setForm] = useState<RidePayload>(emptyForm());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [referenceLoading, setReferenceLoading] = useState(false);
+  const [riderDefaultsLoading, setRiderDefaultsLoading] = useState(false);
+  const [riderDefaultsMessage, setRiderDefaultsMessage] = useState("");
   const [riderOptions, setRiderOptions] = useState<LookupOption[]>([]);
   const [guardianOptions, setGuardianOptions] = useState<LookupOption[]>([]);
   const [organizationOptions, setOrganizationOptions] = useState<
@@ -106,6 +135,7 @@ export function RideUpsertDialog({
       return;
     }
     setErrors({});
+    setRiderDefaultsMessage("");
     if (!ride) {
       setForm(emptyForm());
     } else {
@@ -182,6 +212,67 @@ export function RideUpsertDialog({
   ) {
     setForm((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: "" }));
+  }
+
+  async function selectRider(riderId: number | null) {
+    setField("riderId", riderId);
+    setField("guardianId", null);
+    setRiderDefaultsMessage("");
+    if (!riderId || ride) {
+      return;
+    }
+
+    setRiderDefaultsLoading(true);
+    try {
+      const rider = await ridersApi.getById(riderId);
+      setForm((current) => {
+        // Ignore a slow response if the user selected a different rider.
+        if (current.riderId !== riderId) {
+          return current;
+        }
+        const pickupUsesHomeAddress = !rider.defaultPickupAddress;
+        return {
+          ...current,
+          organizationId: rider.organizationId,
+          contractId: null,
+          guardianId:
+            rider.primaryGuardian?.status === "ACTIVE" &&
+            rider.primaryGuardian.authorizedForPickup
+              ? rider.primaryGuardian.guardianId
+              : null,
+          serviceType: serviceTypeForRider(rider),
+          pickupAddressLine1:
+            rider.defaultPickupAddress ?? rider.homeAddressLine1 ?? "",
+          pickupAddressLine2: pickupUsesHomeAddress
+            ? rider.homeAddressLine2 ?? ""
+            : "",
+          pickupCity: rider.city ?? "",
+          pickupState: rider.state ?? "",
+          pickupZipCode: rider.zipCode ?? "",
+          pickupCountry: rider.country ?? "US",
+          dropoffAddressLine1: rider.defaultDropoffAddress ?? "",
+          dropoffAddressLine2: "",
+          dropoffCity: "",
+          dropoffState: rider.state ?? "",
+          dropoffZipCode: "",
+          dropoffCountry: rider.country ?? "US",
+          wheelchairRequired: rider.wheelchairRequired,
+          escortRequired: rider.escortRequired,
+          specialInstructions: rider.specialInstructions ?? "",
+          operationalNotes: riderOperationalNotes(rider),
+        };
+      });
+      setErrors({});
+      setRiderDefaultsMessage(
+        "Rider defaults were applied. Review only the trip-specific time, destination, and any exceptions.",
+      );
+    } catch {
+      setRiderDefaultsMessage(
+        "The rider was selected, but profile defaults could not be loaded. Enter the trip details manually.",
+      );
+    } finally {
+      setRiderDefaultsLoading(false);
+    }
   }
 
   function validate(current: RidePayload) {
@@ -311,13 +402,12 @@ export function RideUpsertDialog({
               value={form.riderId ?? ""}
               onChange={(event) => {
                 const riderId = toNullableNumber(event.target.value);
-                setField("riderId", riderId);
-                setField("guardianId", null);
+                void selectRider(riderId);
               }}
               fullWidth
               error={Boolean(errors.riderId)}
               helperText={errors.riderId}
-              disabled={referenceLoading}
+              disabled={referenceLoading || riderDefaultsLoading}
             >
               {riderOptions.map((option) => (
                 <MenuItem key={option.id} value={option.id}>
@@ -370,6 +460,13 @@ export function RideUpsertDialog({
               ))}
             </TextField>
           </Stack>
+          {riderDefaultsMessage ? (
+            <Alert
+              severity={riderDefaultsMessage.startsWith("Rider defaults") ? "success" : "warning"}
+            >
+              {riderDefaultsMessage}
+            </Alert>
+          ) : null}
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <TextField
               select
@@ -764,7 +861,7 @@ export function RideUpsertDialog({
         <Button
           onClick={() => void handleSubmit()}
           variant="contained"
-          disabled={loading || referenceLoading}
+          disabled={loading || referenceLoading || riderDefaultsLoading}
         >
           {loading ? "Saving..." : ride ? "Update Ride" : "Create Ride"}
         </Button>

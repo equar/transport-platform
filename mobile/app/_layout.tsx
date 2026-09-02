@@ -27,7 +27,7 @@ const queryClient = new QueryClient({
 });
 
 function AuthGate() {
-  const { isAuthenticated, isLoading, getDefaultRoute } = useAuth();
+  const { isAuthenticated, isLoading, getDefaultRoute, session } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const { drain } = useOfflineQueue();
@@ -36,20 +36,28 @@ function AuthGate() {
   // Drain offline queue when connectivity restores
   useEffect(() => {
     const unsub = NetInfo.addEventListener((state) => {
-      if (state.isConnected) drain();
+      if (state.isConnected && session?.identity.tenantId && session.identity.roles.includes('ROLE_DRIVER')) {
+        drain({ tenantId: session.identity.tenantId, userId: session.identity.id });
+      }
     });
     return unsub;
-  }, [drain]);
+  }, [drain, session?.identity.id, session?.identity.tenantId, session?.identity.roles]);
 
   useEffect(() => {
     if (isLoading) return;
     const inAuth = segments[0] === '(auth)';
+    const authorizedGroup = session?.identity.roles.includes('ROLE_DRIVER') ? '(driver)'
+      : session?.identity.roles.includes('ROLE_GUARDIAN') ? '(guardian)'
+      : session?.identity.roles.includes('ROLE_RIDER') ? '(rider)'
+      : null;
     if (!isAuthenticated && !inAuth) {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuth) {
       router.replace(getDefaultRoute() as never);
+    } else if (isAuthenticated && (!authorizedGroup || segments[0] !== authorizedGroup)) {
+      router.replace(getDefaultRoute() as never);
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, segments, session]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

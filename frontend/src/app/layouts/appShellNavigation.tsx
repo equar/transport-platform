@@ -312,6 +312,14 @@ const companySections: AppShellNavSection[] = [
         audiences: ["company-admin", "compliance-admin"],
       },
       {
+        label: "Transport Compliance",
+        description: "Operator authority, insurance, safeguarding, privacy, and accessibility attestation.",
+        to: "/company/transport-compliance",
+        icon: <FactCheckRoundedIcon fontSize="small" />,
+        requiredModule: "compliance",
+        audiences: ["company-admin"],
+      },
+      {
         label: "Incidents",
         description: "Complaint, safety, and operational issue workflow.",
         to: "/company/incidents",

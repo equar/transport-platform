@@ -56,6 +56,7 @@ public class JwtService {
     private JwtClaims parseToken(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(signingKey())
+                .requireIssuer(securityProperties.getJwt().getIssuer())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

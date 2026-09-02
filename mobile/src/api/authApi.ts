@@ -54,6 +54,10 @@ export const authApi = {
     };
   },
 
+  async signOut(refreshToken: string) {
+    await apiClient.post('/v1/auth/logout', { refreshToken });
+  },
+
   async changePassword(payload: ChangePasswordPayload) {
     const response = await apiClient.post('/v1/auth/change-password', payload);
     return unwrapResponse<string>(response.data);

@@ -49,6 +49,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             JwtClaims claims = jwtService.parseAccessToken(token);
             var storedUser = appUserRepository.findById(claims.userId()).orElse(null);
             if (storedUser == null
+                    || !storedUser.isActiveForLogin()
+                    || !storedUser.getEmail().equalsIgnoreCase(claims.subject())
+                    || !java.util.Objects.equals(storedUser.getTenantId(), claims.tenantId())
                     || (storedUser.getPasswordChangedAt() != null
                             && claims.issuedAt().isBefore(storedUser.getPasswordChangedAt()))) {
                 SecurityContextHolder.clearContext();
@@ -67,20 +70,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
             AuthenticatedUser user = new AuthenticatedUser(
                     claims.userId(),
-                    claims.tenantId(),
-                    claims.subject(),
-                    claims.firstName(),
-                    claims.lastName(),
+                    storedUser.getTenantId(),
+                    storedUser.getEmail(),
+                    storedUser.getFirstName(),
+                    storedUser.getLastName(),
                     "",
                     true,
                     true,
-                    Boolean.TRUE.equals(claims.mustChangePassword()),
-                    claims.roles().stream().map(SimpleGrantedAuthority::new).toList());
+                    storedUser.isMustChangePassword(),
+                    storedUser.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.name())).toList());
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null,
                     List.copyOf(user.getAuthorities()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            if (claims.tenantId() != null && !claims.tenantId().isBlank()) {
-                TenantContext.setTenantId(claims.tenantId());
+            if (storedUser.getTenantId() != null && !storedUser.getTenantId().isBlank()) {
+                TenantContext.setTenantId(storedUser.getTenantId());
             }
         } catch (JwtException ignored) {
             SecurityContextHolder.clearContext();

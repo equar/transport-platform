@@ -5,14 +5,12 @@ import {
   Avatar,
   Badge,
   Box,
-  Breadcrumbs,
   Button,
   Chip,
   Container,
   Divider,
   Drawer,
   IconButton,
-  Link,
   List,
   ListItemButton,
   ListItemIcon,
@@ -288,7 +286,6 @@ export function AppShell() {
     );
 
   const currentTitle = currentItem?.label ?? shellView.title;
-  const currentDescription = currentItem?.description ?? shellView.description;
 
   return (
     <Box
@@ -324,9 +321,6 @@ export function AppShell() {
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Typography variant="subtitle1" sx={{ lineHeight: 1.1, fontWeight: 800, fontSize: "1.05rem" }} noWrap>
               {currentTitle}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: { xs: "none", sm: "block" } }}>
-              {workspaceLabel} / {shellView.scopeLabel}
             </Typography>
           </Box>
           <Stack direction="row" spacing={.75} alignItems="center">
@@ -537,35 +531,6 @@ export function AppShell() {
             gap: 2,
           }}
         >
-          <Box
-            sx={{
-              border: "1px solid",
-              borderColor: "rgba(37,76,99,.1)",
-              bgcolor: "rgba(255,255,255,.8)",
-              px: 1.75,
-              py: 1.2,
-              borderRadius: 2.5,
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,.72), 0 4px 18px rgba(16,30,38,.025)",
-            }}
-          >
-            <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ sm: "center" }} justifyContent="space-between" spacing={.5}>
-              <Breadcrumbs separator="/" aria-label="breadcrumb">
-                <Link
-                  component={RouterLink}
-                  underline="hover"
-                  color="inherit"
-                  to={workspaceHomePath}
-                >
-                  {shellView.scopeLabel}
-                </Link>
-                <Typography color="text.primary">{currentTitle}</Typography>
-              </Breadcrumbs>
-              <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: { sm: "55%" } }}>
-                {currentDescription}
-              </Typography>
-            </Stack>
-          </Box>
-
           <Box sx={{ flexGrow: 1, minHeight: 0 }}>
             <Suspense
               fallback={

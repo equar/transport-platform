@@ -4,7 +4,6 @@ import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.security.AuthenticatedUser;
 import com.transportplatform.tms.common.security.CurrentAuthenticatedUserService;
-import com.transportplatform.tms.common.security.JwtClaims;
 import com.transportplatform.tms.common.security.JwtService;
 import com.transportplatform.tms.features.audit.application.AuditLogCommand;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
@@ -20,7 +19,6 @@ import com.transportplatform.tms.features.auth.domain.UserStatus;
 import com.transportplatform.tms.features.notification.application.NotificationEmailSender;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.features.tenant.domain.TenantStatus;
-import io.jsonwebtoken.JwtException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -42,6 +40,7 @@ public class AuthFacade {
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuthSessionService authSessionService;
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final TenantRepository tenantRepository;
     private final AuditLogService auditLogService;
@@ -52,6 +51,7 @@ public class AuthFacade {
     public AuthFacade(AppUserRepository appUserRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
+            AuthSessionService authSessionService,
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
             TenantRepository tenantRepository,
             AuditLogService auditLogService,
@@ -61,6 +61,7 @@ public class AuthFacade {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.authSessionService = authSessionService;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.tenantRepository = tenantRepository;
         this.auditLogService = auditLogService;
@@ -70,7 +71,7 @@ public class AuthFacade {
     }
 
     @Transactional
-    public AuthTokensResponse login(LoginRequest request) {
+    public AuthTokensResponse login(LoginRequest request, String clientType) {
         AppUser user = appUserRepository.findForAuthenticationByEmail(request.email())
                 .orElseThrow(this::invalidCredentials);
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
@@ -89,27 +90,22 @@ public class AuthFacade {
 
         user.setLastLoginAt(clock.instant());
 
-        return issueTokens(toPrincipal(user));
+        return issueTokens(user, authSessionService.issue(user, clientType));
     }
 
-    public AuthTokensResponse refresh(RefreshTokenRequest request) {
-        try {
-            JwtClaims claims = jwtService.parseRefreshToken(request.refreshToken());
-            AppUser user = appUserRepository.findForAuthentication(claims.tenantId(), claims.subject())
-                    .orElseThrow(this::invalidCredentials);
-
-            if (!user.isActiveForLogin()) {
-                throw invalidCredentials();
-            }
-            if (user.getPasswordChangedAt() != null && claims.issuedAt().isBefore(user.getPasswordChangedAt())) {
-                throw invalidCredentials();
-            }
-            ensureTenantActive(user.getTenantId());
-
-            return issueTokens(toPrincipal(user));
-        } catch (JwtException exception) {
+    public AuthTokensResponse refresh(String refreshToken, String clientType) {
+        AuthSessionService.RotatedRefreshToken rotated = authSessionService.rotate(refreshToken, clientType);
+        AppUser user = rotated.user();
+        if (!user.isActiveForLogin()) {
+            authSessionService.revokeAllForUser(user.getId());
             throw invalidCredentials();
         }
+        ensureTenantActive(user.getTenantId());
+        return issueTokens(user, rotated.token());
+    }
+
+    public void logout(String refreshToken) {
+        authSessionService.revoke(refreshToken);
     }
 
     @Transactional
@@ -134,6 +130,7 @@ public class AuthFacade {
 
         applyPassword(user, request.newPassword(), false);
         clearPasswordResetState(user);
+        authSessionService.revokeAllForUser(user.getId());
         auditLogService.record(new AuditLogCommand(
                 null,
                 user.getTenantId(),
@@ -165,6 +162,7 @@ public class AuthFacade {
         }
         applyPassword(user, request.password(), false);
         clearPasswordResetState(user);
+        authSessionService.revokeAllForUser(user.getId());
         auditLogService.record(new AuditLogCommand(
                 null,
                 user.getTenantId(),
@@ -178,12 +176,12 @@ public class AuthFacade {
         return "Password reset successfully.";
     }
 
-    private AuthTokensResponse issueTokens(AuthenticatedUser user) {
+    private AuthTokensResponse issueTokens(AppUser appUser, AuthSessionService.IssuedRefreshToken refresh) {
+        AuthenticatedUser user = toPrincipal(appUser);
         String accessToken = jwtService.generateAccessToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
         return new AuthTokensResponse(
                 accessToken,
-                refreshToken,
+                refresh.rawToken(),
                 "Bearer",
                 jwtService.parseAccessToken(accessToken).expiresAt().getEpochSecond()
                         - jwtService.parseAccessToken(accessToken).issuedAt().getEpochSecond(),

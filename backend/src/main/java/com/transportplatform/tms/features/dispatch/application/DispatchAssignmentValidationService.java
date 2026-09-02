@@ -15,6 +15,7 @@ import com.transportplatform.tms.features.vehicle.domain.Vehicle;
 import com.transportplatform.tms.features.vehicle.domain.VehicleComplianceStatus;
 import com.transportplatform.tms.features.vehicle.domain.VehicleRepository;
 import com.transportplatform.tms.features.vehicle.domain.VehicleStatus;
+import com.transportplatform.tms.features.compliance.application.TenantTransportComplianceService;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -38,20 +39,24 @@ public class DispatchAssignmentValidationService {
     private final VehicleRepository vehicleRepository;
     private final DriverComplianceSummaryService driverComplianceSummaryService;
     private final VehicleComplianceSummaryService vehicleComplianceSummaryService;
+    private final TenantTransportComplianceService tenantTransportComplianceService;
 
     public DispatchAssignmentValidationService(RideRepository rideRepository,
             DriverRepository driverRepository,
             VehicleRepository vehicleRepository,
             DriverComplianceSummaryService driverComplianceSummaryService,
-            VehicleComplianceSummaryService vehicleComplianceSummaryService) {
+            VehicleComplianceSummaryService vehicleComplianceSummaryService,
+            TenantTransportComplianceService tenantTransportComplianceService) {
         this.rideRepository = rideRepository;
         this.driverRepository = driverRepository;
         this.vehicleRepository = vehicleRepository;
         this.driverComplianceSummaryService = driverComplianceSummaryService;
         this.vehicleComplianceSummaryService = vehicleComplianceSummaryService;
+        this.tenantTransportComplianceService = tenantTransportComplianceService;
     }
 
     public Driver requireAssignableDriver(String tenantId, Ride ride, Long driverId) {
+        requireTenantDispatchApproval(tenantId);
         Driver driver = driverRepository.findByIdAndTenantId(driverId, tenantId)
                 .orElseThrow(() -> new ApiException(
                         ErrorCode.RESOURCE_NOT_FOUND,
@@ -80,6 +85,7 @@ public class DispatchAssignmentValidationService {
     }
 
     public Vehicle requireAssignableVehicle(String tenantId, Ride ride, Long vehicleId) {
+        requireTenantDispatchApproval(tenantId);
         Vehicle vehicle = vehicleRepository.findByIdAndTenantId(vehicleId, tenantId)
                 .orElseThrow(() -> new ApiException(
                         ErrorCode.RESOURCE_NOT_FOUND,
@@ -97,6 +103,16 @@ public class DispatchAssignmentValidationService {
                     ErrorCode.VALIDATION_FAILED,
                     HttpStatus.BAD_REQUEST,
                     "Vehicle compliance requirements must be satisfied before assignment.");
+        }
+        int requiredSeats = 1 + Math.max(0, ride.getCompanionCount()) + (ride.isEscortRequired() ? 1 : 0);
+        if (vehicle.getCapacity() == null || vehicle.getCapacity() < requiredSeats) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                    "Vehicle capacity is insufficient for the rider, companions, and escort.");
+        }
+        if (ride.isWheelchairRequired()
+                && (vehicle.getWheelchairCapacity() == null || vehicle.getWheelchairCapacity() < 1)) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                    "A wheelchair-capable vehicle is required for this ride.");
         }
         if (hasVehicleConflict(tenantId, ride, vehicleId)) {
             throw new ApiException(
@@ -203,5 +219,12 @@ public class DispatchAssignmentValidationService {
             boolean complianceWarning,
             boolean conflictWarning,
             List<String> warningMessages) {
+    }
+
+    private void requireTenantDispatchApproval(String tenantId) {
+        if (!tenantTransportComplianceService.isDispatchApproved(tenantId)) {
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                    "Transport compliance must be verified by the platform before dispatch assignments can be made.");
+        }
     }
 }

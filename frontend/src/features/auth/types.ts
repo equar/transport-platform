@@ -11,7 +11,7 @@ export interface AuthIdentity {
 
 export interface AuthSession {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string | null;
   tokenType: string;
   expiresInSeconds: number;
   identity: AuthIdentity;

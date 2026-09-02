@@ -14,6 +14,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -56,6 +57,15 @@ public class GlobalExceptionHandler {
                 "The request contains an invalid or unsupported value.",
                 Map.of());
         return ResponseEntity.badRequest().body(ApiResponse.failure(error));
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOptimisticConflict(OptimisticLockingFailureException exception) {
+        ApiErrorResponse error = ApiErrorResponse.of(
+                ErrorCode.RESOURCE_CONFLICT.name(),
+                "This record changed while your request was being processed. Refresh and try again.",
+                Map.of());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.failure(error));
     }
 
     @ExceptionHandler(Exception.class)

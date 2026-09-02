@@ -16,6 +16,10 @@ import com.transportplatform.tms.features.rider.domain.RiderGuardianRepository;
 import com.transportplatform.tms.features.rider.domain.RiderGuardianStatus;
 import com.transportplatform.tms.features.rider.domain.RiderRepository;
 import com.transportplatform.tms.features.rider.domain.RiderStatus;
+import com.transportplatform.tms.features.rider.domain.RiderType;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.Period;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -28,19 +32,22 @@ public class RideReferenceValidationService {
     private final OrganizationRepository organizationRepository;
     private final ContractRepository contractRepository;
     private final ServiceAreaRepository serviceAreaRepository;
+    private final Clock clock;
 
     public RideReferenceValidationService(RiderRepository riderRepository,
             GuardianRepository guardianRepository,
             RiderGuardianRepository riderGuardianRepository,
             OrganizationRepository organizationRepository,
             ContractRepository contractRepository,
-            ServiceAreaRepository serviceAreaRepository) {
+            ServiceAreaRepository serviceAreaRepository,
+            Clock clock) {
         this.riderRepository = riderRepository;
         this.guardianRepository = guardianRepository;
         this.riderGuardianRepository = riderGuardianRepository;
         this.organizationRepository = organizationRepository;
         this.contractRepository = contractRepository;
         this.serviceAreaRepository = serviceAreaRepository;
+        this.clock = clock;
     }
 
     public ResolvedReferences resolve(String tenantId,
@@ -59,10 +66,27 @@ public class RideReferenceValidationService {
         if (guardianId != null) {
             guardian = guardianRepository.findByIdAndTenantId(guardianId, tenantId)
                     .orElseThrow(() -> notFound("Guardian was not found."));
-            riderGuardianRepository.findByTenantIdAndRider_IdAndGuardian_Id(tenantId, rider.getId(), guardian.getId())
-                    .filter(relationship -> relationship.getStatus() == RiderGuardianStatus.ACTIVE)
+            var relationship = riderGuardianRepository
+                    .findByTenantIdAndRider_IdAndGuardian_Id(tenantId, rider.getId(), guardian.getId())
+                    .filter(link -> link.getStatus() == RiderGuardianStatus.ACTIVE)
                     .orElseThrow(() -> validationFailure(
                             "The selected guardian must be actively linked to the selected rider."));
+            if (!relationship.isAuthorizedForPickup()) {
+                throw validationFailure("The selected guardian is not authorized for student pickup or drop-off.");
+            }
+        }
+
+        if (isMinorStudent(rider)) {
+            boolean hasAuthorizedGuardian = riderGuardianRepository
+                    .findAllByTenantIdAndRider_IdAndStatusOrderByPrimaryGuardianDescUpdatedAtDesc(
+                            tenantId, rider.getId(), RiderGuardianStatus.ACTIVE)
+                    .stream().anyMatch(relationship -> relationship.isAuthorizedForPickup());
+            if (!hasAuthorizedGuardian) {
+                throw validationFailure("Minor students require an active, pickup-authorized guardian before a ride can be created.");
+            }
+            if (guardian == null) {
+                throw validationFailure("A pickup-authorized guardian must be selected for a minor student's ride.");
+            }
         }
 
         Organization organization = null;
@@ -103,6 +127,12 @@ public class RideReferenceValidationService {
         }
 
         return new ResolvedReferences(rider, guardian, organization, contract, serviceArea);
+    }
+
+    private boolean isMinorStudent(Rider rider) {
+        return rider.getRiderType() == RiderType.STUDENT
+                && rider.getDateOfBirth() != null
+                && Period.between(rider.getDateOfBirth(), LocalDate.now(clock)).getYears() < 18;
     }
 
     private ApiException notFound(String message) {

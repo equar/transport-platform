@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.UUID;
+import java.io.InputStream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -31,8 +32,7 @@ public class DriverDocumentStorageService {
 
     public String store(String tenantId, Long driverId, MultipartFile file) {
         validate(file);
-        String originalName = safeOriginalName(file.getOriginalFilename());
-        String extension = extensionOf(originalName);
+        String extension = detectedExtension(file);
         String relativePath = tenantId + "/" + driverId + "/" + UUID.randomUUID() + extension;
         Path destination = root.resolve(relativePath).normalize();
         if (!destination.startsWith(root)) {
@@ -73,16 +73,33 @@ public class DriverDocumentStorageService {
         if (!ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
             throw invalidFile("Only PDF, JPEG, and PNG documents are supported.");
         }
+        String detected = detectedExtension(file);
+        String declared = file.getContentType();
+        boolean matches = (".pdf".equals(detected) && "application/pdf".equals(declared))
+                || (".jpg".equals(detected) && "image/jpeg".equals(declared))
+                || (".png".equals(detected) && "image/png".equals(declared));
+        if (!matches) throw invalidFile("The uploaded file type does not match its declared content type.");
+    }
+
+    private String detectedExtension(MultipartFile file) {
+        try (InputStream input = file.getInputStream()) {
+            byte[] header = input.readNBytes(8);
+            if (header.length >= 4 && header[0] == 0x25 && header[1] == 0x50
+                    && header[2] == 0x44 && header[3] == 0x46) return ".pdf";
+            if (header.length >= 3 && (header[0] & 0xff) == 0xff && (header[1] & 0xff) == 0xd8
+                    && (header[2] & 0xff) == 0xff) return ".jpg";
+            if (header.length >= 8 && (header[0] & 0xff) == 0x89 && header[1] == 0x50
+                    && header[2] == 0x4e && header[3] == 0x47 && header[4] == 0x0d
+                    && header[5] == 0x0a && header[6] == 0x1a && header[7] == 0x0a) return ".png";
+            throw invalidFile("The uploaded file content does not match a supported document type.");
+        } catch (IOException exception) {
+            throw invalidFile("The uploaded document could not be inspected.");
+        }
     }
 
     private String safeOriginalName(String name) {
         String safe = name == null ? "document" : Path.of(name).getFileName().toString().trim();
         return safe.isEmpty() ? "document" : safe.substring(0, Math.min(safe.length(), 255));
-    }
-
-    private String extensionOf(String name) {
-        int dot = name.lastIndexOf('.');
-        return dot < 0 ? "" : name.substring(dot).toLowerCase();
     }
 
     private ApiException invalidFile(String message) {

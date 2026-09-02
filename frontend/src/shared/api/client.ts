@@ -1,55 +1,33 @@
 import axios from 'axios';
 import { env } from '../config/env';
-import {
-  AUTH_SESSION_INVALIDATED_EVENT,
-  AUTH_SESSION_STORAGE_KEY,
-} from '../config/storage';
+import { AUTH_SESSION_INVALIDATED_EVENT } from '../config/storage';
 import { persistAuthNotice } from '../../features/auth/utils/authNotices';
 import type { ApiResponse } from './types';
 import { normalizeBusinessError } from './businessError';
 
-function readSession() {
-  const raw = window.localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
-  if (!raw) {
-    return null;
-  }
+type ClientSession = { accessToken?: string; identity?: { tenantId?: string | null } };
+let currentSession: ClientSession | null = null;
 
-  try {
-    return JSON.parse(raw) as { accessToken?: string; identity?: { tenantId?: string } };
-  } catch {
-    return null;
-  }
+export function setApiSession(session: ClientSession | null) {
+  currentSession = session;
 }
+
+function readSession() { return currentSession; }
 
 let refreshPromise: Promise<string | null> | null = null;
 
 async function refreshAccessToken() {
-  const session = readSession() as {
-    refreshToken?: string;
-    identity?: unknown;
-  } | null;
-  if (!session?.refreshToken) return null;
-
-  const response = await axios.post(`${env.apiBaseUrl}/v1/auth/refresh`, {
-    refreshToken: session.refreshToken,
+  const response = await axios.post(`${env.apiBaseUrl}/v1/auth/refresh`, undefined, {
+    withCredentials: true,
   });
   const tokens = unwrapResponse<{
     accessToken: string;
-    refreshToken: string;
+    refreshToken: string | null;
     tokenType: string;
     expiresInSeconds: number;
     user: unknown;
   }>(response.data);
-  window.localStorage.setItem(
-    AUTH_SESSION_STORAGE_KEY,
-    JSON.stringify({
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      tokenType: tokens.tokenType,
-      expiresInSeconds: tokens.expiresInSeconds,
-      identity: tokens.user,
-    }),
-  );
+  setApiSession({ accessToken: tokens.accessToken, identity: tokens.user as { tenantId?: string | null } });
   return tokens.accessToken;
 }
 
@@ -59,6 +37,7 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
 
 apiClient.interceptors.request.use((config) => {
@@ -111,6 +90,7 @@ apiClient.interceptors.response.use(
 
     const isLoginRequest = String(originalRequest?.url ?? '').includes('/v1/auth/login');
     if (status === 401 && !isLoginRequest && readSession()?.accessToken) {
+      setApiSession(null);
       persistAuthNotice({
         reason: 'session-expired',
         message: 'Your session expired or is no longer valid. Sign in again to continue.',

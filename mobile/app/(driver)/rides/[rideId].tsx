@@ -19,6 +19,7 @@ import { AppBadge, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { Colors, Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
+import { useAuth } from '@auth/AuthContext';
 
 const PRIMARY_STATUS_ACTIONS: Record<string, { action: DriverRideAction; label: string } | undefined> = {
   ASSIGNED: { action: 'driver-en-route', label: 'Mark En Route' },
@@ -52,6 +53,7 @@ export default function DriverRideDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const { enqueue } = useOfflineQueue();
+  const { session } = useAuth();
 
   const { data: ride, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['driver-ride', rideId],
@@ -83,7 +85,11 @@ export default function DriverRideDetailPage() {
   async function handleAction(action: DriverRideAction, label: string) {
     const net = await NetInfo.fetch();
     if (!net.isConnected) {
-      enqueue(Number(rideId), action);
+      if (!session?.identity.tenantId || !ride) return;
+      enqueue(Number(rideId), action, {
+        tenantId: session.identity.tenantId,
+        userId: session.identity.id,
+      }, ride.status);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       Alert.alert('Offline', `Action "${label}" will sync when you're back online.`);
       return;

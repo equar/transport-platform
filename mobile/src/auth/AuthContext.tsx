@@ -11,6 +11,7 @@ import type { AuthSession } from './types';
 import { Roles } from './types';
 import { deleteSessionValue, getSessionValue, setSessionValue } from './sessionStorage';
 import { unregisterCurrentPushToken } from '@hooks/usePushNotifications';
+import { useOfflineQueue } from '@stores/offlineQueueStore';
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -76,12 +77,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
     },
 
     async signOut() {
+      const currentRefreshToken = session?.refreshToken;
       try {
         await unregisterCurrentPushToken();
       } catch {
         // Best-effort cleanup only.
       }
+      if (currentRefreshToken) {
+        try { await authApi.signOut(currentRefreshToken); } catch { /* local sign-out must still complete */ }
+      }
       await deleteSessionValue(SESSION_KEY);
+      useOfflineQueue.getState().clear();
       setSession(null);
     },
 

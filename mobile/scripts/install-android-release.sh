@@ -46,7 +46,9 @@ if [[ "$ENV_NAME" == "aws" ]]; then
   export AWS_API_BASE_URL
 fi
 
-exec "$SCRIPT_DIR/install-android.sh" "${ARGS[@]}" \
-  --device \
-  --release \
-  --env "$ENV_NAME"
+RELEASE_ARGS=(--device --release --env "$ENV_NAME")
+if (( ${#ARGS[@]} > 0 )); then
+  RELEASE_ARGS=("${ARGS[@]}" "${RELEASE_ARGS[@]}")
+fi
+
+exec "$SCRIPT_DIR/install-android.sh" "${RELEASE_ARGS[@]}"

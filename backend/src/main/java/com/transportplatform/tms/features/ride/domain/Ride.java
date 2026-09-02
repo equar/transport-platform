@@ -18,6 +18,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.Instant;
 import java.time.LocalDateTime;
 
@@ -28,6 +29,10 @@ public class Ride extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    @Column(name = "entity_version", nullable = false)
+    private long version;
 
     @Column(name = "tenant_id", nullable = false, length = 36)
     private String tenantId;
@@ -493,5 +498,9 @@ public class Ride extends AuditableEntity {
 
     public void setStatus(RideStatus status) {
         this.status = status;
+    }
+
+    public long getVersion() {
+        return version;
     }
 }

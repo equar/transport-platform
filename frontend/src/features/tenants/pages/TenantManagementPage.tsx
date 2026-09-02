@@ -21,6 +21,8 @@ import { TableActionButton } from "../../../shared/components/TableActionButton"
 import { formatDateTime } from "../../../shared/utils/format";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { tenantsApi, type Tenant, type TenantPayload } from "../api/tenantsApi";
+import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
+import { useNavigate } from "react-router-dom";
 import { TenantDialog } from "../components/TenantDialog";
 import { TenantDetailsDialog } from "../components/TenantDetailsDialog";
 import { normalizeBusinessError, type BusinessError } from "../../../shared/api/businessError";
@@ -31,6 +33,7 @@ import { DataTableShell } from "../../../shared/components/DataTableShell";
 const tenantStatuses = ["", "PENDING", "ACTIVE", "SUSPENDED", "INACTIVE"];
 
 export function TenantManagementPage() {
+  const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
   const [items, setItems] = useState<Tenant[]>([]);
   const [keyword, setKeyword] = useState("");
@@ -212,6 +215,10 @@ export function TenantManagementPage() {
                           }}
                         >
                           <VisibilityRoundedIcon />
+                        </TableActionButton>
+                        <TableActionButton title="Review transport compliance"
+                          onClick={() => navigate(`/platform/tenants/${tenant.id}/transport-compliance`)}>
+                          <FactCheckRoundedIcon />
                         </TableActionButton>
                         <TableActionButton
                           title="Edit tenant"

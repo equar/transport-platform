@@ -1,0 +1,27 @@
+CREATE TABLE tenant_transport_compliance (
+    tenant_id VARCHAR(36) NOT NULL,
+    operating_scope VARCHAR(40) NOT NULL,
+    verification_status VARCHAR(30) NOT NULL,
+    primary_state VARCHAR(2) NOT NULL,
+    operating_authority_type VARCHAR(80) NULL,
+    operating_authority_number VARCHAR(120) NULL,
+    operating_authority_expires_on DATE NULL,
+    insurance_verified BIT NOT NULL,
+    insurance_expires_on DATE NULL,
+    student_safeguarding_policy_verified BIT NOT NULL,
+    ferpa_data_agreement_verified BIT NOT NULL,
+    employee_transport_consent_policy_verified BIT NOT NULL,
+    accessibility_policy_verified BIT NOT NULL,
+    attested_by VARCHAR(150) NULL,
+    attested_at DATETIME(6) NULL,
+    verified_by VARCHAR(150) NULL,
+    verified_at DATETIME(6) NULL,
+    verification_notes VARCHAR(2000) NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (tenant_id),
+    CONSTRAINT fk_tenant_transport_compliance_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (id)
+);
+
