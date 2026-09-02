@@ -4,9 +4,17 @@ import { AUTH_SESSION_INVALIDATED_EVENT } from '../config/storage';
 import { persistAuthNotice } from '../../features/auth/utils/authNotices';
 import type { ApiResponse } from './types';
 import { normalizeBusinessError } from './businessError';
+import { logClientEvent } from '../observability/clientTelemetry';
+import {
+  buildCorrelationId,
+  getCorrelationHeaderName,
+} from '../observability/correlationId';
 
 type ClientSession = { accessToken?: string; identity?: { tenantId?: string | null } };
 let currentSession: ClientSession | null = null;
+
+const RETRYABLE_METHODS = new Set(['get', 'head', 'options']);
+const MAX_RETRY_ATTEMPTS = 2;
 
 export function setApiSession(session: ClientSession | null) {
   currentSession = session;
@@ -40,7 +48,32 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
+function shouldRetryTransientError(status: number | undefined, method: string | undefined) {
+  const normalizedMethod = (method ?? 'get').toLowerCase();
+  if (!RETRYABLE_METHODS.has(normalizedMethod)) {
+    return false;
+  }
+  if (!status) {
+    return true;
+  }
+  return status === 408 || status === 425 || status === 429 || status >= 500;
+}
+
+function backoffDelayMs(attempt: number) {
+  const jitter = Math.floor(Math.random() * 80);
+  return 200 * Math.pow(2, attempt) + jitter;
+}
+
+async function delay(ms: number) {
+  await new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 apiClient.interceptors.request.use((config) => {
+  const correlationHeaderName = getCorrelationHeaderName();
+  if (!config.headers[correlationHeaderName]) {
+    config.headers[correlationHeaderName] = buildCorrelationId();
+  }
+
   const requestUrl = String(config.url ?? '');
   const isPublicLoginRequest = requestUrl.includes('/v1/auth/login');
   if (isPublicLoginRequest) {
@@ -64,8 +97,27 @@ apiClient.interceptors.response.use(
   async (error) => {
     const status = error?.response?.status;
     const originalRequest = error?.config as
-      | (typeof error.config & { _authRetry?: boolean })
+      | (typeof error.config & { _authRetry?: boolean; _retryAttempt?: number })
       | undefined;
+
+    if (originalRequest && shouldRetryTransientError(status, originalRequest.method)) {
+      const retryAttempt = originalRequest._retryAttempt ?? 0;
+      if (retryAttempt < MAX_RETRY_ATTEMPTS) {
+        originalRequest._retryAttempt = retryAttempt + 1;
+        await delay(backoffDelayMs(retryAttempt));
+        return apiClient(originalRequest);
+      }
+
+      logClientEvent('warn', 'api.retry.exhausted', {
+        method: originalRequest.method,
+        path: String(originalRequest.url ?? ''),
+        status,
+        attempts: retryAttempt,
+        correlationId:
+          originalRequest.headers?.[getCorrelationHeaderName()] ??
+          error?.response?.headers?.[getCorrelationHeaderName().toLowerCase()],
+      });
+    }
 
     if (
       status === 401 &&
@@ -90,6 +142,13 @@ apiClient.interceptors.response.use(
 
     const isLoginRequest = String(originalRequest?.url ?? '').includes('/v1/auth/login');
     if (status === 401 && !isLoginRequest && readSession()?.accessToken) {
+      logClientEvent('warn', 'auth.session.invalidated', {
+        path: String(originalRequest?.url ?? ''),
+        status,
+        correlationId:
+          originalRequest?.headers?.[getCorrelationHeaderName()] ??
+          error?.response?.headers?.[getCorrelationHeaderName().toLowerCase()],
+      });
       setApiSession(null);
       persistAuthNotice({
         reason: 'session-expired',

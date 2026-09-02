@@ -14,8 +14,8 @@ import { useAuth } from '@auth/AuthContext';
 import { AppInput, AppButton } from '@components/ui';
 import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
 
-const defaultDriverEmail = process.env.EXPO_PUBLIC_TEST_DRIVER_EMAIL ?? 'samuelweld2018+d1@gmail.com';
-const defaultDriverPassword = process.env.EXPO_PUBLIC_TEST_DRIVER_PASSWORD ?? 'Password123';
+const defaultDriverEmail = process.env.EXPO_PUBLIC_TEST_DRIVER_EMAIL ?? '';
+const defaultDriverPassword = process.env.EXPO_PUBLIC_TEST_DRIVER_PASSWORD ?? '';
 
 export default function LoginPage() {
   const { signIn, getDefaultRoute } = useAuth();

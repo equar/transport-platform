@@ -1,5 +1,6 @@
 package com.transportplatform.tms.common.security;
 
+import com.transportplatform.tms.common.observability.RequestCorrelationFilter;
 import com.transportplatform.tms.common.tenant.TenantContextFilter;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
@@ -8,7 +9,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,17 +23,23 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final SecurityProperties securityProperties;
+        private final RequestCorrelationFilter requestCorrelationFilter;
+        private final AuthRateLimitFilter authRateLimitFilter;
     private final TenantContextFilter tenantContextFilter;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
 
     public SecurityConfig(SecurityProperties securityProperties,
+                        RequestCorrelationFilter requestCorrelationFilter,
+                        AuthRateLimitFilter authRateLimitFilter,
             TenantContextFilter tenantContextFilter,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             RestAuthenticationEntryPoint restAuthenticationEntryPoint,
             RestAccessDeniedHandler restAccessDeniedHandler) {
         this.securityProperties = securityProperties;
+                this.requestCorrelationFilter = requestCorrelationFilter;
+                this.authRateLimitFilter = authRateLimitFilter;
         this.tenantContextFilter = tenantContextFilter;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
@@ -46,7 +52,7 @@ public class SecurityConfig {
                 ? new String[] { "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**" }
                 : new String[0];
         http
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> csrf.disable())
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
                         .frameOptions(frame -> frame.deny())
@@ -64,6 +70,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/v1/auth/status").permitAll()
                         .requestMatchers(HttpMethod.GET, "/runtime/tenant-branding").permitAll()
                         .anyRequest().authenticated())
+                .addFilterBefore(requestCorrelationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(authRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(tenantContextFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -76,8 +84,8 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(securityProperties.getAllowedOrigins());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Tenant-Id", "X-Client-Platform",
-                "Idempotency-Key", "If-Match"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+                "Idempotency-Key", "If-Match", RequestCorrelationFilter.HEADER_NAME));
+        configuration.setExposedHeaders(List.of("Authorization", RequestCorrelationFilter.HEADER_NAME));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

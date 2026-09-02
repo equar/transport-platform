@@ -95,7 +95,11 @@ export function AppShell() {
   const workspaceLabel =
     shellView.scope === "platform"
       ? "Platform scope"
-      : branding?.displayName || session?.identity.tenantId || "Workspace";
+      : capabilities?.tenantProfile.companyName ||
+        capabilities?.tenantProfile.legalName ||
+        branding?.displayName ||
+        session?.identity.tenantId ||
+        "Workspace";
   const driverPortal = shellView.scope === "driver";
   const riderPortal = shellView.scope === "rider";
   const organizationPortal = shellView.scope === "organization";
@@ -337,11 +341,7 @@ export function AppShell() {
               </Badge>
             </IconButton>
             <Chip
-              label={
-                capabilities?.subscriptionPlan?.name ??
-                session?.identity.tenantId ??
-                "Platform scope"
-              }
+              label={workspaceLabel}
               color="primary"
               variant="outlined"
               sx={{ display: { xs: "none", lg: "inline-flex" }, bgcolor: "rgba(37,76,99,.045)", borderRadius: 999 }}

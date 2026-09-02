@@ -34,6 +34,7 @@ import {
   type UserScope,
   type UserUpsertPayload,
 } from "../api/usersApi";
+import { tenantsApi } from "../../tenants/api/tenantsApi";
 
 const userStatuses = ["", "ACTIVE", "INVITED", "SUSPENDED", "DEACTIVATED"];
 
@@ -44,6 +45,7 @@ export function UserManagementPage() {
   const scope: UserScope = platformAdmin ? "platform" : "company";
   const { showError, showSuccess } = useToast();
   const [items, setItems] = useState<UserRecord[]>([]);
+  const [tenantNamesById, setTenantNamesById] = useState<Record<string, string>>({});
   const [roles, setRoles] = useState<RoleCatalogItem[]>([]);
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("");
@@ -88,11 +90,57 @@ export function UserManagementPage() {
       });
       setItems(response.items);
       setTotal(response.totalElements);
+      void resolveTenantNames(response.items);
     } catch (loadError) {
       setError(normalizeBusinessError(loadError, "Users could not be loaded."));
     } finally {
       setLoading(false);
     }
+  }
+
+  async function resolveTenantNames(records: UserRecord[]) {
+    if (!platformAdmin) {
+      return;
+    }
+
+    const tenantIds = Array.from(
+      new Set(
+        records
+          .map((record) => record.tenantId)
+          .filter((value): value is string => Boolean(value && value.trim())),
+      ),
+    );
+
+    const missingTenantIds = tenantIds.filter((id) => !tenantNamesById[id]);
+    if (missingTenantIds.length === 0) {
+      return;
+    }
+
+    const resolvedEntries = await Promise.all(
+      missingTenantIds.map(async (id) => {
+        try {
+          const tenant = await tenantsApi.getById(id);
+          return [id, tenant.companyName || tenant.legalName || id] as const;
+        } catch {
+          return [id, id] as const;
+        }
+      }),
+    );
+
+    setTenantNamesById((current) => {
+      const next = { ...current };
+      for (const [id, name] of resolvedEntries) {
+        next[id] = name;
+      }
+      return next;
+    });
+  }
+
+  function renderTenantLabel(item: UserRecord) {
+    if (!item.tenantId) {
+      return "Platform";
+    }
+    return tenantNamesById[item.tenantId] ?? item.tenantId;
   }
 
   useEffect(() => {
@@ -288,7 +336,7 @@ export function UserManagementPage() {
                       </TableCell>
                       <TableCell>{item.email}</TableCell>
                       {platformAdmin ? (
-                        <TableCell>{item.tenantId ?? "Platform"}</TableCell>
+                        <TableCell>{renderTenantLabel(item)}</TableCell>
                       ) : null}
                       <TableCell>
                         {item.roles.map(getRoleLabel).join(", ")}

@@ -47,10 +47,9 @@ export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
 require_command adb
 ensure_node_modules
 
-# Local test builds intentionally prefill the primary driver account so repeated
-# simulator and physical-device login testing does not require manual entry.
-export EXPO_PUBLIC_TEST_DRIVER_EMAIL="${EXPO_PUBLIC_TEST_DRIVER_EMAIL:-samuelweld2018+d1@gmail.com}"
-export EXPO_PUBLIC_TEST_DRIVER_PASSWORD="${EXPO_PUBLIC_TEST_DRIVER_PASSWORD:-Password123}"
+# Optional local test login prefill. Keep empty unless explicitly set for local-only use.
+export EXPO_PUBLIC_TEST_DRIVER_EMAIL="${EXPO_PUBLIC_TEST_DRIVER_EMAIL:-}"
+export EXPO_PUBLIC_TEST_DRIVER_PASSWORD="${EXPO_PUBLIC_TEST_DRIVER_PASSWORD:-}"
 
 if [[ -z "$API_URL" ]]; then
   API_TARGET="android-emulator"

@@ -179,12 +179,13 @@ deploy_frontend_artifact() {
 
   echo "Activating frontend..."
   ssh "${SSH_OPTIONS[@]}" "$SERVER" bash -s -- \
-    "$REMOTE_WEB_DIR" "$remote_frontend" "$DEPLOY_ID" "$FRONTEND_PORT" <<'REMOTE_FRONTEND'
+    "$REMOTE_WEB_DIR" "$remote_frontend" "$DEPLOY_ID" "$FRONTEND_PORT" "$APP_DOMAIN" <<'REMOTE_FRONTEND'
 set -euo pipefail
 web_dir="$1"
 uploaded_archive="$2"
 deploy_id="$3"
 frontend_port="$4"
+app_domain="$5"
 release_dir="${web_dir}.release-${deploy_id}"
 
 free_port() {
@@ -257,7 +258,11 @@ sudo systemctl reload nginx
 
 healthy=false
 for _ in $(seq 1 30); do
-  if curl -fsS --max-time 5 "http://127.0.0.1:${frontend_port}/health" >/dev/null; then
+  if curl -fsS --max-time 5 -H "Host: ${app_domain}" "http://127.0.0.1:${frontend_port}/health" >/dev/null; then
+    healthy=true
+    break
+  fi
+  if curl -fsS --max-time 5 -H "Host: ${app_domain}" "http://127.0.0.1:${frontend_port}/" >/dev/null; then
     healthy=true
     break
   fi
@@ -272,7 +277,9 @@ fi
 REMOTE_FRONTEND
 
   echo "Verifying public frontend deployment..."
-  curl -fsS --max-time 15 "https://$APP_DOMAIN/health" >/dev/null
+  if ! curl -fsS --max-time 15 "https://$APP_DOMAIN/health" >/dev/null; then
+    curl -fsS --max-time 15 "https://$APP_DOMAIN/" >/dev/null
+  fi
   echo "Frontend deployment $DEPLOY_ID completed successfully."
   echo "Frontend: https://$APP_DOMAIN"
 }

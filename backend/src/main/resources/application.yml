@@ -72,6 +72,12 @@ app:
   security:
     api-docs-enabled: false
     allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:}
+    auth-rate-limit:
+      enabled: true
+      window: PT1M
+      login-max-requests: 10
+      refresh-max-requests: 30
+      forgot-password-max-requests: 5
     jwt:
       issuer: transport-platform
       secret: ${APP_SECURITY_JWT_SECRET:}

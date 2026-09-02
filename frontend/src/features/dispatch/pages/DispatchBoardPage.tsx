@@ -74,7 +74,7 @@ function formatMapSpeed(speedMps: number | null) {
 }
 
 function buildDispatchStaticMapUrl(items: DispatchRideMapRecord[]) {
-  if (items.length === 0) return null;
+  if (items.length === 0 || !env.googleMapsApiKey) return null;
   const markerParams = items
     .map(
       (item, index) =>
@@ -366,7 +366,9 @@ export function DispatchBoardPage() {
             />
           ) : (
             <Alert severity="info">
-              No active rides with captured driver locations are available for this window yet.
+              {mapItems.length > 0 && !env.googleMapsApiKey
+                ? "Google Maps API key is not configured. Set VITE_GOOGLE_MAPS_API_KEY to render the operations map."
+                : "No active rides with captured driver locations are available for this window yet."}
             </Alert>
           )}
           {mapItems.length > 0 ? (

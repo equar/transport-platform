@@ -1,5 +1,4 @@
 import React from 'react';
-import Constants from 'expo-constants';
 import { Image, Linking, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@components/ui';
 import { Colors, Spacing, Typography } from '@theme/tokens';
@@ -19,28 +18,19 @@ interface TripTrackingCardProps {
   refreshing?: boolean;
 }
 
-function getGoogleMapsApiKey() {
-  return (Constants.expoConfig?.extra as { googleMapsApiKey?: string } | undefined)
-    ?.googleMapsApiKey;
-}
-
 function buildStaticMapUrl(
   snapshot: NonNullable<TripTrackingCardProps['snapshot']>,
-  pickupAddress?: string | null,
-  dropoffAddress?: string | null,
 ) {
-  const apiKey = getGoogleMapsApiKey();
-  if (!apiKey) return null;
+  const latitude = Number(snapshot.latitude);
+  const longitude = Number(snapshot.longitude);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    return null;
+  }
 
-  const markers = [
-    `markers=color:green|label:C|${snapshot.latitude},${snapshot.longitude}`,
-    pickupAddress ? `markers=color:blue|label:P|${encodeURIComponent(pickupAddress)}` : null,
-    dropoffAddress ? `markers=color:red|label:D|${encodeURIComponent(dropoffAddress)}` : null,
-  ]
-    .filter(Boolean)
-    .join('&');
-
-  return `https://maps.googleapis.com/maps/api/staticmap?size=1200x600&scale=2&maptype=roadmap&${markers}&key=${encodeURIComponent(apiKey)}`;
+  return `https://staticmap.openstreetmap.de/staticmap.php?center=${latitude},${longitude}&zoom=14&size=1200x600&markers=${latitude},${longitude},red-pushpin`;
 }
 
 function formatSpeed(speedMps?: number | null) {
@@ -56,7 +46,7 @@ export function TripTrackingCard({
   onRefresh,
   refreshing = false,
 }: TripTrackingCardProps) {
-  const mapUrl = snapshot ? buildStaticMapUrl(snapshot, pickupAddress, dropoffAddress) : null;
+  const mapUrl = snapshot ? buildStaticMapUrl(snapshot) : null;
 
   return (
     <View style={styles.section}>

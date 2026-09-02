@@ -10,6 +10,7 @@ import { Colors, Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 
 const CANCELLABLE = new Set(['REQUESTED', 'PENDING_REVIEW', 'SCHEDULED', 'ASSIGNED']);
+const TRACKABLE_STATUSES = new Set(['ASSIGNED', 'DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP', 'DROPPED_OFF']);
 
 export default function RiderRideDetailPage() {
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
@@ -30,7 +31,7 @@ export default function RiderRideDetailPage() {
     queryKey: ['rider-ride-location', rideId],
     queryFn: () => riderPortalApi.getRideLocationSnapshot(Number(rideId)),
     enabled: !!rideId,
-    refetchInterval: 30000,
+    refetchInterval: ride && TRACKABLE_STATUSES.has(ride.status) ? 30000 : false,
   });
 
   const { mutate: cancel, isPending } = useMutation({

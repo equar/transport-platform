@@ -2,8 +2,6 @@ const { expo } = require('./app.json');
 const fs = require('fs');
 const path = require('path');
 
-const fallbackGoogleMapsApiKey = 'AIzaSyC7NnpG4zrj9pxTt6iQ0UceDE-f_5kEbAg';
-
 function getExpoProjectId() {
   const candidate =
     process.env.EXPO_PUBLIC_EXPO_PROJECT_ID ||
@@ -46,14 +44,26 @@ function resolveAndroidGoogleServicesFile() {
   return undefined;
 }
 
+function normalizeApiBaseUrl(value) {
+  const resolved = (value || '').trim();
+  if (!resolved) {
+    return 'https://transport.bakaroo.com/api';
+  }
+  return resolved.endsWith('/') ? resolved.slice(0, -1) : resolved;
+}
+
 module.exports = () => {
-  const googleMapsApiKey =
-    process.env.GOOGLE_MAPS_API_KEY || fallbackGoogleMapsApiKey;
-  const apiBaseUrl =
+  const googleMapsApiKey = (process.env.GOOGLE_MAPS_API_KEY || '').trim();
+  const apiBaseUrl = normalizeApiBaseUrl(
     process.env.EXPO_PUBLIC_API_BASE_URL ||
-    process.env.API_BASE_URL ||
-    expo.extra?.apiBaseUrl ||
-    'https://transport.bakaroo.com/api';
+      process.env.API_BASE_URL ||
+      expo.extra?.apiBaseUrl ||
+      'https://transport.bakaroo.com/api',
+  );
+  const simulatorSessionStorage =
+    (process.env.EXPO_PUBLIC_SIMULATOR_SESSION_STORAGE || '').trim().toLowerCase() === 'true'
+      ? 'true'
+      : 'false';
   const projectId = getExpoProjectId();
   const androidGoogleServicesFile = resolveAndroidGoogleServicesFile();
 
@@ -61,27 +71,35 @@ module.exports = () => {
     ...expo,
     ios: {
       ...(expo.ios || {}),
-      config: {
-        ...(expo.ios?.config || {}),
-        googleMapsApiKey,
-      },
+      ...(googleMapsApiKey
+        ? {
+            config: {
+              ...(expo.ios?.config || {}),
+              googleMapsApiKey,
+            },
+          }
+        : {}),
     },
     android: {
       ...(expo.android || {}),
       ...(androidGoogleServicesFile
         ? { googleServicesFile: androidGoogleServicesFile }
         : {}),
-      config: {
-        ...(expo.android?.config || {}),
-        googleMaps: {
-          apiKey: googleMapsApiKey,
-        },
-      },
+      ...(googleMapsApiKey
+        ? {
+            config: {
+              ...(expo.android?.config || {}),
+              googleMaps: {
+                apiKey: googleMapsApiKey,
+              },
+            },
+          }
+        : {}),
     },
     extra: {
       ...(expo.extra || {}),
       apiBaseUrl,
-      googleMapsApiKey,
+      simulatorSessionStorage,
       eas: {
         ...((expo.extra && expo.extra.eas) || {}),
         ...(projectId ? { projectId } : {}),

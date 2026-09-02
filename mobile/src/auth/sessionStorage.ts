@@ -1,8 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 
-const allowSimulatorFallback =
-  process.env.EXPO_PUBLIC_SIMULATOR_SESSION_STORAGE === 'true';
+function resolveSimulatorFallbackFlag() {
+  const extraFlag =
+    (Constants.expoConfig?.extra as { simulatorSessionStorage?: string } | undefined)
+      ?.simulatorSessionStorage;
+  const envFlag = process.env.EXPO_PUBLIC_SIMULATOR_SESSION_STORAGE;
+  return (extraFlag ?? envFlag ?? '').toLowerCase() === 'true';
+}
+
+const allowSimulatorFallback = resolveSimulatorFallbackFlag();
 
 export async function getSessionValue(key: string): Promise<string | null> {
   try {

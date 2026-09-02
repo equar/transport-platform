@@ -30,8 +30,6 @@
       "package": "com.transportplatform.mobile",
       "permissions": [
         "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "ACCESS_FINE_LOCATION",
         "FOREGROUND_SERVICE",
         "RECEIVE_BOOT_COMPLETED",
@@ -64,7 +62,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiBaseUrl": "http://localhost:8080/api",
+      "apiBaseUrl": "https://transport.bakaroo.com/api",
       "eas": {
         "projectId": "80182d4a-8191-4f8c-9d44-7937ad4d94c2"
       }

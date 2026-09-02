@@ -10,6 +10,7 @@ public class SecurityProperties {
     private List<String> allowedOrigins = List.of();
     private boolean apiDocsEnabled;
     private final Jwt jwt = new Jwt();
+    private final AuthRateLimit authRateLimit = new AuthRateLimit();
 
     public List<String> getAllowedOrigins() {
         return allowedOrigins;
@@ -29,6 +30,59 @@ public class SecurityProperties {
 
     public Jwt getJwt() {
         return jwt;
+    }
+
+    public AuthRateLimit getAuthRateLimit() {
+        return authRateLimit;
+    }
+
+    public static class AuthRateLimit {
+
+        private boolean enabled = true;
+        private Duration window = Duration.ofMinutes(1);
+        private int loginMaxRequests = 10;
+        private int refreshMaxRequests = 30;
+        private int forgotPasswordMaxRequests = 5;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public Duration getWindow() {
+            return window;
+        }
+
+        public void setWindow(Duration window) {
+            this.window = window;
+        }
+
+        public int getLoginMaxRequests() {
+            return loginMaxRequests;
+        }
+
+        public void setLoginMaxRequests(int loginMaxRequests) {
+            this.loginMaxRequests = loginMaxRequests;
+        }
+
+        public int getRefreshMaxRequests() {
+            return refreshMaxRequests;
+        }
+
+        public void setRefreshMaxRequests(int refreshMaxRequests) {
+            this.refreshMaxRequests = refreshMaxRequests;
+        }
+
+        public int getForgotPasswordMaxRequests() {
+            return forgotPasswordMaxRequests;
+        }
+
+        public void setForgotPasswordMaxRequests(int forgotPasswordMaxRequests) {
+            this.forgotPasswordMaxRequests = forgotPasswordMaxRequests;
+        }
     }
 
     public static class Jwt {

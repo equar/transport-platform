@@ -54,6 +54,7 @@ export default function DriverRideDetailPage() {
   const qc = useQueryClient();
   const { enqueue } = useOfflineQueue();
   const { session } = useAuth();
+  const locationPermissionAlertShownRef = React.useRef(false);
 
   const { data: ride, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['driver-ride', rideId],
@@ -117,6 +118,13 @@ export default function DriverRideDetailPage() {
       try {
         const permission = await Location.requestForegroundPermissionsAsync();
         if (permission.status !== 'granted' || cancelled) {
+          if (permission.status !== 'granted' && !locationPermissionAlertShownRef.current) {
+            locationPermissionAlertShownRef.current = true;
+            Alert.alert(
+              'Location access required',
+              'Enable location access to keep live trip tracking updated.',
+            );
+          }
           return;
         }
         const position = await Location.getCurrentPositionAsync({
@@ -125,9 +133,17 @@ export default function DriverRideDetailPage() {
         if (cancelled) {
           return;
         }
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          return;
+        }
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+          return;
+        }
         await driverPortalApi.captureRideLocationSnapshot(Number(rideId), {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          latitude,
+          longitude,
           accuracyMeters: position.coords.accuracy ?? null,
           speedMps: position.coords.speed ?? null,
           headingDegrees: position.coords.heading ?? null,

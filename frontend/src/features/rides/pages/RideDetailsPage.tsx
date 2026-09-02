@@ -66,6 +66,9 @@ function formatSpeed(speedMps: number | null) {
 }
 
 function buildSnapshotMapUrl(snapshot: RideLocationSnapshotRecord) {
+  if (!env.googleMapsApiKey) {
+    return null;
+  }
   const params = new URLSearchParams({
     key: env.googleMapsApiKey,
     center: `${snapshot.latitude},${snapshot.longitude}`,
@@ -110,6 +113,7 @@ export function RideDetailsPage() {
     useState<RideLocationSnapshotRecord | null>(null);
   const [note, setNote] = useState("");
   const [noteLoading, setNoteLoading] = useState(false);
+  const mapEmbedUrl = locationSnapshot ? buildSnapshotMapUrl(locationSnapshot) : null;
 
   async function loadRide() {
     setLoading(true);
@@ -729,20 +733,26 @@ export function RideDetailsPage() {
                     Refresh Snapshot
                   </Button>
                 </Stack>
-                <Box
-                  component="iframe"
-                  title="Driver location map"
-                  src={buildSnapshotMapUrl(locationSnapshot)}
-                  sx={{
-                    border: 0,
-                    width: "100%",
-                    minHeight: 320,
-                    borderRadius: 3,
-                    overflow: "hidden",
-                  }}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
+                {mapEmbedUrl ? (
+                  <Box
+                    component="iframe"
+                    title="Driver location map"
+                    src={mapEmbedUrl}
+                    sx={{
+                      border: 0,
+                      width: "100%",
+                      minHeight: 320,
+                      borderRadius: 3,
+                      overflow: "hidden",
+                    }}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                ) : (
+                  <Alert severity="info">
+                    Google Maps API key is not configured. Set VITE_GOOGLE_MAPS_API_KEY to render the embedded map.
+                  </Alert>
+                )}
               </>
             ) : (
               <Alert severity="info">

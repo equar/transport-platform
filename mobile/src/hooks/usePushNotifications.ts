@@ -7,8 +7,10 @@ import { useAuth } from '@auth/AuthContext';
 import Constants from 'expo-constants';
 import { pushNotificationsApi } from '@api/pushNotificationsApi';
 import { getSessionValue, setSessionValue, deleteSessionValue } from '@auth/sessionStorage';
+import { logClientEvent } from '@utils/clientTelemetry';
 
 const PUSH_TOKEN_KEY = 'device_push_token';
+const SAFE_PORTAL_SCOPES = new Set(['driver', 'guardian', 'rider']);
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -64,6 +66,40 @@ async function registerForPushNotifications(): Promise<string | null> {
   return token.data;
 }
 
+function toSafeDeepLink(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const candidate = value.trim();
+  if (!candidate.startsWith('/')) {
+    return null;
+  }
+  if (candidate.startsWith('//') || candidate.includes('://') || candidate.includes('..')) {
+    return null;
+  }
+  return candidate;
+}
+
+function resolvePortalScope(explicitScope: unknown, sessionRoles: string[] | undefined) {
+  if (typeof explicitScope === 'string') {
+    const normalized = explicitScope.toLowerCase();
+    if (SAFE_PORTAL_SCOPES.has(normalized)) {
+      return normalized;
+    }
+  }
+
+  if (sessionRoles?.includes('ROLE_DRIVER')) {
+    return 'driver';
+  }
+  if (sessionRoles?.includes('ROLE_GUARDIAN')) {
+    return 'guardian';
+  }
+  if (sessionRoles?.includes('ROLE_RIDER')) {
+    return 'rider';
+  }
+  return 'driver';
+}
+
 export function usePushNotifications() {
   const router = useRouter();
   const { session } = useAuth();
@@ -79,6 +115,9 @@ export function usePushNotifications() {
     if (portalUser) {
       registerForPushNotifications().then(async (token) => {
         if (!token) {
+          logClientEvent('info', 'push.registration.skipped', {
+            reason: 'no-token-or-permission',
+          });
           return;
         }
         const platform =
@@ -88,6 +127,7 @@ export function usePushNotifications() {
         await pushNotificationsApi.register({ token, platform });
         await setSessionValue(PUSH_TOKEN_KEY, token);
       }).catch(() => {
+        logClientEvent('warn', 'push.registration.failed');
         // Push registration should never break app navigation.
       });
     }
@@ -98,22 +138,14 @@ export function usePushNotifications() {
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as Record<string, unknown>;
-      const deepLink = typeof data?.deepLink === 'string' ? data.deepLink : '';
+      const deepLink = toSafeDeepLink(data?.deepLink);
       if (deepLink) {
         router.push(deepLink as never);
         return;
       }
       // Navigate to relevant detail screen based on notification payload
       if (data?.rideId) {
-        const explicitScope = typeof data.portalScope === 'string' ? data.portalScope.toLowerCase() : '';
-        const roleScope = session?.identity.roles.includes('ROLE_DRIVER')
-          ? 'driver'
-          : session?.identity.roles.includes('ROLE_GUARDIAN')
-            ? 'guardian'
-            : session?.identity.roles.includes('ROLE_RIDER')
-              ? 'rider'
-              : '';
-        const scope = explicitScope || roleScope || 'driver';
+        const scope = resolvePortalScope(data.portalScope, session?.identity.roles);
         router.push(`/${`(${scope})`}/rides/${data.rideId}` as never);
       }
     });
