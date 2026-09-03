@@ -84,6 +84,41 @@ export interface RiderPortalRideDetailRecord extends RiderPortalRideRecord {
   specialInstructions?: string | null;
 }
 
+export interface RiderPortalRideCreatePayload {
+  riderId?: number;
+  guardianId?: number;
+  serviceType:
+    | 'GENERAL_TRANSPORT'
+    | 'SCHOOL_TRANSPORT'
+    | 'NEMT'
+    | 'DIALYSIS'
+    | 'EMPLOYER_COMMUTER'
+    | 'ADA_PARATRANSIT'
+    | 'SHUTTLE'
+    | 'OTHER';
+  tripType: 'ONE_WAY' | 'ROUND_TRIP';
+  pickupAddressLine1: string;
+  pickupAddressLine2?: string;
+  pickupCity: string;
+  pickupState: string;
+  pickupZipCode: string;
+  pickupCountry: string;
+  dropoffAddressLine1: string;
+  dropoffAddressLine2?: string;
+  dropoffCity: string;
+  dropoffState: string;
+  dropoffZipCode: string;
+  dropoffCountry: string;
+  scheduledPickupAt: string;
+  scheduledDropoffAt?: string;
+  returnPickupAt?: string;
+  returnDropoffAt?: string;
+  wheelchairRequired?: boolean;
+  escortRequired?: boolean;
+  companionCount?: number;
+  specialInstructions?: string;
+}
+
 export interface RiderRideLocationSnapshotRecord extends DriverLocationSnapshotPayload {
   id: number;
   rideId: number;
@@ -140,6 +175,10 @@ export const riderPortalApi = {
   },
   async getRide(rideId: number) {
     const r = await apiClient.get(`${base}/rides/${rideId}`);
+    return unwrapResponse<RiderPortalRideDetailRecord>(r.data);
+  },
+  async createRide(payload: RiderPortalRideCreatePayload) {
+    const r = await apiClient.post(`${base}/rides`, payload);
     return unwrapResponse<RiderPortalRideDetailRecord>(r.data);
   },
   async getRideLocationSnapshot(rideId: number) {

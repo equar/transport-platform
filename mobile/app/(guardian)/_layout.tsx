@@ -1,13 +1,14 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography } from '@theme/tokens';
+import { GuardianRoleTheme } from '@theme/roleTheme';
 
 export default function GuardianLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary,
+        tabBarActiveTintColor: GuardianRoleTheme.primary,
         tabBarInactiveTintColor: Colors.textSecondary,
         tabBarStyle: {
           backgroundColor: Colors.surface,
@@ -33,28 +34,28 @@ export default function GuardianLayout() {
       <Tabs.Screen
         name="riders"
         options={{
-          title: 'Riders',
-          tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" size={size} color={color} />,
+          title: 'Live',
+          tabBarIcon: ({ color, size }) => <Ionicons name="locate-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="rides"
         options={{
-          title: 'Rides',
+          title: 'Activity',
           tabBarIcon: ({ color, size }) => <Ionicons name="car-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'Inbox',
+          title: 'Alerts',
           tabBarIcon: ({ color, size }) => <Ionicons name="notifications-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: 'Account',
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
         }}
       />

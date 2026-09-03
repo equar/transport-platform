@@ -8,9 +8,20 @@ configure_push_runtime_env
 warn_if_android_push_native_config_missing
 
 ENV_NAME="aws"
+PROFILE="prod"
 ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --dev)
+      PROFILE="dev"
+      apply_runtime_profile "$PROFILE"
+      ENV_NAME="$TRANSPORT_PROFILE_ENV_NAME"
+      ;;
+    --prod)
+      PROFILE="prod"
+      apply_runtime_profile "$PROFILE"
+      ENV_NAME="$TRANSPORT_PROFILE_ENV_NAME"
+      ;;
     --env)
       shift
       ENV_NAME="${1:-}"

@@ -6,6 +6,8 @@ import com.transportplatform.tms.features.billing.api.response.InvoiceSummaryRes
 import com.transportplatform.tms.features.location.api.response.DriverLocationSnapshotResponse;
 import com.transportplatform.tms.features.billing.api.response.PaymentSummaryResponse;
 import com.transportplatform.tms.features.portalcommon.api.response.PortalRideSummaryResponse;
+import com.transportplatform.tms.features.ride.api.request.CancelRideRequest;
+import com.transportplatform.tms.features.riderguardianportal.api.request.RiderGuardianPortalRideCreateRequest;
 import com.transportplatform.tms.features.riderguardianportal.api.request.RiderGuardianPortalProfileUpdateRequest;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalDashboardResponse;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalLinkedRiderResponse;
@@ -22,10 +24,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @PreAuthorize("hasAnyRole('RIDER','GUARDIAN')")
@@ -75,6 +80,21 @@ public class RiderGuardianPortalController {
     @GetMapping("/portal/rider/rides/{rideId}")
     public ApiResponse<RiderGuardianPortalRideDetailResponse> getRide(@PathVariable Long rideId) {
         return ApiResponse.success(service.getRide(rideId));
+    }
+
+    @PostMapping("/portal/rider/rides")
+    @PreAuthorize("hasRole('RIDER')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<RiderGuardianPortalRideDetailResponse> createRide(
+            @Valid @RequestBody RiderGuardianPortalRideCreateRequest request) {
+        return ApiResponse.success(service.createRide(request));
+    }
+
+    @PostMapping("/portal/rider/rides/{rideId}/cancel")
+    @PreAuthorize("hasRole('RIDER')")
+    public ApiResponse<RiderGuardianPortalRideDetailResponse> cancelRide(@PathVariable Long rideId,
+            @Valid @RequestBody CancelRideRequest request) {
+        return ApiResponse.success(service.cancelRide(rideId, request));
     }
 
     @GetMapping("/portal/rider/rides/{rideId}/location-snapshot")

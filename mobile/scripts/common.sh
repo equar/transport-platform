@@ -22,6 +22,10 @@ require_command() {
 }
 
 ensure_node_modules() {
+  # Keep script execution pinned to this workspace to avoid parent/global node_modules drift.
+  unset NODE_PATH
+  export PATH="$PROJECT_ROOT/node_modules/.bin:$PATH"
+
   if [[ -d "$PROJECT_ROOT/node_modules" ]]; then
     return
   fi
@@ -72,6 +76,34 @@ validate_env_name() {
   case "$1" in
     aws|local) ;;
     *) echo "--env must be 'aws' or 'local' (got '${1:-}')" >&2; return 1 ;;
+  esac
+}
+
+validate_profile_name() {
+  case "$1" in
+    dev|prod) ;;
+    *) echo "Profile must be 'dev' or 'prod' (got '${1:-}')" >&2; return 1 ;;
+  esac
+}
+
+# Applies a runtime profile to env selection and common process settings.
+# dev  -> local backend and development runtime
+# prod -> aws backend and production runtime
+apply_runtime_profile() {
+  local profile_name="$1"
+  validate_profile_name "$profile_name"
+
+  case "$profile_name" in
+    dev)
+      export TRANSPORT_RUNTIME_PROFILE=dev
+      export TRANSPORT_NODE_ENV=development
+      export TRANSPORT_PROFILE_ENV_NAME=local
+      ;;
+    prod)
+      export TRANSPORT_RUNTIME_PROFILE=prod
+      export TRANSPORT_NODE_ENV=production
+      export TRANSPORT_PROFILE_ENV_NAME=aws
+      ;;
   esac
 }
 
@@ -143,6 +175,27 @@ configure_push_runtime_env() {
       fi
     done
   fi
+
+  configure_environment_resources
+}
+
+# Select optional environment-specific native resource files when available.
+# Falls back to existing defaults when profile-specific files do not exist.
+configure_environment_resources() {
+  local profile="${TRANSPORT_RUNTIME_PROFILE:-}"
+  [[ -n "$profile" ]] || return 0
+
+  local android_candidate="$PROJECT_ROOT/google-services.$profile.json"
+  if [[ -f "$android_candidate" ]]; then
+    export EXPO_ANDROID_GOOGLE_SERVICES_FILE="$android_candidate"
+  fi
+
+  local ios_candidate="$PROJECT_ROOT/GoogleService-Info.$profile.plist"
+  if [[ -f "$ios_candidate" ]]; then
+    export EXPO_IOS_GOOGLE_SERVICES_FILE="$ios_candidate"
+  fi
+
+  export EXPO_PUBLIC_APP_ENV="$profile"
 }
 
 warn_if_android_push_native_config_missing() {

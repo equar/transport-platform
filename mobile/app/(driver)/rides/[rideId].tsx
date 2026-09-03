@@ -18,8 +18,10 @@ import { useOfflineQueue } from '@stores/offlineQueueStore';
 import { AppBadge, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { Colors, Spacing, Typography } from '@theme/tokens';
+import { DriverRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime } from '@utils/formatDate';
 import { useAuth } from '@auth/AuthContext';
+import * as Linking from 'expo-linking';
 
 const PRIMARY_STATUS_ACTIONS: Record<string, { action: DriverRideAction; label: string } | undefined> = {
   ASSIGNED: { action: 'driver-en-route', label: 'Mark En Route' },
@@ -177,14 +179,19 @@ export default function DriverRideDetailPage() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
-      {/* Back */}
-      <Text style={styles.back} onPress={() => router.back()}>← Rides</Text>
-
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <Text style={styles.rideNumber}>{ride.rideNumber}</Text>
-        <AppBadge status={ride.status} />
+      <View style={styles.heroCard}>
+        <View style={styles.heroTopRow}>
+          <Text style={styles.heroTitle}>Current Trip</Text>
+          <Text style={styles.onlineBadge}>Online</Text>
+        </View>
+        <Text style={styles.rideNumberHero}>{ride.rideNumber}</Text>
+        <View style={styles.heroMetaRow}>
+          <Text style={styles.heroSchedule}>{formatShortDateTime(ride.scheduledPickupAt)}</Text>
+          <AppBadge status={ride.status} />
+        </View>
       </View>
+
+      <Text style={styles.back} onPress={() => router.back()}>← Dispatches</Text>
 
       {/* Rider */}
       <Section title="Rider">
@@ -212,7 +219,7 @@ export default function DriverRideDetailPage() {
       </Section>
 
       <TripTrackingCard
-        title="Route Tracking"
+        title="Live Route"
         snapshot={locationSnapshot ?? null}
         pickupAddress={ride.pickupAddress}
         dropoffAddress={ride.dropoffAddress}
@@ -232,15 +239,30 @@ export default function DriverRideDetailPage() {
       {/* Action */}
       {(primaryAction || secondaryActions.length > 0) && (
         <Section title="Trip Actions">
-          {primaryAction ? (
-            <AppButton
-              label={primaryAction.label}
-              onPress={() => handleAction(primaryAction.action, primaryAction.label)}
-              loading={actionPending}
-              fullWidth
-              size="lg"
-            />
-          ) : null}
+          <View style={styles.primaryActionRow}>
+            <View style={styles.primaryActionSlot}>
+              <AppButton
+                label="Navigate"
+                variant="outlined"
+                onPress={() => {
+                  const target = ride.pickupAddress ?? `${locationSnapshot?.latitude},${locationSnapshot?.longitude}`;
+                  void Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(target ?? '')}`);
+                }}
+                fullWidth
+              />
+            </View>
+            {primaryAction ? (
+              <View style={styles.primaryActionSlot}>
+                <AppButton
+                  label={primaryAction.label}
+                  onPress={() => handleAction(primaryAction.action, primaryAction.label)}
+                  loading={actionPending}
+                  fullWidth
+                  size="lg"
+                />
+              </View>
+            ) : null}
+          </View>
           {secondaryActions.length > 0 ? (
             <View style={styles.secondaryActionGroup}>
               {secondaryActions.map((item) => (
@@ -282,25 +304,63 @@ function Row({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
+  heroCard: {
+    backgroundColor: DriverRoleTheme.primary,
+    borderRadius: 18,
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  heroTitle: {
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeMd,
+    color: Colors.white,
+  },
+  onlineBadge: {
+    backgroundColor: '#16a34a',
+    color: Colors.white,
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeXs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  rideNumberHero: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: Typography.sizeXxl,
+    color: Colors.white,
+  },
+  heroMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  heroSchedule: {
+    fontFamily: 'SourceSans3_600SemiBold',
+    fontSize: Typography.sizeSm,
+    color: Colors.white,
+  },
   back: {
     fontFamily: 'SourceSans3_700Bold',
     fontSize: Typography.sizeSm,
     color: Colors.primary,
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  rideNumber: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: Typography.sizeXxl,
-    color: Colors.textPrimary,
-  },
   instructions: {
     fontFamily: 'SourceSans3_400Regular',
     fontSize: Typography.sizeMd,
     color: Colors.textPrimary,
+  },
+  primaryActionRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  primaryActionSlot: {
+    flex: 1,
   },
   secondaryActionGroup: {
     gap: Spacing.sm,

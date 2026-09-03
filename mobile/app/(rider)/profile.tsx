@@ -4,7 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { riderPortalApi } from '@api/riderPortalApi';
 import { LoadingState } from '@components/LoadingState';
 import { SectionHeader } from '@components/SectionHeader';
+import { AppCard } from '@components/ui';
 import { Colors, Spacing, Typography } from '@theme/tokens';
+import { PassengerRoleTheme } from '@theme/roleTheme';
 
 export default function RiderProfilePage() {
   const { data: profile, isLoading, refetch, isRefetching } = useQuery({
@@ -21,27 +23,32 @@ export default function RiderProfilePage() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
-      <SectionHeader title="Profile" subtitle={profile.code ?? profile.scopeType} />
+      <View style={styles.hero}>
+        <Text style={styles.heroTitle}>Profile</Text>
+        <Text style={styles.heroName}>{profile.firstName} {profile.lastName}</Text>
+      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>PERSONAL</Text>
+      <SectionHeader title="Passenger Details" subtitle={profile.code ?? profile.scopeType} />
+
+      <AppCard style={styles.section}>
+        <Text style={styles.sectionTitle}>Personal</Text>
         <Row label="Name" value={`${profile.firstName} ${profile.lastName}`} />
         <Row label="Email" value={profile.email ?? '—'} />
         <Row label="Phone" value={profile.phone} />
         <Row label="Status" value={profile.status} />
-      </View>
+      </AppCard>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>ADDRESSES</Text>
+      <AppCard style={styles.section}>
+        <Text style={styles.sectionTitle}>Addresses</Text>
         <Row label="Default Pickup" value={profile.defaultPickupAddress ?? '—'} />
         <Row label="Default Drop-off" value={profile.defaultDropoffAddress ?? '—'} />
-      </View>
+      </AppCard>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>EMERGENCY CONTACT</Text>
+      <AppCard style={styles.section}>
+        <Text style={styles.sectionTitle}>Emergency Contact</Text>
         <Row label="Name" value={profile.emergencyContactName ?? '—'} />
         <Row label="Phone" value={profile.emergencyContactPhone ?? '—'} />
-      </View>
+      </AppCard>
     </ScrollView>
   );
 }
@@ -58,12 +65,28 @@ function Row({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  section: { borderWidth: 1, borderColor: Colors.border },
-  sectionTitle: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeXs, color: Colors.textSecondary, letterSpacing: 0.5, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.divider, backgroundColor: '#fafafa' },
+  hero: {
+    backgroundColor: PassengerRoleTheme.primary,
+    borderRadius: 18,
+    padding: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  heroTitle: {
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeSm,
+    color: Colors.white,
+  },
+  heroName: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: Typography.sizeXl,
+    color: Colors.white,
+  },
+  section: { gap: Spacing.sm },
+  sectionTitle: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeSm, color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.6 },
 });
 
 const rowStyles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: Spacing.sm, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.divider },
+  row: { flexDirection: 'row', gap: Spacing.sm, paddingVertical: Spacing.xs },
   label: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeSm, color: Colors.textSecondary, width: 110 },
   value: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary, flex: 1 },
 });

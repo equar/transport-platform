@@ -44,6 +44,36 @@ function resolveAndroidGoogleServicesFile() {
   return undefined;
 }
 
+function resolveIosGoogleServicesFile() {
+  const candidates = [
+    process.env.EXPO_IOS_GOOGLE_SERVICES_FILE,
+    process.env.GOOGLE_SERVICES_INFO_PLIST,
+    './GoogleService-Info.plist',
+    './ios/GoogleService-Info.plist',
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+
+    const normalizedCandidate = candidate.trim();
+    if (!normalizedCandidate) {
+      continue;
+    }
+
+    const absoluteCandidate = path.isAbsolute(normalizedCandidate)
+      ? normalizedCandidate
+      : path.resolve(__dirname, normalizedCandidate);
+
+    if (fs.existsSync(absoluteCandidate)) {
+      return path.relative(__dirname, absoluteCandidate);
+    }
+  }
+
+  return undefined;
+}
+
 function normalizeApiBaseUrl(value) {
   const resolved = (value || '').trim();
   if (!resolved) {
@@ -66,11 +96,15 @@ module.exports = () => {
       : 'false';
   const projectId = getExpoProjectId();
   const androidGoogleServicesFile = resolveAndroidGoogleServicesFile();
+  const iosGoogleServicesFile = resolveIosGoogleServicesFile();
 
   return {
     ...expo,
     ios: {
       ...(expo.ios || {}),
+      ...(iosGoogleServicesFile
+        ? { googleServicesFile: iosGoogleServicesFile }
+        : {}),
       ...(googleMapsApiKey
         ? {
             config: {

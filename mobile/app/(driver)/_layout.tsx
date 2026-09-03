@@ -33,22 +33,28 @@ export default function DriverLayout() {
       <Tabs.Screen
         name="rides"
         options={{
-          title: 'Rides',
-          tabBarIcon: ({ color, size }) => <Ionicons name="car-sport-outline" size={size} color={color} />,
+          title: 'Dispatches',
+          tabBarIcon: ({ color, size }) => <Ionicons name="list-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="routes"
         options={{
-          title: 'Routes',
+          title: 'Trips',
           tabBarIcon: ({ color, size }) => <Ionicons name="map-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color, size }) => <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="compliance"
         options={{
-          title: 'Docs',
-          tabBarIcon: ({ color, size }) => <Ionicons name="document-text-outline" size={size} color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -58,7 +64,7 @@ export default function DriverLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
         }}
       />
-      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="vehicle" options={{ href: null }} />
     </Tabs>
   );
 }

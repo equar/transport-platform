@@ -7,9 +7,20 @@ source "$SCRIPT_DIR/common.sh"
 
 ENV_NAME="local"
 API_URL=""
+PROFILE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --dev)
+      PROFILE="dev"
+      apply_runtime_profile "$PROFILE"
+      ENV_NAME="$TRANSPORT_PROFILE_ENV_NAME"
+      ;;
+    --prod)
+      PROFILE="prod"
+      apply_runtime_profile "$PROFILE"
+      ENV_NAME="$TRANSPORT_PROFILE_ENV_NAME"
+      ;;
     --env)
       shift
       ENV_NAME="${1:-}"
@@ -40,13 +51,19 @@ fi
 export EXPO_PUBLIC_SIMULATOR_SESSION_STORAGE=true
 export EXPO_PUBLIC_TEST_DRIVER_EMAIL="${EXPO_PUBLIC_TEST_DRIVER_EMAIL:-}"
 export EXPO_PUBLIC_TEST_DRIVER_PASSWORD="${EXPO_PUBLIC_TEST_DRIVER_PASSWORD:-}"
-export NODE_ENV=production
+export NODE_ENV="${TRANSPORT_NODE_ENV:-production}"
+
+BUILD_CONFIGURATION="Release"
+if [[ "${TRANSPORT_RUNTIME_PROFILE:-}" == "dev" ]]; then
+  BUILD_CONFIGURATION="Debug"
+fi
 WORKSPACE="${WORKSPACE:-TransportPlatform.xcworkspace}"
 SCHEME="${SCHEME:-TransportPlatform}"
 APP_ID="${APP_ID:-com.transportplatform.mobile}"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PROJECT_ROOT/.build/ios-simulator}"
 SIMULATOR_UDID="${SIMULATOR_UDID:-}"
 AVAILABLE_SIMULATORS="$(xcrun simctl list devices available)"
+BOOTED_SIMULATORS=()
 HOST_ARCH="$(uname -m)"
 APPLE_SILICON_CAPABLE="$(sysctl -n hw.optional.arm64 2>/dev/null || echo 0)"
 if [[ "$HOST_ARCH" == "arm64" || "$APPLE_SILICON_CAPABLE" == "1" ]]; then
@@ -60,26 +77,34 @@ if [[ -n "$SIMULATOR_UDID" && "$AVAILABLE_SIMULATORS" != *"($SIMULATOR_UDID)"* ]
   SIMULATOR_UDID=""
 fi
 
-if [[ -z "$SIMULATOR_UDID" ]]; then
-  SIMULATOR_UDID="$(printf '%s\n' "$AVAILABLE_SIMULATORS" | sed -n '/iPhone/s/.*(\([A-F0-9-]\{36\}\)) (Booted)[[:space:]]*$/\1/p' | tail -n 1)"
+while IFS= read -r booted_udid; do
+  [[ -n "$booted_udid" ]] && BOOTED_SIMULATORS+=("$booted_udid")
+done < <(printf '%s\n' "$AVAILABLE_SIMULATORS" | sed -n '/iPhone/s/.*(\([A-F0-9-]\{36\}\)) (Booted)[[:space:]]*$/\1/p')
+
+if [[ -n "$SIMULATOR_UDID" ]]; then
+  BOOTED_SIMULATORS=("$SIMULATOR_UDID")
 fi
 
-if [[ -z "$SIMULATOR_UDID" ]]; then
+if [[ ${#BOOTED_SIMULATORS[@]} -eq 0 ]]; then
   SIMULATOR_UDID="$(printf '%s\n' "$AVAILABLE_SIMULATORS" | sed -n '/iPhone/s/.*(\([A-F0-9-]\{36\}\)) (Shutdown)[[:space:]]*$/\1/p' | tail -n 1)"
 fi
 
-if [[ -z "$SIMULATOR_UDID" ]]; then
+if [[ ${#BOOTED_SIMULATORS[@]} -eq 0 && -z "$SIMULATOR_UDID" ]]; then
   echo "No iOS Simulator runtime is installed. Install one in Xcode Settings > Components." >&2
   exit 1
 fi
 
-if [[ "$AVAILABLE_SIMULATORS" != *"($SIMULATOR_UDID) (Booted)"* ]]; then
+if [[ ${#BOOTED_SIMULATORS[@]} -eq 0 && "$AVAILABLE_SIMULATORS" != *"($SIMULATOR_UDID) (Booted)"* ]]; then
   echo "Booting simulator $SIMULATOR_UDID..."
   xcrun simctl boot "$SIMULATOR_UDID" >/dev/null 2>&1 || true
 fi
 
 open -a Simulator >/dev/null 2>&1 || true
-xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+
+if [[ ${#BOOTED_SIMULATORS[@]} -eq 0 ]]; then
+  xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+  BOOTED_SIMULATORS=("$SIMULATOR_UDID")
+fi
 
 if [[ ! -d "$PROJECT_ROOT/ios/Pods" ]]; then
   echo "CocoaPods are not installed. Running iOS setup..."
@@ -89,14 +114,14 @@ fi
 echo "Building standalone iOS Simulator app"
 echo "API: $EXPO_PUBLIC_API_BASE_URL"
 echo "Expo project: $EXPO_PUBLIC_EAS_PROJECT_ID"
+echo "Booted simulators: ${BOOTED_SIMULATORS[*]}"
 pushd "$PROJECT_ROOT/ios" >/dev/null
 xcodebuild \
-  -quiet \
   -workspace "$WORKSPACE" \
   -scheme "$SCHEME" \
-  -configuration Release \
+  -configuration "$BUILD_CONFIGURATION" \
   -sdk iphonesimulator \
-  -destination "id=$SIMULATOR_UDID" \
+  -destination "id=${BOOTED_SIMULATORS[0]}" \
   -derivedDataPath "$DERIVED_DATA_PATH" \
   CODE_SIGNING_ALLOWED=NO \
   ONLY_ACTIVE_ARCH=YES \
@@ -104,26 +129,28 @@ xcodebuild \
   build
 popd >/dev/null
 
-APP_PATH="$DERIVED_DATA_PATH/Build/Products/Release-iphonesimulator/TransportPlatform.app"
+APP_PATH="$DERIVED_DATA_PATH/Build/Products/${BUILD_CONFIGURATION}-iphonesimulator/TransportPlatform.app"
 if [[ ! -d "$APP_PATH" ]]; then
   echo "Built app not found: $APP_PATH" >&2
   exit 1
 fi
 
-if ! xcrun simctl list devices available | grep -q "($SIMULATOR_UDID) (Booted)"; then
-  echo "Selected iOS Simulator $SIMULATOR_UDID is not booted after the build completed." >&2
-  exit 1
-fi
+for simulator_udid in "${BOOTED_SIMULATORS[@]}"; do
+  if ! xcrun simctl list devices available | grep -q "($simulator_udid) (Booted)"; then
+    echo "Skipping simulator $simulator_udid because it is no longer booted." >&2
+    continue
+  fi
 
-echo "Installing on iOS Simulator $SIMULATOR_UDID..."
-xcrun simctl uninstall "$SIMULATOR_UDID" "$APP_ID" >/dev/null 2>&1 || true
-if ! xcrun simctl install "$SIMULATOR_UDID" "$APP_PATH"; then
-  echo "Failed to install on iOS Simulator $SIMULATOR_UDID." >&2
-  exit 1
-fi
-if ! xcrun simctl launch --terminate-running-process "$SIMULATOR_UDID" "$APP_ID"; then
-  echo "Installed but failed to launch on iOS Simulator $SIMULATOR_UDID." >&2
-  exit 1
-fi
+  echo "Installing on iOS Simulator $simulator_udid..."
+  xcrun simctl uninstall "$simulator_udid" "$APP_ID" >/dev/null 2>&1 || true
+  if ! xcrun simctl install "$simulator_udid" "$APP_PATH"; then
+    echo "Failed to install on iOS Simulator $simulator_udid." >&2
+    exit 1
+  fi
+  if ! xcrun simctl launch --terminate-running-process "$simulator_udid" "$APP_ID"; then
+    echo "Installed but failed to launch on iOS Simulator $simulator_udid." >&2
+    exit 1
+  fi
 
-echo "Installed and launched Transport Platform on iOS Simulator $SIMULATOR_UDID."
+  echo "Installed and launched Transport Platform on iOS Simulator $simulator_udid."
+done

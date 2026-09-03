@@ -1,2 +1,0 @@
-ALTER TABLE rides ADD COLUMN entity_version BIGINT NOT NULL DEFAULT 0;
-

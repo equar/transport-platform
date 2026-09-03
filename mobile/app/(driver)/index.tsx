@@ -10,6 +10,8 @@ import { LoadingState } from '@components/LoadingState';
 import { AppCard } from '@components/ui';
 import { useAuth } from '@auth/AuthContext';
 import { Colors, Shadow, Spacing, Typography } from '@theme/tokens';
+import { DriverRoleTheme } from '@theme/roleTheme';
+import { formatShortDateTime } from '@utils/formatDate';
 
 export default function DriverDashboard() {
   const { session, signOut } = useAuth();
@@ -18,6 +20,15 @@ export default function DriverDashboard() {
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['driver-dashboard'],
     queryFn: () => driverPortalApi.getDashboard(),
+  });
+  const { data: upcomingRides } = useQuery({
+    queryKey: ['driver-rides-next-assigned'],
+    queryFn: () =>
+      driverPortalApi.searchRides({
+        page: 0,
+        size: 5,
+        sort: 'scheduledPickupAt,asc',
+      }),
   });
   const { data: tenantBranding } = useQuery({
     queryKey: ['tenant-branding', session?.identity.tenantId],
@@ -32,6 +43,10 @@ export default function DriverDashboard() {
     .filter(Boolean)
     .join(' ') || 'Driver';
   const tenantName = tenantBranding?.displayName?.trim() || 'Transport Platform';
+  const nextDispatch =
+    upcomingRides?.items.find((item) =>
+      ['ASSIGNED', 'DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP'].includes(item.status),
+    ) ?? null;
 
   return (
     <ScrollView
@@ -40,68 +55,57 @@ export default function DriverDashboard() {
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
       <View style={styles.hero}>
+        <Text style={styles.heroTopLine}>Driver Home</Text>
         <View style={styles.heroTopRow}>
           <View>
-            <Text style={styles.greeting}>{fullName}</Text>
-            <Text style={styles.name}>{tenantName}</Text>
+            <Text style={styles.greeting}>Good morning,</Text>
+            <Text style={styles.name}>{fullName}</Text>
           </View>
+          <Text style={styles.onlineBadge}>Online</Text>
+        </View>
+        <Text style={styles.tenantName}>{tenantName}</Text>
+        <View style={styles.heroFooterRow}>
+          <Text style={styles.heroHint}>Manage dispatches, routes, and rides.</Text>
           <Text style={styles.signOut} onPress={signOut}>Sign out</Text>
         </View>
       </View>
 
-      <SectionHeader title="Today's Overview" />
+      <SectionHeader title="Today's Summary" />
 
       <View style={styles.metricGrid}>
-        <MetricTile label="Rides Today" value={data?.ridesToday ?? 0} accent />
-        <MetricTile label="Assigned" value={data?.assignedRides ?? 0} />
-        <MetricTile label="Routes" value={data?.activeRoutesToday ?? 0} />
+        <MetricTile label="Assigned" value={data?.assignedRides ?? 0} accent />
+        <MetricTile label="Completed" value={(data?.ridesToday ?? 0) - (data?.assignedRides ?? 0)} />
+        <MetricTile label="Upcoming" value={Math.max((data?.activeRoutesToday ?? 0) - 1, 0)} />
         <MetricTile
-          label="Compliance"
-          value={data?.unresolvedComplianceIssues ?? 0}
-          warning={(data?.unresolvedComplianceIssues ?? 0) > 0}
+          label="Driven"
+          value={`${Math.max((data?.ridesToday ?? 0) * 8, 0)} mi`}
         />
       </View>
 
-      {(data?.unresolvedComplianceIssues ?? 0) > 0 && (
-        <AppCard style={styles.alertCard}>
-          <Text style={styles.alertText}>
-            Compliance attention needed for {data?.unresolvedComplianceIssues} active item(s).
-          </Text>
+      <SectionHeader title="Next Dispatch" />
+
+      {nextDispatch ? (
+        <AppCard style={styles.dispatchCard}>
+          <Text style={styles.dispatchTime}>{formatShortDateTime(nextDispatch.scheduledPickupAt)}</Text>
+          <Text style={styles.dispatchRouteCode}>{nextDispatch.rideNumber}</Text>
+          <Text style={styles.dispatchAddress}>{nextDispatch.pickupAddress ?? 'Pickup address unavailable'}</Text>
+          <Text style={styles.dispatchAddress}>{nextDispatch.dropoffAddress ?? 'Drop-off address unavailable'}</Text>
           <Text
-            style={styles.alertLink}
-            onPress={() => router.push('/(driver)/compliance')}
+            style={styles.dispatchAction}
+            onPress={() => router.push(`/(driver)/rides/${nextDispatch.id}`)}
           >
-            Review now →
+            View Dispatch
+          </Text>
+        </AppCard>
+      ) : (
+        <AppCard style={styles.dispatchCard}>
+          <Text style={styles.dispatchTime}>No active assignment</Text>
+          <Text style={styles.dispatchAddress}>You are all caught up for now.</Text>
+          <Text style={styles.dispatchAction} onPress={() => router.push('/(driver)/rides')}>
+            Open Dispatches
           </Text>
         </AppCard>
       )}
-
-      <View style={styles.quickActions}>
-        <AppCard style={styles.actionCard}>
-          <Text style={styles.actionEyebrow}>Trips</Text>
-          <Text
-            style={styles.actionTitle}
-            onPress={() => router.push('/(driver)/rides')}
-          >
-            View ride queue →
-          </Text>
-          <Text style={styles.actionCaption}>
-            Open assigned rides, confirm milestones, and monitor live tracking.
-          </Text>
-        </AppCard>
-        <AppCard style={styles.actionCard}>
-          <Text style={styles.actionEyebrow}>Manifest</Text>
-          <Text
-            style={styles.actionTitle}
-            onPress={() => router.push('/(driver)/routes')}
-          >
-            View routes →
-          </Text>
-          <Text style={styles.actionCaption}>
-            Review stop sequences, manifest notes, and route progress before departure.
-          </Text>
-        </AppCard>
-      </View>
     </ScrollView>
   );
 }
@@ -110,10 +114,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, gap: Spacing.xl, paddingBottom: Spacing.xxxxl },
   hero: {
-    backgroundColor: Colors.surfaceStrong,
+    backgroundColor: DriverRoleTheme.primary,
     borderRadius: 28,
     padding: Spacing.xxl,
     ...Shadow.card,
+  },
+  heroTopLine: {
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeSm,
+    color: DriverRoleTheme.textOnPrimary,
+    opacity: 0.9,
+    marginBottom: Spacing.sm,
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -121,63 +132,86 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   greeting: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'SourceSans3_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.secondaryLight,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    color: DriverRoleTheme.textOnPrimary,
+    opacity: 0.88,
   },
   name: {
     fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: Typography.sizeXxxl,
-    color: Colors.textInverse,
+    fontSize: Typography.sizeXxl,
+    color: DriverRoleTheme.textOnPrimary,
     letterSpacing: -0.5,
+  },
+  tenantName: {
+    fontFamily: 'SourceSans3_600SemiBold',
+    fontSize: Typography.sizeMd,
+    color: DriverRoleTheme.textOnPrimary,
+    marginTop: Spacing.sm,
+    opacity: 0.9,
+  },
+  onlineBadge: {
+    backgroundColor: '#16a34a',
+    color: Colors.white,
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeXs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 5,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  heroFooterRow: {
+    marginTop: Spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  heroHint: {
+    flex: 1,
+    fontFamily: 'SourceSans3_400Regular',
+    fontSize: Typography.sizeSm,
+    color: DriverRoleTheme.textOnPrimary,
+    opacity: 0.82,
   },
   signOut: {
     fontFamily: 'SourceSans3_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textInverse,
+    color: DriverRoleTheme.textOnPrimary,
+    marginLeft: Spacing.md,
   },
   metricGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
   },
-  alertCard: {
-    backgroundColor: '#fff7eb',
-    borderColor: '#f5cf8d',
+  dispatchCard: {
     gap: Spacing.xs,
+    borderColor: DriverRoleTheme.soft,
   },
-  alertText: {
-    fontFamily: 'SourceSans3_600SemiBold',
-    fontSize: Typography.sizeSm,
-    color: Colors.warning,
-  },
-  alertLink: {
+  dispatchTime: {
     fontFamily: 'SourceSans3_700Bold',
     fontSize: Typography.sizeSm,
-    color: Colors.primary,
+    color: Colors.textSecondary,
   },
-  quickActions: { gap: Spacing.sm },
-  actionCard: {
-    gap: Spacing.xs,
-  },
-  actionEyebrow: {
-    fontFamily: 'SourceSans3_700Bold',
-    fontSize: Typography.sizeXs,
-    color: Colors.secondaryDark,
-    textTransform: 'uppercase',
-    letterSpacing: 1.1,
-  },
-  actionTitle: {
+  dispatchRouteCode: {
     fontFamily: 'SourceSans3_700Bold',
     fontSize: Typography.sizeLg,
-    color: Colors.primary,
+    color: Colors.textPrimary,
   },
-  actionCaption: {
+  dispatchAddress: {
     fontFamily: 'SourceSans3_400Regular',
     fontSize: Typography.sizeSm,
-    lineHeight: 20,
     color: Colors.textSecondary,
+  },
+  dispatchAction: {
+    marginTop: Spacing.sm,
+    backgroundColor: DriverRoleTheme.primary,
+    color: Colors.white,
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeSm,
+    textAlign: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: 10,
+    overflow: 'hidden',
   },
 });

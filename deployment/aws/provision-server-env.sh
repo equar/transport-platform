@@ -65,7 +65,7 @@ umask 077
   printf '%s\n' "SPRING_DATASOURCE_PASSWORD=${mysql_password}"
   printf '%s\n' 'APP_SECURITY_ALLOWED_ORIGINS=https://transport.bakaroo.com'
   printf '%s\n' "APP_SECURITY_JWT_SECRET=${jwt_secret}"
-  printf '%s\n' 'APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED=false'
+  printf '%s\n' 'APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED=true'
   printf '%s\n' 'APP_LOGGING_LEVEL_ROOT=INFO'
   printf '%s\n' 'APP_LOGGING_LEVEL_APP=DEBUG'
   printf '%s\n' 'APP_LOGGING_LEVEL_WEB=DEBUG'

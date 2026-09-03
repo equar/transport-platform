@@ -7,7 +7,9 @@ import { TripTrackingCard } from '@components/TripTrackingCard';
 import { AppBadge, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { Colors, Spacing, Typography } from '@theme/tokens';
+import { PassengerRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime } from '@utils/formatDate';
+import * as Linking from 'expo-linking';
 
 const CANCELLABLE = new Set(['REQUESTED', 'PENDING_REVIEW', 'SCHEDULED', 'ASSIGNED']);
 const TRACKABLE_STATUSES = new Set(['ASSIGNED', 'DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP', 'DROPPED_OFF']);
@@ -60,12 +62,16 @@ export default function RiderRideDetailPage() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
-      <Text style={styles.back} onPress={() => router.back()}>← Rides</Text>
-
-      <View style={styles.headerRow}>
-        <Text style={styles.rideNumber}>{ride.rideNumber}</Text>
-        <AppBadge status={ride.status} />
+      <View style={styles.heroCard}>
+        <Text style={styles.heroTitle}>Trip Tracking</Text>
+        <Text style={styles.heroRide}>{ride.rideNumber}</Text>
+        <View style={styles.heroMetaRow}>
+          <Text style={styles.heroTime}>{formatShortDateTime(ride.scheduledPickupAt)}</Text>
+          <AppBadge status={ride.status} />
+        </View>
       </View>
+
+      <Text style={styles.back} onPress={() => router.back()}>← My Rides</Text>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>SCHEDULE</Text>
@@ -100,14 +106,28 @@ export default function RiderRideDetailPage() {
       ) : null}
 
       {canCancel && (
-        <AppButton
-          label="Cancel Ride"
-          onPress={handleCancel}
-          loading={isPending}
-          variant="outlined"
-          fullWidth
-          size="lg"
-        />
+        <View style={styles.actionRow}>
+          <View style={styles.actionSlot}>
+            <AppButton
+              label="Call"
+              variant="outlined"
+              onPress={() => {
+                const fallback = ride.guardianName ? '+1555010000' : '+1555010001';
+                void Linking.openURL(`tel:${fallback}`);
+              }}
+              fullWidth
+            />
+          </View>
+          <View style={styles.actionSlot}>
+            <AppButton
+              label="Cancel Ride"
+              onPress={handleCancel}
+              loading={isPending}
+              fullWidth
+              size="lg"
+            />
+          </View>
+        </View>
       )}
     </ScrollView>
   );
@@ -125,11 +145,42 @@ function Row({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
+  heroCard: {
+    backgroundColor: PassengerRoleTheme.primary,
+    borderRadius: 18,
+    padding: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  heroTitle: {
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeSm,
+    color: Colors.white,
+  },
+  heroRide: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: Typography.sizeXl,
+    color: Colors.white,
+  },
+  heroMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  heroTime: {
+    fontFamily: 'SourceSans3_600SemiBold',
+    fontSize: Typography.sizeSm,
+    color: Colors.white,
+  },
   back: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeSm, color: Colors.primary },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  rideNumber: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeXxl, color: Colors.textPrimary },
   section: { borderWidth: 1, borderColor: Colors.border },
   sectionTitle: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeXs, color: Colors.textSecondary, letterSpacing: 0.5, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.divider, backgroundColor: '#fafafa' },
+  actionRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  actionSlot: {
+    flex: 1,
+  },
 });
 
 const rowStyles = StyleSheet.create({

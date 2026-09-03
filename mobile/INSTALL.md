@@ -36,6 +36,22 @@ selects which backend API URL gets embedded in the build:
 
 An explicit `--api-url <url>` always takes precedence over `--env`.
 
+## Quick profiles: --dev and --prod
+
+Install scripts now support profile flags:
+
+- `--dev` -> uses local backend defaults, `NODE_ENV=development`, and debug builds where applicable.
+- `--prod` -> uses AWS backend defaults, `NODE_ENV=production`, and release builds where applicable.
+
+`--env` is still supported; if both are provided, the last flag in the command wins.
+
+If resource files are provided, profile-specific files are auto-selected:
+
+- Android: `google-services.dev.json` or `google-services.prod.json`
+- iOS: `GoogleService-Info.dev.plist` or `GoogleService-Info.prod.plist`
+
+These are optional and fallback to existing defaults when absent.
+
 ## Push notifications
 
 Ride tracking notifications for drivers, riders, and guardians require:
@@ -57,6 +73,12 @@ npm run android
 npm run ios
 npm run web
 
+# Profile-based shortcuts
+npm run android:dev
+npm run android:prod
+npm run ios:dev
+npm run ios:prod
+
 # Native emulator/simulator install against the deployed AWS backend
 npm run android -- --env aws
 npm run ios -- --env aws
@@ -65,9 +87,15 @@ npm run ios -- --env aws
 LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8087/api npm run android:device -- --env local
 LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8087/api npm run ios:device -- --env local
 
+# Physical device via profile flags
+LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8087/api npm run android:device:dev
+LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8087/api npm run ios:device:dev
+
 # Physical device against the deployed AWS backend
 npm run android:device -- --env aws
 npm run ios:device -- --env aws
+npm run android:device:prod
+npm run ios:device:prod
 ```
 
 ## Android emulator

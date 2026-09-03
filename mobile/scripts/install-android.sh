@@ -6,13 +6,26 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 TARGET="emulator"
-BUILD_TYPE="release"
+BUILD_TYPE="debug"
 SERIAL="${ANDROID_SERIAL:-}"
 API_URL=""
 ENV_NAME="local"
+PROFILE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --dev)
+      PROFILE="dev"
+      apply_runtime_profile "$PROFILE"
+      ENV_NAME="$TRANSPORT_PROFILE_ENV_NAME"
+      BUILD_TYPE="debug"
+      ;;
+    --prod)
+      PROFILE="prod"
+      apply_runtime_profile "$PROFILE"
+      ENV_NAME="$TRANSPORT_PROFILE_ENV_NAME"
+      BUILD_TYPE="release"
+      ;;
     --emulator) TARGET="emulator" ;;
     --device) TARGET="device" ;;
     --release) BUILD_TYPE="release" ;;
@@ -57,17 +70,25 @@ if [[ -z "$API_URL" ]]; then
   API_URL="$(resolve_api_base_url "$ENV_NAME" "$API_TARGET")"
 fi
 export EXPO_PUBLIC_API_BASE_URL="$API_URL"
+export NODE_ENV="${TRANSPORT_NODE_ENV:-$([[ "$BUILD_TYPE" == "debug" ]] && echo development || echo production)}"
 
 adb start-server >/dev/null
-if [[ -z "$SERIAL" ]]; then
+SERIALS=()
+if [[ -n "$SERIAL" ]]; then
+  SERIALS=("$SERIAL")
+else
   if [[ "$TARGET" == "emulator" ]]; then
-    SERIAL="$(adb devices | awk 'NR > 1 && $1 ~ /^emulator-/ && $2 == "device" { print $1; exit }')"
+    while IFS= read -r detected_serial; do
+      [[ -n "$detected_serial" ]] && SERIALS+=("$detected_serial")
+    done < <(adb devices | awk 'NR > 1 && $1 ~ /^emulator-/ && $2 == "device" { print $1 }')
   else
-    SERIAL="$(adb devices | awk 'NR > 1 && $1 !~ /^emulator-/ && $2 == "device" { print $1; exit }')"
+    while IFS= read -r detected_serial; do
+      [[ -n "$detected_serial" ]] && SERIALS+=("$detected_serial")
+    done < <(adb devices | awk 'NR > 1 && $1 !~ /^emulator-/ && $2 == "device" { print $1 }')
   fi
 fi
 
-if [[ -z "$SERIAL" ]]; then
+if [[ ${#SERIALS[@]} -eq 0 ]]; then
   if [[ "$TARGET" == "emulator" ]]; then
     echo "No running Android emulator found. Start one from Android Studio Device Manager." >&2
   else
@@ -76,36 +97,38 @@ if [[ -z "$SERIAL" ]]; then
   exit 1
 fi
 
-echo "Building $BUILD_TYPE for $TARGET $SERIAL"
+echo "Building $BUILD_TYPE for ${#SERIALS[@]} $TARGET device(s)"
 echo "API: $EXPO_PUBLIC_API_BASE_URL"
 echo "Expo project: ${EXPO_PUBLIC_EAS_PROJECT_ID}"
 
-DEVICE_ABI="$(adb -s "$SERIAL" shell getprop ro.product.cpu.abi | tr -d '\r')"
-case "$DEVICE_ABI" in
-  arm64-v8a|armeabi-v7a|x86|x86_64) ;;
-  *) echo "Unsupported or unknown Android ABI: ${DEVICE_ABI:-empty}" >&2; exit 1 ;;
-esac
-echo "Architecture: $DEVICE_ABI"
-
 cd "$PROJECT_ROOT/android"
-if [[ "$BUILD_TYPE" == "release" ]]; then
-  GRADLE_RELEASE_ARGS=(assembleRelease --no-daemon -PreactNativeArchitectures="$DEVICE_ABI")
-  if [[ "$EXPO_PUBLIC_API_BASE_URL" == https://* ]]; then
-    GRADLE_RELEASE_ARGS+=(-PtransportUsesCleartextTraffic=false)
+for serial in "${SERIALS[@]}"; do
+  DEVICE_ABI="$(adb -s "$serial" shell getprop ro.product.cpu.abi | tr -d '\r')"
+  case "$DEVICE_ABI" in
+    arm64-v8a|armeabi-v7a|x86|x86_64) ;;
+    *) echo "Unsupported or unknown Android ABI on $serial: ${DEVICE_ABI:-empty}" >&2; exit 1 ;;
+  esac
+
+  echo "Installing on $serial (ABI: $DEVICE_ABI)"
+  if [[ "$BUILD_TYPE" == "release" ]]; then
+    GRADLE_RELEASE_ARGS=(assembleRelease --no-daemon -PreactNativeArchitectures="$DEVICE_ABI")
+    if [[ "$EXPO_PUBLIC_API_BASE_URL" == https://* ]]; then
+      GRADLE_RELEASE_ARGS+=(-PtransportUsesCleartextTraffic=false)
+    fi
+    NODE_ENV=production ./gradlew "${GRADLE_RELEASE_ARGS[@]}"
+    APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/release/app-universal-release.apk"
+  else
+    NODE_ENV=development ./gradlew assembleDebug --no-daemon -PreactNativeArchitectures="$DEVICE_ABI"
+    APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/debug/app-debug.apk"
   fi
-  NODE_ENV=production ./gradlew "${GRADLE_RELEASE_ARGS[@]}"
-  APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/release/app-universal-release.apk"
-else
-  NODE_ENV=development ./gradlew assembleDebug --no-daemon -PreactNativeArchitectures="$DEVICE_ABI"
-  APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/debug/app-debug.apk"
-fi
 
-if [[ ! -f "$APK_PATH" ]]; then
-  echo "APK not found at $APK_PATH" >&2
-  exit 1
-fi
+  if [[ ! -f "$APK_PATH" ]]; then
+    echo "APK not found at $APK_PATH" >&2
+    exit 1
+  fi
 
-adb -s "$SERIAL" install -r -d "$APK_PATH"
-adb -s "$SERIAL" shell am force-stop com.transportplatform.mobile >/dev/null 2>&1 || true
-adb -s "$SERIAL" shell monkey -p com.transportplatform.mobile -c android.intent.category.LAUNCHER 1 >/dev/null
-echo "Installed and launched Transport Platform on $SERIAL."
+  adb -s "$serial" install -r -d "$APK_PATH"
+  adb -s "$serial" shell am force-stop com.transportplatform.mobile >/dev/null 2>&1 || true
+  adb -s "$serial" shell monkey -p com.transportplatform.mobile -c android.intent.category.LAUNCHER 1 >/dev/null
+  echo "Installed and launched Transport Platform on $serial."
+done
