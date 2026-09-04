@@ -7,6 +7,7 @@ import com.transportplatform.tms.common.security.CurrentAuthenticatedUserService
 import com.transportplatform.tms.features.driverportal.domain.DriverActionIdempotency;
 import com.transportplatform.tms.features.driverportal.domain.DriverActionIdempotencyRepository;
 import java.time.Clock;
+import java.util.Objects;
 import java.util.function.Supplier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,9 @@ public class DriverActionIdempotencyService {
         if (key.length() > 120) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
                 "Idempotency-Key must be 120 characters or fewer.");
         AuthenticatedUser user = currentUserService.requireCurrentUser();
-        if (repository.existsByTenantIdAndUserIdAndIdempotencyKey(user.tenantId(), user.id(), key)) {
+        var existing = repository.findByTenantIdAndUserIdAndIdempotencyKey(user.tenantId(), user.id(), key);
+        if (existing.isPresent()) {
+            ensureMatchesOriginalRequest(existing.get(), rideId, action);
             return replayResult.get();
         }
         DriverActionIdempotency record = new DriverActionIdempotency();
@@ -43,5 +46,12 @@ public class DriverActionIdempotencyService {
         record.setCreatedAt(clock.instant());
         repository.saveAndFlush(record);
         return operation.get();
+    }
+
+    private void ensureMatchesOriginalRequest(DriverActionIdempotency record, Long rideId, String action) {
+        if (!Objects.equals(record.getRideId(), rideId) || !Objects.equals(record.getActionName(), action)) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.CONFLICT,
+                    "Idempotency-Key has already been used for a different driver action.");
+        }
     }
 }

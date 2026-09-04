@@ -34,5 +34,7 @@ public class DriverActionIdempotency {
     public void setRideId(Long value) { rideId = value; }
     public void setActionName(String value) { actionName = value; }
     public void setCreatedAt(Instant value) { createdAt = value; }
+    public Long getRideId() { return rideId; }
+    public String getActionName() { return actionName; }
 }
 
