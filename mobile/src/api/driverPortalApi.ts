@@ -216,7 +216,9 @@ export const driverPortalApi = {
       name: payload.name,
       type: payload.contentType,
     } as never);
-    const r = await apiClient.post(`${base}/documents`, formData);
+    const r = await apiClient.post(`${base}/documents`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return unwrapResponse<DriverPortalDocumentRecord>(r.data);
   },
   async searchRides(params?: Record<string, unknown>) {
