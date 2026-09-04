@@ -1,16 +1,31 @@
 package com.transportplatform.tms.features.auth.application;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
+import java.util.Base64;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.security.AuthenticatedUser;
 import com.transportplatform.tms.common.security.CurrentAuthenticatedUserService;
+import com.transportplatform.tms.common.security.JwtClaims;
 import com.transportplatform.tms.common.security.JwtService;
 import com.transportplatform.tms.features.audit.application.AuditLogCommand;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
 import com.transportplatform.tms.features.auth.api.request.ChangePasswordRequest;
 import com.transportplatform.tms.features.auth.api.request.ForgotPasswordRequest;
 import com.transportplatform.tms.features.auth.api.request.LoginRequest;
-import com.transportplatform.tms.features.auth.api.request.RefreshTokenRequest;
 import com.transportplatform.tms.features.auth.api.request.ResetPasswordRequest;
 import com.transportplatform.tms.features.auth.api.response.AuthTokensResponse;
 import com.transportplatform.tms.features.auth.domain.AppUser;
@@ -19,20 +34,6 @@ import com.transportplatform.tms.features.auth.domain.UserStatus;
 import com.transportplatform.tms.features.notification.application.NotificationEmailSender;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.features.tenant.domain.TenantStatus;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Clock;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.UUID;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthFacade {
@@ -77,16 +78,7 @@ public class AuthFacade {
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw invalidCredentials();
         }
-        if (!user.isActiveForLogin()) {
-            throw invalidCredentials();
-        }
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            throw new ApiException(
-                    ErrorCode.FORBIDDEN,
-                    HttpStatus.FORBIDDEN,
-                    "This account has no assigned role. Contact an administrator.");
-        }
-        ensureTenantActive(user.getTenantId());
+        ensureEligibleForTokenIssuance(user, false);
 
         user.setLastLoginAt(clock.instant());
 
@@ -97,11 +89,7 @@ public class AuthFacade {
     public AuthTokensResponse refresh(String refreshToken, String clientType) {
         AuthSessionService.RotatedRefreshToken rotated = authSessionService.rotate(refreshToken, clientType);
         AppUser user = rotated.user();
-        if (!user.isActiveForLogin()) {
-            authSessionService.revokeAllForUser(user.getId());
-            throw invalidCredentials();
-        }
-        ensureTenantActive(user.getTenantId());
+        ensureEligibleForTokenIssuance(user, true);
         return issueTokens(user, rotated.token());
     }
 
@@ -180,12 +168,12 @@ public class AuthFacade {
     private AuthTokensResponse issueTokens(AppUser appUser, AuthSessionService.IssuedRefreshToken refresh) {
         AuthenticatedUser user = toPrincipal(appUser);
         String accessToken = jwtService.generateAccessToken(user);
+        JwtClaims claims = jwtService.parseAccessToken(accessToken);
         return new AuthTokensResponse(
                 accessToken,
                 refresh.rawToken(),
                 "Bearer",
-                jwtService.parseAccessToken(accessToken).expiresAt().getEpochSecond()
-                        - jwtService.parseAccessToken(accessToken).issuedAt().getEpochSecond(),
+            claims.expiresAt().getEpochSecond() - claims.issuedAt().getEpochSecond(),
                 new AuthTokensResponse.AuthenticatedUserResponse(
                         user.id(),
                         user.getUsername(),
@@ -206,10 +194,29 @@ public class AuthFacade {
                 user.getFirstName(),
                 user.getLastName(),
                 user.getPasswordHash(),
-                user.isActiveForLogin(),
-                user.getStatus() != UserStatus.SUSPENDED,
+                user.isEnabled(),
+                !user.isLocked(),
                 user.isMustChangePassword(),
                 user.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.name())).toList());
+    }
+
+    private void ensureEligibleForTokenIssuance(AppUser user, boolean revokeSessionsOnFailure) {
+        if (!user.isActiveForLogin()) {
+            if (revokeSessionsOnFailure) {
+                authSessionService.revokeAllForUser(user.getId());
+            }
+            throw invalidCredentials();
+        }
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            if (revokeSessionsOnFailure) {
+                authSessionService.revokeAllForUser(user.getId());
+            }
+            throw new ApiException(
+                    ErrorCode.FORBIDDEN,
+                    HttpStatus.FORBIDDEN,
+                    "This account has no assigned role. Contact an administrator.");
+        }
+        ensureTenantActive(user.getTenantId());
     }
 
     private void preparePasswordReset(AppUser user) {

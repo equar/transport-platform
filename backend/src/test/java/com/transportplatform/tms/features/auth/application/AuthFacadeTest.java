@@ -1,9 +1,13 @@
 package com.transportplatform.tms.features.auth.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.security.AuthenticatedUser;
@@ -143,6 +147,34 @@ class AuthFacadeTest {
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
         verify(passwordEncoder, org.mockito.Mockito.never()).matches(
                 org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void refreshRejectsUsersWithoutRolesAndRevokesSessions() {
+        AppUser user = buildUser(UserStatus.ACTIVE);
+        user.setRoles(Set.of());
+        AuthSessionService.IssuedRefreshToken replacement = new AuthSessionService.IssuedRefreshToken(
+                "replacement-refresh", Instant.parse("2025-01-08T00:00:00Z"), "WEB");
+        when(authSessionService.rotate("old-refresh", "WEB"))
+                .thenReturn(new AuthSessionService.RotatedRefreshToken(user, replacement));
+
+        ApiException exception = assertThrows(ApiException.class,
+                () -> authFacade.refresh("old-refresh", "WEB"));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(authSessionService).revokeAllForUser(42L);
+        verify(jwtService, never()).generateAccessToken(any());
+    }
+
+    @Test
+        void toPrincipalUsesLockedFieldForAccountNonLocked() {
+        AppUser user = buildUser(UserStatus.ACTIVE);
+                ReflectionTestUtils.setField(user, "locked", true);
+
+                AuthenticatedUser principal = ReflectionTestUtils.invokeMethod(authFacade, "toPrincipal", user);
+
+                assertTrue(principal.isEnabled());
+                assertFalse(principal.isAccountNonLocked());
     }
 
     private AppUser buildUser(UserStatus status) {
