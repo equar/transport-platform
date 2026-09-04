@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.xxxl },
   hero: {
     backgroundColor: PassengerRoleTheme.primary,
-    borderRadius: 18,
+    borderRadius: 8,
     padding: Spacing.lg,
     gap: Spacing.xs,
   },

@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   heroCard: {
     backgroundColor: DriverRoleTheme.primary,
-    borderRadius: 18,
+    borderRadius: 8,
     padding: Spacing.lg,
     gap: Spacing.sm,
   },

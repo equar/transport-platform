@@ -105,31 +105,25 @@ module.exports = () => {
       ...(iosGoogleServicesFile
         ? { googleServicesFile: iosGoogleServicesFile }
         : {}),
-      ...(googleMapsApiKey
-        ? {
-            config: {
-              ...(expo.ios?.config || {}),
-              googleMapsApiKey,
-            },
-          }
-        : {}),
     },
     android: {
       ...(expo.android || {}),
       ...(androidGoogleServicesFile
         ? { googleServicesFile: androidGoogleServicesFile }
         : {}),
-      ...(googleMapsApiKey
-        ? {
-            config: {
-              ...(expo.android?.config || {}),
-              googleMaps: {
-                apiKey: googleMapsApiKey,
-              },
-            },
-          }
-        : {}),
     },
+    plugins: [
+      ...(expo.plugins || []),
+      ...(googleMapsApiKey
+        ? [[
+            'react-native-maps',
+            {
+              iosGoogleMapsApiKey: googleMapsApiKey,
+              androidGoogleMapsApiKey: googleMapsApiKey,
+            },
+          ]]
+        : []),
+    ],
     extra: {
       ...(expo.extra || {}),
       apiBaseUrl,

@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   fallbackLogo: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: 8,
     backgroundColor: Colors.surface,
   },
   name: {

@@ -46,7 +46,7 @@ function backoffDelayMs(attempt: number) {
 }
 
 async function delay(ms: number) {
-  await new Promise((resolve) => setTimeout(resolve, ms));
+  await new Promise<void>((resolve) => setTimeout(() => resolve(), ms));
 }
 
 async function readSession() {

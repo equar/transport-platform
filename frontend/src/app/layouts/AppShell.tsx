@@ -147,12 +147,12 @@ export function AppShell() {
   }, [location.pathname, platformAdmin]);
 
   const drawer = (
-    <Stack sx={{ height: "100%", bgcolor: surfaceTokens.shellSidebarBase, color: "#e8eef1", backgroundImage: `linear-gradient(180deg, ${surfaceTokens.shellSidebarTop} 0%, ${surfaceTokens.shellSidebarBottom} 100%)` }}>
-      <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: "rgba(17,24,29,.42)", borderBottom: `1px solid ${surfaceTokens.shellCardBorder}` }}>
+    <Stack sx={{ height: "100%", bgcolor: surfaceTokens.shellSidebarBase, color: "#fff0e3", backgroundImage: `linear-gradient(180deg, ${surfaceTokens.shellSidebarTop} 0%, ${surfaceTokens.shellSidebarBottom} 100%)` }}>
+      <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: "rgba(43,12,4,.56)", borderBottom: `1px solid ${surfaceTokens.shellCardBorder}` }}>
         <BrandMark compact />
       </Box>
-      <Box sx={{ mx: 1.5, my: 1.5, px: 1.75, py: 1.5, bgcolor: surfaceTokens.shellCardBg, border: `1px solid ${surfaceTokens.shellCardBorder}`, borderRadius: 2.5, boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)" }}>
-        <Typography variant="caption" sx={{ color: "#95a9b0", display: "block", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 800 }}>
+      <Box sx={{ mx: 1.5, my: 1.5, px: 1.75, py: 1.5, bgcolor: surfaceTokens.shellCardBg, border: `1px solid ${surfaceTokens.shellCardBorder}`, borderRadius: 1.5, boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)" }}>
+        <Typography variant="caption" sx={{ color: "#edb488", display: "block", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 800 }}>
           {shellView.scopeLabel}
         </Typography>
         <Typography variant="subtitle2" sx={{ color: "#fff", fontWeight: 700, mt: .35 }} noWrap>
@@ -165,7 +165,7 @@ export function AppShell() {
             <Box key={section.title}>
               <Typography
                 variant="overline"
-                sx={{ px: 1.4, pb: 0.9, display: "block", color: "#8da1aa", fontSize: ".66rem", letterSpacing: ".14em", lineHeight: 1.4 }}
+                sx={{ px: 1.4, pb: 0.9, display: "block", color: "#df9b70", fontSize: ".66rem", letterSpacing: ".14em", lineHeight: 1.4 }}
               >
                 {section.title}
               </Typography>
@@ -183,14 +183,14 @@ export function AppShell() {
                         minHeight: 42,
                         py: 0.75,
                         px: 1.4,
-                        color: "#c7d3d7",
-                        borderRadius: 2,
+                        color: "#f0d3be",
+                        borderRadius: 1.5,
                         border: "1px solid transparent",
                         "&.Mui-selected": {
                           bgcolor: surfaceTokens.shellSelectedBg,
                           color: "#fff",
                           borderColor: surfaceTokens.shellCardBorder,
-                          boxShadow: "inset 3px 0 0 #d6813f, 0 1px 2px rgba(0,0,0,.12)",
+                          boxShadow: "inset 3px 0 0 #f7a04a, 0 1px 2px rgba(0,0,0,.18)",
                         },
                         "&.Mui-selected:hover": { bgcolor: surfaceTokens.shellSelectedBgHover },
                         "&:hover": { bgcolor: surfaceTokens.shellHoverBg },
@@ -199,7 +199,7 @@ export function AppShell() {
                       <ListItemIcon
                         sx={{
                           minWidth: 30,
-                          color: selected ? "#6fd0df" : "#a8b0b4",
+                          color: selected ? "#ffd3a8" : "#c99573",
                         }}
                       >
                         {item.icon}
@@ -225,13 +225,13 @@ export function AppShell() {
       <Box sx={{ px: 1.6, py: 1.4 }}>
         <Stack spacing={1}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1 }}>
-            <CircleIcon sx={{ fontSize: 8, color: "#5fc58b" }} />
-            <Typography variant="caption" sx={{ color: "#9fb0b6" }}>System operational</Typography>
+            <CircleIcon sx={{ fontSize: 8, color: "#f5a042" }} />
+            <Typography variant="caption" sx={{ color: "#e8bd9e" }}>System operational</Typography>
           </Stack>
           <Button
             component={RouterLink}
             to="/"
-            sx={{ color: "#aebdc2", justifyContent: "flex-start", fontSize: ".75rem" }}
+            sx={{ color: "#f0cbaa", justifyContent: "flex-start", fontSize: ".75rem" }}
             endIcon={<LaunchRoundedIcon />}
           >
             Open public site
@@ -341,7 +341,7 @@ export function AppShell() {
               label={workspaceLabel}
               color="primary"
               variant="outlined"
-              sx={{ display: { xs: "none", lg: "inline-flex" }, bgcolor: "rgba(37,76,99,.045)", borderRadius: 999 }}
+              sx={{ display: { xs: "none", lg: "inline-flex" }, bgcolor: "rgba(196,71,11,.06)", borderRadius: 1.5 }}
             />
             <Button
               color="inherit"
@@ -496,7 +496,7 @@ export function AppShell() {
               width: drawerWidth,
               borderRight: "1px solid",
               borderColor: "divider",
-              backgroundColor: "#25313a",
+              backgroundColor: surfaceTokens.shellSidebarBase,
               borderRadius: 0,
             },
           }}

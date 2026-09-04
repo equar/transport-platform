@@ -8,7 +8,11 @@ const appTheme = {
   colors: {
     ...MD3LightTheme.colors,
     primary: Colors.primary,
+    primaryContainer: Colors.primarySoft,
+    onPrimaryContainer: Colors.primaryDark,
     secondary: Colors.secondary,
+    secondaryContainer: Colors.secondarySoft,
+    onSecondaryContainer: Colors.secondaryDark,
     background: Colors.background,
     surface: Colors.surface,
     surfaceVariant: Colors.surfaceMuted,

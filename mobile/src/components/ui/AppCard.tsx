@@ -28,7 +28,7 @@ export function AppCard({ children, style, noBorder, density = 'comfortable', va
     <View
       style={[
         styles.card,
-        { padding: adaptivePadding, borderRadius: isCompact ? Radius.md : Radius.lg },
+        { padding: adaptivePadding, borderRadius: Radius.lg },
         variant === 'subtle' && styles.subtle,
         noBorder && styles.noBorder,
         style,

@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: 220,
-    borderRadius: 12,
+    borderRadius: 8,
     backgroundColor: '#dfe5e8',
   },
   row: { flexDirection: 'row', gap: Spacing.sm },

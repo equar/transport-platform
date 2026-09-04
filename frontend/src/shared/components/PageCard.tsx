@@ -35,7 +35,7 @@ export function PageCard({ children, sx, variant = "default" }: PageCardProps) {
         px: spacingTokens.pageCardX,
         py: spacingTokens.pageCardY,
         backgroundColor: "background.paper",
-        borderRadius: 3,
+        borderRadius: 1.5,
         ...variantSx[variant],
         ...customSx,
       }}

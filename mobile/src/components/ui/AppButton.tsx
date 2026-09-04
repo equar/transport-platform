@@ -90,7 +90,7 @@ export function AppButton({
       disabled={isDisabled}
       style={({ pressed }) => [
         styles.base,
-        { height: dim.height, paddingHorizontal: dim.px, borderRadius: Radius.input },
+        { height: dim.height, paddingHorizontal: dim.px, borderRadius: Radius.md },
         variantStyles.container,
         fullWidth && styles.fullWidth,
         isDisabled && styles.disabled,

@@ -1,4 +1,5 @@
 import React from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, View, Text } from 'react-native';
 import { Colors, Spacing, Typography } from '@theme/tokens';
 
@@ -7,13 +8,14 @@ interface MetricTileProps {
   value: number | string;
   accent?: boolean;
   warning?: boolean;
+  icon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 }
 
-export function MetricTile({ label, value, accent, warning }: MetricTileProps) {
+export function MetricTile({ label, value, accent, warning, icon }: MetricTileProps) {
   const valueColor = warning ? Colors.error : accent ? Colors.primary : Colors.textPrimary;
   return (
     <View style={styles.tile}>
-      <View style={[styles.accentBar, accent && styles.accentBarActive, warning && styles.accentBarWarning]} />
+      {icon ? <MaterialCommunityIcons name={icon} size={26} color={valueColor} /> : <View style={[styles.accentBar, accent && styles.accentBarActive, warning && styles.accentBarWarning]} />}
       <Text style={[styles.value, { color: valueColor }]}>{value}</Text>
       <Text style={styles.label}>{label}</Text>
     </View>
@@ -24,12 +26,9 @@ const styles = StyleSheet.create({
   tile: {
     flex: 1,
     backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 20,
-    padding: Spacing.lg,
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
+    gap: Spacing.xs,
     minWidth: 120,
     overflow: 'hidden',
   },
@@ -54,6 +53,6 @@ const styles = StyleSheet.create({
     fontFamily: 'SourceSans3_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
-    textAlign: 'left',
+    textAlign: 'center',
   },
 });

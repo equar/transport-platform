@@ -9,46 +9,46 @@ type BrandingThemeOptions = {
 };
 
 export function createAppTheme(branding?: BrandingThemeOptions | null) {
-  const primaryMain = '#254c63';
-  const secondaryMain = branding?.secondaryColor || '#cc7a34';
-  const accentMain = '#5d7f95';
+  const primaryMain = branding?.primaryColor || '#c4470b';
+  const secondaryMain = branding?.secondaryColor || '#8a2708';
+  const accentMain = branding?.accentColor || '#f2942a';
 
   const base = createTheme({
     palette: {
       mode: 'light',
       primary: {
         main: primaryMain,
-        dark: '#183545',
+        dark: '#7a2106',
         light: accentMain,
         contrastText: '#ffffff',
       },
       secondary: {
         main: secondaryMain,
-        dark: '#965520',
-        light: '#e0a067',
+        dark: '#571503',
+        light: '#c95a18',
         contrastText: '#ffffff',
       },
       background: {
-        default: '#edf2f6',
+        default: '#fff0e6',
         paper: '#ffffff',
       },
       text: {
-        primary: '#16232c',
-        secondary: '#5f6e77',
+        primary: '#35140a',
+        secondary: '#76594d',
       },
-      divider: '#d3dce2',
+      divider: '#edcfbd',
     },
     spacing: 5,
     shape: {
-      borderRadius: 12,
+      borderRadius: 8,
     },
     typography: {
       fontFamily: '"Source Sans 3", "Segoe UI", sans-serif',
       fontSize: 14,
-      h1: { fontFamily: '"Space Grotesk", "Segoe UI", sans-serif', fontWeight: 700, letterSpacing: '-0.03em' },
-      h2: { fontFamily: '"Space Grotesk", "Segoe UI", sans-serif', fontWeight: 700, letterSpacing: '-0.026em' },
-      h3: { fontFamily: '"Space Grotesk", "Segoe UI", sans-serif', fontWeight: 700, letterSpacing: '-0.022em' },
-      h4: { fontFamily: '"Space Grotesk", "Segoe UI", sans-serif', fontWeight: 700, fontSize: '1.8rem', lineHeight: 1.08, letterSpacing: '-0.02em' },
+      h1: { fontFamily: '"Space Grotesk", "Segoe UI", sans-serif', fontWeight: 700, letterSpacing: 0 },
+      h2: { fontFamily: '"Space Grotesk", "Segoe UI", sans-serif', fontWeight: 700, letterSpacing: 0 },
+      h3: { fontFamily: '"Space Grotesk", "Segoe UI", sans-serif', fontWeight: 700, letterSpacing: 0 },
+      h4: { fontFamily: '"Space Grotesk", "Segoe UI", sans-serif', fontWeight: 700, fontSize: '1.8rem', lineHeight: 1.08, letterSpacing: 0 },
       h5: { fontFamily: '"Space Grotesk", "Segoe UI", sans-serif', fontWeight: 700, fontSize: '1.2rem', lineHeight: 1.15 },
       h6: { fontFamily: '"Space Grotesk", "Segoe UI", sans-serif', fontWeight: 700, fontSize: '1rem' },
       subtitle1: { fontWeight: 700, fontSize: '0.98rem' },
@@ -83,7 +83,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
           },
           '*': {
             scrollbarWidth: 'thin',
-            scrollbarColor: '#a9b4ba transparent',
+            scrollbarColor: '#ce7a43 transparent',
             boxSizing: 'border-box',
           },
         },
@@ -94,7 +94,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
         },
         styleOverrides: {
           root: {
-            borderRadius: 14,
+            borderRadius: 8,
             backgroundImage: 'none',
           },
         },
@@ -102,7 +102,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 16,
+            borderRadius: 8,
           },
         },
       },
@@ -112,7 +112,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
         },
         styleOverrides: {
           root: {
-            borderRadius: 10,
+            borderRadius: 7,
             paddingInline: base.spacing(2.4),
             minHeight: 40,
             textTransform: 'none',
@@ -126,13 +126,13 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
       },
       MuiIconButton: {
         defaultProps: { size: 'medium' },
-        styleOverrides: { root: { borderRadius: 10 } },
+        styleOverrides: { root: { borderRadius: 7 } },
       },
       MuiOutlinedInput: {
         styleOverrides: {
           root: {
-            borderRadius: 10,
-            backgroundColor: '#fcfdfe',
+            borderRadius: 7,
+            backgroundColor: '#fffdfa',
           },
         },
         defaultProps: {
@@ -142,8 +142,8 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
       MuiFilledInput: {
         styleOverrides: {
           root: {
-            borderRadius: 10,
-            backgroundColor: '#fcfdfe',
+            borderRadius: 7,
+            backgroundColor: '#fffdfa',
           },
         },
         defaultProps: {
@@ -160,7 +160,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
       MuiDialog: {
         styleOverrides: {
           paper: {
-            borderRadius: 18,
+            borderRadius: 8,
             boxShadow: shadowTokens.dialog,
           },
         },
@@ -179,8 +179,8 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
         styleOverrides: {
           root: { padding: '14px 16px', borderColor: borderTokens.table, verticalAlign: 'middle' },
           head: {
-            backgroundColor: '#f3f7fa',
-            color: '#34444c',
+            backgroundColor: '#fff2e8',
+            color: '#6d2b12',
             fontSize: '0.74rem',
             fontWeight: 800,
             letterSpacing: '0.08em',
@@ -189,7 +189,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
         },
       },
       MuiChip: {
-        styleOverrides: { root: { borderRadius: 999, height: 28, fontWeight: 700 } },
+        styleOverrides: { root: { borderRadius: 7, height: 28, fontWeight: 700 } },
       },
       MuiMenu: {
         styleOverrides: { paper: { border: `1px solid ${borderTokens.table}`, boxShadow: shadowTokens.menu } },
@@ -204,7 +204,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
         styleOverrides: { root: { borderTop: `1px solid ${borderTokens.table}`, padding: '14px 24px', backgroundColor: '#f8fafb' } },
       },
       MuiTableRow: {
-        styleOverrides: { root: { '&:hover': { backgroundColor: '#f7fafb' } } },
+        styleOverrides: { root: { '&:hover': { backgroundColor: '#fff8f3' } } },
       },
       MuiContainer: {
         styleOverrides: {

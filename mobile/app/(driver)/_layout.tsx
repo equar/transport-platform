@@ -14,13 +14,17 @@ export default function DriverLayout() {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
+          height: 70,
+          paddingTop: 7,
+          paddingBottom: 7,
         },
         tabBarLabelStyle: {
           fontFamily: 'SourceSans3_600SemiBold',
           fontSize: Typography.sizeXs,
+          marginTop: 1,
         },
         tabBarIconStyle: {
-          marginBottom: 2,
+          marginBottom: 0,
         },
       }}
     >
@@ -28,21 +32,21 @@ export default function DriverLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="rides"
         options={{
           title: 'Dispatches',
-          tabBarIcon: ({ color, size }) => <Ionicons name="list-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'list' : 'list-outline'} size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="routes"
         options={{
           title: 'Trips',
-          tabBarIcon: ({ color, size }) => <Ionicons name="map-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'map' : 'map-outline'} size={size} color={color} />,
         }}
       />
       <Tabs.Screen

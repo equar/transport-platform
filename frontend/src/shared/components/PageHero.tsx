@@ -24,7 +24,7 @@ export function PageHero({ eyebrow, title, description, children, visual }: Page
           flexWrap="wrap"
           sx={{
             "& .MuiButton-root": {
-              borderRadius: 2,
+              borderRadius: 1.5,
               px: 2,
               py: 1,
               fontWeight: 700,

@@ -94,7 +94,7 @@ export default function RootLayout() {
           style={{ flex: 1, backgroundColor: Colors.background }}
           edges={['top', 'left', 'right', 'bottom']}
         >
-          <StatusBar style="dark" backgroundColor={Colors.background} />
+          <StatusBar style="dark" />
           <QueryClientProvider client={queryClient}>
             <ThemeProvider>
               <AuthProvider>

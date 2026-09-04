@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
 	content: { padding: Spacing.lg, gap: Spacing.lg },
 	heroCard: {
 		backgroundColor: GuardianRoleTheme.primary,
-		borderRadius: 18,
+		borderRadius: 8,
 		gap: Spacing.xs,
 	},
 	heroTitle: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeSm, color: Colors.white },

@@ -8,7 +8,7 @@ source "$SCRIPT_DIR/common.sh"
 MODE="full"
 [[ "${1:-}" == "--check" ]] && MODE="check"
 
-require_command node
+resolve_mobile_node
 require_command npm
 require_command npx
 resolve_android_sdk

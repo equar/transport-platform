@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   icon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 8,
     backgroundColor: Colors.divider,
     alignItems: 'center',
     justifyContent: 'center',

@@ -51,7 +51,7 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-require_command node
+resolve_mobile_node
 require_command npm
 resolve_android_sdk
 resolve_android_java
@@ -137,7 +137,7 @@ for serial in "${SERIALS[@]}"; do
       GRADLE_RELEASE_ARGS+=(-PtransportUsesCleartextTraffic=false)
     fi
     NODE_ENV=production ./gradlew "${GRADLE_RELEASE_ARGS[@]}"
-    APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/release/app-universal-release.apk"
+    APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/release/app-release.apk"
   else
     NODE_ENV=development ./gradlew assembleDebug --no-daemon -PreactNativeArchitectures="$DEVICE_ABI"
     APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/debug/app-debug.apk"

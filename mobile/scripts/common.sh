@@ -21,6 +21,23 @@ require_command() {
   fi
 }
 
+resolve_mobile_node() {
+  local architecture="x64"
+  if [[ "$(sysctl -n hw.optional.arm64 2>/dev/null || echo 0)" == "1" ]]; then
+    architecture="arm64"
+  fi
+  local local_node_home="${TRANSPORT_NODE_HOME:-$HOME/.local/node-v24.20.0-darwin-$architecture}"
+  if [[ -x "$local_node_home/bin/node" ]]; then
+    export PATH="$local_node_home/bin:$PATH"
+  fi
+
+  require_command node
+  if ! node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit((major === 20 && minor >= 19) || (major === 22 && minor >= 13) || major >= 24 ? 0 : 1)'; then
+    echo "React Native requires Node 20.19+, 22.13+, or 24+. Set TRANSPORT_NODE_HOME to a compatible Node installation." >&2
+    return 1
+  fi
+}
+
 ensure_node_modules() {
   # Keep script execution pinned to this workspace to avoid parent/global node_modules drift.
   unset NODE_PATH
@@ -53,17 +70,17 @@ resolve_android_sdk() {
 }
 
 resolve_android_java() {
-  local candidate=""
-  if [[ -x "/usr/libexec/java_home" ]]; then
+  local candidate="${TRANSPORT_ANDROID_JAVA_HOME:-}"
+  if [[ -z "$candidate" && -x "/usr/libexec/java_home" ]]; then
     candidate="$(/usr/libexec/java_home -v 17 2>/dev/null || true)"
-    if [[ -z "$candidate" ]]; then
-      candidate="$(/usr/libexec/java_home -v 21 2>/dev/null || true)"
-    fi
   fi
-  if [[ -n "$candidate" ]]; then
-    export JAVA_HOME="$candidate"
-    export PATH="$JAVA_HOME/bin:$PATH"
+  if [[ -z "$candidate" || ! -x "$candidate/bin/java" ]]; then
+    echo "JDK 17 is required for Android native builds. Install JDK 17 or set TRANSPORT_ANDROID_JAVA_HOME." >&2
+    return 1
   fi
+
+  export JAVA_HOME="$candidate"
+  export PATH="$JAVA_HOME/bin:$PATH"
   require_command java
 }
 

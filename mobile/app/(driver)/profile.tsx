@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   hero: {
     backgroundColor: DriverRoleTheme.primary,
-    borderRadius: 18,
+    borderRadius: 8,
     padding: Spacing.lg,
     gap: Spacing.xs,
   },
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
-    borderRadius: 10,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: Colors.border,
     paddingVertical: Spacing.sm,

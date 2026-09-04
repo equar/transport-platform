@@ -50,7 +50,7 @@ export function ActionRow({ icon, title, description, onPress, tone = 'primary',
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: Colors.surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, ...Shadow.card },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: Colors.surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, ...Shadow.soft },
   pressed: { opacity: .8, transform: [{ scale: Motion.pressScale.subtle }] },
   disabled: { opacity: 0.55 },
   icon: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },

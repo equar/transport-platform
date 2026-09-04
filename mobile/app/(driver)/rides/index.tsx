@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   headerShell: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.sm },
   header: {
     padding: Spacing.xl,
-    borderRadius: 26,
+    borderRadius: 8,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   segmentButton: {
     flex: 1,
-    borderRadius: 10,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: Colors.border,
     paddingVertical: Spacing.sm,
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   dispatchCard: {
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: Colors.surface,
     padding: Spacing.md,
     gap: Spacing.sm,

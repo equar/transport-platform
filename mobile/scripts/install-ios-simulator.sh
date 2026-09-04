@@ -5,6 +5,8 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/common.sh"
 
+resolve_mobile_node
+
 ENV_NAME="local"
 API_URL=""
 PROFILE=""
@@ -63,6 +65,7 @@ APP_ID="${APP_ID:-com.transportplatform.mobile}"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PROJECT_ROOT/.build/ios-simulator}"
 SIMULATOR_UDID="${SIMULATOR_UDID:-}"
 AVAILABLE_SIMULATORS="$(xcrun simctl list devices available)"
+XCODE_DESTINATIONS="$(xcodebuild -workspace "$PROJECT_ROOT/ios/$WORKSPACE" -scheme "$SCHEME" -sdk iphonesimulator -showdestinations)"
 BOOTED_SIMULATORS=()
 HOST_ARCH="$(uname -m)"
 APPLE_SILICON_CAPABLE="$(sysctl -n hw.optional.arm64 2>/dev/null || echo 0)"
@@ -72,21 +75,36 @@ else
   SIMULATOR_ARCH="x86_64"
 fi
 
-if [[ -n "$SIMULATOR_UDID" && "$AVAILABLE_SIMULATORS" != *"($SIMULATOR_UDID)"* ]]; then
-  echo "Configured simulator $SIMULATOR_UDID is no longer available; selecting another simulator."
+is_xcode_simulator_destination() {
+  [[ "$XCODE_DESTINATIONS" == *"id:$1,"* ]]
+}
+
+if [[ -n "$SIMULATOR_UDID" ]] && { [[ "$AVAILABLE_SIMULATORS" != *"($SIMULATOR_UDID)"* ]] || ! is_xcode_simulator_destination "$SIMULATOR_UDID"; }; then
+  echo "Configured simulator $SIMULATOR_UDID is not a valid Xcode destination; selecting another simulator."
   SIMULATOR_UDID=""
 fi
 
 while IFS= read -r booted_udid; do
-  [[ -n "$booted_udid" ]] && BOOTED_SIMULATORS+=("$booted_udid")
+  if [[ -n "$booted_udid" ]] && is_xcode_simulator_destination "$booted_udid"; then
+    BOOTED_SIMULATORS+=("$booted_udid")
+  elif [[ -n "$booted_udid" ]]; then
+    echo "Ignoring booted simulator $booted_udid because Xcode cannot build for it." >&2
+  fi
 done < <(printf '%s\n' "$AVAILABLE_SIMULATORS" | sed -n '/iPhone/s/.*(\([A-F0-9-]\{36\}\)) (Booted)[[:space:]]*$/\1/p')
 
 if [[ -n "$SIMULATOR_UDID" ]]; then
-  BOOTED_SIMULATORS=("$SIMULATOR_UDID")
+  if [[ "$AVAILABLE_SIMULATORS" == *"($SIMULATOR_UDID) (Booted)"* ]]; then
+    BOOTED_SIMULATORS=("$SIMULATOR_UDID")
+  fi
 fi
 
 if [[ ${#BOOTED_SIMULATORS[@]} -eq 0 ]]; then
-  SIMULATOR_UDID="$(printf '%s\n' "$AVAILABLE_SIMULATORS" | sed -n '/iPhone/s/.*(\([A-F0-9-]\{36\}\)) (Shutdown)[[:space:]]*$/\1/p' | tail -n 1)"
+  while IFS= read -r candidate_udid; do
+    if is_xcode_simulator_destination "$candidate_udid"; then
+      SIMULATOR_UDID="$candidate_udid"
+      break
+    fi
+  done < <(printf '%s\n' "$AVAILABLE_SIMULATORS" | sed -n '/iPhone/s/.*(\([A-F0-9-]\{36\}\)) (Shutdown)[[:space:]]*$/\1/p')
 fi
 
 if [[ ${#BOOTED_SIMULATORS[@]} -eq 0 && -z "$SIMULATOR_UDID" ]]; then
