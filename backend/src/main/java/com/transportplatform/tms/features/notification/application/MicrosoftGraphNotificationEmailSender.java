@@ -27,6 +27,7 @@ public class MicrosoftGraphNotificationEmailSender implements NotificationEmailS
     private final boolean enabled;
     private final String fromAddress;
     private final GraphServiceClient graphServiceClient;
+    private final NotificationEmailHtmlRenderer notificationEmailHtmlRenderer;
 
     public MicrosoftGraphNotificationEmailSender(
             @Value("${app.email.enabled:false}") boolean enabled,
@@ -34,9 +35,11 @@ public class MicrosoftGraphNotificationEmailSender implements NotificationEmailS
             @Value("${app.microsoft.graph.client-id:}") String clientId,
             @Value("${app.microsoft.graph.tenant-id:}") String tenantId,
             @Value("${app.microsoft.graph.client-secret:}") String clientSecret,
-            @Value("${app.microsoft.graph.scopes:https://graph.microsoft.com/.default}") String scopes) {
+            @Value("${app.microsoft.graph.scopes:https://graph.microsoft.com/.default}") String scopes,
+            NotificationEmailHtmlRenderer notificationEmailHtmlRenderer) {
         this.enabled = enabled;
         this.fromAddress = requireConfiguration("APP_EMAIL_FROM", fromAddress);
+        this.notificationEmailHtmlRenderer = notificationEmailHtmlRenderer;
         ClientSecretCredential credential = new ClientSecretCredentialBuilder()
                 .clientId(requireConfiguration("MICROSOFT_GRAPH_CLIENT_ID", clientId))
                 .tenantId(requireConfiguration("MICROSOFT_GRAPH_TENANT_ID", tenantId))
@@ -57,7 +60,7 @@ public class MicrosoftGraphNotificationEmailSender implements NotificationEmailS
 
             ItemBody body = new ItemBody();
             body.setContentType(BodyType.Html);
-            body.setContent(toHtml(command.title(), command.body()));
+            body.setContent(notificationEmailHtmlRenderer.render(command.title(), command.body()));
             message.setBody(body);
 
             Recipient recipient = new Recipient();
@@ -87,20 +90,4 @@ public class MicrosoftGraphNotificationEmailSender implements NotificationEmailS
         return value.trim();
     }
 
-    private static String toHtml(String title, String body) {
-        return "<html><body style=\"font-family:Arial,sans-serif;color:#0f172a;line-height:1.5\">"
-                + "<h2>" + escapeHtml(title) + "</h2><p>" + escapeHtml(body).replace("\n", "<br>")
-                + "</p></body></html>";
-    }
-
-    private static String escapeHtml(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&#39;");
-    }
 }
