@@ -29,7 +29,7 @@ export function LoadingState({
             display: "grid",
             placeItems: "center",
             borderRadius: "50%",
-            bgcolor: "rgba(196, 106, 34, 0.08)",
+            bgcolor: "rgba(18, 102, 214, 0.08)",
           }}
         >
           <CircularProgress color="secondary" size={28} />

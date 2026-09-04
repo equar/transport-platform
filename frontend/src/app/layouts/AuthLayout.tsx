@@ -10,7 +10,7 @@ export function AuthLayout() {
       sx={{
         minHeight: "100vh",
         background:
-          "radial-gradient(circle at top left, rgba(18, 112, 112, 0.16), transparent 30%), radial-gradient(circle at right, rgba(196, 106, 34, 0.12), transparent 28%), linear-gradient(180deg, #f6f7f4 0%, #eef1eb 100%)",
+          "radial-gradient(circle at top left, rgba(18, 102, 214, 0.16), transparent 30%), radial-gradient(circle at right, rgba(77, 148, 238, 0.12), transparent 28%), linear-gradient(180deg, #f6f8fc 0%, #edf3fb 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

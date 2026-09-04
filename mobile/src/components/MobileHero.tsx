@@ -16,8 +16,8 @@ export function MobileHero({ eyebrow, title, description, icon = 'navigation-var
 
 const styles = StyleSheet.create({
   hero: { position: 'relative', overflow: 'hidden', backgroundColor: Colors.surfaceStrong, borderRadius: Radius.lg, padding: Spacing.xl, minHeight: 184, justifyContent: 'flex-end', ...Shadow.card },
-  icon: { position: 'absolute', right: Spacing.xl, top: Spacing.xl, width: 48, height: 48, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,.14)' },
-  eyebrow: { fontFamily: Typography.fontBodyBold, fontSize: Typography.sizeXs, color: '#bcd8ff', textTransform: 'uppercase', marginBottom: Spacing.sm },
+  icon: { position: 'absolute', right: Spacing.xl, top: Spacing.xl, width: 48, height: 48, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.onPrimaryOverlay },
+  eyebrow: { fontFamily: Typography.fontBodyBold, fontSize: Typography.sizeXs, color: Colors.onPrimaryMuted, textTransform: 'uppercase', marginBottom: Spacing.sm },
   title: { fontFamily: Typography.fontHeading, fontSize: Typography.sizeXxxl, color: Colors.white, lineHeight: 34 },
-  description: { marginTop: Spacing.sm, maxWidth: '86%', fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: 'rgba(255,255,255,.68)', lineHeight: 20 },
+  description: { marginTop: Spacing.sm, maxWidth: '86%', fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: Colors.onPrimarySubtle, lineHeight: 20 },
 });

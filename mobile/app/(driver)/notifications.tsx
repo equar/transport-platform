@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, borderBottomWidth: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   item: { padding: Spacing.lg, gap: Spacing.xs, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface },
-  unread: { backgroundColor: '#f0f7fa' },
+  unread: { backgroundColor: Colors.primarySoft },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   time: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeXs, color: Colors.textSecondary },
   summary: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeMd, color: Colors.textPrimary },

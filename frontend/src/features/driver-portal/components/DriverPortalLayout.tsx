@@ -127,7 +127,7 @@ export function DriverPortalLayout() {
                 alignItems: "flex-start",
                 py: 1,
                 "&.Mui-selected": {
-                  bgcolor: "rgba(49, 91, 125, 0.10)",
+                  bgcolor: "rgba(18, 102, 214, 0.10)",
                 },
               }}
             >
@@ -195,7 +195,7 @@ export function DriverPortalLayout() {
       sx={{
         minHeight: "100vh",
         background:
-          "radial-gradient(circle at top left, rgba(18, 112, 112, 0.12), transparent 28%), linear-gradient(180deg, #f7f8f4 0%, #eef3f0 48%, #f7f8f4 100%)",
+          "radial-gradient(circle at top left, rgba(18, 102, 214, 0.12), transparent 28%), linear-gradient(180deg, #f6f8fc 0%, #edf3fb 48%, #f6f8fc 100%)",
         pb: { xs: 9, md: 0 },
       }}
     >
@@ -206,7 +206,7 @@ export function DriverPortalLayout() {
         sx={{
           borderBottom: "1px solid",
           borderColor: "divider",
-          backgroundColor: "rgba(247, 248, 244, 0.88)",
+          backgroundColor: "rgba(246, 248, 252, 0.88)",
           backdropFilter: "blur(14px)",
         }}
       >

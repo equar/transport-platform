@@ -128,7 +128,7 @@ export function RiderGuardianPortalLayout() {
                 alignItems: "flex-start",
                 py: 1,
                 "&.Mui-selected": {
-                  bgcolor: "rgba(49, 91, 125, 0.10)",
+                  bgcolor: "rgba(18, 102, 214, 0.10)",
                 },
               }}
             >
@@ -194,7 +194,7 @@ export function RiderGuardianPortalLayout() {
       sx={{
         minHeight: "100vh",
         background:
-          "radial-gradient(circle at top left, rgba(18, 112, 112, 0.12), transparent 28%), radial-gradient(circle at right, rgba(196, 106, 34, 0.10), transparent 24%), linear-gradient(180deg, #f7f8f4 0%, #eef3f0 48%, #f7f8f4 100%)",
+          "radial-gradient(circle at top left, rgba(18, 102, 214, 0.12), transparent 28%), radial-gradient(circle at right, rgba(77, 148, 238, 0.10), transparent 24%), linear-gradient(180deg, #f6f8fc 0%, #edf3fb 48%, #f6f8fc 100%)",
         pb: { xs: 9, md: 0 },
       }}
     >
@@ -205,7 +205,7 @@ export function RiderGuardianPortalLayout() {
         sx={{
           borderBottom: "1px solid",
           borderColor: "divider",
-          backgroundColor: "rgba(247, 248, 244, 0.90)",
+          backgroundColor: "rgba(246, 248, 252, 0.90)",
           backdropFilter: "blur(14px)",
         }}
       >

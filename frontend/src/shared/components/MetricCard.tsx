@@ -14,7 +14,7 @@ export function MetricCard({ icon, label, value, caption }: MetricCardProps) {
     <PageCard sx={{ height: "100%", p: 2.25, position: "relative", overflow: "hidden", "&::after": { content: '\"\"', position: "absolute", inset: "0 auto auto 0", width: 84, height: 4, borderRadius: 0, bgcolor: "primary.main" } }}>
       <Stack spacing={1.2} height="100%">
         <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Box sx={{ display: "grid", placeItems: "center", width: 42, height: 42, borderRadius: 1.5, color: "primary.main", bgcolor: "rgba(196, 71, 11, 0.10)", "& svg": { fontSize: 22 } }}>{icon}</Box>
+          <Box sx={{ display: "grid", placeItems: "center", width: 42, height: 42, borderRadius: 1.5, color: "primary.main", bgcolor: "rgba(18, 102, 214, 0.10)", "& svg": { fontSize: 22 } }}>{icon}</Box>
         </Stack>
         <Typography variant="subtitle2" color="text.secondary">
           {label}

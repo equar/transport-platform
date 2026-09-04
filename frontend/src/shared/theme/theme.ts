@@ -9,34 +9,34 @@ type BrandingThemeOptions = {
 };
 
 export function createAppTheme(branding?: BrandingThemeOptions | null) {
-  const primaryMain = branding?.primaryColor || '#c4470b';
-  const secondaryMain = branding?.secondaryColor || '#8a2708';
-  const accentMain = branding?.accentColor || '#f2942a';
+  const primaryMain = branding?.primaryColor || '#1266d6';
+  const secondaryMain = branding?.secondaryColor || '#084aa8';
+  const accentMain = branding?.accentColor || '#4d94ee';
 
   const base = createTheme({
     palette: {
       mode: 'light',
       primary: {
         main: primaryMain,
-        dark: '#7a2106',
+        dark: '#084aa8',
         light: accentMain,
         contrastText: '#ffffff',
       },
       secondary: {
         main: secondaryMain,
-        dark: '#571503',
-        light: '#c95a18',
+        dark: '#102b59',
+        light: '#4d94ee',
         contrastText: '#ffffff',
       },
       background: {
-        default: '#fff0e6',
+        default: '#f6f8fc',
         paper: '#ffffff',
       },
       text: {
-        primary: '#35140a',
-        secondary: '#76594d',
+        primary: '#102347',
+        secondary: '#5c6f8f',
       },
-      divider: '#edcfbd',
+      divider: '#dce5f1',
     },
     spacing: 5,
     shape: {
@@ -83,7 +83,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
           },
           '*': {
             scrollbarWidth: 'thin',
-            scrollbarColor: '#ce7a43 transparent',
+            scrollbarColor: '#4d94ee transparent',
             boxSizing: 'border-box',
           },
         },
@@ -132,7 +132,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
         styleOverrides: {
           root: {
             borderRadius: 7,
-            backgroundColor: '#fffdfa',
+            backgroundColor: '#ffffff',
           },
         },
         defaultProps: {
@@ -143,7 +143,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
         styleOverrides: {
           root: {
             borderRadius: 7,
-            backgroundColor: '#fffdfa',
+            backgroundColor: '#ffffff',
           },
         },
         defaultProps: {
@@ -179,8 +179,8 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
         styleOverrides: {
           root: { padding: '14px 16px', borderColor: borderTokens.table, verticalAlign: 'middle' },
           head: {
-            backgroundColor: '#fff2e8',
-            color: '#6d2b12',
+            backgroundColor: '#f2f6fd',
+            color: '#102347',
             fontSize: '0.74rem',
             fontWeight: 800,
             letterSpacing: '0.08em',
@@ -204,7 +204,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
         styleOverrides: { root: { borderTop: `1px solid ${borderTokens.table}`, padding: '14px 24px', backgroundColor: '#f8fafb' } },
       },
       MuiTableRow: {
-        styleOverrides: { root: { '&:hover': { backgroundColor: '#fff8f3' } } },
+        styleOverrides: { root: { '&:hover': { backgroundColor: '#f2f6fd' } } },
       },
       MuiContainer: {
         styleOverrides: {

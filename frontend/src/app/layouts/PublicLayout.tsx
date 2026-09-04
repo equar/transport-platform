@@ -13,7 +13,7 @@ export function PublicLayout() {
         display: "flex",
         flexDirection: "column",
         background:
-          "radial-gradient(circle at top left, rgba(18, 112, 112, 0.14), transparent 28%), radial-gradient(circle at right, rgba(196, 106, 34, 0.12), transparent 30%), linear-gradient(180deg, #f7f8f4 0%, #eef3f0 46%, #f7f8f4 100%)",
+          "radial-gradient(circle at top left, rgba(18, 102, 214, 0.14), transparent 28%), radial-gradient(circle at right, rgba(77, 148, 238, 0.12), transparent 30%), linear-gradient(180deg, #f6f8fc 0%, #edf3fb 46%, #f6f8fc 100%)",
       }}
     >
       <PublicHeader />

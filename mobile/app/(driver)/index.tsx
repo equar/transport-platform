@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   greeting: {
     fontFamily: 'SourceSans3_400Regular',
     fontSize: Typography.sizeMd,
-    color: '#c6dcfb',
+    color: Colors.onPrimaryMuted,
   },
   identityName: {
     fontFamily: 'SpaceGrotesk_700Bold',
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   identityMeta: {
     fontFamily: 'SourceSans3_400Regular',
     fontSize: Typography.sizeSm,
-    color: '#c6dcfb',
+    color: Colors.onPrimaryMuted,
   },
   heroActions: {
     flexDirection: 'row',
@@ -279,10 +279,10 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: Radius.full,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.32)',
+    borderColor: Colors.onPrimaryBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: Colors.onPrimaryOverlay,
   },
   summaryCard: {
     gap: Spacing.md,
