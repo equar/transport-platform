@@ -19,6 +19,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +31,6 @@ public class NotificationDispatchService {
     private final NotificationTemplateRepository notificationTemplateRepository;
     private final NotificationCodeGenerator notificationCodeGenerator;
     private final NotificationTemplateRenderer notificationTemplateRenderer;
-    private final NotificationEmailSender notificationEmailSender;
     private final NotificationPushSender notificationPushSender;
     private final PortalPushDeviceTokenService portalPushDeviceTokenService;
     private final ObjectMapper objectMapper;
@@ -40,7 +40,6 @@ public class NotificationDispatchService {
             NotificationTemplateRepository notificationTemplateRepository,
             NotificationCodeGenerator notificationCodeGenerator,
             NotificationTemplateRenderer notificationTemplateRenderer,
-            NotificationEmailSender notificationEmailSender,
             NotificationPushSender notificationPushSender,
             PortalPushDeviceTokenService portalPushDeviceTokenService,
             ObjectMapper objectMapper,
@@ -49,7 +48,6 @@ public class NotificationDispatchService {
         this.notificationTemplateRepository = notificationTemplateRepository;
         this.notificationCodeGenerator = notificationCodeGenerator;
         this.notificationTemplateRenderer = notificationTemplateRenderer;
-        this.notificationEmailSender = notificationEmailSender;
         this.notificationPushSender = notificationPushSender;
         this.portalPushDeviceTokenService = portalPushDeviceTokenService;
         this.objectMapper = objectMapper;
@@ -103,26 +101,10 @@ public class NotificationDispatchService {
         Notification notification = createBaseNotification(tenantId, recipientUserId, notificationType,
                 NotificationChannel.EMAIL,
                 relatedEntityType, relatedEntityId, rendered.title(), rendered.body(), context);
+        notification.setEmailSubject(rendered.subject());
         notification.setDeliveryStatus(NotificationDeliveryStatus.PENDING);
-        Notification saved = notificationRepository.save(notification);
-        if (recipientEmail == null || recipientEmail.isBlank()) {
-            saved.setDeliveryStatus(NotificationDeliveryStatus.SKIPPED);
-            saved.setErrorMessage("Recipient email is unavailable.");
-            return notificationRepository.save(saved);
-        }
-        NotificationEmailSender.DeliveryResult deliveryResult = notificationEmailSender.send(
-                new NotificationEmailSender.NotificationEmailCommand(
-                        recipientEmail.trim(),
-                        rendered.subject() == null ? rendered.title() : rendered.subject(),
-                        rendered.title(),
-                        rendered.body()));
-        saved.setDeliveryStatus(
-                deliveryResult.sent() ? NotificationDeliveryStatus.SENT : NotificationDeliveryStatus.FAILED);
-        saved.setErrorMessage(deliveryResult.errorMessage());
-        if (deliveryResult.sent()) {
-            saved.setSentAt(Instant.now(clock));
-        }
-        return notificationRepository.save(saved);
+        notification.setNextDeliveryAttemptAt(Instant.now(clock));
+        return notificationRepository.save(notification);
     }
 
     private Notification createBaseNotification(String tenantId,
@@ -147,6 +129,7 @@ public class NotificationDispatchService {
         notification.setReadStatus(NotificationReadStatus.UNREAD);
         notification.setStatus(NotificationStatus.ACTIVE);
         notification.setMetadataJson(writeMetadata(context));
+        notification.setCorrelationId(MDC.get("correlationId"));
         return notification;
     }
 

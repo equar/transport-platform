@@ -117,6 +117,10 @@ The native install flow automatically uses `http://10.0.2.2:8087/api` for
 `--env local` or the AWS backend for `--env aws`, detects the emulator CPU
 architecture, builds a standalone APK, installs it, and launches it.
 
+The installer requires at least 512 MiB free on the selected Android device's
+`/data` partition before it starts a build. If the preflight fails, free device
+storage or wipe and recreate the emulator before retrying.
+
 ## Physical Android device
 
 The phone and computer must be on the same network. The backend must listen on a non-loopback interface and its CORS/security settings must allow the mobile client.
@@ -140,8 +144,10 @@ This command defaults to `--env aws`: it verifies
 `AWS_API_BASE_URL` only when deploying the mobile app against another production
 HTTPS environment. Pass `--env local` to `android:release` (with
 `LOCAL_API_BASE_URL` set) to build a release-signed APK against a local backend
-instead. Local release APKs use the debug key unless `TRANSPORT_UPLOAD_*` Gradle
-properties are configured; never distribute a debug-signed artifact through an
+instead. The distribution command requires all four `TRANSPORT_UPLOAD_*`
+variables and verifies that the configured upload keystore exists before it
+builds. Use `android:device:prod` for a non-distributable, debug-signed smoke
+test of the production environment; never distribute that artifact through an
 app store.
 
 ## iOS Simulator

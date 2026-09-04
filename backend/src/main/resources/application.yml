@@ -38,7 +38,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,notificationDelivery
   endpoint:
     health:
       probes:
@@ -91,6 +91,8 @@ app:
     header-name: X-Tenant-Id
 
 logging:
+  pattern:
+    level: "%5p [corr:%X{correlationId:-}]"
   level:
     root: INFO
     "[com.transportplatform.tms]": INFO

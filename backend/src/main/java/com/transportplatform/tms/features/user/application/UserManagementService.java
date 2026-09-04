@@ -11,6 +11,7 @@ import com.transportplatform.tms.features.auth.domain.AppUser;
 import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
+import com.transportplatform.tms.features.auth.application.AuthSessionService;
 import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import com.transportplatform.tms.features.portalaccess.application.PortalAccessService;
 import com.transportplatform.tms.features.portalaccess.domain.PortalSubjectType;
@@ -30,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -54,6 +56,7 @@ public class UserManagementService {
     private final RiderRepository riderRepository;
     private final GuardianRepository guardianRepository;
     private final OrganizationContactRepository organizationContactRepository;
+    private final AuthSessionService authSessionService;
     private final Clock clock;
 
     public UserManagementService(AppUserRepository appUserRepository,
@@ -68,6 +71,7 @@ public class UserManagementService {
             RiderRepository riderRepository,
             GuardianRepository guardianRepository,
             OrganizationContactRepository organizationContactRepository,
+            AuthSessionService authSessionService,
             Clock clock) {
         this.appUserRepository = appUserRepository;
         this.tenantRepository = tenantRepository;
@@ -81,6 +85,7 @@ public class UserManagementService {
         this.riderRepository = riderRepository;
         this.guardianRepository = guardianRepository;
         this.organizationContactRepository = organizationContactRepository;
+        this.authSessionService = authSessionService;
         this.clock = clock;
     }
 
@@ -215,8 +220,11 @@ public class UserManagementService {
         AppUser user = findUser(userId);
         var oldSnapshot = snapshot(user);
         Set<RoleName> previousRoles = new LinkedHashSet<>(user.getRoles());
+        String previousPasswordHash = user.getPasswordHash();
+        UserStatus previousStatus = user.getStatus();
         applyUserValues(user, request, AdminScope.PLATFORM, false);
         AppUser saved = appUserRepository.save(user);
+        revokeSessionsWhenCredentialsChanged(saved, previousRoles, previousPasswordHash, previousStatus);
         syncPortalScope(saved, request, false);
         recordUserUpdated(saved, oldSnapshot, previousRoles);
         return toResponse(saved);
@@ -227,8 +235,11 @@ public class UserManagementService {
         AppUser user = findUserForCompanyScope(userId);
         var oldSnapshot = snapshot(user);
         Set<RoleName> previousRoles = new LinkedHashSet<>(user.getRoles());
+        String previousPasswordHash = user.getPasswordHash();
+        UserStatus previousStatus = user.getStatus();
         applyUserValues(user, request, AdminScope.COMPANY, false);
         AppUser saved = appUserRepository.save(user);
+        revokeSessionsWhenCredentialsChanged(saved, previousRoles, previousPasswordHash, previousStatus);
         syncPortalScope(saved, request, false);
         recordUserUpdated(saved, oldSnapshot, previousRoles);
         return toResponse(saved);
@@ -297,6 +308,9 @@ public class UserManagementService {
         UserStatus previousStatus = user.getStatus();
         user.setStatus(status);
         AppUser saved = appUserRepository.save(user);
+        if (previousStatus != saved.getStatus() && isSessionInvalidatingStatus(saved.getStatus())) {
+            authSessionService.revokeAllForUser(saved.getId());
+        }
         auditLogService.record(new AuditLogCommand(
                 null,
                 saved.getTenantId(),
@@ -360,6 +374,7 @@ public class UserManagementService {
         user.setPasswordResetRequestedAt(null);
         user.setPasswordResetTokenExpiresAt(null);
         AppUser saved = appUserRepository.save(user);
+        authSessionService.revokeAllForUser(saved.getId());
         auditLogService.record(new AuditLogCommand(
                 null,
                 saved.getTenantId(),
@@ -372,6 +387,21 @@ public class UserManagementService {
                 Map.of("userId", saved.getId(), "email", saved.getEmail(), "mustChangePassword", true)));
         notificationEventService.publishCompanyUserCreated(saved);
         return toResponse(saved);
+    }
+
+    private void revokeSessionsWhenCredentialsChanged(AppUser user,
+            Set<RoleName> previousRoles,
+            String previousPasswordHash,
+            UserStatus previousStatus) {
+        if (!previousRoles.equals(user.getRoles())
+                || !Objects.equals(previousPasswordHash, user.getPasswordHash())
+                || (previousStatus != user.getStatus() && isSessionInvalidatingStatus(user.getStatus()))) {
+            authSessionService.revokeAllForUser(user.getId());
+        }
+    }
+
+    private boolean isSessionInvalidatingStatus(UserStatus status) {
+        return status == UserStatus.SUSPENDED || status == UserStatus.DEACTIVATED;
     }
 
     private Set<RoleName> validateRoles(Set<RoleName> roles, AdminScope scope, String tenantId) {

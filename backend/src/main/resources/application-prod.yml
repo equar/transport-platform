@@ -3,24 +3,24 @@ server:
 
 spring:
   flyway:
-    enabled: false
+    enabled: true
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,notificationDelivery
 
 app:
   bootstrap:
     platform-admin:
       enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:true}
       email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:samuelweld2018@gmail.com}
-      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:Password123}
+      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:}
   security:
     api-docs-enabled: false
 

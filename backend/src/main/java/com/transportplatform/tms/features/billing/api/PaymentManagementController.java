@@ -18,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -81,8 +82,10 @@ public class PaymentManagementController {
     @PostMapping("/company/payments")
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<PaymentDetailResponse> createCompanyPayment(@Valid @RequestBody PaymentUpsertRequest request) {
-        return ApiResponse.success(paymentService.createCompanyPayment(request));
+    public ApiResponse<PaymentDetailResponse> createCompanyPayment(
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody PaymentUpsertRequest request) {
+        return ApiResponse.success(paymentService.createCompanyPayment(request, idempotencyKey));
     }
 
     @PutMapping("/company/payments/{paymentId}")

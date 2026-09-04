@@ -68,6 +68,11 @@ public class AuthSessionService {
         repository.revokeAllForUser(userId, clock.instant());
     }
 
+    @Transactional
+    public void revokeAllForTenant(String tenantId) {
+        repository.revokeAllForTenant(tenantId, clock.instant());
+    }
+
     private IssuedRefreshToken create(AppUser user, String familyId, String clientType) {
         byte[] bytes = new byte[48];
         secureRandom.nextBytes(bytes);

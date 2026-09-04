@@ -20,6 +20,7 @@ import { LoadingState } from '@components/LoadingState';
 import { Colors, Spacing, Typography } from '@theme/tokens';
 import { DriverRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime } from '@utils/formatDate';
+import { createIdempotencyKey } from '@utils/idempotencyKey';
 import { useAuth } from '@auth/AuthContext';
 import * as Linking from 'expo-linking';
 
@@ -54,9 +55,10 @@ export default function DriverRideDetailPage() {
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
   const router = useRouter();
   const qc = useQueryClient();
-  const { enqueue } = useOfflineQueue();
+  const { enqueue, queue, conflicts, dismissConflict } = useOfflineQueue();
   const { session } = useAuth();
   const locationPermissionAlertShownRef = React.useRef(false);
+  const actionInFlightRef = React.useRef(false);
 
   const { data: ride, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['driver-ride', rideId],
@@ -76,37 +78,66 @@ export default function DriverRideDetailPage() {
   });
 
   const { mutate: performAction, isPending: actionPending } = useMutation({
-    mutationFn: ({ action }: { action: DriverRideAction }) =>
-      driverPortalApi.postRideAction(Number(rideId), action),
+    mutationFn: ({ action, idempotencyKey }: { action: DriverRideAction; idempotencyKey: string }) =>
+      driverPortalApi.postRideAction(Number(rideId), action, idempotencyKey),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['driver-rides'] });
       qc.invalidateQueries({ queryKey: ['driver-ride', rideId] });
     },
     onError: (err: Error) => Alert.alert('Error', err.message),
+    onSettled: () => {
+      actionInFlightRef.current = false;
+    },
   });
 
   async function handleAction(action: DriverRideAction, label: string) {
-    const net = await NetInfo.fetch();
+    if (actionInFlightRef.current) {
+      return;
+    }
+    actionInFlightRef.current = true;
+    let net;
+    try {
+      net = await NetInfo.fetch();
+    } catch {
+      actionInFlightRef.current = false;
+      Alert.alert('Connection unavailable', 'Try the trip action again when your connection is available.');
+      return;
+    }
     if (!net.isConnected) {
-      if (!session?.identity.tenantId || !ride) return;
+      if (!session?.identity.tenantId || !ride) {
+        actionInFlightRef.current = false;
+        return;
+      }
       enqueue(Number(rideId), action, {
         tenantId: session.identity.tenantId,
         userId: session.identity.id,
       }, ride.status);
+      actionInFlightRef.current = false;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       Alert.alert('Offline', `Action "${label}" will sync when you're back online.`);
       return;
     }
     Alert.alert('Confirm', `${label}?`, [
-      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Cancel',
+        style: 'cancel',
+        onPress: () => {
+          actionInFlightRef.current = false;
+        },
+      },
       {
         text: 'Confirm',
         onPress: () => {
-          performAction({ action });
+          performAction({ action, idempotencyKey: createIdempotencyKey('driver-action') });
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         },
       },
-    ]);
+    ], {
+      cancelable: true,
+      onDismiss: () => {
+        actionInFlightRef.current = false;
+      },
+    });
   }
 
   React.useEffect(() => {
@@ -172,6 +203,17 @@ export default function DriverRideDetailPage() {
 
   const primaryAction = PRIMARY_STATUS_ACTIONS[ride.status];
   const secondaryActions = SECONDARY_STATUS_ACTIONS[ride.status] ?? [];
+  const currentRideId = Number(rideId);
+  const queuedAction = session?.identity.tenantId
+    ? queue.find((item) => item.rideId === currentRideId
+      && item.tenantId === session.identity.tenantId
+      && item.userId === session.identity.id)
+    : undefined;
+  const actionConflict = session?.identity.tenantId
+    ? conflicts.find((conflict) => conflict.rideId === currentRideId
+      && conflict.tenantId === session.identity.tenantId
+      && conflict.userId === session.identity.id)
+    : undefined;
 
   return (
     <ScrollView
@@ -234,6 +276,29 @@ export default function DriverRideDetailPage() {
         <Section title="Special Instructions">
           <Text style={styles.instructions}>{ride.specialInstructions}</Text>
         </Section>
+      ) : null}
+
+      {queuedAction ? (
+        <View style={styles.queuedActionState}>
+          <Text style={styles.queuedActionTitle}>Trip action queued</Text>
+          <Text style={styles.queuedActionText}>
+            {queuedAction.action.replace(/-/g, ' ')} will sync when a connection is available.
+          </Text>
+        </View>
+      ) : null}
+
+      {actionConflict ? (
+        <View style={styles.conflictActionState}>
+          <Text style={styles.conflictActionTitle}>Trip action needs review</Text>
+          <Text style={styles.conflictActionText}>
+            The trip is now {actionConflict.currentStatus.replace(/_/g, ' ').toLowerCase()}. Refresh the trip before choosing another action.
+          </Text>
+          <AppButton
+            label="Dismiss"
+            variant="outlined"
+            onPress={() => dismissConflict(actionConflict.id)}
+          />
+        </View>
       ) : null}
 
       {/* Action */}
@@ -354,6 +419,40 @@ const styles = StyleSheet.create({
     fontFamily: 'SourceSans3_400Regular',
     fontSize: Typography.sizeMd,
     color: Colors.textPrimary,
+  },
+  queuedActionState: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#d97706',
+    backgroundColor: '#fffbeb',
+    padding: Spacing.md,
+    gap: Spacing.xs,
+  },
+  queuedActionTitle: {
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeMd,
+    color: '#92400e',
+  },
+  queuedActionText: {
+    fontFamily: 'SourceSans3_400Regular',
+    fontSize: Typography.sizeSm,
+    color: '#92400e',
+  },
+  conflictActionState: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#dc2626',
+    backgroundColor: '#fef2f2',
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  conflictActionTitle: {
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeMd,
+    color: '#991b1b',
+  },
+  conflictActionText: {
+    fontFamily: 'SourceSans3_400Regular',
+    fontSize: Typography.sizeSm,
+    color: '#991b1b',
   },
   primaryActionRow: {
     flexDirection: 'row',

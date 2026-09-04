@@ -11,6 +11,7 @@ SERIAL="${ANDROID_SERIAL:-}"
 API_URL=""
 ENV_NAME="local"
 PROFILE=""
+MIN_AVAILABLE_STORAGE_KIB=524288
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -72,6 +73,22 @@ fi
 export EXPO_PUBLIC_API_BASE_URL="$API_URL"
 export NODE_ENV="${TRANSPORT_NODE_ENV:-$([[ "$BUILD_TYPE" == "debug" ]] && echo development || echo production)}"
 
+ensure_device_storage() {
+  local device_serial="$1"
+  local available_kib
+  available_kib="$(adb -s "$device_serial" shell df -k /data 2>/dev/null | awk 'END { print $4 }' | tr -d '\r')"
+
+  if [[ ! "$available_kib" =~ ^[0-9]+$ ]]; then
+    echo "Could not determine available /data storage on $device_serial." >&2
+    exit 1
+  fi
+  if (( available_kib < MIN_AVAILABLE_STORAGE_KIB )); then
+    echo "$device_serial has insufficient /data storage for installation (${available_kib} KiB available; 512 MiB required)." >&2
+    echo "Free space on the device or wipe/recreate the emulator, then retry." >&2
+    exit 1
+  fi
+}
+
 adb start-server >/dev/null
 SERIALS=()
 if [[ -n "$SERIAL" ]]; then
@@ -96,6 +113,10 @@ if [[ ${#SERIALS[@]} -eq 0 ]]; then
   fi
   exit 1
 fi
+
+for serial in "${SERIALS[@]}"; do
+  ensure_device_storage "$serial"
+done
 
 echo "Building $BUILD_TYPE for ${#SERIALS[@]} $TARGET device(s)"
 echo "API: $EXPO_PUBLIC_API_BASE_URL"

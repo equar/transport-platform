@@ -1,10 +1,9 @@
--- Consolidated baseline migration
--- Generated to initialize schema and seed data in one first Flyway step
--- Source migrations merged in version order
+-- Consolidated schema-only baseline migration
+
+-- Generated from the original V1 through V27 migrations; test-data seed migrations are intentionally excluded.
 
 -- ================================================================
 -- BEGIN V1__init_foundation.sql
--- ================================================================
 CREATE TABLE tenants (
     id VARCHAR(36) NOT NULL,
     code VARCHAR(50) NOT NULL,
@@ -43,19 +42,1015 @@ CREATE TABLE user_roles (
 
 CREATE INDEX idx_app_users_tenant_id ON app_users (tenant_id);
 CREATE INDEX idx_app_users_email ON app_users (email);
-
 -- END V1__init_foundation.sql
 
 -- ================================================================
 -- BEGIN V2__tenant_application_workflow.sql
--- ================================================================
 ALTER TABLE tenants
     ADD COLUMN tenant_code VARCHAR(50) NULL AFTER code,
     ADD COLUMN company_name VARCHAR(150) NULL AFTER tenant_code,
     ADD COLUMN legal_name VARCHAR(150) NULL AFTER company_name,
     ADD COLUMN email VARCHAR(150) NULL AFTER legal_name,
+    ADD COLUMN phone VARCHAR(50) NULL AFTER email,
+    ADD COLUMN address_line1 VARCHAR(200) NULL AFTER phone,
+    ADD COLUMN address_line2 VARCHAR(200) NULL AFTER address_line1,
+    ADD COLUMN city VARCHAR(100) NULL AFTER address_line2,
+    ADD COLUMN state VARCHAR(100) NULL AFTER city,
+    ADD COLUMN zip_code VARCHAR(30) NULL AFTER state,
+    ADD COLUMN country VARCHAR(100) NULL AFTER zip_code,
+    ADD COLUMN business_type VARCHAR(100) NULL AFTER country,
+    ADD COLUMN subscription_plan VARCHAR(50) NULL AFTER business_type,
+    ADD COLUMN notes VARCHAR(2000) NULL AFTER subscription_plan,
+    ADD COLUMN status VARCHAR(30) NULL AFTER notes;
 
-    -- Schema-only baseline. Platform admin bootstrap is handled from application properties.
+UPDATE tenants
+SET tenant_code = COALESCE(tenant_code, code),
+    company_name = COALESCE(company_name, name),
+    legal_name = COALESCE(legal_name, name),
+    status = COALESCE(status, CASE WHEN active THEN 'ACTIVE' ELSE 'INACTIVE' END);
+
+ALTER TABLE tenants
+    MODIFY COLUMN tenant_code VARCHAR(50) NOT NULL,
+    MODIFY COLUMN company_name VARCHAR(150) NOT NULL,
+    MODIFY COLUMN legal_name VARCHAR(150) NOT NULL,
+    MODIFY COLUMN status VARCHAR(30) NOT NULL;
+
+CREATE UNIQUE INDEX uk_tenants_tenant_code ON tenants (tenant_code);
+CREATE UNIQUE INDEX uk_tenants_legal_name ON tenants (legal_name);
+
+CREATE TABLE tenant_service_types (
+    tenant_id VARCHAR(36) NOT NULL,
+    service_type VARCHAR(80) NOT NULL,
+    CONSTRAINT pk_tenant_service_types PRIMARY KEY (tenant_id, service_type),
+    CONSTRAINT fk_tenant_service_types_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+);
+
+CREATE TABLE company_applications (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    application_number VARCHAR(50) NOT NULL,
+    legal_company_name VARCHAR(150) NOT NULL,
+    dba_name VARCHAR(150) NULL,
+    contact_first_name VARCHAR(100) NOT NULL,
+    contact_last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
+    business_type VARCHAR(100) NOT NULL,
+    address_line1 VARCHAR(200) NOT NULL,
+    address_line2 VARCHAR(200) NULL,
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    zip_code VARCHAR(30) NOT NULL,
+    country VARCHAR(100) NOT NULL,
+    fleet_size INT NULL,
+    number_of_drivers INT NULL,
+    notes VARCHAR(2000) NULL,
+    review_notes VARCHAR(2000) NULL,
+    rejection_reason VARCHAR(2000) NULL,
+    status VARCHAR(30) NOT NULL,
+    approved_tenant_id VARCHAR(36) NULL,
+    owner_user_id BIGINT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_company_applications PRIMARY KEY (id),
+    CONSTRAINT uk_company_applications_application_number UNIQUE (application_number),
+    CONSTRAINT fk_company_applications_tenant FOREIGN KEY (approved_tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_company_applications_owner_user FOREIGN KEY (owner_user_id) REFERENCES app_users(id)
+);
+
+CREATE TABLE company_application_service_types (
+    company_application_id BIGINT NOT NULL,
+    service_type VARCHAR(80) NOT NULL,
+    CONSTRAINT pk_company_application_service_types PRIMARY KEY (company_application_id, service_type),
+    CONSTRAINT fk_company_application_service_types_application FOREIGN KEY (company_application_id) REFERENCES company_applications(id)
+);
+
+CREATE TABLE company_application_review_events (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    company_application_id BIGINT NOT NULL,
+    action VARCHAR(40) NOT NULL,
+    from_status VARCHAR(30) NULL,
+    to_status VARCHAR(30) NOT NULL,
+    notes VARCHAR(2000) NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_company_application_review_events PRIMARY KEY (id),
+    CONSTRAINT fk_company_application_review_events_application FOREIGN KEY (company_application_id) REFERENCES company_applications(id)
+);
+
+CREATE INDEX idx_company_applications_status ON company_applications (status);
+CREATE INDEX idx_company_applications_email ON company_applications (email);
+CREATE INDEX idx_company_applications_legal_company_name ON company_applications (legal_company_name);
+-- END V2__tenant_application_workflow.sql
+
+-- ================================================================
+-- BEGIN V3__user_management_foundation.sql
+ALTER TABLE app_users
+    ADD COLUMN first_name VARCHAR(100) NULL AFTER email,
+    ADD COLUMN last_name VARCHAR(100) NULL AFTER first_name,
+    ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE' AFTER password_hash,
+    ADD COLUMN last_login_at DATETIME(6) NULL AFTER status;
+
+UPDATE app_users
+SET status = CASE
+    WHEN locked = TRUE THEN 'SUSPENDED'
+    WHEN enabled = TRUE THEN 'ACTIVE'
+    ELSE 'INVITED'
+END;
+
+UPDATE app_users
+SET first_name = COALESCE(first_name, CASE WHEN tenant_id IS NULL THEN 'Platform' ELSE 'Team' END),
+    last_name = COALESCE(last_name, CASE WHEN tenant_id IS NULL THEN 'Administrator' ELSE 'Member' END)
+WHERE first_name IS NULL OR last_name IS NULL;
+
+CREATE INDEX idx_app_users_status ON app_users (status);-- END V3__user_management_foundation.sql
+
+-- ================================================================
+-- BEGIN V4__audit_log_foundation.sql
+CREATE TABLE audit_logs (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    actor_user_id BIGINT NULL,
+    actor_email VARCHAR(150) NULL,
+    actor_name VARCHAR(150) NULL,
+    tenant_id VARCHAR(36) NULL,
+    module_name VARCHAR(80) NOT NULL,
+    action_name VARCHAR(80) NOT NULL,
+    entity_type VARCHAR(80) NOT NULL,
+    entity_id VARCHAR(100) NOT NULL,
+    summary VARCHAR(500) NOT NULL,
+    old_value_json TEXT NULL,
+    new_value_json TEXT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_audit_logs PRIMARY KEY (id),
+    CONSTRAINT fk_audit_logs_actor_user FOREIGN KEY (actor_user_id) REFERENCES app_users(id),
+    CONSTRAINT fk_audit_logs_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+);
+
+CREATE INDEX idx_audit_logs_created_at ON audit_logs (created_at);
+CREATE INDEX idx_audit_logs_tenant_id ON audit_logs (tenant_id);
+CREATE INDEX idx_audit_logs_module_name ON audit_logs (module_name);
+CREATE INDEX idx_audit_logs_action_name ON audit_logs (action_name);-- END V4__audit_log_foundation.sql
+
+-- ================================================================
+-- BEGIN V5__driver_management_foundation.sql
+CREATE TABLE drivers (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    driver_code VARCHAR(50) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100) NULL,
+    last_name VARCHAR(100) NOT NULL,
+    date_of_birth DATE NULL,
+    email VARCHAR(150) NULL,
+    phone VARCHAR(50) NOT NULL,
+    alternate_phone VARCHAR(50) NULL,
+    address_line1 VARCHAR(200) NULL,
+    address_line2 VARCHAR(200) NULL,
+    city VARCHAR(100) NULL,
+    state VARCHAR(100) NULL,
+    zip_code VARCHAR(30) NULL,
+    country VARCHAR(100) NULL,
+    driver_type VARCHAR(30) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    hire_date DATE NULL,
+    start_date DATE NULL,
+    availability_summary VARCHAR(200) NULL,
+    license_number VARCHAR(80) NULL,
+    license_state VARCHAR(80) NULL,
+    license_expiry_date DATE NULL,
+    background_check_status VARCHAR(30) NOT NULL,
+    background_check_expiry_date DATE NULL,
+    drug_test_status VARCHAR(30) NOT NULL,
+    drug_test_expiry_date DATE NULL,
+    training_status VARCHAR(30) NOT NULL,
+    training_completion_date DATE NULL,
+    emergency_contact_name VARCHAR(150) NULL,
+    emergency_contact_phone VARCHAR(50) NULL,
+    emergency_contact_relationship VARCHAR(100) NULL,
+    notes VARCHAR(2000) NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_drivers PRIMARY KEY (id),
+    CONSTRAINT uq_drivers_tenant_driver_code UNIQUE (tenant_id, driver_code),
+    CONSTRAINT fk_drivers_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+);
+
+CREATE INDEX idx_drivers_tenant_id ON drivers (tenant_id);
+CREATE INDEX idx_drivers_status ON drivers (status);
+CREATE INDEX idx_drivers_name ON drivers (last_name, first_name);
+CREATE INDEX idx_drivers_license_number ON drivers (license_number);
+
+CREATE TABLE driver_documents (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    driver_id BIGINT NOT NULL,
+    document_type VARCHAR(50) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    original_file_name VARCHAR(255) NULL,
+    content_type VARCHAR(120) NULL,
+    storage_path VARCHAR(500) NULL,
+    document_number VARCHAR(120) NULL,
+    issuing_authority VARCHAR(150) NULL,
+    issue_date DATE NULL,
+    expiry_date DATE NULL,
+    verification_status VARCHAR(30) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    notes VARCHAR(2000) NULL,
+    uploaded_by VARCHAR(100) NOT NULL,
+    uploaded_at DATETIME(6) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_driver_documents PRIMARY KEY (id),
+    CONSTRAINT fk_driver_documents_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_driver_documents_driver FOREIGN KEY (driver_id) REFERENCES drivers(id)
+);
+
+CREATE INDEX idx_driver_documents_driver_id ON driver_documents (driver_id);
+CREATE INDEX idx_driver_documents_tenant_id ON driver_documents (tenant_id);
+CREATE INDEX idx_driver_documents_document_type ON driver_documents (document_type);
+CREATE INDEX idx_driver_documents_status ON driver_documents (status);
+CREATE INDEX idx_driver_documents_verification_status ON driver_documents (verification_status);
+CREATE INDEX idx_driver_documents_expiry_date ON driver_documents (expiry_date);-- END V5__driver_management_foundation.sql
+
+-- ================================================================
+-- BEGIN V6__vehicle_management_foundation.sql
+CREATE TABLE vehicles (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    vehicle_code VARCHAR(50) NOT NULL,
+    ownership_type VARCHAR(30) NOT NULL,
+    make VARCHAR(120) NOT NULL,
+    model VARCHAR(120) NOT NULL,
+    vehicle_year INT NOT NULL,
+    color VARCHAR(80) NULL,
+    vin VARCHAR(17) NULL,
+    plate_number VARCHAR(30) NOT NULL,
+    plate_state VARCHAR(80) NOT NULL,
+    capacity INT NOT NULL,
+    wheelchair_capacity INT NULL,
+    fuel_type VARCHAR(30) NULL,
+    insurance_policy_number VARCHAR(120) NULL,
+    insurance_expiry_date DATE NULL,
+    registration_expiry_date DATE NULL,
+    inspection_expiry_date DATE NULL,
+    mileage BIGINT NULL,
+    assigned_driver_id BIGINT NULL,
+    notes VARCHAR(2000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_vehicles PRIMARY KEY (id),
+    CONSTRAINT uq_vehicles_tenant_vehicle_code UNIQUE (tenant_id, vehicle_code),
+    CONSTRAINT uq_vehicles_tenant_vin UNIQUE (tenant_id, vin),
+    CONSTRAINT uq_vehicles_tenant_plate UNIQUE (tenant_id, plate_number, plate_state),
+    CONSTRAINT fk_vehicles_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+);
+
+CREATE INDEX idx_vehicles_tenant_id ON vehicles (tenant_id);
+CREATE INDEX idx_vehicles_status ON vehicles (status);
+CREATE INDEX idx_vehicles_make_model ON vehicles (make, model);
+CREATE INDEX idx_vehicles_plate ON vehicles (plate_number, plate_state);
+
+CREATE TABLE vehicle_service_types (
+    vehicle_id BIGINT NOT NULL,
+    service_type VARCHAR(80) NOT NULL,
+    CONSTRAINT fk_vehicle_service_types_vehicle FOREIGN KEY (vehicle_id) REFERENCES vehicles(id)
+);
+
+CREATE INDEX idx_vehicle_service_types_vehicle_id ON vehicle_service_types (vehicle_id);
+CREATE INDEX idx_vehicle_service_types_type ON vehicle_service_types (service_type);
+
+CREATE TABLE vehicle_documents (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    vehicle_id BIGINT NOT NULL,
+    document_type VARCHAR(60) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    original_file_name VARCHAR(255) NULL,
+    content_type VARCHAR(120) NULL,
+    storage_path VARCHAR(500) NULL,
+    document_number VARCHAR(120) NULL,
+    issuing_authority VARCHAR(150) NULL,
+    issue_date DATE NULL,
+    expiry_date DATE NULL,
+    verification_status VARCHAR(30) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    notes VARCHAR(2000) NULL,
+    uploaded_by VARCHAR(100) NOT NULL,
+    uploaded_at DATETIME(6) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_vehicle_documents PRIMARY KEY (id),
+    CONSTRAINT fk_vehicle_documents_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_vehicle_documents_vehicle FOREIGN KEY (vehicle_id) REFERENCES vehicles(id)
+);
+
+CREATE INDEX idx_vehicle_documents_vehicle_id ON vehicle_documents (vehicle_id);
+CREATE INDEX idx_vehicle_documents_tenant_id ON vehicle_documents (tenant_id);
+CREATE INDEX idx_vehicle_documents_document_type ON vehicle_documents (document_type);
+CREATE INDEX idx_vehicle_documents_status ON vehicle_documents (status);
+CREATE INDEX idx_vehicle_documents_verification_status ON vehicle_documents (verification_status);
+CREATE INDEX idx_vehicle_documents_expiry_date ON vehicle_documents (expiry_date);-- END V6__vehicle_management_foundation.sql
+
+-- ================================================================
+-- BEGIN V7__rider_guardian_management_foundation.sql
+CREATE TABLE riders (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    rider_code VARCHAR(50) NOT NULL,
+    rider_type VARCHAR(30) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100) NULL,
+    last_name VARCHAR(100) NOT NULL,
+    date_of_birth DATE NULL,
+    gender VARCHAR(30) NULL,
+    email VARCHAR(150) NULL,
+    primary_phone VARCHAR(50) NOT NULL,
+    alternate_phone VARCHAR(50) NULL,
+    home_address_line1 VARCHAR(200) NULL,
+    home_address_line2 VARCHAR(200) NULL,
+    city VARCHAR(100) NULL,
+    state VARCHAR(100) NULL,
+    zip_code VARCHAR(30) NULL,
+    country VARCHAR(100) NULL,
+    default_pickup_address VARCHAR(300) NULL,
+    default_dropoff_address VARCHAR(300) NULL,
+    pickup_notes VARCHAR(1000) NULL,
+    dropoff_notes VARCHAR(1000) NULL,
+    preferred_pickup_window_start TIME NULL,
+    preferred_pickup_window_end TIME NULL,
+    preferred_dropoff_window_start TIME NULL,
+    preferred_dropoff_window_end TIME NULL,
+    wheelchair_required BIT NOT NULL,
+    escort_required BIT NOT NULL,
+    special_instructions VARCHAR(2000) NULL,
+    care_notes_summary VARCHAR(2000) NULL,
+    emergency_contact_name VARCHAR(150) NULL,
+    emergency_contact_phone VARCHAR(50) NULL,
+    emergency_contact_relationship VARCHAR(100) NULL,
+    organization_id BIGINT NULL,
+    notes VARCHAR(2000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_riders PRIMARY KEY (id),
+    CONSTRAINT uq_riders_tenant_rider_code UNIQUE (tenant_id, rider_code),
+    CONSTRAINT fk_riders_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+);
+
+CREATE INDEX idx_riders_tenant_id ON riders (tenant_id);
+CREATE INDEX idx_riders_status ON riders (status);
+CREATE INDEX idx_riders_type ON riders (rider_type);
+CREATE INDEX idx_riders_name ON riders (last_name, first_name);
+CREATE INDEX idx_riders_phone ON riders (primary_phone);
+
+CREATE TABLE rider_mobility_needs (
+    rider_id BIGINT NOT NULL,
+    mobility_need VARCHAR(40) NOT NULL,
+    CONSTRAINT fk_rider_mobility_needs_rider FOREIGN KEY (rider_id) REFERENCES riders(id)
+);
+
+CREATE INDEX idx_rider_mobility_needs_rider_id ON rider_mobility_needs (rider_id);
+CREATE INDEX idx_rider_mobility_needs_need ON rider_mobility_needs (mobility_need);
+
+CREATE TABLE guardians (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100) NULL,
+    last_name VARCHAR(100) NOT NULL,
+    relation_to_rider_default VARCHAR(100) NULL,
+    email VARCHAR(150) NULL,
+    phone VARCHAR(50) NOT NULL,
+    alternate_phone VARCHAR(50) NULL,
+    address_line1 VARCHAR(200) NULL,
+    address_line2 VARCHAR(200) NULL,
+    city VARCHAR(100) NULL,
+    state VARCHAR(100) NULL,
+    zip_code VARCHAR(30) NULL,
+    country VARCHAR(100) NULL,
+    preferred_communication_method VARCHAR(30) NULL,
+    billing_contact BIT NOT NULL,
+    authorized_for_pickup BIT NOT NULL,
+    notes VARCHAR(2000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_guardians PRIMARY KEY (id),
+    CONSTRAINT fk_guardians_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+);
+
+CREATE INDEX idx_guardians_tenant_id ON guardians (tenant_id);
+CREATE INDEX idx_guardians_status ON guardians (status);
+CREATE INDEX idx_guardians_name ON guardians (last_name, first_name);
+CREATE INDEX idx_guardians_phone ON guardians (phone);
+
+CREATE TABLE rider_guardians (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    rider_id BIGINT NOT NULL,
+    guardian_id BIGINT NOT NULL,
+    relationship_type VARCHAR(40) NOT NULL,
+    primary_guardian BIT NOT NULL,
+    authorized_for_pickup BIT NOT NULL,
+    billing_contact BIT NOT NULL,
+    notes VARCHAR(2000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_rider_guardians PRIMARY KEY (id),
+    CONSTRAINT uq_rider_guardians_tenant_rider_guardian UNIQUE (tenant_id, rider_id, guardian_id),
+    CONSTRAINT fk_rider_guardians_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_rider_guardians_rider FOREIGN KEY (rider_id) REFERENCES riders(id),
+    CONSTRAINT fk_rider_guardians_guardian FOREIGN KEY (guardian_id) REFERENCES guardians(id)
+);
+
+CREATE INDEX idx_rider_guardians_tenant_id ON rider_guardians (tenant_id);
+CREATE INDEX idx_rider_guardians_rider_id ON rider_guardians (rider_id);
+CREATE INDEX idx_rider_guardians_guardian_id ON rider_guardians (guardian_id);
+CREATE INDEX idx_rider_guardians_status ON rider_guardians (status);
+CREATE INDEX idx_rider_guardians_primary_guardian ON rider_guardians (primary_guardian);-- END V7__rider_guardian_management_foundation.sql
+
+-- ================================================================
+-- BEGIN V8__organization_contract_service_area_foundation.sql
+CREATE TABLE organizations (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    organization_code VARCHAR(50) NOT NULL,
+    organization_type VARCHAR(40) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    legal_name VARCHAR(200) NULL,
+    address_line1 VARCHAR(200) NULL,
+    address_line2 VARCHAR(200) NULL,
+    city VARCHAR(100) NULL,
+    state VARCHAR(100) NULL,
+    zip_code VARCHAR(30) NULL,
+    country VARCHAR(100) NULL,
+    billing_address_line1 VARCHAR(200) NULL,
+    billing_address_line2 VARCHAR(200) NULL,
+    billing_city VARCHAR(100) NULL,
+    billing_state VARCHAR(100) NULL,
+    billing_zip_code VARCHAR(30) NULL,
+    billing_country VARCHAR(100) NULL,
+    primary_phone VARCHAR(50) NULL,
+    primary_email VARCHAR(150) NULL,
+    website VARCHAR(200) NULL,
+    notes VARCHAR(2000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_organizations PRIMARY KEY (id),
+    CONSTRAINT uq_organizations_tenant_code UNIQUE (tenant_id, organization_code),
+    CONSTRAINT fk_organizations_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+);
+
+CREATE INDEX idx_organizations_tenant_id ON organizations (tenant_id);
+CREATE INDEX idx_organizations_status ON organizations (status);
+CREATE INDEX idx_organizations_type ON organizations (organization_type);
+CREATE INDEX idx_organizations_name ON organizations (name);
+
+CREATE TABLE organization_contacts (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    organization_id BIGINT NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    title VARCHAR(100) NULL,
+    department VARCHAR(100) NULL,
+    email VARCHAR(150) NULL,
+    phone VARCHAR(50) NULL,
+    alternate_phone VARCHAR(50) NULL,
+    preferred_communication_method VARCHAR(30) NULL,
+    is_primary BIT NOT NULL,
+    notes VARCHAR(2000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_organization_contacts PRIMARY KEY (id),
+    CONSTRAINT fk_organization_contacts_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_organization_contacts_organization FOREIGN KEY (organization_id) REFERENCES organizations(id)
+);
+
+CREATE INDEX idx_organization_contacts_tenant_id ON organization_contacts (tenant_id);
+CREATE INDEX idx_organization_contacts_organization_id ON organization_contacts (organization_id);
+CREATE INDEX idx_organization_contacts_status ON organization_contacts (status);
+CREATE INDEX idx_organization_contacts_primary ON organization_contacts (is_primary);
+
+CREATE TABLE contracts (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    contract_code VARCHAR(50) NOT NULL,
+    organization_id BIGINT NOT NULL,
+    contract_type VARCHAR(40) NOT NULL,
+    contract_name VARCHAR(150) NOT NULL,
+    description VARCHAR(2000) NULL,
+    start_date DATE NULL,
+    end_date DATE NULL,
+    renewal_date DATE NULL,
+    billing_model VARCHAR(40) NULL,
+    rate_notes VARCHAR(2000) NULL,
+    invoice_frequency VARCHAR(40) NULL,
+    service_window_notes VARCHAR(2000) NULL,
+    terms_and_conditions_summary VARCHAR(4000) NULL,
+    notes VARCHAR(2000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_contracts PRIMARY KEY (id),
+    CONSTRAINT uq_contracts_tenant_code UNIQUE (tenant_id, contract_code),
+    CONSTRAINT fk_contracts_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_contracts_organization FOREIGN KEY (organization_id) REFERENCES organizations(id)
+);
+
+CREATE INDEX idx_contracts_tenant_id ON contracts (tenant_id);
+CREATE INDEX idx_contracts_organization_id ON contracts (organization_id);
+CREATE INDEX idx_contracts_status ON contracts (status);
+CREATE INDEX idx_contracts_type ON contracts (contract_type);
+CREATE INDEX idx_contracts_dates ON contracts (start_date, end_date, renewal_date);
+
+CREATE TABLE contract_service_types (
+    contract_id BIGINT NOT NULL,
+    service_type VARCHAR(40) NOT NULL,
+    CONSTRAINT fk_contract_service_types_contract FOREIGN KEY (contract_id) REFERENCES contracts(id)
+);
+
+CREATE INDEX idx_contract_service_types_contract_id ON contract_service_types (contract_id);
+
+CREATE TABLE service_areas (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    area_code VARCHAR(50) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    description VARCHAR(2000) NULL,
+    coverage_type VARCHAR(30) NOT NULL,
+    city VARCHAR(100) NULL,
+    state VARCHAR(100) NULL,
+    zip_code VARCHAR(30) NULL,
+    county VARCHAR(100) NULL,
+    operating_days_summary VARCHAR(200) NULL,
+    operating_hours_summary VARCHAR(200) NULL,
+    notes VARCHAR(2000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_service_areas PRIMARY KEY (id),
+    CONSTRAINT uq_service_areas_tenant_code UNIQUE (tenant_id, area_code),
+    CONSTRAINT fk_service_areas_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+);
+
+CREATE INDEX idx_service_areas_tenant_id ON service_areas (tenant_id);
+CREATE INDEX idx_service_areas_status ON service_areas (status);
+CREATE INDEX idx_service_areas_coverage_type ON service_areas (coverage_type);
+
+CREATE TABLE service_area_service_types (
+    service_area_id BIGINT NOT NULL,
+    service_type VARCHAR(40) NOT NULL,
+    CONSTRAINT fk_service_area_service_types_service_area FOREIGN KEY (service_area_id) REFERENCES service_areas(id)
+);
+
+CREATE INDEX idx_service_area_service_types_area_id ON service_area_service_types (service_area_id);
+
+ALTER TABLE riders
+    ADD CONSTRAINT fk_riders_organization FOREIGN KEY (organization_id) REFERENCES organizations(id);
+-- END V8__organization_contract_service_area_foundation.sql
+
+-- ================================================================
+-- BEGIN V9__ride_management_foundation.sql
+CREATE TABLE recurring_ride_schedules (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    recurrence_code VARCHAR(50) NOT NULL,
+    rider_id BIGINT NOT NULL,
+    guardian_id BIGINT NULL,
+    organization_id BIGINT NULL,
+    contract_id BIGINT NULL,
+    service_area_id BIGINT NULL,
+    service_type VARCHAR(40) NOT NULL,
+    trip_type VARCHAR(30) NOT NULL,
+    pickup_address_line1 VARCHAR(200) NOT NULL,
+    pickup_address_line2 VARCHAR(200) NULL,
+    pickup_city VARCHAR(100) NOT NULL,
+    pickup_state VARCHAR(100) NOT NULL,
+    pickup_zip_code VARCHAR(30) NOT NULL,
+    pickup_country VARCHAR(100) NOT NULL,
+    dropoff_address_line1 VARCHAR(200) NOT NULL,
+    dropoff_address_line2 VARCHAR(200) NULL,
+    dropoff_city VARCHAR(100) NOT NULL,
+    dropoff_state VARCHAR(100) NOT NULL,
+    dropoff_zip_code VARCHAR(30) NOT NULL,
+    dropoff_country VARCHAR(100) NOT NULL,
+    scheduled_pickup_time TIME NOT NULL,
+    scheduled_dropoff_time TIME NULL,
+    return_pickup_time TIME NULL,
+    return_dropoff_time TIME NULL,
+    recurrence_pattern_type VARCHAR(30) NOT NULL,
+    interval_days INT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NULL,
+    occurrence_limit INT NULL,
+    wheelchair_required BIT NOT NULL,
+    escort_required BIT NOT NULL,
+    companion_count INT NOT NULL,
+    special_instructions VARCHAR(2000) NULL,
+    internal_notes VARCHAR(2000) NULL,
+    billing_type VARCHAR(40) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_recurring_ride_schedules PRIMARY KEY (id),
+    CONSTRAINT uq_recurring_ride_schedules_tenant_code UNIQUE (tenant_id, recurrence_code),
+    CONSTRAINT fk_recurring_ride_schedules_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_recurring_ride_schedules_rider FOREIGN KEY (rider_id) REFERENCES riders(id),
+    CONSTRAINT fk_recurring_ride_schedules_guardian FOREIGN KEY (guardian_id) REFERENCES guardians(id),
+    CONSTRAINT fk_recurring_ride_schedules_organization FOREIGN KEY (organization_id) REFERENCES organizations(id),
+    CONSTRAINT fk_recurring_ride_schedules_contract FOREIGN KEY (contract_id) REFERENCES contracts(id),
+    CONSTRAINT fk_recurring_ride_schedules_service_area FOREIGN KEY (service_area_id) REFERENCES service_areas(id)
+);
+
+CREATE INDEX idx_recurring_ride_schedules_tenant_id ON recurring_ride_schedules (tenant_id);
+CREATE INDEX idx_recurring_ride_schedules_status ON recurring_ride_schedules (status);
+CREATE INDEX idx_recurring_ride_schedules_rider_id ON recurring_ride_schedules (rider_id);
+CREATE INDEX idx_recurring_ride_schedules_dates ON recurring_ride_schedules (start_date, end_date);
+
+CREATE TABLE recurring_ride_schedule_days_of_week (
+    recurring_ride_schedule_id BIGINT NOT NULL,
+    day_of_week VARCHAR(20) NOT NULL,
+    CONSTRAINT fk_recurring_ride_schedule_days FOREIGN KEY (recurring_ride_schedule_id)
+        REFERENCES recurring_ride_schedules(id)
+);
+
+CREATE INDEX idx_recurring_ride_schedule_days_schedule_id
+    ON recurring_ride_schedule_days_of_week (recurring_ride_schedule_id);
+
+CREATE TABLE recurring_ride_schedule_skip_dates (
+    recurring_ride_schedule_id BIGINT NOT NULL,
+    skip_date DATE NOT NULL,
+    CONSTRAINT fk_recurring_ride_schedule_skip_dates FOREIGN KEY (recurring_ride_schedule_id)
+        REFERENCES recurring_ride_schedules(id)
+);
+
+CREATE INDEX idx_recurring_ride_schedule_skip_dates_schedule_id
+    ON recurring_ride_schedule_skip_dates (recurring_ride_schedule_id);
+
+CREATE TABLE rides (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    ride_number VARCHAR(50) NOT NULL,
+    rider_id BIGINT NOT NULL,
+    guardian_id BIGINT NULL,
+    organization_id BIGINT NULL,
+    contract_id BIGINT NULL,
+    service_area_id BIGINT NULL,
+    service_type VARCHAR(40) NOT NULL,
+    trip_type VARCHAR(30) NOT NULL,
+    pickup_address_line1 VARCHAR(200) NOT NULL,
+    pickup_address_line2 VARCHAR(200) NULL,
+    pickup_city VARCHAR(100) NOT NULL,
+    pickup_state VARCHAR(100) NOT NULL,
+    pickup_zip_code VARCHAR(30) NOT NULL,
+    pickup_country VARCHAR(100) NOT NULL,
+    dropoff_address_line1 VARCHAR(200) NOT NULL,
+    dropoff_address_line2 VARCHAR(200) NULL,
+    dropoff_city VARCHAR(100) NOT NULL,
+    dropoff_state VARCHAR(100) NOT NULL,
+    dropoff_zip_code VARCHAR(30) NOT NULL,
+    dropoff_country VARCHAR(100) NOT NULL,
+    scheduled_pickup_at DATETIME(6) NOT NULL,
+    scheduled_dropoff_at DATETIME(6) NULL,
+    return_pickup_at DATETIME(6) NULL,
+    return_dropoff_at DATETIME(6) NULL,
+    wheelchair_required BIT NOT NULL,
+    escort_required BIT NOT NULL,
+    companion_count INT NOT NULL,
+    special_instructions VARCHAR(2000) NULL,
+    internal_notes VARCHAR(2000) NULL,
+    operational_notes VARCHAR(2000) NULL,
+    priority_level VARCHAR(30) NULL,
+    billing_type VARCHAR(40) NULL,
+    driver_id BIGINT NULL,
+    vehicle_id BIGINT NULL,
+    route_id BIGINT NULL,
+    recurrence_schedule_id BIGINT NULL,
+    cancellation_reason VARCHAR(1000) NULL,
+    cancelled_at DATETIME(6) NULL,
+    cancelled_by VARCHAR(100) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_rides PRIMARY KEY (id),
+    CONSTRAINT uq_rides_tenant_number UNIQUE (tenant_id, ride_number),
+    CONSTRAINT fk_rides_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_rides_rider FOREIGN KEY (rider_id) REFERENCES riders(id),
+    CONSTRAINT fk_rides_guardian FOREIGN KEY (guardian_id) REFERENCES guardians(id),
+    CONSTRAINT fk_rides_organization FOREIGN KEY (organization_id) REFERENCES organizations(id),
+    CONSTRAINT fk_rides_contract FOREIGN KEY (contract_id) REFERENCES contracts(id),
+    CONSTRAINT fk_rides_service_area FOREIGN KEY (service_area_id) REFERENCES service_areas(id),
+    CONSTRAINT fk_rides_driver FOREIGN KEY (driver_id) REFERENCES drivers(id),
+    CONSTRAINT fk_rides_vehicle FOREIGN KEY (vehicle_id) REFERENCES vehicles(id),
+    CONSTRAINT fk_rides_recurrence_schedule FOREIGN KEY (recurrence_schedule_id) REFERENCES recurring_ride_schedules(id)
+);
+
+CREATE INDEX idx_rides_tenant_id ON rides (tenant_id);
+CREATE INDEX idx_rides_status ON rides (status);
+CREATE INDEX idx_rides_rider_id ON rides (rider_id);
+CREATE INDEX idx_rides_organization_id ON rides (organization_id);
+CREATE INDEX idx_rides_scheduled_pickup_at ON rides (scheduled_pickup_at);
+CREATE INDEX idx_rides_recurrence_schedule_id ON rides (recurrence_schedule_id);
+CREATE UNIQUE INDEX uq_rides_recurrence_pickup ON rides (recurrence_schedule_id, scheduled_pickup_at);-- END V9__ride_management_foundation.sql
+
+-- ================================================================
+-- BEGIN V10__dispatch_route_operations_foundation.sql
+CREATE TABLE routes (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    route_code VARCHAR(50) NOT NULL,
+    route_name VARCHAR(150) NOT NULL,
+    route_date DATE NOT NULL,
+    service_type VARCHAR(40) NOT NULL,
+    assigned_driver_id BIGINT NULL,
+    assigned_vehicle_id BIGINT NULL,
+    start_time TIME NULL,
+    end_time TIME NULL,
+    manifest_notes VARCHAR(2000) NULL,
+    notes VARCHAR(2000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_routes PRIMARY KEY (id),
+    CONSTRAINT uq_routes_tenant_code UNIQUE (tenant_id, route_code),
+    CONSTRAINT fk_routes_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_routes_driver FOREIGN KEY (assigned_driver_id) REFERENCES drivers(id),
+    CONSTRAINT fk_routes_vehicle FOREIGN KEY (assigned_vehicle_id) REFERENCES vehicles(id)
+);
+
+CREATE INDEX idx_routes_tenant_date ON routes (tenant_id, route_date);
+CREATE INDEX idx_routes_status ON routes (status);
+CREATE INDEX idx_routes_service_type ON routes (service_type);
+
+CREATE TABLE route_stops (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    route_id BIGINT NOT NULL,
+    ride_id BIGINT NOT NULL,
+    stop_sequence INT NOT NULL,
+    planned_pickup_at DATETIME(6) NULL,
+    planned_dropoff_at DATETIME(6) NULL,
+    notes VARCHAR(1000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_route_stops PRIMARY KEY (id),
+    CONSTRAINT uq_route_stops_route_ride UNIQUE (route_id, ride_id),
+    CONSTRAINT uq_route_stops_route_sequence UNIQUE (route_id, stop_sequence),
+    CONSTRAINT fk_route_stops_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_route_stops_route FOREIGN KEY (route_id) REFERENCES routes(id),
+    CONSTRAINT fk_route_stops_ride FOREIGN KEY (ride_id) REFERENCES rides(id)
+);
+
+CREATE INDEX idx_route_stops_tenant_route ON route_stops (tenant_id, route_id, stop_sequence);
+CREATE INDEX idx_route_stops_ride_id ON route_stops (ride_id);
+
+CREATE TABLE ride_events (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    ride_id BIGINT NOT NULL,
+    event_type VARCHAR(40) NOT NULL,
+    actor_user_id BIGINT NULL,
+    actor_name VARCHAR(150) NULL,
+    actor_email VARCHAR(150) NULL,
+    previous_status VARCHAR(30) NULL,
+    new_status VARCHAR(30) NULL,
+    notes VARCHAR(2000) NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_ride_events PRIMARY KEY (id),
+    CONSTRAINT fk_ride_events_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_ride_events_ride FOREIGN KEY (ride_id) REFERENCES rides(id)
+);
+
+CREATE INDEX idx_ride_events_tenant_ride ON ride_events (tenant_id, ride_id, created_at);
+CREATE INDEX idx_ride_events_type ON ride_events (event_type);
+
+ALTER TABLE rides
+    ADD CONSTRAINT fk_rides_route FOREIGN KEY (route_id) REFERENCES routes(id);
+
+CREATE INDEX idx_rides_driver_id ON rides (driver_id);
+CREATE INDEX idx_rides_vehicle_id ON rides (vehicle_id);
+CREATE INDEX idx_rides_route_id ON rides (route_id);-- END V10__dispatch_route_operations_foundation.sql
+
+-- ================================================================
+-- BEGIN V11__billing_foundation.sql
+CREATE TABLE pricing_rules (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    pricing_rule_code VARCHAR(50) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    description VARCHAR(2000) NULL,
+    pricing_model VARCHAR(40) NOT NULL,
+    bill_to_type VARCHAR(30) NOT NULL,
+    service_type VARCHAR(40) NULL,
+    rider_type VARCHAR(40) NULL,
+    organization_type VARCHAR(40) NULL,
+    contract_type VARCHAR(40) NULL,
+    trip_type VARCHAR(30) NULL,
+    amount DECIMAL(12, 2) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    effective_start_date DATE NOT NULL,
+    effective_end_date DATE NULL,
+    priority_order INT NOT NULL,
+    notes VARCHAR(2000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_pricing_rules PRIMARY KEY (id),
+    CONSTRAINT uq_pricing_rules_tenant_code UNIQUE (tenant_id, pricing_rule_code),
+    CONSTRAINT fk_pricing_rules_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+);
+
+CREATE INDEX idx_pricing_rules_tenant_status ON pricing_rules (tenant_id, status);
+CREATE INDEX idx_pricing_rules_tenant_effective ON pricing_rules (tenant_id, effective_start_date, effective_end_date);
+CREATE INDEX idx_pricing_rules_bill_to ON pricing_rules (tenant_id, bill_to_type, pricing_model);
+
+CREATE TABLE invoices (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    invoice_number VARCHAR(50) NOT NULL,
+    bill_to_type VARCHAR(30) NOT NULL,
+    bill_to_id BIGINT NOT NULL,
+    bill_to_name_snapshot VARCHAR(200) NOT NULL,
+    contract_id BIGINT NULL,
+    organization_id BIGINT NULL,
+    rider_id BIGINT NULL,
+    guardian_id BIGINT NULL,
+    invoice_date DATE NOT NULL,
+    due_date DATE NOT NULL,
+    billing_period_start DATE NULL,
+    billing_period_end DATE NULL,
+    subtotal DECIMAL(12, 2) NOT NULL,
+    tax_amount DECIMAL(12, 2) NOT NULL,
+    discount_amount DECIMAL(12, 2) NOT NULL,
+    total_amount DECIMAL(12, 2) NOT NULL,
+    amount_paid DECIMAL(12, 2) NOT NULL,
+    balance_due DECIMAL(12, 2) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    notes VARCHAR(2000) NULL,
+    void_reason VARCHAR(1000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_invoices PRIMARY KEY (id),
+    CONSTRAINT uq_invoices_tenant_number UNIQUE (tenant_id, invoice_number),
+    CONSTRAINT fk_invoices_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_invoices_contract FOREIGN KEY (contract_id) REFERENCES contracts(id),
+    CONSTRAINT fk_invoices_organization FOREIGN KEY (organization_id) REFERENCES organizations(id),
+    CONSTRAINT fk_invoices_rider FOREIGN KEY (rider_id) REFERENCES riders(id),
+    CONSTRAINT fk_invoices_guardian FOREIGN KEY (guardian_id) REFERENCES guardians(id)
+);
+
+CREATE INDEX idx_invoices_tenant_status ON invoices (tenant_id, status);
+CREATE INDEX idx_invoices_tenant_bill_to ON invoices (tenant_id, bill_to_type, bill_to_id);
+CREATE INDEX idx_invoices_tenant_dates ON invoices (tenant_id, invoice_date, due_date);
+
+CREATE TABLE invoice_line_items (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    invoice_id BIGINT NOT NULL,
+    line_number INT NOT NULL,
+    description VARCHAR(250) NOT NULL,
+    charge_source_type VARCHAR(30) NOT NULL,
+    source_reference_id BIGINT NULL,
+    pricing_rule_id BIGINT NULL,
+    quantity DECIMAL(12, 2) NOT NULL,
+    unit_price DECIMAL(12, 2) NOT NULL,
+    line_amount DECIMAL(12, 2) NOT NULL,
+    service_date DATE NULL,
+    service_period_label VARCHAR(120) NULL,
+    notes VARCHAR(2000) NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_invoice_line_items PRIMARY KEY (id),
+    CONSTRAINT uq_invoice_line_items_invoice_line UNIQUE (invoice_id, line_number),
+    CONSTRAINT fk_invoice_line_items_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_invoice_line_items_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id),
+    CONSTRAINT fk_invoice_line_items_pricing_rule FOREIGN KEY (pricing_rule_id) REFERENCES pricing_rules(id)
+);
+
+CREATE INDEX idx_invoice_line_items_invoice ON invoice_line_items (invoice_id, line_number);
+CREATE INDEX idx_invoice_line_items_source ON invoice_line_items (tenant_id, charge_source_type, source_reference_id);
+-- END V11__billing_foundation.sql
+
+-- ================================================================
+-- BEGIN V12__billing_payments_and_receivables.sql
+CREATE TABLE payments (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    invoice_id BIGINT NOT NULL,
+    payment_number VARCHAR(50) NOT NULL,
+    payment_date DATE NOT NULL,
+    amount DECIMAL(12, 2) NOT NULL,
+    payment_method VARCHAR(30) NOT NULL,
+    reference_number VARCHAR(150) NULL,
+    payer_name VARCHAR(200) NULL,
+    payer_contact VARCHAR(200) NULL,
+    external_transaction_id VARCHAR(150) NULL,
+    notes VARCHAR(2000) NULL,
+    void_reason VARCHAR(1000) NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_payments PRIMARY KEY (id),
+    CONSTRAINT uq_payments_tenant_number UNIQUE (tenant_id, payment_number),
+    CONSTRAINT fk_payments_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_payments_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id)
+);
+
+CREATE INDEX idx_payments_tenant_status ON payments (tenant_id, status);
+CREATE INDEX idx_payments_tenant_invoice ON payments (tenant_id, invoice_id);
+CREATE INDEX idx_payments_tenant_date ON payments (tenant_id, payment_date);
+
+CREATE TABLE collection_notes (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    invoice_id BIGINT NOT NULL,
+    contact_method VARCHAR(30) NOT NULL,
+    note VARCHAR(2000) NOT NULL,
+    next_follow_up_date DATE NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT pk_collection_notes PRIMARY KEY (id),
+    CONSTRAINT fk_collection_notes_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    CONSTRAINT fk_collection_notes_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id)
+);
+
+CREATE INDEX idx_collection_notes_invoice ON collection_notes (invoice_id, created_at);
+CREATE INDEX idx_collection_notes_tenant_next_follow_up ON collection_notes (tenant_id, next_follow_up_date);-- END V12__billing_payments_and_receivables.sql
+
+-- ================================================================
+-- BEGIN V13__notifications_and_compliance_foundation.sql
+CREATE TABLE notification_templates (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    tenant_id VARCHAR(36) NOT NULL,
+    template_code VARCHAR(50) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    event_type VARCHAR(60) NOT NULL,
+    channel VARCHAR(30) NOT NULL,
+    subject_template VARCHAR(255) NULL,
+    title_template VARCHAR(255) NULL,
+    body_template VARCHAR(4000) NOT NULL,
+    description VARCHAR(2000) NULL,
+    is_default BIT NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
     updated_at DATETIME(6) NOT NULL,
     CONSTRAINT pk_notification_templates PRIMARY KEY (id),
     CONSTRAINT uq_notification_templates_tenant_code UNIQUE (tenant_id, template_code),
@@ -123,12 +1118,10 @@ CREATE TABLE compliance_issues (
 
 CREATE INDEX idx_compliance_issues_tenant_status ON compliance_issues (tenant_id, issue_status);
 CREATE INDEX idx_compliance_issues_entity ON compliance_issues (tenant_id, entity_type, entity_id);
-CREATE INDEX idx_compliance_issues_severity ON compliance_issues (tenant_id, severity);
--- END V13__notifications_and_compliance_foundation.sql
+CREATE INDEX idx_compliance_issues_severity ON compliance_issues (tenant_id, severity);-- END V13__notifications_and_compliance_foundation.sql
 
 -- ================================================================
 -- BEGIN V14__incident_reporting_and_settings_foundation.sql
--- ================================================================
 CREATE TABLE incidents (
     id BIGINT NOT NULL AUTO_INCREMENT,
     tenant_id VARCHAR(36) NOT NULL,
@@ -199,12 +1192,10 @@ CREATE TABLE tenant_settings (
     updated_at DATETIME(6) NOT NULL,
     CONSTRAINT pk_tenant_settings PRIMARY KEY (tenant_id),
     CONSTRAINT fk_tenant_settings_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
-);
--- END V14__incident_reporting_and_settings_foundation.sql
+);-- END V14__incident_reporting_and_settings_foundation.sql
 
 -- ================================================================
 -- BEGIN V15__portal_access_foundation.sql
--- ================================================================
 CREATE TABLE portal_user_scopes (
     id BIGINT NOT NULL AUTO_INCREMENT,
     tenant_id VARCHAR(36) NOT NULL,
@@ -222,12 +1213,10 @@ CREATE TABLE portal_user_scopes (
     CONSTRAINT fk_portal_user_scopes_app_user FOREIGN KEY (app_user_id) REFERENCES app_users(id)
 );
 
-CREATE INDEX idx_portal_user_scopes_tenant_subject ON portal_user_scopes (tenant_id, portal_subject_type, portal_subject_id);
--- END V15__portal_access_foundation.sql
+CREATE INDEX idx_portal_user_scopes_tenant_subject ON portal_user_scopes (tenant_id, portal_subject_type, portal_subject_id);-- END V15__portal_access_foundation.sql
 
 -- ================================================================
 -- BEGIN V16__saas_commercialization_foundation.sql
--- ================================================================
 CREATE TABLE subscription_plans (
     id BIGINT NOT NULL AUTO_INCREMENT,
     plan_code VARCHAR(50) NOT NULL,
@@ -324,12 +1313,10 @@ ALTER TABLE tenant_settings
     ADD COLUMN favicon_url VARCHAR(500) NULL AFTER company_logo_url,
     ADD COLUMN website VARCHAR(500) NULL AFTER favicon_url,
     ADD COLUMN custom_login_welcome_text VARCHAR(500) NULL AFTER website,
-    ADD COLUMN custom_footer_text VARCHAR(500) NULL AFTER custom_login_welcome_text;
--- END V16__saas_commercialization_foundation.sql
+    ADD COLUMN custom_footer_text VARCHAR(500) NULL AFTER custom_login_welcome_text;-- END V16__saas_commercialization_foundation.sql
 
 -- ================================================================
 -- BEGIN V17__relax_legacy_tenant_columns.sql
--- ================================================================
 -- V2 copied all legacy tenant values into the current tenant model but retained
 -- the original code/name columns as required fields. Keep their historical data
 -- for compatibility, while allowing current entity inserts to use tenant_code,
@@ -337,21 +1324,17 @@ ALTER TABLE tenant_settings
 ALTER TABLE tenants
     MODIFY COLUMN code VARCHAR(50) NULL,
     MODIFY COLUMN name VARCHAR(150) NULL;
-
 -- END V17__relax_legacy_tenant_columns.sql
 
 -- ================================================================
 -- BEGIN V18__enforce_globally_unique_user_email.sql
--- ================================================================
 ALTER TABLE app_users
     DROP INDEX uk_app_users_tenant_email,
     ADD CONSTRAINT uk_app_users_email UNIQUE (email);
-
 -- END V18__enforce_globally_unique_user_email.sql
 
 -- ================================================================
 -- BEGIN V19__driver_location_snapshots.sql
--- ================================================================
 CREATE TABLE driver_location_snapshots (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     tenant_id VARCHAR(36) NOT NULL,
@@ -375,36 +1358,30 @@ CREATE TABLE driver_location_snapshots (
 
 CREATE INDEX idx_driver_location_snapshot_tenant_ride_captured
     ON driver_location_snapshots (tenant_id, ride_id, captured_at DESC, id DESC);
-
 -- END V19__driver_location_snapshots.sql
 
 -- ================================================================
 -- BEGIN V20__align_driver_location_snapshot_numeric_types.sql
--- ================================================================
 ALTER TABLE driver_location_snapshots
     MODIFY COLUMN latitude DOUBLE NOT NULL,
     MODIFY COLUMN longitude DOUBLE NOT NULL,
     MODIFY COLUMN accuracy_meters DOUBLE NULL,
     MODIFY COLUMN speed_mps DOUBLE NULL,
     MODIFY COLUMN heading_degrees DOUBLE NULL;
-
 -- END V20__align_driver_location_snapshot_numeric_types.sql
 
 -- ================================================================
 -- BEGIN V21__password_flow_hardening.sql
--- ================================================================
 ALTER TABLE app_users
     ADD COLUMN must_change_password BIT NOT NULL DEFAULT b'0',
     ADD COLUMN password_changed_at TIMESTAMP NULL,
     ADD COLUMN password_reset_token_hash VARCHAR(255) NULL,
     ADD COLUMN password_reset_token_expires_at TIMESTAMP NULL,
     ADD COLUMN password_reset_requested_at TIMESTAMP NULL;
-
 -- END V21__password_flow_hardening.sql
 
 -- ================================================================
 -- BEGIN V22__portal_push_device_tokens.sql
--- ================================================================
 CREATE TABLE portal_push_device_tokens (
     id BIGINT NOT NULL AUTO_INCREMENT,
     tenant_id VARCHAR(36) NOT NULL,
@@ -427,12 +1404,10 @@ CREATE TABLE portal_push_device_tokens (
 
 CREATE INDEX ix_portal_push_device_tokens_user_status
     ON portal_push_device_tokens (tenant_id, app_user_id, status);
-
 -- END V22__portal_push_device_tokens.sql
 
 -- ================================================================
 -- BEGIN V23__sync_linked_ride_resources_from_routes.sql
--- ================================================================
 UPDATE rides r
 JOIN route_stops rs
     ON rs.ride_id = r.id
@@ -455,12 +1430,10 @@ WHERE (r.route_id IS NULL)
    OR (r.driver_id IS NULL AND rt.assigned_driver_id IS NOT NULL)
    OR (r.vehicle_id IS NULL AND rt.assigned_vehicle_id IS NOT NULL)
    OR (r.status = 'SCHEDULED' AND COALESCE(r.driver_id, rt.assigned_driver_id) IS NOT NULL);
-
 -- END V23__sync_linked_ride_resources_from_routes.sql
 
 -- ================================================================
 -- BEGIN V24__auth_session_rotation.sql
--- ================================================================
 CREATE TABLE auth_refresh_sessions (
     id BIGINT NOT NULL AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
@@ -481,20 +1454,16 @@ CREATE TABLE auth_refresh_sessions (
     INDEX idx_auth_refresh_sessions_expiry (expires_at)
 );
 
-
 -- END V24__auth_session_rotation.sql
 
 -- ================================================================
 -- BEGIN V25__ride_optimistic_locking.sql
--- ================================================================
 ALTER TABLE rides ADD COLUMN entity_version BIGINT NOT NULL DEFAULT 0;
-
 
 -- END V25__ride_optimistic_locking.sql
 
 -- ================================================================
 -- BEGIN V26__driver_action_idempotency.sql
--- ================================================================
 CREATE TABLE driver_action_idempotency (
     id BIGINT NOT NULL AUTO_INCREMENT,
     tenant_id VARCHAR(36) NOT NULL,
@@ -509,12 +1478,10 @@ CREATE TABLE driver_action_idempotency (
     CONSTRAINT fk_driver_action_idempotency_ride FOREIGN KEY (ride_id) REFERENCES rides (id)
 );
 
-
 -- END V26__driver_action_idempotency.sql
 
 -- ================================================================
 -- BEGIN V27__tenant_transport_compliance.sql
--- ================================================================
 CREATE TABLE tenant_transport_compliance (
     tenant_id VARCHAR(36) NOT NULL,
     operating_scope VARCHAR(40) NOT NULL,
@@ -542,1262 +1509,5 @@ CREATE TABLE tenant_transport_compliance (
     CONSTRAINT fk_tenant_transport_compliance_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (id)
 );
 
-
 -- END V27__tenant_transport_compliance.sql
-
--- ================================================================
--- BEGIN V28__seed_multi_tenant_realistic_test_data.sql
--- ================================================================
--- Seed realistic multi-role test data for admin, tenant admin, driver, passenger (rider), and guardian.
--- Safety: this migration is additive only. It does not update or delete existing records.
--- Emails are globally unique and follow the requested base-email alias pattern.
-
-SET @seed_now = CURRENT_TIMESTAMP(6);
-SET @seed_by = 'v28-seed';
-SET @seed_password = '$2a$10$PaQW5g5WNZnvrhL6d9DBGOdS2HBHvP19sgr18rCXT6DNYjVrKT2ba';
-
-SET @tenant1_id = '11c3d4ea-5f89-4b19-9011-111111111111';
-SET @tenant2_id = '22c3d4ea-5f89-4b19-9011-222222222222';
-
--- -----------------------------------------------------------------------------
--- Tenants
--- -----------------------------------------------------------------------------
-INSERT INTO tenants
-    (id, tenant_code, company_name, legal_name, email, phone, address_line1, city, state, zip_code,
-     country, business_type, subscription_plan, notes, status, active, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant1_id, 'TENANT1-OPS', 'Tenant One Transit', 'Tenant One Transit LLC',
-    'samuelweld2018+tenant1@gmail.com', '404-555-1201', '100 Tenant One Way', 'Atlanta', 'GA', '30301',
-    'United States', 'NEMT Provider', 'Professional',
-    'Scenario test tenant 1 for end-to-end multi-role workflows.', 'ACTIVE', TRUE,
-    @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM tenants
-    WHERE id = @tenant1_id
-       OR tenant_code = 'TENANT1-OPS'
-       OR legal_name = 'Tenant One Transit LLC'
-);
-
-INSERT INTO tenants
-    (id, tenant_code, company_name, legal_name, email, phone, address_line1, city, state, zip_code,
-     country, business_type, subscription_plan, notes, status, active, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant2_id, 'TENANT2-OPS', 'Tenant Two Mobility', 'Tenant Two Mobility Inc',
-    'samuelweld2018+tenant2@gmail.com', '404-555-2201', '200 Tenant Two Ave', 'Atlanta', 'GA', '30302',
-    'United States', 'NEMT Provider', 'Growth',
-    'Scenario test tenant 2 for cross-tenant isolation validation.', 'ACTIVE', TRUE,
-    @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM tenants
-    WHERE id = @tenant2_id
-       OR tenant_code = 'TENANT2-OPS'
-       OR legal_name = 'Tenant Two Mobility Inc'
-);
-
-INSERT IGNORE INTO tenant_service_types (tenant_id, service_type) VALUES
-    (@tenant1_id, 'NEMT'), (@tenant1_id, 'ADA_PARATRANSIT'), (@tenant1_id, 'GENERAL_TRANSPORT'),
-    (@tenant2_id, 'NEMT'), (@tenant2_id, 'GENERAL_TRANSPORT');
-
--- -----------------------------------------------------------------------------
--- App users (global admin + tenant roles)
--- -----------------------------------------------------------------------------
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    NULL, 'samuelweld2018@gmail.com', 'Samuel', 'PlatformAdmin', @seed_password,
-    'ACTIVE', TRUE, FALSE, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE email = 'samuelweld2018@gmail.com');
-
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant1_id, 'samuelweld2018+ta1t1@gmail.com', 'Samuel', 'Tenant1Admin', @seed_password,
-    'ACTIVE', TRUE, FALSE, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE email = 'samuelweld2018+ta1t1@gmail.com');
-
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant1_id, 'samuelweld2018+d1t1@gmail.com', 'Samuel', 'Driver1Tenant1', @seed_password,
-    'ACTIVE', TRUE, FALSE, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE email = 'samuelweld2018+d1t1@gmail.com');
-
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant1_id, 'samuelweld2018+p1t1@gmail.com', 'Samuel', 'Passenger1Tenant1', @seed_password,
-    'ACTIVE', TRUE, FALSE, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE email = 'samuelweld2018+p1t1@gmail.com');
-
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant1_id, 'samuelweld2018+g1t1@gmail.com', 'Samuel', 'Guardian1Tenant1', @seed_password,
-    'ACTIVE', TRUE, FALSE, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE email = 'samuelweld2018+g1t1@gmail.com');
-
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant2_id, 'samuelweld2018+ta1t2@gmail.com', 'Samuel', 'Tenant2Admin', @seed_password,
-    'ACTIVE', TRUE, FALSE, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE email = 'samuelweld2018+ta1t2@gmail.com');
-
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant2_id, 'samuelweld2018+d1t2@gmail.com', 'Samuel', 'Driver1Tenant2', @seed_password,
-    'ACTIVE', TRUE, FALSE, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE email = 'samuelweld2018+d1t2@gmail.com');
-
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant2_id, 'samuelweld2018+p1t2@gmail.com', 'Samuel', 'Passenger1Tenant2', @seed_password,
-    'ACTIVE', TRUE, FALSE, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE email = 'samuelweld2018+p1t2@gmail.com');
-
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant2_id, 'samuelweld2018+g1t2@gmail.com', 'Samuel', 'Guardian1Tenant2', @seed_password,
-    'ACTIVE', TRUE, FALSE, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE email = 'samuelweld2018+g1t2@gmail.com');
-
-INSERT IGNORE INTO user_roles (user_id, role_name)
-SELECT id, 'ROLE_PLATFORM_ADMIN' FROM app_users WHERE email = 'samuelweld2018@gmail.com';
-INSERT IGNORE INTO user_roles (user_id, role_name)
-SELECT id, 'ROLE_TENANT_ADMIN' FROM app_users WHERE email IN ('samuelweld2018+ta1t1@gmail.com', 'samuelweld2018+ta1t2@gmail.com');
-INSERT IGNORE INTO user_roles (user_id, role_name)
-SELECT id, 'ROLE_DRIVER' FROM app_users WHERE email IN ('samuelweld2018+d1t1@gmail.com', 'samuelweld2018+d1t2@gmail.com');
-INSERT IGNORE INTO user_roles (user_id, role_name)
-SELECT id, 'ROLE_RIDER' FROM app_users WHERE email IN ('samuelweld2018+p1t1@gmail.com', 'samuelweld2018+p1t2@gmail.com');
-INSERT IGNORE INTO user_roles (user_id, role_name)
-SELECT id, 'ROLE_GUARDIAN' FROM app_users WHERE email IN ('samuelweld2018+g1t1@gmail.com', 'samuelweld2018+g1t2@gmail.com');
-
--- -----------------------------------------------------------------------------
--- Drivers and vehicles
--- -----------------------------------------------------------------------------
-INSERT INTO drivers
-    (tenant_id, driver_code, first_name, last_name, date_of_birth, email, phone, address_line1, city, state,
-     zip_code, country, driver_type, status, hire_date, start_date, availability_summary, license_number,
-     license_state, license_expiry_date, background_check_status, background_check_expiry_date, drug_test_status,
-     drug_test_expiry_date, training_status, training_completion_date, emergency_contact_name,
-     emergency_contact_phone, emergency_contact_relationship, notes, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant1_id, 'DRV-T1-001', 'Samuel', 'DriverOneT1', '1990-06-14', 'samuelweld2018+d1t1@gmail.com',
-    '404-555-1301', '10 Driver Lane', 'Atlanta', 'GA', '30303', 'United States',
-    'EMPLOYEE', 'ACTIVE', '2024-01-10', '2024-01-15', 'Weekdays 06:00-18:00',
-    'GA-DL-T1-1001', 'GA', DATE_ADD(CURRENT_DATE, INTERVAL 24 MONTH),
-    'CLEAR', DATE_ADD(CURRENT_DATE, INTERVAL 12 MONTH),
-    'CLEAR', DATE_ADD(CURRENT_DATE, INTERVAL 12 MONTH),
-    'COMPLETED', DATE_SUB(CURRENT_DATE, INTERVAL 6 MONTH),
-    'Alex DriverEmergency', '404-555-1302', 'Spouse',
-    'Primary tenant1 production-like test driver.', @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM drivers WHERE tenant_id = @tenant1_id AND driver_code = 'DRV-T1-001');
-
-INSERT INTO drivers
-    (tenant_id, driver_code, first_name, last_name, date_of_birth, email, phone, address_line1, city, state,
-     zip_code, country, driver_type, status, hire_date, start_date, availability_summary, license_number,
-     license_state, license_expiry_date, background_check_status, background_check_expiry_date, drug_test_status,
-     drug_test_expiry_date, training_status, training_completion_date, emergency_contact_name,
-     emergency_contact_phone, emergency_contact_relationship, notes, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant2_id, 'DRV-T2-001', 'Samuel', 'DriverOneT2', '1988-04-22', 'samuelweld2018+d1t2@gmail.com',
-    '404-555-2301', '20 Driver Road', 'Atlanta', 'GA', '30304', 'United States',
-    'CONTRACTOR', 'ACTIVE', '2024-02-10', '2024-02-14', 'Weekdays 08:00-20:00',
-    'GA-DL-T2-2001', 'GA', DATE_ADD(CURRENT_DATE, INTERVAL 18 MONTH),
-    'CLEAR', DATE_ADD(CURRENT_DATE, INTERVAL 10 MONTH),
-    'CLEAR', DATE_ADD(CURRENT_DATE, INTERVAL 10 MONTH),
-    'COMPLETED', DATE_SUB(CURRENT_DATE, INTERVAL 4 MONTH),
-    'Jamie DriverEmergency', '404-555-2302', 'Sibling',
-    'Primary tenant2 production-like test driver.', @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM drivers WHERE tenant_id = @tenant2_id AND driver_code = 'DRV-T2-001');
-
-SET @driver_t1_id = (SELECT id FROM drivers WHERE tenant_id = @tenant1_id AND driver_code = 'DRV-T1-001' LIMIT 1);
-SET @driver_t2_id = (SELECT id FROM drivers WHERE tenant_id = @tenant2_id AND driver_code = 'DRV-T2-001' LIMIT 1);
-
-INSERT INTO vehicles
-    (tenant_id, vehicle_code, ownership_type, make, model, vehicle_year, color, vin, plate_number, plate_state,
-     capacity, wheelchair_capacity, fuel_type, insurance_policy_number, insurance_expiry_date,
-     registration_expiry_date, inspection_expiry_date, mileage, assigned_driver_id, notes, status,
-     created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant1_id, 'VEH-T1-001', 'COMPANY_OWNED', 'Ford', 'Transit', 2023, 'White',
-    '1FTBW9CK0PKT10001', 'T1M001', 'GA', 10, 2, 'GASOLINE',
-    'POL-T1-1001', DATE_ADD(CURRENT_DATE, INTERVAL 10 MONTH), DATE_ADD(CURRENT_DATE, INTERVAL 9 MONTH),
-    DATE_ADD(CURRENT_DATE, INTERVAL 8 MONTH), 35600, @driver_t1_id,
-    'Wheelchair-capable van assigned to tenant1 driver.', 'ACTIVE',
-    @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM vehicles WHERE tenant_id = @tenant1_id AND vehicle_code = 'VEH-T1-001');
-
-INSERT INTO vehicles
-    (tenant_id, vehicle_code, ownership_type, make, model, vehicle_year, color, vin, plate_number, plate_state,
-     capacity, wheelchair_capacity, fuel_type, insurance_policy_number, insurance_expiry_date,
-     registration_expiry_date, inspection_expiry_date, mileage, assigned_driver_id, notes, status,
-     created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant2_id, 'VEH-T2-001', 'COMPANY_OWNED', 'Toyota', 'Sienna', 2022, 'Silver',
-    '5TDKRKEC5NS20001', 'T2M001', 'GA', 7, 1, 'HYBRID',
-    'POL-T2-2001', DATE_ADD(CURRENT_DATE, INTERVAL 11 MONTH), DATE_ADD(CURRENT_DATE, INTERVAL 7 MONTH),
-    DATE_ADD(CURRENT_DATE, INTERVAL 6 MONTH), 42200, @driver_t2_id,
-    'Hybrid van assigned to tenant2 driver.', 'ACTIVE',
-    @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM vehicles WHERE tenant_id = @tenant2_id AND vehicle_code = 'VEH-T2-001');
-
-SET @vehicle_t1_id = (SELECT id FROM vehicles WHERE tenant_id = @tenant1_id AND vehicle_code = 'VEH-T1-001' LIMIT 1);
-SET @vehicle_t2_id = (SELECT id FROM vehicles WHERE tenant_id = @tenant2_id AND vehicle_code = 'VEH-T2-001' LIMIT 1);
-
-INSERT IGNORE INTO vehicle_service_types (vehicle_id, service_type) VALUES
-    (@vehicle_t1_id, 'NEMT'), (@vehicle_t1_id, 'ADA_PARATRANSIT'),
-    (@vehicle_t2_id, 'NEMT');
-
--- Driver profile image records
-INSERT INTO driver_documents
-    (tenant_id, driver_id, document_type, file_name, original_file_name, content_type, storage_path,
-     document_number, issuing_authority, issue_date, expiry_date, verification_status, status, notes,
-     uploaded_by, uploaded_at, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant1_id, @driver_t1_id, 'PROFILE_PHOTO',
-    'samuelweld2018-d1t1-profile.jpg', 'samuelweld2018-d1t1-profile.jpg', 'image/jpeg',
-    CONCAT('tenants/', @tenant1_id, '/drivers/DRV-T1-001/profile/samuelweld2018-d1t1-profile.jpg'),
-    NULL, NULL, NULL, NULL, 'VERIFIED', 'ACTIVE', 'Seeded driver profile photo for tenant1.',
-    @seed_by, @seed_now, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE @driver_t1_id IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM driver_documents
-      WHERE tenant_id = @tenant1_id
-        AND driver_id = @driver_t1_id
-        AND document_type = 'PROFILE_PHOTO'
-  );
-
-INSERT INTO driver_documents
-    (tenant_id, driver_id, document_type, file_name, original_file_name, content_type, storage_path,
-     document_number, issuing_authority, issue_date, expiry_date, verification_status, status, notes,
-     uploaded_by, uploaded_at, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant2_id, @driver_t2_id, 'PROFILE_PHOTO',
-    'samuelweld2018-d1t2-profile.jpg', 'samuelweld2018-d1t2-profile.jpg', 'image/jpeg',
-    CONCAT('tenants/', @tenant2_id, '/drivers/DRV-T2-001/profile/samuelweld2018-d1t2-profile.jpg'),
-    NULL, NULL, NULL, NULL, 'VERIFIED', 'ACTIVE', 'Seeded driver profile photo for tenant2.',
-    @seed_by, @seed_now, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE @driver_t2_id IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM driver_documents
-      WHERE tenant_id = @tenant2_id
-        AND driver_id = @driver_t2_id
-        AND document_type = 'PROFILE_PHOTO'
-  );
-
--- Vehicle image records
-INSERT INTO vehicle_documents
-    (tenant_id, vehicle_id, document_type, file_name, original_file_name, content_type, storage_path,
-     document_number, issuing_authority, issue_date, expiry_date, verification_status, status, notes,
-     uploaded_by, uploaded_at, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant1_id, @vehicle_t1_id, 'VEHICLE_PHOTO',
-    'veh-t1-001-front.jpg', 'veh-t1-001-front.jpg', 'image/jpeg',
-    CONCAT('tenants/', @tenant1_id, '/vehicles/VEH-T1-001/photos/veh-t1-001-front.jpg'),
-    NULL, NULL, NULL, NULL, 'VERIFIED', 'ACTIVE', 'Seeded vehicle image for tenant1 driver vehicle.',
-    @seed_by, @seed_now, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE @vehicle_t1_id IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM vehicle_documents
-      WHERE tenant_id = @tenant1_id
-        AND vehicle_id = @vehicle_t1_id
-        AND document_type = 'VEHICLE_PHOTO'
-  );
-
-INSERT INTO vehicle_documents
-    (tenant_id, vehicle_id, document_type, file_name, original_file_name, content_type, storage_path,
-     document_number, issuing_authority, issue_date, expiry_date, verification_status, status, notes,
-     uploaded_by, uploaded_at, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant2_id, @vehicle_t2_id, 'VEHICLE_PHOTO',
-    'veh-t2-001-front.jpg', 'veh-t2-001-front.jpg', 'image/jpeg',
-    CONCAT('tenants/', @tenant2_id, '/vehicles/VEH-T2-001/photos/veh-t2-001-front.jpg'),
-    NULL, NULL, NULL, NULL, 'VERIFIED', 'ACTIVE', 'Seeded vehicle image for tenant2 driver vehicle.',
-    @seed_by, @seed_now, @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE @vehicle_t2_id IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM vehicle_documents
-      WHERE tenant_id = @tenant2_id
-        AND vehicle_id = @vehicle_t2_id
-        AND document_type = 'VEHICLE_PHOTO'
-  );
-
--- -----------------------------------------------------------------------------
--- Passenger (rider) and guardian
--- -----------------------------------------------------------------------------
-INSERT INTO riders
-    (tenant_id, rider_code, rider_type, first_name, last_name, date_of_birth, gender, email, primary_phone,
-     home_address_line1, city, state, zip_code, country, default_pickup_address, default_dropoff_address,
-     pickup_notes, wheelchair_required, escort_required, special_instructions, emergency_contact_name,
-     emergency_contact_phone, emergency_contact_relationship, notes, status,
-     created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant1_id, 'RDR-T1-001', 'NEMT', 'Samuel', 'PassengerOneT1', '1959-09-19', 'MALE',
-    'samuelweld2018+p1t1@gmail.com', '404-555-1401',
-    '300 Rider Street', 'Atlanta', 'GA', '30305', 'United States',
-    '300 Rider Street, Atlanta, GA 30305', '500 Medical Plaza, Atlanta, GA 30305',
-    'Call before arrival.', TRUE, FALSE, 'Needs wheelchair securement.',
-    'Samuel GuardianOneT1', '404-555-1501', 'Child',
-    'Tenant1 passenger for guardian-linked realistic scenarios.', 'ACTIVE',
-    @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM riders WHERE tenant_id = @tenant1_id AND rider_code = 'RDR-T1-001');
-
-INSERT INTO riders
-    (tenant_id, rider_code, rider_type, first_name, last_name, date_of_birth, gender, email, primary_phone,
-     home_address_line1, city, state, zip_code, country, default_pickup_address, default_dropoff_address,
-     pickup_notes, wheelchair_required, escort_required, special_instructions, emergency_contact_name,
-     emergency_contact_phone, emergency_contact_relationship, notes, status,
-     created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant2_id, 'RDR-T2-001', 'OTHER', 'Samuel', 'PassengerOneT2', '1972-05-11', 'FEMALE',
-    'samuelweld2018+p1t2@gmail.com', '404-555-2401',
-    '400 Rider Avenue', 'Atlanta', 'GA', '30306', 'United States',
-    '400 Rider Avenue, Atlanta, GA 30306', '700 Wellness Center, Atlanta, GA 30306',
-    'Use side entrance.', FALSE, TRUE, 'Passenger travels with escort.',
-    'Samuel GuardianOneT2', '404-555-2501', 'Sibling',
-    'Tenant2 passenger for role and tenant segregation tests.', 'ACTIVE',
-    @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM riders WHERE tenant_id = @tenant2_id AND rider_code = 'RDR-T2-001');
-
-SET @rider_t1_id = (SELECT id FROM riders WHERE tenant_id = @tenant1_id AND rider_code = 'RDR-T1-001' LIMIT 1);
-SET @rider_t2_id = (SELECT id FROM riders WHERE tenant_id = @tenant2_id AND rider_code = 'RDR-T2-001' LIMIT 1);
-
-INSERT IGNORE INTO rider_mobility_needs (rider_id, mobility_need) VALUES
-    (@rider_t1_id, 'WHEELCHAIR');
-
-INSERT INTO guardians
-    (tenant_id, first_name, last_name, relation_to_rider_default, email, phone, address_line1, city, state,
-     zip_code, country, preferred_communication_method, billing_contact, authorized_for_pickup, notes, status,
-     created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant1_id, 'Samuel', 'GuardianOneT1', 'CHILD', 'samuelweld2018+g1t1@gmail.com', '404-555-1501',
-    '305 Guardian Lane', 'Atlanta', 'GA', '30305', 'United States',
-    'SMS', TRUE, TRUE, 'Primary guardian and billing contact for tenant1 passenger.', 'ACTIVE',
-    @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM guardians WHERE tenant_id = @tenant1_id AND email = 'samuelweld2018+g1t1@gmail.com');
-
-INSERT INTO guardians
-    (tenant_id, first_name, last_name, relation_to_rider_default, email, phone, address_line1, city, state,
-     zip_code, country, preferred_communication_method, billing_contact, authorized_for_pickup, notes, status,
-     created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant2_id, 'Samuel', 'GuardianOneT2', 'SIBLING', 'samuelweld2018+g1t2@gmail.com', '404-555-2501',
-    '405 Guardian Road', 'Atlanta', 'GA', '30306', 'United States',
-    'EMAIL', TRUE, TRUE, 'Primary guardian and billing contact for tenant2 passenger.', 'ACTIVE',
-    @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM guardians WHERE tenant_id = @tenant2_id AND email = 'samuelweld2018+g1t2@gmail.com');
-
-SET @guardian_t1_id = (SELECT id FROM guardians WHERE tenant_id = @tenant1_id AND email = 'samuelweld2018+g1t1@gmail.com' LIMIT 1);
-SET @guardian_t2_id = (SELECT id FROM guardians WHERE tenant_id = @tenant2_id AND email = 'samuelweld2018+g1t2@gmail.com' LIMIT 1);
-
-INSERT IGNORE INTO rider_guardians
-    (tenant_id, rider_id, guardian_id, relationship_type, primary_guardian, authorized_for_pickup,
-     billing_contact, notes, status, created_by, created_at, updated_by, updated_at)
-VALUES
-    (@tenant1_id, @rider_t1_id, @guardian_t1_id, 'CHILD', TRUE, TRUE, TRUE,
-     'Tenant1 primary guardian relationship.', 'ACTIVE', @seed_by, @seed_now, @seed_by, @seed_now),
-    (@tenant2_id, @rider_t2_id, @guardian_t2_id, 'SIBLING', TRUE, TRUE, TRUE,
-     'Tenant2 primary guardian relationship.', 'ACTIVE', @seed_by, @seed_now, @seed_by, @seed_now);
-
--- -----------------------------------------------------------------------------
--- Portal scopes and ride scenarios
--- -----------------------------------------------------------------------------
-INSERT IGNORE INTO portal_user_scopes
-    (tenant_id, app_user_id, portal_subject_type, portal_subject_id, created_by, created_at, updated_by, updated_at)
-SELECT @tenant1_id, id, 'DRIVER', @driver_t1_id, @seed_by, @seed_now, @seed_by, @seed_now
-FROM app_users
-WHERE email = 'samuelweld2018+d1t1@gmail.com' AND @driver_t1_id IS NOT NULL;
-
-INSERT IGNORE INTO portal_user_scopes
-    (tenant_id, app_user_id, portal_subject_type, portal_subject_id, created_by, created_at, updated_by, updated_at)
-SELECT @tenant1_id, id, 'RIDER', @rider_t1_id, @seed_by, @seed_now, @seed_by, @seed_now
-FROM app_users
-WHERE email = 'samuelweld2018+p1t1@gmail.com' AND @rider_t1_id IS NOT NULL;
-
-INSERT IGNORE INTO portal_user_scopes
-    (tenant_id, app_user_id, portal_subject_type, portal_subject_id, created_by, created_at, updated_by, updated_at)
-SELECT @tenant1_id, id, 'GUARDIAN', @guardian_t1_id, @seed_by, @seed_now, @seed_by, @seed_now
-FROM app_users
-WHERE email = 'samuelweld2018+g1t1@gmail.com' AND @guardian_t1_id IS NOT NULL;
-
-INSERT IGNORE INTO portal_user_scopes
-    (tenant_id, app_user_id, portal_subject_type, portal_subject_id, created_by, created_at, updated_by, updated_at)
-SELECT @tenant2_id, id, 'DRIVER', @driver_t2_id, @seed_by, @seed_now, @seed_by, @seed_now
-FROM app_users
-WHERE email = 'samuelweld2018+d1t2@gmail.com' AND @driver_t2_id IS NOT NULL;
-
-INSERT IGNORE INTO portal_user_scopes
-    (tenant_id, app_user_id, portal_subject_type, portal_subject_id, created_by, created_at, updated_by, updated_at)
-SELECT @tenant2_id, id, 'RIDER', @rider_t2_id, @seed_by, @seed_now, @seed_by, @seed_now
-FROM app_users
-WHERE email = 'samuelweld2018+p1t2@gmail.com' AND @rider_t2_id IS NOT NULL;
-
-INSERT IGNORE INTO portal_user_scopes
-    (tenant_id, app_user_id, portal_subject_type, portal_subject_id, created_by, created_at, updated_by, updated_at)
-SELECT @tenant2_id, id, 'GUARDIAN', @guardian_t2_id, @seed_by, @seed_now, @seed_by, @seed_now
-FROM app_users
-WHERE email = 'samuelweld2018+g1t2@gmail.com' AND @guardian_t2_id IS NOT NULL;
-
-INSERT INTO rides
-    (tenant_id, ride_number, rider_id, guardian_id, service_type, trip_type,
-     pickup_address_line1, pickup_city, pickup_state, pickup_zip_code, pickup_country,
-     dropoff_address_line1, dropoff_city, dropoff_state, dropoff_zip_code, dropoff_country,
-     scheduled_pickup_at, scheduled_dropoff_at, wheelchair_required, escort_required, companion_count,
-     special_instructions, operational_notes, priority_level, billing_type, driver_id, vehicle_id,
-     status, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant1_id, 'RIDE-T1-001', @rider_t1_id, @guardian_t1_id, 'NEMT', 'ONE_WAY',
-    '300 Rider Street', 'Atlanta', 'GA', '30305', 'United States',
-    '500 Medical Plaza', 'Atlanta', 'GA', '30305', 'United States',
-    DATE_ADD(CURRENT_DATE, INTERVAL 9 HOUR), DATE_ADD(CURRENT_DATE, INTERVAL 10 HOUR),
-    TRUE, FALSE, 0, 'Wheelchair securement required.',
-    'Assigned to driver and vehicle for active dispatch workflow testing.', 'HIGH', 'PRIVATE_PAY',
-    @driver_t1_id, @vehicle_t1_id,
-    'ASSIGNED', @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE @rider_t1_id IS NOT NULL
-  AND NOT EXISTS (SELECT 1 FROM rides WHERE tenant_id = @tenant1_id AND ride_number = 'RIDE-T1-001');
-
-INSERT INTO rides
-    (tenant_id, ride_number, rider_id, guardian_id, service_type, trip_type,
-     pickup_address_line1, pickup_city, pickup_state, pickup_zip_code, pickup_country,
-     dropoff_address_line1, dropoff_city, dropoff_state, dropoff_zip_code, dropoff_country,
-     scheduled_pickup_at, scheduled_dropoff_at, wheelchair_required, escort_required, companion_count,
-     special_instructions, operational_notes, priority_level, billing_type, driver_id, vehicle_id,
-     status, created_by, created_at, updated_by, updated_at)
-SELECT
-    @tenant2_id, 'RIDE-T2-001', @rider_t2_id, @guardian_t2_id, 'GENERAL_TRANSPORT', 'ROUND_TRIP',
-    '400 Rider Avenue', 'Atlanta', 'GA', '30306', 'United States',
-    '700 Wellness Center', 'Atlanta', 'GA', '30306', 'United States',
-    DATE_ADD(CURRENT_DATE, INTERVAL 11 HOUR), DATE_ADD(CURRENT_DATE, INTERVAL 12 HOUR),
-    FALSE, TRUE, 1, 'Escort accompanies passenger.',
-    'Tenant2 trip for guardian notifications and route assignment testing.', 'STANDARD', 'SPONSORED',
-    @driver_t2_id, @vehicle_t2_id,
-    'SCHEDULED', @seed_by, @seed_now, @seed_by, @seed_now
-FROM DUAL
-WHERE @rider_t2_id IS NOT NULL
-  AND NOT EXISTS (SELECT 1 FROM rides WHERE tenant_id = @tenant2_id AND ride_number = 'RIDE-T2-001');
-
--- END V28__seed_multi_tenant_realistic_test_data.sql
-
--- ================================================================
--- BEGIN V29__seed_bulk_operational_scenarios.sql
--- ================================================================
--- Bulk operational scenario seed data.
--- Goal: realistic high-volume test data for tenant admin/dispatcher workflows.
--- Safety: additive only; no updates/deletes, all inserts are guarded.
-
-SET @seed_now = CURRENT_TIMESTAMP(6);
-SET @seed_by = 'v29-bulk-seed';
-SET @seed_password = '$2a$10$PaQW5g5WNZnvrhL6d9DBGOdS2HBHvP19sgr18rCXT6DNYjVrKT2ba';
-
-CREATE TEMPORARY TABLE tmp_seq_20 (n INT PRIMARY KEY);
-CREATE TEMPORARY TABLE tmp_seq_20_b (n INT PRIMARY KEY);
-CREATE TEMPORARY TABLE tmp_seq_50 (n INT PRIMARY KEY);
-CREATE TEMPORARY TABLE tmp_seq_10 (n INT PRIMARY KEY);
-
-INSERT INTO tmp_seq_20 (n)
-WITH RECURSIVE seq AS (
-    SELECT 1 AS n
-    UNION ALL
-    SELECT n + 1 FROM seq WHERE n < 20
-)
-SELECT n FROM seq;
-
-INSERT INTO tmp_seq_20_b (n)
-SELECT n FROM tmp_seq_20;
-
-INSERT INTO tmp_seq_50 (n)
-WITH RECURSIVE seq AS (
-    SELECT 1 AS n
-    UNION ALL
-    SELECT n + 1 FROM seq WHERE n < 50
-)
-SELECT n FROM seq;
-
-INSERT INTO tmp_seq_10 (n)
-WITH RECURSIVE seq AS (
-    SELECT 1 AS n
-    UNION ALL
-    SELECT n + 1 FROM seq WHERE n < 10
-)
-SELECT n FROM seq;
-
--- -----------------------------------------------------------------------------
--- Tenants (20)
--- -----------------------------------------------------------------------------
-INSERT INTO tenants
-    (id, tenant_code, company_name, legal_name, email, phone, address_line1, city, state, zip_code,
-     country, business_type, subscription_plan, notes, status, active, created_by, created_at, updated_by, updated_at)
-SELECT
-    CONCAT('44000000-0000-4000-8000-', LPAD(s.n, 12, '0')) AS id,
-    CONCAT('TENANT-', LPAD(s.n, 2, '0')) AS tenant_code,
-    CONCAT('Tenant ', LPAD(s.n, 2, '0'), ' Mobility') AS company_name,
-    CONCAT('Tenant ', LPAD(s.n, 2, '0'), ' Mobility LLC') AS legal_name,
-    CONCAT('samuelweld2018+t', LPAD(s.n, 2, '0'), '@gmail.com') AS email,
-    CONCAT('404-700-', LPAD(s.n, 4, '0')) AS phone,
-    CONCAT(s.n, '00 Fleet Avenue') AS address_line1,
-    'Atlanta' AS city,
-    'GA' AS state,
-    CONCAT('30', LPAD(s.n, 3, '0')) AS zip_code,
-    'United States' AS country,
-    'NEMT Provider' AS business_type,
-    CASE WHEN s.n <= 10 THEN 'Professional' ELSE 'Growth' END AS subscription_plan,
-    'Bulk tenant seeded for dispatch, assignment, and role workflow testing.' AS notes,
-    'ACTIVE' AS status,
-    TRUE AS active,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM tmp_seq_20 s
-LEFT JOIN tenants t
-    ON t.tenant_code = CONCAT('TENANT-', LPAD(s.n, 2, '0'))
-WHERE t.id IS NULL;
-
-INSERT IGNORE INTO tenant_service_types (tenant_id, service_type)
-SELECT CONCAT('44000000-0000-4000-8000-', LPAD(s.n, 12, '0')), 'NEMT' FROM tmp_seq_20 s;
-INSERT IGNORE INTO tenant_service_types (tenant_id, service_type)
-SELECT CONCAT('44000000-0000-4000-8000-', LPAD(s.n, 12, '0')), 'GENERAL_TRANSPORT' FROM tmp_seq_20 s;
-INSERT IGNORE INTO tenant_service_types (tenant_id, service_type)
-SELECT CONCAT('44000000-0000-4000-8000-', LPAD(s.n, 12, '0')), 'ADA_PARATRANSIT' FROM tmp_seq_20 s;
-
--- -----------------------------------------------------------------------------
--- Platform admin baseline
--- -----------------------------------------------------------------------------
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    NULL,
-    'samuelweld2018@gmail.com',
-    'Samuel',
-    'PlatformAdmin',
-    @seed_password,
-    'ACTIVE',
-    TRUE,
-    FALSE,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE email = 'samuelweld2018@gmail.com');
-
-INSERT IGNORE INTO user_roles (user_id, role_name)
-SELECT id, 'ROLE_PLATFORM_ADMIN' FROM app_users WHERE email = 'samuelweld2018@gmail.com';
-
--- -----------------------------------------------------------------------------
--- Tenant admins and dispatchers (1 each per tenant)
--- -----------------------------------------------------------------------------
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    CONCAT('44000000-0000-4000-8000-', LPAD(s.n, 12, '0')) AS tenant_id,
-    CONCAT('samuelweld2018+ta1t', LPAD(s.n, 2, '0'), '@gmail.com') AS email,
-    'Samuel' AS first_name,
-    CONCAT('TenantAdminT', LPAD(s.n, 2, '0')) AS last_name,
-    @seed_password,
-    'ACTIVE',
-    TRUE,
-    FALSE,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM tmp_seq_20 s
-LEFT JOIN app_users u
-    ON u.email = CONCAT('samuelweld2018+ta1t', LPAD(s.n, 2, '0'), '@gmail.com')
-WHERE u.id IS NULL;
-
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    CONCAT('44000000-0000-4000-8000-', LPAD(s.n, 12, '0')) AS tenant_id,
-    CONCAT('samuelweld2018+dp1t', LPAD(s.n, 2, '0'), '@gmail.com') AS email,
-    'Samuel' AS first_name,
-    CONCAT('DispatcherT', LPAD(s.n, 2, '0')) AS last_name,
-    @seed_password,
-    'ACTIVE',
-    TRUE,
-    FALSE,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM tmp_seq_20 s
-LEFT JOIN app_users u
-    ON u.email = CONCAT('samuelweld2018+dp1t', LPAD(s.n, 2, '0'), '@gmail.com')
-WHERE u.id IS NULL;
-
-INSERT IGNORE INTO user_roles (user_id, role_name)
-SELECT id, 'ROLE_TENANT_ADMIN'
-FROM app_users
-WHERE email LIKE 'samuelweld2018+ta1t%@gmail.com';
-
-INSERT IGNORE INTO user_roles (user_id, role_name)
-SELECT id, 'ROLE_DISPATCHER'
-FROM app_users
-WHERE email LIKE 'samuelweld2018+dp1t%@gmail.com';
-
--- -----------------------------------------------------------------------------
--- Drivers (50 per tenant), driver users, vehicles, and image documents
--- -----------------------------------------------------------------------------
-INSERT INTO drivers
-    (tenant_id, driver_code, first_name, last_name, date_of_birth, email, phone, address_line1, city, state,
-     zip_code, country, driver_type, status, hire_date, start_date, availability_summary, license_number,
-     license_state, license_expiry_date, background_check_status, background_check_expiry_date, drug_test_status,
-     drug_test_expiry_date, training_status, training_completion_date, emergency_contact_name,
-     emergency_contact_phone, emergency_contact_relationship, notes, created_by, created_at, updated_by, updated_at)
-SELECT
-    CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0')) AS tenant_id,
-    CONCAT('DRV-T', LPAD(t.n, 2, '0'), '-', LPAD(d.n, 3, '0')) AS driver_code,
-    'Samuel' AS first_name,
-    CONCAT('Driver', LPAD(d.n, 3, '0'), 'T', LPAD(t.n, 2, '0')) AS last_name,
-    DATE_SUB(CURRENT_DATE, INTERVAL (8000 + d.n) DAY) AS date_of_birth,
-    CONCAT('samuelweld2018+d', LPAD(d.n, 2, '0'), 't', LPAD(t.n, 2, '0'), '@gmail.com') AS email,
-    CONCAT('404-', LPAD(100 + t.n, 3, '0'), '-', LPAD(d.n, 4, '0')) AS phone,
-    CONCAT(d.n, ' Driver Circle') AS address_line1,
-    'Atlanta' AS city,
-    'GA' AS state,
-    CONCAT('31', LPAD(t.n, 3, '0')) AS zip_code,
-    'United States' AS country,
-    CASE WHEN MOD(d.n, 2) = 0 THEN 'EMPLOYEE' ELSE 'CONTRACTOR' END AS driver_type,
-    CASE WHEN MOD(d.n, 10) = 0 THEN 'INACTIVE' ELSE 'ACTIVE' END AS status,
-    DATE_SUB(CURRENT_DATE, INTERVAL (200 + d.n) DAY) AS hire_date,
-    DATE_SUB(CURRENT_DATE, INTERVAL (180 + d.n) DAY) AS start_date,
-    CASE
-        WHEN MOD(d.n, 3) = 0 THEN 'Weekdays 06:00-14:00'
-        WHEN MOD(d.n, 3) = 1 THEN 'Weekdays 10:00-18:00'
-        ELSE 'Weekends 08:00-20:00'
-    END AS availability_summary,
-    CONCAT('GA-DL-T', LPAD(t.n, 2, '0'), '-', LPAD(d.n, 4, '0')) AS license_number,
-    'GA' AS license_state,
-    DATE_ADD(CURRENT_DATE, INTERVAL 18 MONTH) AS license_expiry_date,
-    'CLEAR' AS background_check_status,
-    DATE_ADD(CURRENT_DATE, INTERVAL 12 MONTH) AS background_check_expiry_date,
-    'CLEAR' AS drug_test_status,
-    DATE_ADD(CURRENT_DATE, INTERVAL 12 MONTH) AS drug_test_expiry_date,
-    'COMPLETED' AS training_status,
-    DATE_SUB(CURRENT_DATE, INTERVAL 90 DAY) AS training_completion_date,
-    CONCAT('EmergencyContactT', LPAD(t.n, 2, '0'), 'D', LPAD(d.n, 3, '0')) AS emergency_contact_name,
-    CONCAT('404-', LPAD(500 + t.n, 3, '0'), '-', LPAD(d.n, 4, '0')) AS emergency_contact_phone,
-    'Family' AS emergency_contact_relationship,
-    'Bulk seeded driver for dispatch and assignment testing.' AS notes,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM tmp_seq_20 t
-CROSS JOIN tmp_seq_50 d
-LEFT JOIN drivers existing
-    ON existing.tenant_id = CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0'))
-   AND existing.driver_code = CONCAT('DRV-T', LPAD(t.n, 2, '0'), '-', LPAD(d.n, 3, '0'))
-WHERE existing.id IS NULL;
-
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0')) AS tenant_id,
-    CONCAT('samuelweld2018+d', LPAD(d.n, 2, '0'), 't', LPAD(t.n, 2, '0'), '@gmail.com') AS email,
-    'Samuel',
-    CONCAT('DriverUser', LPAD(d.n, 3, '0'), 'T', LPAD(t.n, 2, '0')),
-    @seed_password,
-    'ACTIVE',
-    TRUE,
-    FALSE,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM tmp_seq_20 t
-CROSS JOIN tmp_seq_50 d
-LEFT JOIN app_users u
-    ON u.email = CONCAT('samuelweld2018+d', LPAD(d.n, 2, '0'), 't', LPAD(t.n, 2, '0'), '@gmail.com')
-WHERE u.id IS NULL;
-
-INSERT IGNORE INTO user_roles (user_id, role_name)
-SELECT id, 'ROLE_DRIVER'
-FROM app_users
-WHERE email LIKE 'samuelweld2018+d%t%@gmail.com';
-
-INSERT INTO vehicles
-    (tenant_id, vehicle_code, ownership_type, make, model, vehicle_year, color, vin, plate_number, plate_state,
-     capacity, wheelchair_capacity, fuel_type, insurance_policy_number, insurance_expiry_date,
-     registration_expiry_date, inspection_expiry_date, mileage, assigned_driver_id, notes, status,
-     created_by, created_at, updated_by, updated_at)
-SELECT
-    CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0')) AS tenant_id,
-    CONCAT('VEH-T', LPAD(t.n, 2, '0'), '-', LPAD(d.n, 3, '0')) AS vehicle_code,
-    'COMPANY_OWNED' AS ownership_type,
-    CASE WHEN MOD(d.n, 2) = 0 THEN 'Ford' ELSE 'Toyota' END AS make,
-    CASE WHEN MOD(d.n, 2) = 0 THEN 'Transit' ELSE 'Sienna' END AS model,
-    CASE WHEN MOD(d.n, 2) = 0 THEN 2023 ELSE 2022 END AS vehicle_year,
-    CASE WHEN MOD(d.n, 2) = 0 THEN 'White' ELSE 'Silver' END AS color,
-    CONCAT('V', LPAD(t.n, 2, '0'), LPAD(d.n, 3, '0'), 'ABCDEFGHJKL') AS vin,
-    CONCAT('T', LPAD(t.n, 2, '0'), 'D', LPAD(d.n, 3, '0')) AS plate_number,
-    'GA' AS plate_state,
-    8 AS capacity,
-    2 AS wheelchair_capacity,
-    CASE WHEN MOD(d.n, 2) = 0 THEN 'GASOLINE' ELSE 'HYBRID' END AS fuel_type,
-    CONCAT('POL-T', LPAD(t.n, 2, '0'), '-', LPAD(d.n, 4, '0')) AS insurance_policy_number,
-    DATE_ADD(CURRENT_DATE, INTERVAL 9 MONTH) AS insurance_expiry_date,
-    DATE_ADD(CURRENT_DATE, INTERVAL 7 MONTH) AS registration_expiry_date,
-    DATE_ADD(CURRENT_DATE, INTERVAL 6 MONTH) AS inspection_expiry_date,
-    (20000 + d.n * 150) AS mileage,
-    drv.id AS assigned_driver_id,
-    'Bulk seeded vehicle assigned to matching driver index.' AS notes,
-    'ACTIVE' AS status,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM tmp_seq_20 t
-CROSS JOIN tmp_seq_50 d
-JOIN drivers drv
-    ON drv.tenant_id = CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0'))
-   AND drv.driver_code = CONCAT('DRV-T', LPAD(t.n, 2, '0'), '-', LPAD(d.n, 3, '0'))
-LEFT JOIN vehicles v
-    ON v.tenant_id = CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0'))
-   AND v.vehicle_code = CONCAT('VEH-T', LPAD(t.n, 2, '0'), '-', LPAD(d.n, 3, '0'))
-WHERE v.id IS NULL;
-
-INSERT IGNORE INTO vehicle_service_types (vehicle_id, service_type)
-SELECT id, 'NEMT' FROM vehicles WHERE tenant_id LIKE '44000000-0000-4000-8000-%' AND vehicle_code LIKE 'VEH-T%';
-
-INSERT INTO driver_documents
-    (tenant_id, driver_id, document_type, file_name, original_file_name, content_type, storage_path,
-     document_number, issuing_authority, issue_date, expiry_date, verification_status, status, notes,
-     uploaded_by, uploaded_at, created_by, created_at, updated_by, updated_at)
-SELECT
-    drv.tenant_id,
-    drv.id,
-    'PROFILE_PHOTO',
-    CONCAT(LOWER(drv.driver_code), '-profile.jpg') AS file_name,
-    CONCAT(LOWER(drv.driver_code), '-profile.jpg') AS original_file_name,
-    'image/jpeg' AS content_type,
-    CONCAT('tenants/', drv.tenant_id, '/drivers/', drv.driver_code, '/profile/', LOWER(drv.driver_code), '-profile.jpg') AS storage_path,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    'VERIFIED',
-    'ACTIVE',
-    'Bulk seeded profile image for driver.' AS notes,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM drivers drv
-LEFT JOIN driver_documents dd
-    ON dd.driver_id = drv.id
-   AND dd.document_type = 'PROFILE_PHOTO'
-WHERE drv.tenant_id LIKE '44000000-0000-4000-8000-%'
-  AND dd.id IS NULL;
-
-INSERT INTO vehicle_documents
-    (tenant_id, vehicle_id, document_type, file_name, original_file_name, content_type, storage_path,
-     document_number, issuing_authority, issue_date, expiry_date, verification_status, status, notes,
-     uploaded_by, uploaded_at, created_by, created_at, updated_by, updated_at)
-SELECT
-    veh.tenant_id,
-    veh.id,
-    'VEHICLE_PHOTO',
-    CONCAT(LOWER(veh.vehicle_code), '-photo.jpg') AS file_name,
-    CONCAT(LOWER(veh.vehicle_code), '-photo.jpg') AS original_file_name,
-    'image/jpeg' AS content_type,
-    CONCAT('tenants/', veh.tenant_id, '/vehicles/', veh.vehicle_code, '/photos/', LOWER(veh.vehicle_code), '-photo.jpg') AS storage_path,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    'VERIFIED',
-    'ACTIVE',
-    'Bulk seeded vehicle photo for operational testing.' AS notes,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM vehicles veh
-LEFT JOIN vehicle_documents vd
-    ON vd.vehicle_id = veh.id
-   AND vd.document_type = 'VEHICLE_PHOTO'
-WHERE veh.tenant_id LIKE '44000000-0000-4000-8000-%'
-  AND vd.id IS NULL;
-
--- -----------------------------------------------------------------------------
--- Riders (20 per tenant), guardians (10 per tenant), relationships and user roles
--- -----------------------------------------------------------------------------
-INSERT INTO riders
-    (tenant_id, rider_code, rider_type, first_name, last_name, date_of_birth, gender, email, primary_phone,
-     home_address_line1, city, state, zip_code, country, default_pickup_address, default_dropoff_address,
-     pickup_notes, wheelchair_required, escort_required, special_instructions, emergency_contact_name,
-     emergency_contact_phone, emergency_contact_relationship, notes, status,
-     created_by, created_at, updated_by, updated_at)
-SELECT
-    CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0')) AS tenant_id,
-    CONCAT('RDR-T', LPAD(t.n, 2, '0'), '-', LPAD(r.n, 3, '0')) AS rider_code,
-    CASE WHEN MOD(r.n, 2) = 0 THEN 'NEMT' ELSE 'OTHER' END AS rider_type,
-    'Samuel' AS first_name,
-    CONCAT('Rider', LPAD(r.n, 3, '0'), 'T', LPAD(t.n, 2, '0')) AS last_name,
-    DATE_SUB(CURRENT_DATE, INTERVAL (10000 + r.n) DAY) AS date_of_birth,
-    CASE WHEN MOD(r.n, 2) = 0 THEN 'FEMALE' ELSE 'MALE' END AS gender,
-    CONCAT('samuelweld2018+p', LPAD(r.n, 2, '0'), 't', LPAD(t.n, 2, '0'), '@gmail.com') AS email,
-    CONCAT('404-', LPAD(200 + t.n, 3, '0'), '-', LPAD(r.n, 4, '0')) AS primary_phone,
-    CONCAT(r.n, ' Rider Street') AS home_address_line1,
-    'Atlanta' AS city,
-    'GA' AS state,
-    CONCAT('32', LPAD(t.n, 3, '0')) AS zip_code,
-    'United States' AS country,
-    CONCAT(r.n, ' Rider Street, Atlanta, GA ', CONCAT('32', LPAD(t.n, 3, '0'))) AS default_pickup_address,
-    CONCAT(r.n, ' Medical Plaza, Atlanta, GA ', CONCAT('32', LPAD(t.n, 3, '0'))) AS default_dropoff_address,
-    'Call before arrival.' AS pickup_notes,
-    CASE WHEN MOD(r.n, 3) = 0 THEN TRUE ELSE FALSE END AS wheelchair_required,
-    CASE WHEN r.n <= 10 THEN TRUE ELSE FALSE END AS escort_required,
-    CASE
-        WHEN MOD(r.n, 3) = 0 THEN 'Wheelchair securement required.'
-        WHEN r.n <= 10 THEN 'Guardian may accompany rider.'
-        ELSE 'Standard transport.'
-    END AS special_instructions,
-    CONCAT('EmergencyRiderT', LPAD(t.n, 2, '0'), LPAD(r.n, 3, '0')),
-    CONCAT('404-', LPAD(260 + t.n, 3, '0'), '-', LPAD(r.n, 4, '0')),
-    CASE WHEN r.n <= 10 THEN 'Guardian' ELSE 'Self' END,
-    'Bulk seeded rider for guardian/non-guardian scenario testing.' AS notes,
-    'ACTIVE' AS status,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM tmp_seq_20 t
-CROSS JOIN tmp_seq_20_b r
-LEFT JOIN riders existing
-    ON existing.tenant_id = CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0'))
-   AND existing.rider_code = CONCAT('RDR-T', LPAD(t.n, 2, '0'), '-', LPAD(r.n, 3, '0'))
-WHERE existing.id IS NULL;
-
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0')) AS tenant_id,
-    CONCAT('samuelweld2018+p', LPAD(r.n, 2, '0'), 't', LPAD(t.n, 2, '0'), '@gmail.com') AS email,
-    'Samuel',
-    CONCAT('RiderUser', LPAD(r.n, 3, '0'), 'T', LPAD(t.n, 2, '0')),
-    @seed_password,
-    'ACTIVE',
-    TRUE,
-    FALSE,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM tmp_seq_20 t
-CROSS JOIN tmp_seq_20_b r
-LEFT JOIN app_users u
-    ON u.email = CONCAT('samuelweld2018+p', LPAD(r.n, 2, '0'), 't', LPAD(t.n, 2, '0'), '@gmail.com')
-WHERE u.id IS NULL;
-
-INSERT IGNORE INTO user_roles (user_id, role_name)
-SELECT id, 'ROLE_RIDER'
-FROM app_users
-WHERE email LIKE 'samuelweld2018+p%t%@gmail.com';
-
-INSERT INTO guardians
-    (tenant_id, first_name, last_name, relation_to_rider_default, email, phone, address_line1, city, state,
-     zip_code, country, preferred_communication_method, billing_contact, authorized_for_pickup, notes, status,
-     created_by, created_at, updated_by, updated_at)
-SELECT
-    CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0')) AS tenant_id,
-    'Samuel' AS first_name,
-    CONCAT('Guardian', LPAD(g.n, 3, '0'), 'T', LPAD(t.n, 2, '0')) AS last_name,
-    CASE
-        WHEN MOD(g.n, 5) = 0 THEN 'SPOUSE'
-        WHEN MOD(g.n, 2) = 0 THEN 'CHILD'
-        ELSE 'SIBLING'
-    END AS relation_to_rider_default,
-    CONCAT('samuelweld2018+g', LPAD(g.n, 2, '0'), 't', LPAD(t.n, 2, '0'), '@gmail.com') AS email,
-    CONCAT('404-', LPAD(300 + t.n, 3, '0'), '-', LPAD(g.n, 4, '0')) AS phone,
-    CONCAT(g.n, ' Guardian Drive') AS address_line1,
-    'Atlanta' AS city,
-    'GA' AS state,
-    CONCAT('33', LPAD(t.n, 3, '0')) AS zip_code,
-    'United States' AS country,
-    CASE WHEN MOD(g.n, 2) = 0 THEN 'SMS' ELSE 'EMAIL' END AS preferred_communication_method,
-    TRUE AS billing_contact,
-    TRUE AS authorized_for_pickup,
-    'Bulk seeded guardian for linked rider scenarios.' AS notes,
-    'ACTIVE' AS status,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM tmp_seq_20 t
-CROSS JOIN tmp_seq_10 g
-LEFT JOIN guardians existing
-    ON existing.tenant_id = CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0'))
-   AND existing.email = CONCAT('samuelweld2018+g', LPAD(g.n, 2, '0'), 't', LPAD(t.n, 2, '0'), '@gmail.com')
-WHERE existing.id IS NULL;
-
-INSERT INTO app_users
-    (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
-SELECT
-    CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0')) AS tenant_id,
-    CONCAT('samuelweld2018+g', LPAD(g.n, 2, '0'), 't', LPAD(t.n, 2, '0'), '@gmail.com') AS email,
-    'Samuel',
-    CONCAT('GuardianUser', LPAD(g.n, 3, '0'), 'T', LPAD(t.n, 2, '0')),
-    @seed_password,
-    'ACTIVE',
-    TRUE,
-    FALSE,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM tmp_seq_20 t
-CROSS JOIN tmp_seq_10 g
-LEFT JOIN app_users u
-    ON u.email = CONCAT('samuelweld2018+g', LPAD(g.n, 2, '0'), 't', LPAD(t.n, 2, '0'), '@gmail.com')
-WHERE u.id IS NULL;
-
-INSERT IGNORE INTO user_roles (user_id, role_name)
-SELECT id, 'ROLE_GUARDIAN'
-FROM app_users
-WHERE email LIKE 'samuelweld2018+g%t%@gmail.com';
-
-INSERT IGNORE INTO rider_guardians
-    (tenant_id, rider_id, guardian_id, relationship_type, primary_guardian, authorized_for_pickup,
-     billing_contact, notes, status, created_by, created_at, updated_by, updated_at)
-SELECT
-    rid.tenant_id,
-    rid.id,
-    g.id,
-    CASE
-        WHEN MOD(seq.n, 5) = 0 THEN 'SPOUSE'
-        WHEN MOD(seq.n, 2) = 0 THEN 'CHILD'
-        ELSE 'SIBLING'
-    END AS relationship_type,
-    TRUE,
-    TRUE,
-    TRUE,
-    'Bulk seeded rider-guardian link.' AS notes,
-    'ACTIVE' AS status,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM tmp_seq_20 t
-JOIN tmp_seq_10 seq ON 1 = 1
-JOIN riders rid
-    ON rid.tenant_id = CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0'))
-   AND rid.rider_code = CONCAT('RDR-T', LPAD(t.n, 2, '0'), '-', LPAD(seq.n, 3, '0'))
-JOIN guardians g
-    ON g.tenant_id = rid.tenant_id
-   AND g.email = CONCAT('samuelweld2018+g', LPAD(seq.n, 2, '0'), 't', LPAD(t.n, 2, '0'), '@gmail.com');
-
--- -----------------------------------------------------------------------------
--- Portal scopes
--- -----------------------------------------------------------------------------
-INSERT IGNORE INTO portal_user_scopes
-    (tenant_id, app_user_id, portal_subject_type, portal_subject_id, created_by, created_at, updated_by, updated_at)
-SELECT
-    drv.tenant_id,
-    usr.id,
-    'DRIVER',
-    drv.id,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM drivers drv
-JOIN app_users usr
-    ON usr.email = drv.email
-WHERE drv.tenant_id LIKE '44000000-0000-4000-8000-%';
-
-INSERT IGNORE INTO portal_user_scopes
-    (tenant_id, app_user_id, portal_subject_type, portal_subject_id, created_by, created_at, updated_by, updated_at)
-SELECT
-    rid.tenant_id,
-    usr.id,
-    'RIDER',
-    rid.id,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM riders rid
-JOIN app_users usr
-    ON usr.email = rid.email
-WHERE rid.tenant_id LIKE '44000000-0000-4000-8000-%';
-
-INSERT IGNORE INTO portal_user_scopes
-    (tenant_id, app_user_id, portal_subject_type, portal_subject_id, created_by, created_at, updated_by, updated_at)
-SELECT
-    g.tenant_id,
-    usr.id,
-    'GUARDIAN',
-    g.id,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM guardians g
-JOIN app_users usr
-    ON usr.email = g.email
-WHERE g.tenant_id LIKE '44000000-0000-4000-8000-%';
-
--- -----------------------------------------------------------------------------
--- Routes (20 per tenant), rides (20 per tenant), and route stops
--- -----------------------------------------------------------------------------
-INSERT INTO routes
-    (tenant_id, route_code, route_name, route_date, service_type, assigned_driver_id, assigned_vehicle_id,
-     start_time, end_time, manifest_notes, notes, status, created_by, created_at, updated_by, updated_at)
-SELECT
-    tenant_id,
-    route_code,
-    route_name,
-    route_date,
-    service_type,
-    assigned_driver_id,
-    assigned_vehicle_id,
-    start_time,
-    end_time,
-    manifest_notes,
-    notes,
-    status,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM (
-    SELECT
-        CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0')) AS tenant_id,
-        CONCAT('RT-T', LPAD(t.n, 2, '0'), '-', LPAD(r.n, 2, '0')) AS route_code,
-        CONCAT('Tenant ', LPAD(t.n, 2, '0'), ' Route ', LPAD(r.n, 2, '0')) AS route_name,
-        DATE_ADD(CURRENT_DATE, INTERVAL MOD(r.n, 3) DAY) AS route_date,
-        CASE
-            WHEN MOD(r.n, 3) = 0 THEN 'NEMT'
-            WHEN MOD(r.n, 3) = 1 THEN 'ADA_PARATRANSIT'
-            ELSE 'GENERAL_TRANSPORT'
-        END AS service_type,
-        drv.id AS assigned_driver_id,
-        veh.id AS assigned_vehicle_id,
-        ADDTIME('06:00:00', SEC_TO_TIME((r.n - 1) * 900)) AS start_time,
-        ADDTIME('08:00:00', SEC_TO_TIME((r.n - 1) * 900)) AS end_time,
-        'Bulk seeded route manifest for dispatcher assignment testing.' AS manifest_notes,
-        'Bulk seeded route note.' AS notes,
-        CASE
-            WHEN MOD(r.n, 5) = 0 THEN 'COMPLETED'
-            WHEN MOD(r.n, 5) = 1 THEN 'IN_PROGRESS'
-            WHEN MOD(r.n, 5) = 2 THEN 'READY'
-            ELSE 'PLANNED'
-        END AS status
-    FROM tmp_seq_20 t
-    CROSS JOIN tmp_seq_20_b r
-    JOIN drivers drv
-        ON drv.tenant_id = CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0'))
-       AND drv.driver_code = CONCAT('DRV-T', LPAD(t.n, 2, '0'), '-', LPAD(r.n, 3, '0'))
-    JOIN vehicles veh
-        ON veh.tenant_id = drv.tenant_id
-       AND veh.vehicle_code = CONCAT('VEH-T', LPAD(t.n, 2, '0'), '-', LPAD(r.n, 3, '0'))
-) src
-LEFT JOIN routes existing
-    ON existing.tenant_id = src.tenant_id
-   AND existing.route_code = src.route_code
-WHERE existing.id IS NULL;
-
-INSERT INTO rides
-    (tenant_id, ride_number, rider_id, guardian_id, service_type, trip_type,
-     pickup_address_line1, pickup_city, pickup_state, pickup_zip_code, pickup_country,
-     dropoff_address_line1, dropoff_city, dropoff_state, dropoff_zip_code, dropoff_country,
-     scheduled_pickup_at, scheduled_dropoff_at, wheelchair_required, escort_required, companion_count,
-     special_instructions, operational_notes, priority_level, billing_type, driver_id, vehicle_id, route_id,
-     status, created_by, created_at, updated_by, updated_at)
-SELECT
-    src.tenant_id,
-    src.ride_number,
-    src.rider_id,
-    src.guardian_id,
-    src.service_type,
-    src.trip_type,
-    src.pickup_address_line1,
-    src.pickup_city,
-    src.pickup_state,
-    src.pickup_zip_code,
-    src.pickup_country,
-    src.dropoff_address_line1,
-    src.dropoff_city,
-    src.dropoff_state,
-    src.dropoff_zip_code,
-    src.dropoff_country,
-    src.scheduled_pickup_at,
-    src.scheduled_dropoff_at,
-    src.wheelchair_required,
-    src.escort_required,
-    src.companion_count,
-    src.special_instructions,
-    src.operational_notes,
-    src.priority_level,
-    src.billing_type,
-    src.driver_id,
-    src.vehicle_id,
-    src.route_id,
-    src.status,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM (
-    SELECT
-        CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0')) AS tenant_id,
-        CONCAT('RIDE-T', LPAD(t.n, 2, '0'), '-', LPAD(r.n, 3, '0')) AS ride_number,
-        rid.id AS rider_id,
-        CASE WHEN r.n <= 10 THEN g.id ELSE NULL END AS guardian_id,
-        CASE
-            WHEN MOD(r.n, 3) = 0 THEN 'NEMT'
-            WHEN MOD(r.n, 3) = 1 THEN 'ADA_PARATRANSIT'
-            ELSE 'GENERAL_TRANSPORT'
-        END AS service_type,
-        CASE WHEN MOD(r.n, 2) = 0 THEN 'ROUND_TRIP' ELSE 'ONE_WAY' END AS trip_type,
-        CONCAT(r.n, ' Pickup Lane') AS pickup_address_line1,
-        'Atlanta' AS pickup_city,
-        'GA' AS pickup_state,
-        CONCAT('34', LPAD(t.n, 3, '0')) AS pickup_zip_code,
-        'United States' AS pickup_country,
-        CONCAT(r.n, ' Dropoff Plaza') AS dropoff_address_line1,
-        'Atlanta' AS dropoff_city,
-        'GA' AS dropoff_state,
-        CONCAT('35', LPAD(t.n, 3, '0')) AS dropoff_zip_code,
-        'United States' AS dropoff_country,
-        CASE
-            WHEN MOD(r.n, 5) = 0 THEN DATE_SUB(TIMESTAMP(CURRENT_DATE, '10:00:00'), INTERVAL 2 DAY)
-            WHEN MOD(r.n, 5) = 1 THEN DATE_ADD(TIMESTAMP(CURRENT_DATE, '07:00:00'), INTERVAL r.n HOUR)
-            WHEN MOD(r.n, 5) = 2 THEN DATE_ADD(TIMESTAMP(CURRENT_DATE, '08:00:00'), INTERVAL r.n HOUR)
-            WHEN MOD(r.n, 5) = 3 THEN DATE_ADD(TIMESTAMP(CURRENT_DATE, '09:00:00'), INTERVAL r.n HOUR)
-            ELSE DATE_ADD(TIMESTAMP(CURRENT_DATE, '11:00:00'), INTERVAL r.n HOUR)
-        END AS scheduled_pickup_at,
-        CASE
-            WHEN MOD(r.n, 5) = 0 THEN DATE_SUB(TIMESTAMP(CURRENT_DATE, '11:00:00'), INTERVAL 2 DAY)
-            ELSE DATE_ADD(TIMESTAMP(CURRENT_DATE, '12:00:00'), INTERVAL r.n HOUR)
-        END AS scheduled_dropoff_at,
-        CASE WHEN MOD(r.n, 3) = 0 THEN TRUE ELSE FALSE END AS wheelchair_required,
-        CASE WHEN r.n <= 10 THEN TRUE ELSE FALSE END AS escort_required,
-        CASE WHEN r.n <= 10 THEN 1 ELSE 0 END AS companion_count,
-        CASE
-            WHEN r.n <= 10 THEN 'Rider has guardian and possible escort.'
-            ELSE 'Rider is traveling without guardian.'
-        END AS special_instructions,
-        CASE
-            WHEN MOD(r.n, 5) = 0 THEN 'Completed historical ride.'
-            WHEN MOD(r.n, 5) = 1 THEN 'Assigned and ready for pickup.'
-            WHEN MOD(r.n, 5) = 2 THEN 'Driver currently en route.'
-            WHEN MOD(r.n, 5) = 3 THEN 'Rider has been picked up.'
-            ELSE 'Scheduled and awaiting assignment confirmation.'
-        END AS operational_notes,
-        CASE
-            WHEN MOD(r.n, 4) = 0 THEN 'HIGH'
-            WHEN MOD(r.n, 4) = 1 THEN 'STANDARD'
-            WHEN MOD(r.n, 4) = 2 THEN 'URGENT'
-            ELSE 'LOW'
-        END AS priority_level,
-        CASE WHEN MOD(r.n, 2) = 0 THEN 'SPONSORED' ELSE 'PRIVATE_PAY' END AS billing_type,
-        drv.id AS driver_id,
-        veh.id AS vehicle_id,
-        rt.id AS route_id,
-        CASE
-            WHEN MOD(r.n, 5) = 0 THEN 'COMPLETED'
-            WHEN MOD(r.n, 5) = 1 THEN 'ASSIGNED'
-            WHEN MOD(r.n, 5) = 2 THEN 'DRIVER_EN_ROUTE'
-            WHEN MOD(r.n, 5) = 3 THEN 'PICKED_UP'
-            ELSE 'SCHEDULED'
-        END AS status
-    FROM tmp_seq_20 t
-    CROSS JOIN tmp_seq_20_b r
-    JOIN riders rid
-        ON rid.tenant_id = CONCAT('44000000-0000-4000-8000-', LPAD(t.n, 12, '0'))
-       AND rid.rider_code = CONCAT('RDR-T', LPAD(t.n, 2, '0'), '-', LPAD(r.n, 3, '0'))
-    LEFT JOIN guardians g
-        ON g.tenant_id = rid.tenant_id
-       AND g.email = CONCAT('samuelweld2018+g', LPAD(r.n, 2, '0'), 't', LPAD(t.n, 2, '0'), '@gmail.com')
-    JOIN drivers drv
-        ON drv.tenant_id = rid.tenant_id
-       AND drv.driver_code = CONCAT('DRV-T', LPAD(t.n, 2, '0'), '-', LPAD(r.n, 3, '0'))
-    JOIN vehicles veh
-        ON veh.tenant_id = rid.tenant_id
-       AND veh.vehicle_code = CONCAT('VEH-T', LPAD(t.n, 2, '0'), '-', LPAD(r.n, 3, '0'))
-    JOIN routes rt
-        ON rt.tenant_id = rid.tenant_id
-       AND rt.route_code = CONCAT('RT-T', LPAD(t.n, 2, '0'), '-', LPAD(r.n, 2, '0'))
-) src
-LEFT JOIN rides existing
-    ON existing.tenant_id = src.tenant_id
-   AND existing.ride_number = src.ride_number
-WHERE existing.id IS NULL;
-
-INSERT INTO route_stops
-    (tenant_id, route_id, ride_id, stop_sequence, planned_pickup_at, planned_dropoff_at, notes, status,
-     created_by, created_at, updated_by, updated_at)
-SELECT
-    rt.tenant_id,
-    rt.id,
-    rd.id,
-    1,
-    rd.scheduled_pickup_at,
-    rd.scheduled_dropoff_at,
-    'Primary stop for seeded route/ride pair.' AS notes,
-    'ACTIVE' AS status,
-    @seed_by,
-    @seed_now,
-    @seed_by,
-    @seed_now
-FROM routes rt
-JOIN rides rd
-    ON rd.tenant_id = rt.tenant_id
-   AND rd.route_id = rt.id
-LEFT JOIN route_stops rs
-    ON rs.route_id = rt.id
-   AND rs.ride_id = rd.id
-WHERE rt.tenant_id LIKE '44000000-0000-4000-8000-%'
-  AND rs.id IS NULL;
-
-DROP TEMPORARY TABLE tmp_seq_10;
-DROP TEMPORARY TABLE tmp_seq_50;
-DROP TEMPORARY TABLE tmp_seq_20_b;
-DROP TEMPORARY TABLE tmp_seq_20;
-
--- END V29__seed_bulk_operational_scenarios.sql
 

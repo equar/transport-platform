@@ -13,6 +13,7 @@ import com.transportplatform.tms.features.auth.domain.AppUser;
 import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
+import com.transportplatform.tms.features.auth.application.AuthSessionService;
 import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import com.transportplatform.tms.features.portalaccess.application.PortalAccessService;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
@@ -53,6 +54,9 @@ class UserManagementServiceTest {
 
     @Mock
     private PortalAccessService portalAccessService;
+
+        @Mock
+        private AuthSessionService authSessionService;
 
     @Mock
     private Clock clock;
@@ -128,6 +132,66 @@ class UserManagementServiceTest {
                 "A portal identity must be selected for driver, rider, guardian, and organization users.",
                 exception.getMessage());
     }
+
+        @Test
+        void administratorPasswordResetRevokesAllRefreshSessions() {
+                AppUser user = activeUser();
+                when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
+                when(appUserRepository.findById(user.getId())).thenReturn(java.util.Optional.of(user));
+                when(passwordEncoder.encode("new-password")).thenReturn("new-password-hash");
+                when(clock.instant()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
+                when(appUserRepository.save(user)).thenReturn(user);
+
+                userManagementService.resetCompanyUserPassword(user.getId(),
+                                new com.transportplatform.tms.features.user.api.request.AdminResetPasswordRequest("new-password"));
+
+                verify(authSessionService).revokeAllForUser(user.getId());
+        }
+
+        @Test
+        void suspensionRevokesAllRefreshSessions() {
+                AppUser user = activeUser();
+                when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
+                when(appUserRepository.findById(user.getId())).thenReturn(java.util.Optional.of(user));
+                when(appUserRepository.save(user)).thenReturn(user);
+
+                userManagementService.suspendCompanyUser(user.getId());
+
+                verify(authSessionService).revokeAllForUser(user.getId());
+        }
+
+        @Test
+        void roleChangeRevokesAllRefreshSessions() {
+                AppUser user = activeUser();
+                user.setRoles(Set.of(RoleName.ROLE_DISPATCHER));
+                when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
+                when(appUserRepository.findById(user.getId())).thenReturn(java.util.Optional.of(user));
+                when(appUserRepository.existsByEmailIgnoreCaseAndIdNot(user.getEmail(), user.getId())).thenReturn(false);
+                when(appUserRepository.save(user)).thenReturn(user);
+
+                userManagementService.updateCompanyUser(user.getId(), new UserUpsertRequest(
+                                null,
+                                "Taylor",
+                                "Driver",
+                                user.getEmail(),
+                                null,
+                                UserStatus.ACTIVE,
+                                Set.of(RoleName.ROLE_TENANT_ADMIN),
+                                null,
+                                null));
+
+                verify(authSessionService).revokeAllForUser(user.getId());
+        }
+
+        private AppUser activeUser() {
+                AppUser user = new AppUser();
+                user.setTenantId("tenant-123");
+                user.setEmail("driver@example.com");
+                user.setPasswordHash("old-password-hash");
+                user.setStatus(UserStatus.ACTIVE);
+                org.springframework.test.util.ReflectionTestUtils.setField(user, "id", 11L);
+                return user;
+        }
 
     private AuthenticatedUser companyAdmin() {
         return new AuthenticatedUser(

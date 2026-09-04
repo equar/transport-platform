@@ -1,6 +1,5 @@
 package com.transportplatform.tms.features.auth.application;
 
-import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -47,6 +46,7 @@ public class PlatformAdminBootstrapRunner implements ApplicationRunner {
 
         AppUser user = appUserRepository.findForAuthenticationByEmail(email).orElse(null);
         if (user == null) {
+            validateCreationPassword();
             user = new AppUser();
             user.setEmail(email);
             user.setFirstName("Platform");
@@ -60,23 +60,14 @@ public class PlatformAdminBootstrapRunner implements ApplicationRunner {
             return;
         }
 
-        boolean changed = false;
-        Set<RoleName> roles = user.getRoles() == null ? new LinkedHashSet<>() : new LinkedHashSet<>(user.getRoles());
-        if (roles.add(RoleName.ROLE_PLATFORM_ADMIN)) {
-            user.setRoles(roles);
-            changed = true;
-        }
-        if (user.getStatus() != UserStatus.ACTIVE) {
-            user.setStatus(UserStatus.ACTIVE);
-            changed = true;
-        }
-
-        if (changed) {
-            appUserRepository.save(user);
-            LOGGER.info("Updated existing user {} to ensure platform admin access", email);
-            return;
-        }
-
         LOGGER.info("Platform admin account already exists for email {}", email);
+    }
+
+    private void validateCreationPassword() {
+        String password = properties.getPassword();
+        if (password == null || password.isBlank()) {
+            throw new IllegalStateException(
+                    "A bootstrap platform admin password is required when the platform admin account does not exist.");
+        }
     }
 }

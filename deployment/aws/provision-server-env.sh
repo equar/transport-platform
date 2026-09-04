@@ -53,6 +53,8 @@ push_enabled="$(read_value APP_PUSH_ENABLED || printf 'false')"
 push_provider="$(read_value APP_PUSH_PROVIDER || printf 'logging')"
 push_expo_url="$(read_value APP_PUSH_EXPO_URL || printf 'https://exp.host/--/api/v2/push/send')"
 expo_access_token="$(read_value EXPO_ACCESS_TOKEN || true)"
+bootstrap_email="$(read_value APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL || printf 'samuelweld2018@gmail.com')"
+bootstrap_password="$(read_value APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD || true)"
 
 jwt_secret="$(openssl rand -base64 64 | tr -d '\n')"
 umask 077
@@ -66,6 +68,10 @@ umask 077
   printf '%s\n' 'APP_SECURITY_ALLOWED_ORIGINS=https://transport.bakaroo.com'
   printf '%s\n' "APP_SECURITY_JWT_SECRET=${jwt_secret}"
   printf '%s\n' 'APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED=true'
+  printf '%s\n' "APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL=${bootstrap_email}"
+  if [[ -n "$bootstrap_password" ]]; then
+    printf '%s\n' "APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD=${bootstrap_password}"
+  fi
   printf '%s\n' 'APP_LOGGING_LEVEL_ROOT=INFO'
   printf '%s\n' 'APP_LOGGING_LEVEL_APP=DEBUG'
   printf '%s\n' 'APP_LOGGING_LEVEL_WEB=DEBUG'
@@ -83,7 +89,8 @@ umask 077
   printf '%s\n' "APP_PUSH_PROVIDER=${push_provider}"
   printf '%s\n' "APP_PUSH_EXPO_URL=${push_expo_url}"
   printf '%s\n' "EXPO_ACCESS_TOKEN=${expo_access_token}"
-} > "$TARGET_ENV"
+} > "${TARGET_ENV}.tmp"
+mv "${TARGET_ENV}.tmp" "$TARGET_ENV"
 chmod 600 "$TARGET_ENV"
 
 echo "Created transport_platform schema and production environment."

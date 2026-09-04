@@ -5,6 +5,7 @@ import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.response.PageResponse;
 import com.transportplatform.tms.features.audit.application.AuditLogCommand;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
+import com.transportplatform.tms.features.auth.application.AuthSessionService;
 import com.transportplatform.tms.features.tenant.api.request.TenantUpsertRequest;
 import com.transportplatform.tms.features.tenant.api.response.TenantResponse;
 import com.transportplatform.tms.features.tenant.domain.Tenant;
@@ -24,13 +25,16 @@ public class TenantService {
     private final TenantMapper tenantMapper;
     private final AuditLogService auditLogService;
     private final TenantResourceProvisioningService tenantResourceProvisioningService;
+        private final AuthSessionService authSessionService;
 
     public TenantService(TenantRepository tenantRepository, TenantMapper tenantMapper,
-            AuditLogService auditLogService, TenantResourceProvisioningService tenantResourceProvisioningService) {
+            AuditLogService auditLogService, TenantResourceProvisioningService tenantResourceProvisioningService,
+            AuthSessionService authSessionService) {
         this.tenantRepository = tenantRepository;
         this.tenantMapper = tenantMapper;
         this.auditLogService = auditLogService;
         this.tenantResourceProvisioningService = tenantResourceProvisioningService;
+        this.authSessionService = authSessionService;
     }
 
     @Transactional(readOnly = true)
@@ -116,6 +120,7 @@ public class TenantService {
         var oldSnapshot = snapshot(tenant);
         tenant.setStatus(TenantStatus.SUSPENDED);
         Tenant saved = tenantRepository.save(tenant);
+        authSessionService.revokeAllForTenant(saved.getId());
         auditLogService.record(new AuditLogCommand(
                 null,
                 saved.getId(),

@@ -59,7 +59,7 @@ SELECT id, 'ROLE_VIEWER' FROM app_users WHERE email = 'viewer@demo.test';
 SET @requested_tenant_id = (
         SELECT tenant_id
         FROM app_users
-        WHERE lower(email) = 'samuelweld2018+11@gmail.com'
+        WHERE lower(email) = 'samuelweld2018+t1@gmail.com'
         LIMIT 1
 );
 
