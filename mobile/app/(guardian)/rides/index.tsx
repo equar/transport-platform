@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl } from 'react-native';
+import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl, useWindowDimensions } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { riderPortalApi } from '@api/riderPortalApi';
@@ -16,6 +16,8 @@ type RideSegment = 'today' | 'history';
 
 export default function GuardianRidesPage() {
 	const router = useRouter();
+	const { width } = useWindowDimensions();
+	const isCompact = width < 380;
 	const [segment, setSegment] = React.useState<RideSegment>('today');
 	const { data, isLoading, fetchNextPage, hasNextPage, refetch, isRefetching } = useInfiniteQuery({
 		queryKey: ['guardian-rides'],
@@ -71,7 +73,13 @@ export default function GuardianRidesPage() {
 				onEndReached={() => (hasNextPage ? fetchNextPage() : undefined)}
 				onEndReachedThreshold={0.3}
 				refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-				contentContainerStyle={filtered.length === 0 ? styles.emptyContent : styles.listContent}
+				contentContainerStyle={[
+					filtered.length === 0 ? styles.emptyContent : styles.listContent,
+					{
+						paddingHorizontal: isCompact ? Spacing.md : Spacing.lg,
+						paddingBottom: Spacing.xxxl,
+					},
+				]}
 			/>
 		</View>
 	);
@@ -96,7 +104,7 @@ function RideCard({ item, onPress }: { item: RiderPortalRideRecord; onPress: () 
 
 const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: Colors.background },
-	headerCard: { padding: Spacing.lg, gap: Spacing.sm },
+	headerCard: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.sm, gap: Spacing.sm },
 	segmentRow: { flexDirection: 'row', gap: Spacing.sm },
 	segmentButton: {
 		flex: 1,
@@ -117,7 +125,7 @@ const styles = StyleSheet.create({
 		color: Colors.textSecondary,
 	},
 	segmentLabelSelected: { color: Colors.white },
-	listContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
+	listContent: { paddingTop: Spacing.sm },
 	card: { gap: Spacing.xs },
 	row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 	rideNumber: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeMd, color: Colors.textPrimary },

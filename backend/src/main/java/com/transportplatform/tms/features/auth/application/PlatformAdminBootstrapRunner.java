@@ -1,17 +1,19 @@
 package com.transportplatform.tms.features.auth.application;
 
-import com.transportplatform.tms.features.auth.domain.AppUser;
-import com.transportplatform.tms.features.auth.domain.AppUserRepository;
-import com.transportplatform.tms.features.auth.domain.RoleName;
-import com.transportplatform.tms.features.auth.domain.UserStatus;
 import java.util.LinkedHashSet;
 import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+
+import com.transportplatform.tms.features.auth.domain.AppUser;
+import com.transportplatform.tms.features.auth.domain.AppUserRepository;
+import com.transportplatform.tms.features.auth.domain.RoleName;
+import com.transportplatform.tms.features.auth.domain.UserStatus;
 
 @Component
 public class PlatformAdminBootstrapRunner implements ApplicationRunner {

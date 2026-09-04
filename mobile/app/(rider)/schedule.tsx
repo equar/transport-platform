@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, StyleSheet, ScrollView, Text, View, TouchableOpacity } from 'react-native';
+import { Alert, StyleSheet, ScrollView, Text, View, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { AppButton, AppCard, AppInput } from '@components/ui';
@@ -45,6 +45,8 @@ const SERVICE_OPTIONS: Array<{ label: string; value: ServiceType }> = [
 
 export default function RiderSchedulePage() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 380;
   const qc = useQueryClient();
   const [tripType, setTripType] = React.useState<TripType>('ONE_WAY');
   const [serviceType, setServiceType] = React.useState<ServiceType>('SCHOOL_TRANSPORT');
@@ -96,7 +98,16 @@ export default function RiderSchedulePage() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingHorizontal: isCompact ? Spacing.md : Spacing.lg,
+          gap: isCompact ? Spacing.sm : Spacing.md,
+        },
+      ]}
+    >
       <View style={styles.hero}>
         <Text style={styles.heroTitle}>Schedule a Ride</Text>
         <Text style={styles.heroSubtitle}>Create your next transportation request.</Text>
@@ -129,7 +140,7 @@ export default function RiderSchedulePage() {
         <View style={styles.fields}>
           <AppInput label="Address" value={form.pickupAddressLine1} onChangeText={(v) => update('pickupAddressLine1', v)} placeholder="123 Main St" autoCapitalize="words" />
           <AppInput label="City" value={form.pickupCity} onChangeText={(v) => update('pickupCity', v)} placeholder="Springfield" autoCapitalize="words" />
-          <View style={styles.splitRow}>
+          <View style={[styles.splitRow, isCompact && styles.splitRowCompact]}>
             <AppInput style={styles.splitInput} label="State" value={form.pickupState} onChangeText={(v) => update('pickupState', v)} placeholder="CA" autoCapitalize="characters" />
             <AppInput style={styles.splitInput} label="Zip" value={form.pickupZipCode} onChangeText={(v) => update('pickupZipCode', v)} placeholder="90210" keyboardType="numeric" />
           </View>
@@ -142,7 +153,7 @@ export default function RiderSchedulePage() {
         <View style={styles.fields}>
           <AppInput label="Address" value={form.dropoffAddressLine1} onChangeText={(v) => update('dropoffAddressLine1', v)} placeholder="456 Oak Ave" autoCapitalize="words" />
           <AppInput label="City" value={form.dropoffCity} onChangeText={(v) => update('dropoffCity', v)} placeholder="Springfield" autoCapitalize="words" />
-          <View style={styles.splitRow}>
+          <View style={[styles.splitRow, isCompact && styles.splitRowCompact]}>
             <AppInput style={styles.splitInput} label="State" value={form.dropoffState} onChangeText={(v) => update('dropoffState', v)} placeholder="CA" autoCapitalize="characters" />
             <AppInput style={styles.splitInput} label="Zip" value={form.dropoffZipCode} onChangeText={(v) => update('dropoffZipCode', v)} placeholder="90210" keyboardType="numeric" />
           </View>
@@ -294,6 +305,9 @@ const styles = StyleSheet.create({
   splitRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
+  },
+  splitRowCompact: {
+    flexDirection: 'column',
   },
   splitInput: {
     flex: 1,

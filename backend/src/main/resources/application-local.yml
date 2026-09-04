@@ -18,6 +18,10 @@ app:
   security:
     api-docs-enabled: true
     allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:http://localhost:3007,http://127.0.0.1:3007}
+    refresh-cookie:
+      same-site: ${APP_SECURITY_REFRESH_COOKIE_SAME_SITE:Lax}
+      path: ${APP_SECURITY_REFRESH_COOKIE_PATH:/api/v1/auth}
+      secure: ${APP_SECURITY_REFRESH_COOKIE_SECURE:false}
     jwt:
       secret: ${APP_SECURITY_JWT_SECRET:}
 

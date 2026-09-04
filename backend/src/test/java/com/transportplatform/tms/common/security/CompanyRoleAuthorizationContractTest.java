@@ -1,6 +1,15 @@
 package com.transportplatform.tms.common.security;
 
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.billing.api.InvoiceManagementController;
@@ -10,14 +19,6 @@ import com.transportplatform.tms.features.driver.api.DriverManagementController;
 import com.transportplatform.tms.features.incident.api.IncidentManagementController;
 import com.transportplatform.tms.features.ride.api.RideManagementController;
 import com.transportplatform.tms.features.vehicle.api.VehicleManagementController;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.junit.jupiter.api.Test;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 class CompanyRoleAuthorizationContractTest {
 

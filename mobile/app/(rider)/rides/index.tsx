@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl } from 'react-native';
+import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl, useWindowDimensions } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { riderPortalApi } from '@api/riderPortalApi';
@@ -15,6 +15,8 @@ type RideSegment = 'upcoming' | 'post';
 
 export default function RiderRidesPage() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 380;
   const [segment, setSegment] = React.useState<RideSegment>('upcoming');
   const { data, isLoading, fetchNextPage, hasNextPage, refetch, isRefetching } = useInfiniteQuery({
     queryKey: ['rider-rides'],
@@ -85,7 +87,13 @@ export default function RiderRidesPage() {
         onEndReached={() => hasNextPage && fetchNextPage()}
         onEndReachedThreshold={0.3}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-        contentContainerStyle={filtered.length === 0 && styles.emptyContent}
+        contentContainerStyle={[
+          filtered.length === 0 ? styles.emptyContent : styles.listContent,
+          {
+            paddingHorizontal: isCompact ? Spacing.md : Spacing.lg,
+            paddingBottom: Spacing.xxxl,
+          },
+        ]}
       />
     </View>
   );
@@ -94,7 +102,9 @@ export default function RiderRidesPage() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   headerCard: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.sm,
     gap: Spacing.sm,
   },
   segmentRow: {
@@ -123,7 +133,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   card: {
-    marginHorizontal: Spacing.lg,
+    marginHorizontal: 0,
     padding: Spacing.md,
     gap: Spacing.xs,
     borderWidth: 1,
@@ -137,5 +147,6 @@ const styles = StyleSheet.create({
   meta: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
   address: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
   sep: { height: Spacing.sm },
+  listContent: { paddingTop: Spacing.sm },
   emptyContent: { flex: 1 },
 });

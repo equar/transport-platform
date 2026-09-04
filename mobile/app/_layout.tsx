@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +20,7 @@ import { AuthProvider, useAuth } from '@auth/AuthContext';
 import NetInfo from '@react-native-community/netinfo';
 import { useOfflineQueue } from '@stores/offlineQueueStore';
 import { usePushNotifications } from '@hooks/usePushNotifications';
+import { Colors } from '@theme/tokens';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -86,9 +88,13 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
       <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: Colors.background }}
+          edges={['top', 'left', 'right', 'bottom']}
+        >
+          <StatusBar style="dark" backgroundColor={Colors.background} />
           <QueryClientProvider client={queryClient}>
             <ThemeProvider>
               <AuthProvider>

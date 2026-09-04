@@ -1,10 +1,11 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, ActivityIndicator, ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text } from 'react-native-paper';
-import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
+import { Colors, Motion, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
 
-type Variant = 'primary' | 'secondary' | 'outlined' | 'ghost';
-type Size = 'sm' | 'md' | 'lg';
+type Variant = 'primary' | 'secondary' | 'outlined' | 'ghost' | 'destructive';
+type Size = 'xs' | 'sm' | 'md' | 'lg';
 
 interface AppButtonProps {
   label: string;
@@ -15,13 +16,57 @@ interface AppButtonProps {
   disabled?: boolean;
   style?: ViewStyle;
   fullWidth?: boolean;
+  leftIcon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  rightIcon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 }
 
 const sizeMap = {
-  sm: { height: 32, px: Spacing.md, fontSize: Typography.sizeSm },
-  md: { height: 40, px: Spacing.lg, fontSize: Typography.sizeMd },
-  lg: { height: 48, px: Spacing.xl, fontSize: Typography.sizeLg },
+  xs: { height: 30, px: Spacing.sm, fontSize: Typography.sizeSm, icon: 14 },
+  sm: { height: 34, px: Spacing.md, fontSize: Typography.sizeSm, icon: 16 },
+  md: { height: 40, px: Spacing.lg, fontSize: Typography.sizeMd, icon: 18 },
+  lg: { height: 48, px: Spacing.xl, fontSize: Typography.sizeLg, icon: 20 },
 };
+
+function getVariantStyles(variant: Variant) {
+  switch (variant) {
+    case 'primary':
+      return {
+        container: styles.primary,
+        label: styles.labelLight,
+        iconColor: Colors.white,
+      };
+    case 'secondary':
+      return {
+        container: styles.secondary,
+        label: styles.labelLight,
+        iconColor: Colors.white,
+      };
+    case 'outlined':
+      return {
+        container: styles.outlined,
+        label: styles.labelDark,
+        iconColor: Colors.primary,
+      };
+    case 'ghost':
+      return {
+        container: styles.ghost,
+        label: styles.labelDark,
+        iconColor: Colors.primary,
+      };
+    case 'destructive':
+      return {
+        container: styles.destructive,
+        label: styles.labelLight,
+        iconColor: Colors.white,
+      };
+    default:
+      return {
+        container: styles.primary,
+        label: styles.labelLight,
+        iconColor: Colors.white,
+      };
+  }
+}
 
 export function AppButton({
   label,
@@ -32,45 +77,40 @@ export function AppButton({
   disabled = false,
   style,
   fullWidth = false,
+  leftIcon,
+  rightIcon,
 }: AppButtonProps) {
   const dim = sizeMap[size];
   const isDisabled = disabled || loading;
-
-  const containerStyle = [
-    styles.base,
-    { height: dim.height, paddingHorizontal: dim.px, borderRadius: Radius.input },
-    variant === 'primary' && styles.primary,
-    variant === 'secondary' && styles.secondary,
-    variant === 'outlined' && styles.outlined,
-    variant === 'ghost' && styles.ghost,
-    fullWidth && styles.fullWidth,
-    isDisabled && styles.disabled,
-    style,
-  ];
-
-  const textStyle = [
-    styles.label,
-    { fontSize: dim.fontSize },
-    variant === 'outlined' && styles.labelOutlined,
-    variant === 'ghost' && styles.labelGhost,
-  ];
+  const variantStyles = getVariantStyles(variant);
 
   return (
-    <TouchableOpacity
-      style={containerStyle}
+    <Pressable
       onPress={onPress}
       disabled={isDisabled}
-      activeOpacity={0.8}
+      style={({ pressed }) => [
+        styles.base,
+        { height: dim.height, paddingHorizontal: dim.px, borderRadius: Radius.input },
+        variantStyles.container,
+        fullWidth && styles.fullWidth,
+        isDisabled && styles.disabled,
+        pressed && !isDisabled && styles.pressed,
+        style,
+      ]}
+      android_ripple={{ color: 'rgba(0,0,0,0.09)' }}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
     >
       {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={variant === 'outlined' || variant === 'ghost' ? Colors.primary : Colors.white}
-        />
+        <ActivityIndicator size="small" color={variantStyles.iconColor} />
       ) : (
-        <Text style={textStyle}>{label}</Text>
+        <View style={styles.contentRow}>
+          {leftIcon ? <MaterialCommunityIcons name={leftIcon} size={dim.icon} color={variantStyles.iconColor} /> : null}
+          <Text style={[styles.labelBase, { fontSize: dim.fontSize }, variantStyles.label]}>{label}</Text>
+          {rightIcon ? <MaterialCommunityIcons name={rightIcon} size={dim.icon} color={variantStyles.iconColor} /> : null}
+        </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -80,12 +120,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+  },
   primary: {
     backgroundColor: Colors.primary,
     ...StyleSheet.flatten(Shadow.soft),
   },
   secondary: {
     backgroundColor: Colors.secondary,
+    ...StyleSheet.flatten(Shadow.soft),
+  },
+  destructive: {
+    backgroundColor: Colors.error,
     ...StyleSheet.flatten(Shadow.soft),
   },
   outlined: {
@@ -97,20 +147,22 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.overlay,
   },
   disabled: {
-    opacity: 0.4,
+    opacity: 0.45,
+  },
+  pressed: {
+    transform: [{ scale: Motion.pressScale.subtle }],
   },
   fullWidth: {
     alignSelf: 'stretch',
   },
-  label: {
-    color: Colors.white,
-    fontFamily: 'SourceSans3_700Bold',
+  labelBase: {
+    fontFamily: Typography.fontBodyBold,
     fontWeight: '700',
   },
-  labelOutlined: {
-    color: Colors.primary,
+  labelLight: {
+    color: Colors.white,
   },
-  labelGhost: {
+  labelDark: {
     color: Colors.primary,
   },
 });

@@ -93,6 +93,7 @@ public class AuthFacade {
         return issueTokens(user, authSessionService.issue(user, clientType));
     }
 
+    @Transactional(noRollbackFor = ApiException.class)
     public AuthTokensResponse refresh(String refreshToken, String clientType) {
         AuthSessionService.RotatedRefreshToken rotated = authSessionService.rotate(refreshToken, clientType);
         AppUser user = rotated.user();

@@ -1,53 +1,87 @@
 import React from 'react';
-import { StyleSheet, ScrollView, Text, RefreshControl } from 'react-native';
+import { StyleSheet, ScrollView, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { riderPortalApi } from '@api/riderPortalApi';
 import { LoadingState } from '@components/LoadingState';
 import { SectionHeader } from '@components/SectionHeader';
+import { EmptyState } from '@components/EmptyState';
 import { AppCard } from '@components/ui';
 import { Colors, Spacing, Typography } from '@theme/tokens';
 import { GuardianRoleTheme } from '@theme/roleTheme';
 
 export default function GuardianProfilePage() {
-	const { data: profile, isLoading, refetch, isRefetching } = useQuery({
+	const { width } = useWindowDimensions();
+	const isCompact = width < 380;
+	const {
+		data: profile,
+		isLoading,
+		isError,
+		error,
+		refetch,
+		isRefetching,
+	} = useQuery({
 		queryKey: ['guardian-profile'],
 		queryFn: () => riderPortalApi.getProfile(),
 	});
 
-	if (isLoading || !profile) return <LoadingState />;
+	if (isLoading) return <LoadingState />;
 
 	return (
 		<ScrollView
 			style={styles.container}
-			contentContainerStyle={styles.content}
+			contentContainerStyle={[
+				styles.content,
+				{
+					paddingHorizontal: isCompact ? Spacing.md : Spacing.lg,
+					gap: isCompact ? Spacing.md : Spacing.lg,
+				},
+			]}
 			refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
 		>
 			<AppCard style={styles.heroCard} noBorder>
 				<Text style={styles.heroTitle}>Account</Text>
-				<Text style={styles.heroName}>{profile.firstName} {profile.lastName}</Text>
-				<Text style={styles.heroMeta}>{profile.email ?? profile.phone}</Text>
+				<Text style={styles.heroName}>{profile ? `${profile.firstName} ${profile.lastName}` : 'Guardian Account'}</Text>
+				<Text style={styles.heroMeta}>{profile?.email ?? profile?.phone ?? 'No email or phone on file'}</Text>
 			</AppCard>
 
-			<SectionHeader title="Guardian Details" subtitle={profile.code ?? profile.scopeType} />
+			{isError ? (
+				<AppCard>
+					<EmptyState
+						title="Unable to load profile"
+						description={error instanceof Error ? error.message : 'Pull to refresh and try again.'}
+					/>
+				</AppCard>
+			) : !profile ? (
+				<AppCard>
+					<EmptyState
+						title="Profile unavailable"
+						description="No guardian profile data was returned yet. Pull down to refresh."
+					/>
+				</AppCard>
+			) : (
+				<>
+					<SectionHeader title="Guardian Details" subtitle={profile.code ?? profile.scopeType} />
 
-			<AppCard style={styles.section}>
-				<Text style={styles.sectionTitle}>Contact</Text>
-				<Row label="Phone" value={profile.phone} />
-				<Row label="Email" value={profile.email ?? '—'} />
-				<Row label="Status" value={profile.status} />
-			</AppCard>
+					<AppCard style={styles.section}>
+						<Text style={styles.sectionTitle}>Contact</Text>
+						<Row label="Phone" value={profile.phone} />
+						<Row label="Email" value={profile.email ?? '—'} />
+						<Row label="Status" value={profile.status} />
+					</AppCard>
 
-			<AppCard style={styles.section}>
-				<Text style={styles.sectionTitle}>Defaults</Text>
-				<Row label="Pickup" value={profile.defaultPickupAddress ?? '—'} />
-				<Row label="Drop-off" value={profile.defaultDropoffAddress ?? '—'} />
-			</AppCard>
+					<AppCard style={styles.section}>
+						<Text style={styles.sectionTitle}>Defaults</Text>
+						<Row label="Pickup" value={profile.defaultPickupAddress ?? '—'} />
+						<Row label="Drop-off" value={profile.defaultDropoffAddress ?? '—'} />
+					</AppCard>
 
-			<AppCard style={styles.section}>
-				<Text style={styles.sectionTitle}>Emergency</Text>
-				<Row label="Name" value={profile.emergencyContactName ?? '—'} />
-				<Row label="Phone" value={profile.emergencyContactPhone ?? '—'} />
-			</AppCard>
+					<AppCard style={styles.section}>
+						<Text style={styles.sectionTitle}>Emergency</Text>
+						<Row label="Name" value={profile.emergencyContactName ?? '—'} />
+						<Row label="Phone" value={profile.emergencyContactPhone ?? '—'} />
+					</AppCard>
+				</>
+			)}
 		</ScrollView>
 	);
 }

@@ -1,13 +1,15 @@
 package com.transportplatform.tms.features.riderguardianportal.api.request;
 
+import java.time.LocalDateTime;
+
 import com.transportplatform.tms.features.organization.domain.ServiceType;
 import com.transportplatform.tms.features.ride.domain.RideTripType;
+
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.time.LocalDateTime;
 
 public record RiderGuardianPortalRideCreateRequest(
         Long riderId,

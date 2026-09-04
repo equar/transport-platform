@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, TextInput, TouchableOpacity, ViewStyle, Text } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
 
 interface AppInputProps {
@@ -11,10 +11,15 @@ interface AppInputProps {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   error?: string;
+  success?: string;
+  hintText?: string;
   style?: ViewStyle;
   multiline?: boolean;
   numberOfLines?: number;
   editable?: boolean;
+  dense?: boolean;
+  maxLength?: number;
+  showCount?: boolean;
 }
 
 export function AppInput({
@@ -26,13 +31,29 @@ export function AppInput({
   autoCapitalize = 'none',
   keyboardType = 'default',
   error,
+  success,
+  hintText,
   style,
   multiline = false,
   numberOfLines = 1,
   editable = true,
+  dense = false,
+  maxLength,
+  showCount = false,
 }: AppInputProps) {
   const [focused, setFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const helperText = error || success || hintText;
+  const helperStyle = useMemo(() => {
+    if (error) {
+      return styles.errorText;
+    }
+    if (success) {
+      return styles.successText;
+    }
+    return styles.hintText;
+  }, [error, success]);
 
   return (
     <View style={[styles.wrapper, style]}>
@@ -40,13 +61,19 @@ export function AppInput({
       <View
         style={[
           styles.inputContainer,
+          dense && styles.inputContainerDense,
           focused && styles.focused,
           !!error && styles.errored,
+          !!success && !error && styles.success,
           !editable && styles.disabled,
         ]}
       >
         <TextInput
-          style={[styles.input, multiline && { height: numberOfLines * 20, textAlignVertical: 'top' }]}
+          style={[
+            styles.input,
+            dense && styles.inputDense,
+            multiline && { height: numberOfLines * 20, textAlignVertical: 'top' },
+          ]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -59,14 +86,24 @@ export function AppInput({
           multiline={multiline}
           numberOfLines={multiline ? numberOfLines : undefined}
           editable={editable}
+          maxLength={maxLength}
         />
-        {secureTextEntry && (
+        {secureTextEntry ? (
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
             <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁'}</Text>
           </TouchableOpacity>
-        )}
+        ) : null}
       </View>
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {(helperText || (showCount && maxLength)) ? (
+        <View style={styles.helperRow}>
+          <Text style={[styles.helperBase, helperStyle]}>{helperText ?? ' '}</Text>
+          {showCount && maxLength ? (
+            <Text style={styles.counterText}>
+              {value.length}/{maxLength}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -76,7 +113,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   label: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: Typography.fontBodyMedium,
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
     marginBottom: 2,
@@ -92,6 +129,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     minHeight: 52,
   },
+  inputContainerDense: {
+    minHeight: 44,
+  },
   focused: {
     borderColor: Colors.primary,
     backgroundColor: Colors.surface,
@@ -99,16 +139,22 @@ const styles = StyleSheet.create({
   errored: {
     borderColor: Colors.error,
   },
+  success: {
+    borderColor: Colors.success,
+  },
   disabled: {
     backgroundColor: Colors.canvas,
     opacity: 0.7,
   },
   input: {
     flex: 1,
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: Typography.fontBody,
     fontSize: Typography.sizeMd,
     color: Colors.textPrimary,
     paddingVertical: Spacing.md,
+  },
+  inputDense: {
+    paddingVertical: Spacing.sm,
   },
   eyeButton: {
     padding: Spacing.xs,
@@ -116,9 +162,29 @@ const styles = StyleSheet.create({
   eyeText: {
     fontSize: Typography.sizeMd,
   },
-  errorText: {
-    fontFamily: 'SourceSans3_400Regular',
+  helperRow: {
+    minHeight: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  helperBase: {
+    fontFamily: Typography.fontBody,
     fontSize: Typography.sizeXs,
+  },
+  hintText: {
+    color: Colors.textSecondary,
+  },
+  successText: {
+    color: Colors.success,
+  },
+  errorText: {
     color: Colors.error,
+  },
+  counterText: {
+    fontFamily: Typography.fontBody,
+    fontSize: Typography.sizeXs,
+    color: Colors.textSecondary,
   },
 });

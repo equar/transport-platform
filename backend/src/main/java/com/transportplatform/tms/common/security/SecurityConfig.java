@@ -1,8 +1,7 @@
 package com.transportplatform.tms.common.security;
 
-import com.transportplatform.tms.common.observability.RequestCorrelationFilter;
-import com.transportplatform.tms.common.tenant.TenantContextFilter;
 import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,6 +16,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import com.transportplatform.tms.common.observability.RequestCorrelationFilter;
+import com.transportplatform.tms.common.tenant.TenantContextFilter;
 
 @Configuration
 @EnableMethodSecurity

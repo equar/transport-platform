@@ -2,6 +2,7 @@ package com.transportplatform.tms.common.security;
 
 import java.time.Duration;
 import java.util.List;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app.security")
@@ -11,6 +12,7 @@ public class SecurityProperties {
     private boolean apiDocsEnabled;
     private final Jwt jwt = new Jwt();
     private final AuthRateLimit authRateLimit = new AuthRateLimit();
+    private final RefreshCookie refreshCookie = new RefreshCookie();
 
     public List<String> getAllowedOrigins() {
         return allowedOrigins;
@@ -34,6 +36,10 @@ public class SecurityProperties {
 
     public AuthRateLimit getAuthRateLimit() {
         return authRateLimit;
+    }
+
+    public RefreshCookie getRefreshCookie() {
+        return refreshCookie;
     }
 
     public static class AuthRateLimit {
@@ -122,6 +128,37 @@ public class SecurityProperties {
 
         public void setRefreshTokenTtl(Duration refreshTokenTtl) {
             this.refreshTokenTtl = refreshTokenTtl;
+        }
+    }
+
+    public static class RefreshCookie {
+
+        private String sameSite = "Lax";
+        private String path = "/api/v1/auth";
+        private Boolean secure;
+
+        public String getSameSite() {
+            return sameSite;
+        }
+
+        public void setSameSite(String sameSite) {
+            this.sameSite = sameSite;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public void setPath(String path) {
+            this.path = path;
+        }
+
+        public Boolean getSecure() {
+            return secure;
+        }
+
+        public void setSecure(Boolean secure) {
+            this.secure = secure;
         }
     }
 }

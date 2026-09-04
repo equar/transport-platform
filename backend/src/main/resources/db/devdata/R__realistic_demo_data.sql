@@ -54,6 +54,140 @@ SELECT id, 'ROLE_ORGANIZATION_USER' FROM app_users WHERE email = 'organization@d
 INSERT IGNORE INTO user_roles (user_id, role_name)
 SELECT id, 'ROLE_VIEWER' FROM app_users WHERE email = 'viewer@demo.test';
 
+-- Optional: seed explicit test drivers for a known tenant admin account.
+-- Runs only when the tenant-scoped user exists.
+SET @requested_tenant_id = (
+        SELECT tenant_id
+        FROM app_users
+        WHERE lower(email) = 'samuelweld2018+11@gmail.com'
+        LIMIT 1
+);
+
+INSERT INTO drivers
+        (tenant_id, driver_code, first_name, last_name, email, phone, driver_type, status,
+         background_check_status, drug_test_status, training_status, created_by, created_at, updated_by, updated_at)
+SELECT @requested_tenant_id, 'DRV-TST-D1', 'Test', 'Driver One', 'samuelweld2018+d1@gmail.com',
+             '404-555-2101', 'EMPLOYEE', 'ACTIVE', 'CLEAR', 'CLEAR', 'COMPLETED', 'demo-seed', @now, 'demo-seed', @now
+WHERE @requested_tenant_id IS NOT NULL
+    AND NOT EXISTS (
+            SELECT 1
+            FROM drivers
+            WHERE tenant_id = @requested_tenant_id
+                AND lower(email) = 'samuelweld2018+d1@gmail.com');
+
+INSERT INTO drivers
+        (tenant_id, driver_code, first_name, last_name, email, phone, driver_type, status,
+         background_check_status, drug_test_status, training_status, created_by, created_at, updated_by, updated_at)
+SELECT @requested_tenant_id, 'DRV-TST-D2', 'Test', 'Driver Two', 'samuelweld2018+d2@gmail.com',
+             '404-555-2102', 'EMPLOYEE', 'ACTIVE', 'CLEAR', 'CLEAR', 'COMPLETED', 'demo-seed', @now, 'demo-seed', @now
+WHERE @requested_tenant_id IS NOT NULL
+    AND NOT EXISTS (
+            SELECT 1
+            FROM drivers
+            WHERE tenant_id = @requested_tenant_id
+                AND lower(email) = 'samuelweld2018+d2@gmail.com');
+
+INSERT INTO drivers
+        (tenant_id, driver_code, first_name, last_name, email, phone, driver_type, status,
+         background_check_status, drug_test_status, training_status, created_by, created_at, updated_by, updated_at)
+SELECT @requested_tenant_id, 'DRV-TST-D3', 'Test', 'Driver Three', 'samuelweld2018+d3@gmail.com',
+             '404-555-2103', 'EMPLOYEE', 'ACTIVE', 'CLEAR', 'CLEAR', 'COMPLETED', 'demo-seed', @now, 'demo-seed', @now
+WHERE @requested_tenant_id IS NOT NULL
+    AND NOT EXISTS (
+            SELECT 1
+            FROM drivers
+            WHERE tenant_id = @requested_tenant_id
+                AND lower(email) = 'samuelweld2018+d3@gmail.com');
+
+INSERT IGNORE INTO app_users
+        (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
+SELECT @requested_tenant_id, 'samuelweld2018+d1@gmail.com', 'Test', 'Driver One', @password,
+             'ACTIVE', TRUE, FALSE, 'demo-seed', @now, 'demo-seed', @now
+WHERE @requested_tenant_id IS NOT NULL;
+
+INSERT IGNORE INTO app_users
+        (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
+SELECT @requested_tenant_id, 'samuelweld2018+d2@gmail.com', 'Test', 'Driver Two', @password,
+             'ACTIVE', TRUE, FALSE, 'demo-seed', @now, 'demo-seed', @now
+WHERE @requested_tenant_id IS NOT NULL;
+
+INSERT IGNORE INTO app_users
+        (tenant_id, email, first_name, last_name, password_hash, status, enabled, locked, created_by, created_at, updated_by, updated_at)
+SELECT @requested_tenant_id, 'samuelweld2018+d3@gmail.com', 'Test', 'Driver Three', @password,
+             'ACTIVE', TRUE, FALSE, 'demo-seed', @now, 'demo-seed', @now
+WHERE @requested_tenant_id IS NOT NULL;
+
+UPDATE app_users
+SET password_hash = @password,
+        status = 'ACTIVE',
+        enabled = TRUE,
+        locked = FALSE,
+        updated_by = 'demo-seed',
+        updated_at = @now
+WHERE tenant_id = @requested_tenant_id
+    AND lower(email) IN (
+            'samuelweld2018+d1@gmail.com',
+            'samuelweld2018+d2@gmail.com',
+            'samuelweld2018+d3@gmail.com');
+
+INSERT IGNORE INTO user_roles (user_id, role_name)
+SELECT id, 'ROLE_DRIVER'
+FROM app_users
+WHERE tenant_id = @requested_tenant_id
+    AND lower(email) IN (
+            'samuelweld2018+d1@gmail.com',
+            'samuelweld2018+d2@gmail.com',
+            'samuelweld2018+d3@gmail.com');
+
+SET @driver_test_1_id = (
+        SELECT id
+        FROM drivers
+        WHERE tenant_id = @requested_tenant_id
+            AND lower(email) = 'samuelweld2018+d1@gmail.com'
+        LIMIT 1
+);
+SET @driver_test_2_id = (
+        SELECT id
+        FROM drivers
+        WHERE tenant_id = @requested_tenant_id
+            AND lower(email) = 'samuelweld2018+d2@gmail.com'
+        LIMIT 1
+);
+SET @driver_test_3_id = (
+        SELECT id
+        FROM drivers
+        WHERE tenant_id = @requested_tenant_id
+            AND lower(email) = 'samuelweld2018+d3@gmail.com'
+        LIMIT 1
+);
+
+INSERT IGNORE INTO portal_user_scopes
+        (tenant_id, app_user_id, portal_subject_type, portal_subject_id, created_by, created_at, updated_by, updated_at)
+SELECT @requested_tenant_id, id, 'DRIVER', @driver_test_1_id, 'demo-seed', @now, 'demo-seed', @now
+FROM app_users
+WHERE @requested_tenant_id IS NOT NULL
+    AND @driver_test_1_id IS NOT NULL
+    AND tenant_id = @requested_tenant_id
+    AND lower(email) = 'samuelweld2018+d1@gmail.com';
+
+INSERT IGNORE INTO portal_user_scopes
+        (tenant_id, app_user_id, portal_subject_type, portal_subject_id, created_by, created_at, updated_by, updated_at)
+SELECT @requested_tenant_id, id, 'DRIVER', @driver_test_2_id, 'demo-seed', @now, 'demo-seed', @now
+FROM app_users
+WHERE @requested_tenant_id IS NOT NULL
+    AND @driver_test_2_id IS NOT NULL
+    AND tenant_id = @requested_tenant_id
+    AND lower(email) = 'samuelweld2018+d2@gmail.com';
+
+INSERT IGNORE INTO portal_user_scopes
+        (tenant_id, app_user_id, portal_subject_type, portal_subject_id, created_by, created_at, updated_by, updated_at)
+SELECT @requested_tenant_id, id, 'DRIVER', @driver_test_3_id, 'demo-seed', @now, 'demo-seed', @now
+FROM app_users
+WHERE @requested_tenant_id IS NOT NULL
+    AND @driver_test_3_id IS NOT NULL
+    AND tenant_id = @requested_tenant_id
+    AND lower(email) = 'samuelweld2018+d3@gmail.com';
+
 INSERT INTO organizations
     (tenant_id, organization_code, organization_type, name, legal_name, address_line1, city, state, zip_code,
      country, primary_phone, primary_email, notes, status, created_by, created_at, updated_by, updated_at)

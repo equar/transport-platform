@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, FlatList, View, RefreshControl, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, FlatList, View, RefreshControl, Text, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { driverPortalApi, type DriverPortalRideSummaryRecord } from '@api/driverPortalApi';
@@ -22,6 +22,8 @@ const STATUS_SEGMENTS: Record<DispatchSegment, string[]> = {
 
 export default function DriverRidesPage() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 380;
   const [segment, setSegment] = React.useState<DispatchSegment>('assigned');
 
   const { data, isLoading, hasNextPage, fetchNextPage, refetch, isRefetching } =
@@ -75,7 +77,13 @@ export default function DriverRidesPage() {
         onEndReached={() => hasNextPage && fetchNextPage()}
         onEndReachedThreshold={0.3}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-        contentContainerStyle={filteredRides.length === 0 && styles.emptyContent}
+        contentContainerStyle={[
+          filteredRides.length === 0 ? styles.emptyContent : styles.listContent,
+          {
+            paddingHorizontal: isCompact ? Spacing.md : Spacing.lg,
+            paddingBottom: Spacing.xxxl,
+          },
+        ]}
       />
     </View>
   );
@@ -122,7 +130,7 @@ function DispatchCard({ item, onPress }: { item: DriverPortalRideSummaryRecord; 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  headerShell: { padding: Spacing.lg, paddingBottom: 0 },
+  headerShell: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.sm },
   header: {
     padding: Spacing.xl,
     borderRadius: 26,
@@ -170,7 +178,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     padding: Spacing.md,
     gap: Spacing.sm,
-    marginHorizontal: Spacing.lg,
+    marginHorizontal: 0,
   },
   dispatchTopRow: {
     flexDirection: 'row',
@@ -207,5 +215,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   sep: { height: Spacing.md },
+  listContent: { paddingTop: Spacing.sm },
   emptyContent: { flex: 1 },
 });

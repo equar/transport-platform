@@ -1,18 +1,21 @@
 package com.transportplatform.tms.common.config;
 
-import com.transportplatform.tms.common.exception.ApiException;
-import com.transportplatform.tms.common.exception.ErrorCode;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.springframework.http.HttpStatus;
+
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import com.transportplatform.tms.common.exception.ApiException;
+import com.transportplatform.tms.common.exception.ErrorCode;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 @Configuration

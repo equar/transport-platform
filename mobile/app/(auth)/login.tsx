@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
   Image,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@auth/AuthContext';
@@ -17,6 +18,12 @@ import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
 const defaultDriverEmail = process.env.EXPO_PUBLIC_TEST_DRIVER_EMAIL ?? '';
 const defaultDriverPassword = process.env.EXPO_PUBLIC_TEST_DRIVER_PASSWORD ?? '';
 
+const quickTestDrivers = [
+  'samuelweld2018+d1@gmail.com',
+  'samuelweld2018+d2@gmail.com',
+  'samuelweld2018+d3@gmail.com',
+];
+
 export default function LoginPage() {
   const { signIn, getDefaultRoute } = useAuth();
   const router = useRouter();
@@ -25,6 +32,18 @@ export default function LoginPage() {
   const [password, setPassword] = useState(defaultDriverPassword);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showQuickDriverList, setShowQuickDriverList] = useState(false);
+
+  function handleQuickDriverSelect(selectedEmail: string) {
+    setEmail(selectedEmail);
+    setPassword('Password123');
+    setErrors((current) => ({
+      ...current,
+      email: '',
+      password: '',
+    }));
+    setShowQuickDriverList(false);
+  }
 
   function validate() {
     const e: Record<string, string> = {};
@@ -74,6 +93,39 @@ export default function LoginPage() {
         </View>
 
         <View style={styles.card}>
+          <View style={styles.quickDriverSection}>
+            <Text style={styles.quickDriverLabel}>Quick test driver</Text>
+            <Pressable
+              style={styles.quickDriverTrigger}
+              onPress={() => setShowQuickDriverList((current) => !current)}
+              accessibilityRole="button"
+              accessibilityLabel="Toggle test driver list"
+            >
+              <Text style={styles.quickDriverTriggerText}>
+                {email && quickTestDrivers.includes(email)
+                  ? email
+                  : 'Choose test driver account'}
+              </Text>
+              <Text style={styles.quickDriverChevron}>{showQuickDriverList ? '▲' : '▼'}</Text>
+            </Pressable>
+            {showQuickDriverList ? (
+              <View style={styles.quickDriverList}>
+                {quickTestDrivers.map((driverEmail) => (
+                  <Pressable
+                    key={driverEmail}
+                    style={styles.quickDriverOption}
+                    onPress={() => handleQuickDriverSelect(driverEmail)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select ${driverEmail}`}
+                  >
+                    <Text style={styles.quickDriverOptionText}>{driverEmail}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+            <Text style={styles.quickDriverHint}>Selecting a driver also fills password: Password123</Text>
+          </View>
+
           <AppInput
             label="Email"
             value={email}
@@ -153,6 +205,62 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     gap: Spacing.lg,
     ...Shadow.card,
+  },
+  quickDriverSection: {
+    gap: Spacing.xs,
+  },
+  quickDriverLabel: {
+    fontFamily: Typography.fontBodyMedium,
+    fontSize: Typography.sizeSm,
+    color: Colors.textSecondary,
+    letterSpacing: 0.2,
+  },
+  quickDriverTrigger: {
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.input,
+    backgroundColor: Colors.surfaceMuted,
+    paddingHorizontal: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  quickDriverTriggerText: {
+    flex: 1,
+    fontFamily: Typography.fontBody,
+    fontSize: Typography.sizeMd,
+    color: Colors.textPrimary,
+  },
+  quickDriverChevron: {
+    fontFamily: Typography.fontBodyBold,
+    fontSize: Typography.sizeSm,
+    color: Colors.textSecondary,
+  },
+  quickDriverList: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.input,
+    backgroundColor: Colors.surface,
+    overflow: 'hidden',
+  },
+  quickDriverOption: {
+    minHeight: 42,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  quickDriverOptionText: {
+    fontFamily: Typography.fontBody,
+    fontSize: Typography.sizeMd,
+    color: Colors.textPrimary,
+  },
+  quickDriverHint: {
+    fontFamily: Typography.fontBody,
+    fontSize: Typography.sizeXs,
+    color: Colors.textSecondary,
   },
   forgotLink: {
     fontFamily: 'SourceSans3_400Regular',

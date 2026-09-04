@@ -1,21 +1,22 @@
 import React from 'react';
-import { StyleSheet, ScrollView, View, Text, RefreshControl } from 'react-native';
+import { StyleSheet, ScrollView, View, Text, RefreshControl, Pressable, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { riderPortalApi } from '@api/riderPortalApi';
-import { MetricTile } from '@components/MetricTile';
-import { SectionHeader } from '@components/SectionHeader';
 import { LoadingState } from '@components/LoadingState';
 import { AppCard } from '@components/ui';
 import { useAuth } from '@auth/AuthContext';
 import { ActionRow } from '@components/ActionRow';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
 import { PassengerRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime, timeUntil } from '@utils/formatDate';
 
 export default function RiderDashboard() {
   const { session, signOut } = useAuth();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 380;
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['rider-dashboard'],
@@ -36,63 +37,93 @@ export default function RiderDashboard() {
   const name = [session?.identity.firstName, session?.identity.lastName]
     .filter(Boolean)
     .join(' ') || 'Rider';
+  const firstName = session?.identity.firstName?.trim() || 'Rider';
   const nextRide = rides?.items.find((ride) => !['COMPLETED', 'CANCELLED', 'MISSED', 'FAILED'].includes(ride.status)) ?? null;
+  const dateLabel = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date());
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingHorizontal: isCompact ? Spacing.md : Spacing.lg,
+          gap: isCompact ? Spacing.md : Spacing.lg,
+        },
+      ]}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
-      <View style={styles.headerCard}>
-        <Text style={styles.screenTitle}>Home</Text>
-        <View>
-          <Text style={styles.greeting}>Hello,</Text>
-          <Text style={styles.name}>{name}</Text>
+      <View style={[styles.heroRow, isCompact && styles.heroRowCompact]}>
+        <View style={styles.identityRow}>
+          <View style={styles.avatarShell}>
+            <Text style={styles.avatarText}>{firstName.charAt(0).toUpperCase()}</Text>
+          </View>
+          <View style={styles.identityCopy}>
+            <Text style={styles.greeting}>Ready to ride,</Text>
+            <Text style={styles.identityName}>{name}</Text>
+          </View>
         </View>
-        <View style={styles.headerRow}>
-          <Text style={styles.onlineTag}>On Time</Text>
-          <Text style={styles.signOut} onPress={signOut}>Sign out</Text>
+        <View style={styles.heroActions}>
+          <Pressable style={styles.roundIconButton} onPress={() => router.push('/(rider)/notifications')}>
+            <MaterialCommunityIcons name="bell-outline" size={20} color={Colors.textPrimary} />
+          </Pressable>
+          <Pressable style={styles.roundIconButton} onPress={() => void signOut()}>
+            <MaterialCommunityIcons name="logout" size={20} color={Colors.textPrimary} />
+          </Pressable>
         </View>
       </View>
 
-      <SectionHeader title="Upcoming Ride" />
+      <AppCard style={styles.summaryCard}>
+        <View style={styles.summaryHeader}>
+          <Text style={styles.summaryTitle}>Today's Summary</Text>
+          <Text style={styles.summaryDate}>{dateLabel}</Text>
+        </View>
+        <View style={styles.summaryStatsGrid}>
+          <View style={[styles.summaryStatCard, isCompact && styles.summaryStatCardFull]}>
+            <Text style={styles.summaryValue}>{data?.upcomingRideCount ?? 0}</Text>
+            <Text style={styles.summaryLabel}>Scheduled</Text>
+          </View>
+          <View style={[styles.summaryStatCard, isCompact && styles.summaryStatCardFull]}>
+            <Text style={styles.summaryValue}>{data?.activeRideCount ?? 0}</Text>
+            <Text style={styles.summaryLabel}>Active</Text>
+          </View>
+          <View style={[styles.summaryStatCard, isCompact && styles.summaryStatCardFull]}>
+            <Text style={styles.summaryValue}>{data?.unreadNotifications ?? 0}</Text>
+            <Text style={styles.summaryLabel}>Messages</Text>
+          </View>
+          <View style={[styles.summaryStatCard, isCompact && styles.summaryStatCardFull]}>
+            <Text style={styles.summaryValue}>${(data?.outstandingBalance ?? 0).toFixed(0)}</Text>
+            <Text style={styles.summaryLabel}>Balance</Text>
+          </View>
+        </View>
+      </AppCard>
 
       {nextRide ? (
         <AppCard style={styles.nextRideCard}>
+          <View style={styles.nextRideHeader}>
+            <Text style={styles.nextRideHeaderTitle}>Next Ride</Text>
+            <Text style={styles.nextRideEta}>Pickup in {timeUntil(nextRide.scheduledPickupAt)}</Text>
+          </View>
           <Text style={styles.nextRideTime}>{formatShortDateTime(nextRide.scheduledPickupAt)}</Text>
           <Text style={styles.nextRideAddress}>{nextRide.pickupAddress ?? 'Pickup pending'}</Text>
           <Text style={styles.nextRideAddress}>{nextRide.dropoffAddress ?? 'Drop-off pending'}</Text>
-          <View style={styles.nextRideFooter}>
-            <Text style={styles.nextRideEta}>Pickup in {timeUntil(nextRide.scheduledPickupAt)}</Text>
-            <Text style={styles.nextRideAction} onPress={() => router.push(`/(rider)/rides/${nextRide.id}`)}>
-              Check-in
-            </Text>
-          </View>
+          <Pressable style={styles.nextRideActionButton} onPress={() => router.push(`/(rider)/rides/${nextRide.id}`)}>
+            <Text style={styles.nextRideActionText}>Check In</Text>
+          </Pressable>
         </AppCard>
       ) : (
         <AppCard style={styles.nextRideCard}>
+          <Text style={styles.nextRideHeaderTitle}>Next Ride</Text>
           <Text style={styles.nextRideAddress}>No upcoming ride right now.</Text>
-          <Text style={styles.nextRideAction} onPress={() => router.push('/(rider)/schedule')}>
-            Schedule
-          </Text>
+          <Pressable style={styles.nextRideActionButton} onPress={() => router.push('/(rider)/schedule')}>
+            <Text style={styles.nextRideActionText}>Schedule Ride</Text>
+          </Pressable>
         </AppCard>
       )}
-
-      <SectionHeader title="Today's Summary" />
-
-      <View style={styles.metricGrid}>
-        <MetricTile label="Today" value={data?.upcomingRideCount ?? 0} accent />
-        <MetricTile label="Active" value={data?.activeRideCount ?? 0} />
-        {data?.scopeType === 'GUARDIAN' ? (
-          <MetricTile label="Linked" value={data?.linkedRiderCount ?? 0} />
-        ) : (
-          <MetricTile label="Messages" value={data?.unreadNotifications ?? 0} />
-        )}
-        <MetricTile label="Balance" value={`$${(data?.outstandingBalance ?? 0).toFixed(0)}`} />
-      </View>
-
-      <SectionHeader title="Quick Actions" />
 
       <View style={styles.quickActions}>
         <ActionRow
@@ -121,47 +152,143 @@ export default function RiderDashboard() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.lg, gap: Spacing.lg },
-  headerCard: {
-    backgroundColor: PassengerRoleTheme.primary,
-    borderRadius: 18,
-    padding: Spacing.lg,
+  content: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: Spacing.xxxxl },
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  heroRowCompact: {
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+  },
+  identityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    flex: 1,
+  },
+  avatarShell: {
+    width: 50,
+    height: 50,
+    borderRadius: Radius.full,
+    backgroundColor: PassengerRoleTheme.soft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: Typography.sizeXl,
+    color: PassengerRoleTheme.primary,
+  },
+  identityCopy: { gap: 2 },
+  greeting: {
+    fontFamily: 'SourceSans3_400Regular',
+    fontSize: Typography.sizeMd,
+    color: Colors.textSecondary,
+  },
+  identityName: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: Typography.sizeXxl,
+    color: Colors.textPrimary,
+  },
+  heroActions: {
+    flexDirection: 'row',
     gap: Spacing.sm,
   },
-  screenTitle: {
+  roundIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.surface,
+  },
+  summaryCard: { gap: Spacing.md },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  summaryTitle: {
     fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeLg,
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  summaryDate: {
+    fontFamily: 'SourceSans3_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.white,
+    color: PassengerRoleTheme.primary,
   },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  greeting: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.white, opacity: 0.9 },
-  name: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeXl, color: Colors.white },
-  onlineTag: {
-    backgroundColor: '#16a34a',
-    color: Colors.white,
-    fontFamily: 'SourceSans3_700Bold',
-    fontSize: Typography.sizeXs,
-    borderRadius: 999,
-    overflow: 'hidden',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+  summaryStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
   },
-  signOut: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeSm, color: Colors.white },
+  summaryStatCard: {
+    width: '48%',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: Spacing.sm,
+    gap: 2,
+  },
+  summaryStatCardFull: {
+    width: '100%',
+  },
+  summaryValue: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: Typography.sizeXl,
+    color: Colors.textPrimary,
+  },
+  summaryLabel: {
+    fontFamily: 'SourceSans3_400Regular',
+    fontSize: Typography.sizeSm,
+    color: Colors.textSecondary,
+  },
   nextRideCard: { gap: Spacing.xs },
-  nextRideTime: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeSm, color: Colors.textSecondary },
-  nextRideAddress: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary },
-  nextRideFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.sm },
-  nextRideEta: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeSm, color: Colors.textSecondary },
-  nextRideAction: {
-    backgroundColor: PassengerRoleTheme.primary,
-    color: Colors.white,
-    fontFamily: 'SourceSans3_700Bold',
-    fontSize: Typography.sizeSm,
-    borderRadius: 10,
-    overflow: 'hidden',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
+  nextRideHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
   },
-  metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  nextRideHeaderTitle: {
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeLg,
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  nextRideTime: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: Typography.sizeXl,
+    color: Colors.textPrimary,
+  },
+  nextRideAddress: {
+    fontFamily: 'SourceSans3_400Regular',
+    fontSize: Typography.sizeMd,
+    color: Colors.textPrimary,
+  },
+  nextRideEta: {
+    fontFamily: 'SourceSans3_600SemiBold',
+    fontSize: Typography.sizeSm,
+    color: PassengerRoleTheme.primary,
+  },
+  nextRideActionButton: {
+    marginTop: Spacing.sm,
+    backgroundColor: PassengerRoleTheme.primary,
+    borderRadius: 12,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  nextRideActionText: {
+    fontFamily: 'SourceSans3_700Bold',
+    fontSize: Typography.sizeMd,
+    color: Colors.white,
+  },
   quickActions: { gap: Spacing.sm },
 });

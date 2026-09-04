@@ -48,6 +48,24 @@ export const Spacing = {
   xxxxl: 40,
 } as const;
 
+export const Density = {
+  compact: {
+    rowMinHeight: 40,
+    contentPadding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  comfortable: {
+    rowMinHeight: 48,
+    contentPadding: Spacing.lg,
+    gap: Spacing.md,
+  },
+  spacious: {
+    rowMinHeight: 56,
+    contentPadding: Spacing.xl,
+    gap: Spacing.lg,
+  },
+} as const;
+
 export const Radius = {
   none: 0,
   sm: 10,
@@ -96,5 +114,17 @@ export const Shadow = {
     shadowOpacity: 0.1,
     shadowRadius: 28,
     elevation: 8,
+  },
+} as const;
+
+export const Motion = {
+  duration: {
+    quick: 140,
+    normal: 220,
+    deliberate: 320,
+  },
+  pressScale: {
+    subtle: 0.985,
+    strong: 0.975,
   },
 } as const;

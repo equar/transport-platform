@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, useWindowDimensions } from 'react-native';
 import { Colors, Spacing, Typography } from '@theme/tokens';
 
 interface SectionHeaderProps {
@@ -8,10 +8,31 @@ interface SectionHeaderProps {
 }
 
 export function SectionHeader({ title, subtitle }: SectionHeaderProps) {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 380;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      <Text
+        style={[
+          styles.title,
+          {
+            fontSize: isCompact ? Typography.sizeXl : Typography.sizeXxl,
+          },
+        ]}
+      >
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text
+          style={[
+            styles.subtitle,
+            { fontSize: isCompact ? Typography.sizeSm : Typography.sizeMd },
+          ]}
+        >
+          {subtitle}
+        </Text>
+      ) : null}
     </View>
   );
 }

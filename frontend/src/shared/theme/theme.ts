@@ -1,5 +1,6 @@
 import { createTheme } from '@mui/material/styles';
 import type { Shadows } from '@mui/material/styles';
+import { borderTokens, shadowTokens, surfaceTokens } from './tokens';
 
 type BrandingThemeOptions = {
   primaryColor?: string | null;
@@ -60,11 +61,11 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
     },
     shadows: [
       'none',
-      '0 1px 2px rgba(16,30,38,.04)',
-      '0 4px 10px rgba(16,30,38,.05)',
-      '0 8px 20px rgba(16,30,38,.06)',
-      '0 12px 24px rgba(16,30,38,.07)',
-      '0 16px 32px rgba(16,30,38,.08)',
+      shadowTokens.xs,
+      shadowTokens.sm,
+      shadowTokens.md,
+      shadowTokens.lg,
+      shadowTokens.xl,
       ...Array(19).fill('0 18px 40px rgba(16,30,38,.08)'),
     ] as Shadows,
   });
@@ -75,7 +76,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
         styleOverrides: {
           body: {
             backgroundColor: base.palette.background.default,
-            backgroundImage: 'radial-gradient(circle at top left, rgba(93,127,149,.08), transparent 24%), linear-gradient(180deg, #f5f8fa 0%, #edf2f6 100%)',
+            backgroundImage: `radial-gradient(circle at top left, ${surfaceTokens.overlaySoft}, transparent 24%), linear-gradient(180deg, ${surfaceTokens.canvasTop} 0%, ${surfaceTokens.canvasBottom} 100%)`,
             WebkitFontSmoothing: 'antialiased',
             MozOsxFontSmoothing: 'grayscale',
             color: base.palette.text.primary,
@@ -118,8 +119,8 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
             boxShadow: 'none',
           },
           contained: {
-            boxShadow: '0 8px 20px rgba(21,45,58,.12)',
-            '&:hover': { boxShadow: '0 12px 26px rgba(21,45,58,.16)' },
+            boxShadow: shadowTokens.button,
+            '&:hover': { boxShadow: shadowTokens.buttonHover },
           },
         },
       },
@@ -160,7 +161,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
         styleOverrides: {
           paper: {
             borderRadius: 18,
-            boxShadow: '0 28px 80px rgba(16,30,38,.22)',
+            boxShadow: shadowTokens.dialog,
           },
         },
       },
@@ -176,7 +177,7 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
       },
       MuiTableCell: {
         styleOverrides: {
-          root: { padding: '14px 16px', borderColor: '#e1e6e9', verticalAlign: 'middle' },
+          root: { padding: '14px 16px', borderColor: borderTokens.table, verticalAlign: 'middle' },
           head: {
             backgroundColor: '#f3f7fa',
             color: '#34444c',
@@ -191,16 +192,16 @@ export function createAppTheme(branding?: BrandingThemeOptions | null) {
         styleOverrides: { root: { borderRadius: 999, height: 28, fontWeight: 700 } },
       },
       MuiMenu: {
-        styleOverrides: { paper: { border: '1px solid #d6dde1', boxShadow: '0 18px 36px rgba(16,30,38,.16)' } },
+        styleOverrides: { paper: { border: `1px solid ${borderTokens.table}`, boxShadow: shadowTokens.menu } },
       },
       MuiMenuItem: {
         styleOverrides: { root: { minHeight: 40, fontSize: '.9rem' } },
       },
       MuiDialogTitle: {
-        styleOverrides: { root: { borderBottom: '1px solid #e1e6e9', padding: '18px 24px' } },
+        styleOverrides: { root: { borderBottom: `1px solid ${borderTokens.table}`, padding: '18px 24px' } },
       },
       MuiDialogActions: {
-        styleOverrides: { root: { borderTop: '1px solid #e1e6e9', padding: '14px 24px', backgroundColor: '#f8fafb' } },
+        styleOverrides: { root: { borderTop: `1px solid ${borderTokens.table}`, padding: '14px 24px', backgroundColor: '#f8fafb' } },
       },
       MuiTableRow: {
         styleOverrides: { root: { '&:hover': { backgroundColor: '#f7fafb' } } },

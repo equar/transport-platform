@@ -1,3 +1,3 @@
-Production Flyway location intentionally left without SQL migrations.
-Schema is created from JPA entities (hibernate ddl-auto=update),
-and platform admin is provisioned by bootstrap properties on startup.
+Production profile now executes canonical migrations from classpath:db/migration.
+This directory is optional and can hold prod-only supplemental scripts when needed.
+Platform admin bootstrap remains controlled by application properties.

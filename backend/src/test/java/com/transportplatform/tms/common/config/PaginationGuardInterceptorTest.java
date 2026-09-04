@@ -3,12 +3,12 @@ package com.transportplatform.tms.common.config;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import com.transportplatform.tms.common.exception.ApiException;
-import com.transportplatform.tms.common.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+
+import com.transportplatform.tms.common.exception.ApiException;
+import com.transportplatform.tms.common.exception.ErrorCode;
 
 class PaginationGuardInterceptorTest {
 

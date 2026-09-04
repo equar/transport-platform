@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, FlatList, View, Text, RefreshControl } from 'react-native';
+import { StyleSheet, FlatList, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { riderPortalApi } from '@api/riderPortalApi';
 import { AppBadge, AppCard } from '@components/ui';
@@ -10,6 +10,8 @@ import { Colors, Spacing, Typography } from '@theme/tokens';
 import { GuardianRoleTheme } from '@theme/roleTheme';
 
 export default function GuardianRidersPage() {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 380;
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['guardian-linked-riders'],
     queryFn: () => riderPortalApi.getLinkedRiders(),
@@ -48,7 +50,13 @@ export default function GuardianRidersPage() {
         ItemSeparatorComponent={() => <View style={styles.sep} />}
         ListEmptyComponent={<EmptyState title="No linked riders" description="No riders are linked to your account." />}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-        contentContainerStyle={riders.length === 0 ? styles.emptyContent : styles.listContent}
+        contentContainerStyle={[
+          riders.length === 0 ? styles.emptyContent : styles.listContent,
+          {
+            paddingHorizontal: isCompact ? Spacing.md : Spacing.lg,
+            paddingBottom: Spacing.xxxl,
+          },
+        ]}
       />
     </View>
   );
@@ -65,12 +73,13 @@ function Tag({ label }: { label: string }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   headerCard: {
-    padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 0,
     backgroundColor: GuardianRoleTheme.soft,
   },
-  listContent: { padding: Spacing.lg },
+  listContent: { paddingTop: Spacing.md },
   card: { gap: Spacing.xs },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   name: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },

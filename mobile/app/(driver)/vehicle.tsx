@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, ScrollView, View, Text, RefreshControl } from 'react-native';
+import { StyleSheet, ScrollView, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { driverPortalApi } from '@api/driverPortalApi';
 import { LoadingState } from '@components/LoadingState';
@@ -8,6 +8,8 @@ import { Colors, Spacing, Typography } from '@theme/tokens';
 import { DriverRoleTheme } from '@theme/roleTheme';
 
 export default function DriverVehiclePage() {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 380;
   const { data: profile, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['driver-profile'],
     queryFn: () => driverPortalApi.getProfile(),
@@ -19,7 +21,13 @@ export default function DriverVehiclePage() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingHorizontal: isCompact ? Spacing.md : Spacing.lg,
+          gap: isCompact ? Spacing.md : Spacing.lg,
+        },
+      ]}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
       <View style={styles.hero}>

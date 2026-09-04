@@ -1,6 +1,6 @@
 import React from 'react';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
-import { Colors, Radius } from './tokens';
+import { Colors, Density, Motion, Radius, Shadow, Spacing, Typography } from './tokens';
 
 const appTheme = {
   ...MD3LightTheme,
@@ -24,3 +24,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export { appTheme };
+
+export function useAppThemeTokens() {
+  return {
+    colors: Colors,
+    spacing: Spacing,
+    radius: Radius,
+    typography: Typography,
+    shadow: Shadow,
+    density: Density,
+    motion: Motion,
+  };
+}

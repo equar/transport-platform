@@ -47,12 +47,9 @@ import {
 import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
 import { BrandMark } from "../../shared/components/BrandMark";
 import { LoadingState } from "../../shared/components/LoadingState";
+import { layoutTokens, shadowTokens, spacingTokens, surfaceTokens } from "../../shared/theme/tokens";
 
-const drawerWidth = 276;
-
-function isRouteActive(currentPath: string, targetPath: string) {
-  return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
-}
+const drawerWidth = layoutTokens.drawerWidth;
 
 function getDisplayName(firstName?: string | null, lastName?: string | null) {
   return [firstName, lastName].filter(Boolean).join(" ");
@@ -150,11 +147,11 @@ export function AppShell() {
   }, [location.pathname, platformAdmin]);
 
   const drawer = (
-    <Stack sx={{ height: "100%", bgcolor: "#25313a", color: "#e8eef1", backgroundImage: "linear-gradient(180deg, #2f3c46 0%, #222d35 100%)" }}>
-      <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: "rgba(17,24,29,.42)", borderBottom: "1px solid rgba(255,255,255,.08)" }}>
+    <Stack sx={{ height: "100%", bgcolor: surfaceTokens.shellSidebarBase, color: "#e8eef1", backgroundImage: `linear-gradient(180deg, ${surfaceTokens.shellSidebarTop} 0%, ${surfaceTokens.shellSidebarBottom} 100%)` }}>
+      <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: "rgba(17,24,29,.42)", borderBottom: `1px solid ${surfaceTokens.shellCardBorder}` }}>
         <BrandMark compact />
       </Box>
-      <Box sx={{ mx: 1.5, my: 1.5, px: 1.75, py: 1.5, bgcolor: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 2.5, boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)" }}>
+      <Box sx={{ mx: 1.5, my: 1.5, px: 1.75, py: 1.5, bgcolor: surfaceTokens.shellCardBg, border: `1px solid ${surfaceTokens.shellCardBorder}`, borderRadius: 2.5, boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)" }}>
         <Typography variant="caption" sx={{ color: "#95a9b0", display: "block", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 800 }}>
           {shellView.scopeLabel}
         </Typography>
@@ -174,7 +171,7 @@ export function AppShell() {
               </Typography>
               <List disablePadding>
                 {section.items.map((item) => {
-                  const selected = isRouteActive(location.pathname, item.to);
+                  const selected = currentItem?.to === item.to;
                   return (
                     <ListItemButton
                       key={item.to}
@@ -190,13 +187,13 @@ export function AppShell() {
                         borderRadius: 2,
                         border: "1px solid transparent",
                         "&.Mui-selected": {
-                          bgcolor: "rgba(255,255,255,.11)",
+                          bgcolor: surfaceTokens.shellSelectedBg,
                           color: "#fff",
-                          borderColor: "rgba(255,255,255,.08)",
+                          borderColor: surfaceTokens.shellCardBorder,
                           boxShadow: "inset 3px 0 0 #d6813f, 0 1px 2px rgba(0,0,0,.12)",
                         },
-                        "&.Mui-selected:hover": { bgcolor: "rgba(255,255,255,.13)" },
-                        "&:hover": { bgcolor: "rgba(255,255,255,.06)" },
+                        "&.Mui-selected:hover": { bgcolor: surfaceTokens.shellSelectedBgHover },
+                        "&:hover": { bgcolor: surfaceTokens.shellHoverBg },
                       }}
                     >
                       <ListItemIcon
@@ -224,7 +221,7 @@ export function AppShell() {
         </Stack>
       </Box>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,.08)" }} />
+      <Divider sx={{ borderColor: surfaceTokens.shellCardBorder }} />
       <Box sx={{ px: 1.6, py: 1.4 }}>
         <Stack spacing={1}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1 }}>
@@ -308,9 +305,9 @@ export function AppShell() {
           ml: { md: `${drawerWidth}px` },
           borderBottom: "1px solid",
           borderColor: "divider",
-          backgroundColor: "rgba(248,251,253,.92)",
+          backgroundColor: surfaceTokens.shellAppBar,
           backdropFilter: "blur(14px)",
-          boxShadow: "0 1px 0 rgba(255,255,255,.8), 0 10px 28px rgba(16,30,38,.05)",
+          boxShadow: shadowTokens.appBar,
         }}
       >
         <Toolbar sx={{ gap: 1.5, px: { xs: 1.5, md: 3 } }}>
@@ -522,8 +519,8 @@ export function AppShell() {
         <Container
           maxWidth={false}
           sx={{
-            px: { xs: 1.25, md: 2.5 },
-            py: { xs: 1.5, md: 2 },
+            px: spacingTokens.appShellContainerX,
+            py: spacingTokens.appShellContainerY,
             width: "100%",
             flexGrow: 1,
             display: "flex",

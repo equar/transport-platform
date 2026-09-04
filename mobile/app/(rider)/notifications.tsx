@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, FlatList, View, Text, RefreshControl } from 'react-native';
+import { StyleSheet, FlatList, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@api/notificationsApi';
 import { AppBadge, AppButton, AppCard } from '@components/ui';
@@ -11,6 +11,8 @@ import { PassengerRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime } from '@utils/formatDate';
 
 export default function RiderNotificationsPage() {
+	const { width } = useWindowDimensions();
+	const isCompact = width < 380;
 	const qc = useQueryClient();
 	const { data, isLoading, refetch, isRefetching } = useQuery({
 		queryKey: ['notifications'],
@@ -49,7 +51,13 @@ export default function RiderNotificationsPage() {
 				ItemSeparatorComponent={() => <View style={styles.sep} />}
 				ListEmptyComponent={<EmptyState title="No messages" />}
 				refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-				contentContainerStyle={items.length === 0 ? styles.emptyContent : styles.listContent}
+				contentContainerStyle={[
+					items.length === 0 ? styles.emptyContent : styles.listContent,
+					{
+						paddingHorizontal: isCompact ? Spacing.md : Spacing.lg,
+						paddingBottom: Spacing.xxxl,
+					},
+				]}
 			/>
 		</View>
 	);
@@ -58,12 +66,13 @@ export default function RiderNotificationsPage() {
 const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: Colors.background },
 	hero: {
-		padding: Spacing.lg,
-		borderBottomWidth: 1,
-		borderBottomColor: Colors.border,
+		paddingHorizontal: Spacing.lg,
+		paddingTop: Spacing.lg,
+		paddingBottom: Spacing.sm,
+		borderBottomWidth: 0,
 		backgroundColor: PassengerRoleTheme.soft,
 	},
-	listContent: { padding: Spacing.lg },
+	listContent: { paddingTop: Spacing.md },
 	item: { gap: Spacing.xs },
 	unread: { borderColor: PassengerRoleTheme.primary },
 	row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

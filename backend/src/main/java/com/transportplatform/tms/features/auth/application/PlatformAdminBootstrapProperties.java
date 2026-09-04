@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class PlatformAdminBootstrapProperties {
 
     private boolean enabled;
-    private String email = "samuelweld2019@gmail.com";
+    private String email = "samuelweld2018@gmail.com";
     private String password;
 
     public boolean isEnabled() {

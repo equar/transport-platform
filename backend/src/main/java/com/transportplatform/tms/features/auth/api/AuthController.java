@@ -132,8 +132,22 @@ public class AuthController {
     }
 
     private void addCookie(HttpServletRequest request, HttpServletResponse response, String token, Duration maxAge) {
+        boolean secure = securityProperties.getRefreshCookie().getSecure() == null
+                ? request.isSecure()
+                : securityProperties.getRefreshCookie().getSecure();
+        String sameSite = securityProperties.getRefreshCookie().getSameSite();
+        if (sameSite == null || sameSite.isBlank()) {
+            sameSite = "Lax";
+        }
+        if ("None".equalsIgnoreCase(sameSite) && !secure) {
+            sameSite = "Lax";
+        }
+
         response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie.from(REFRESH_COOKIE, token)
-                .httpOnly(true).secure(request.isSecure()).sameSite("Strict").path("/api/v1/auth")
+                .httpOnly(true)
+                .secure(secure)
+                .sameSite(sameSite)
+                .path(securityProperties.getRefreshCookie().getPath())
                 .maxAge(maxAge).build().toString());
     }
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, ScrollView, View, Text, RefreshControl } from 'react-native';
+import { StyleSheet, ScrollView, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { driverPortalApi } from '@api/driverPortalApi';
 import { AppBadge } from '@components/ui';
@@ -10,6 +10,8 @@ import { Colors, Spacing, Typography } from '@theme/tokens';
 import { formatDate } from '@utils/formatDate';
 
 export default function DriverCompliancePage() {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 380;
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['driver-compliance'],
     queryFn: () => driverPortalApi.getComplianceSummary(),
@@ -20,12 +22,18 @@ export default function DriverCompliancePage() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingHorizontal: isCompact ? Spacing.md : Spacing.lg,
+          gap: isCompact ? Spacing.md : Spacing.lg,
+        },
+      ]}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
       <SectionHeader title="Compliance" subtitle="Documents and issues" />
 
-      <View style={styles.metricRow}>
+      <View style={[styles.metricRow, isCompact && styles.metricRowCompact]}>
         <MetricTile
           label="Open Issues"
           value={data?.unresolvedComplianceIssues ?? 0}
@@ -84,6 +92,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   metricRow: { flexDirection: 'row', gap: Spacing.sm },
+  metricRowCompact: { flexDirection: 'column' },
   groupHeading: {
     fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: Typography.sizeLg,

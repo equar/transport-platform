@@ -67,11 +67,15 @@ app:
   bootstrap:
     platform-admin:
       enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:false}
-      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:samuelweld2019@gmail.com}
+      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:samuelweld2018@gmail.com}
       password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:Password123}
   security:
     api-docs-enabled: false
     allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:}
+    refresh-cookie:
+      same-site: ${APP_SECURITY_REFRESH_COOKIE_SAME_SITE:Lax}
+      path: ${APP_SECURITY_REFRESH_COOKIE_PATH:/api/v1/auth}
+      secure: ${APP_SECURITY_REFRESH_COOKIE_SECURE:}
     auth-rate-limit:
       enabled: true
       window: PT1M

@@ -1,9 +1,17 @@
 package com.transportplatform.tms.features.ride.application;
 
+import java.util.List;
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.security.AuthenticatedUser;
@@ -11,13 +19,6 @@ import com.transportplatform.tms.common.security.CurrentAuthenticatedUserService
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.ride.domain.RecurringRideScheduleRepository;
 import com.transportplatform.tms.features.ride.domain.RideRepository;
-import java.util.List;
-import java.util.Optional;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 @ExtendWith(MockitoExtension.class)
 class RideAccessServiceTest {

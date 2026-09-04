@@ -36,6 +36,15 @@
         "VIBRATE"
       ]
     },
+    "androidStatusBar": {
+      "backgroundColor": "#ffffff",
+      "barStyle": "dark-content",
+      "translucent": false
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#ffffff",
+      "barStyle": "dark-content"
+    },
     "web": {
       "bundler": "metro",
       "output": "static",
