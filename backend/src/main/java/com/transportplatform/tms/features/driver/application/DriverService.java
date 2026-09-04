@@ -122,14 +122,16 @@ public class DriverService {
         DriverStatusWorkflow.ensureCanCompleteDocuments(driver.getStatus());
         DriverComplianceSummaryResponse complianceSummary = driverComplianceSummaryService
                 .getSummary(driver.getTenantId(), driver);
-        if (complianceSummary.missingRequiredDocumentCount() > 0 || complianceSummary.expiredDocumentCount() > 0) {
+        if (complianceSummary.overallStatus() != DriverComplianceStatus.COMPLIANT) {
             String missing = complianceSummary.missingRequiredDocumentTypes().stream()
                     .map(type -> type.name().replace('_', ' '))
                     .sorted()
                     .collect(java.util.stream.Collectors.joining(", "));
             String reason = complianceSummary.missingRequiredDocumentCount() > 0
                     ? "Missing required documents: " + missing + "."
-                    : complianceSummary.expiredDocumentCount() + " required document(s) are expired.";
+                : complianceSummary.expiredDocumentCount() > 0
+                    ? complianceSummary.expiredDocumentCount() + " required document(s) are expired."
+                    : "Required documents are still awaiting verification.";
             throw new ApiException(
                     ErrorCode.INVALID_STATUS_TRANSITION,
                     HttpStatus.BAD_REQUEST,

@@ -139,4 +139,31 @@ class DriverServiceTest {
 
                 assertEquals("INVALID_STATUS_TRANSITION", exception.getErrorCode().name());
         }
+
+        @Test
+        void completeDocumentsRejectsDriverWithPendingVerification() {
+                DriverService driverService = new DriverService(
+                                driverRepository,
+                                new DriverMapper(),
+                                driverAccessService,
+                                driverCodeGenerator,
+                                driverComplianceSummaryService,
+                                auditLogService,
+                                notificationEventService,
+                                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
+
+                Driver driver = new Driver();
+                driver.setTenantId("tenant-123");
+                driver.setDriverCode("DRV-000123");
+                driver.setStatus(DriverStatus.DOCUMENT_PENDING);
+                when(driverAccessService.findDriverForCompanyScope(10L)).thenReturn(driver);
+                when(driverComplianceSummaryService.getSummary("tenant-123", driver)).thenReturn(
+                                new DriverComplianceSummaryResponse(4, 4, 3, 0, 0,
+                                                DriverComplianceStatus.ACTION_REQUIRED, 90, Set.of()));
+
+                ApiException exception = assertThrows(ApiException.class,
+                                () -> driverService.completeCompanyDriverDocuments(10L));
+
+                assertEquals("INVALID_STATUS_TRANSITION", exception.getErrorCode().name());
+        }
 }

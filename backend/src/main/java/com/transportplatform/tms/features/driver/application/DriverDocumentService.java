@@ -29,6 +29,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class DriverDocumentService {
@@ -119,6 +120,46 @@ public class DriverDocumentService {
         DriverDocument saved = driverDocumentRepository.save(document);
         recordAudit(saved, "CREATED", "Driver document " + saved.getDocumentType().name() + " was created.", null,
                 snapshot(saved));
+        return driverDocumentMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public DriverDocumentResponse uploadCompanyDriverDocument(Long driverId,
+            DriverDocumentType documentType,
+            String documentNumber,
+            String issuingAuthority,
+            LocalDate issueDate,
+            LocalDate expiryDate,
+            String notes,
+            MultipartFile file) {
+        Driver driver = driverAccessService.findDriverForCompanyScope(driverId);
+        if (issueDate != null && expiryDate != null && expiryDate.isBefore(issueDate)) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                    "Document expiry date cannot be earlier than the issue date.");
+        }
+        String storagePath = driverDocumentStorageService.store(driver.getTenantId(), driver.getId(), file);
+        String originalFileName = resolveOriginalFileName(file);
+        DriverDocument document = new DriverDocument();
+        document.setTenantId(driver.getTenantId());
+        document.setDriver(driver);
+        document.setDocumentType(documentType);
+        document.setFileName(java.nio.file.Path.of(storagePath).getFileName().toString());
+        document.setOriginalFileName(originalFileName);
+        document.setContentType(file.getContentType());
+        document.setStoragePath(storagePath);
+        document.setDocumentNumber(trimToNull(documentNumber));
+        document.setIssuingAuthority(trimToNull(issuingAuthority));
+        document.setIssueDate(issueDate);
+        document.setExpiryDate(expiryDate);
+        document.setNotes(trimToNull(notes));
+        document.setStatus(DriverDocumentStatus.ACTIVE);
+        document.setVerificationStatus(resolveStoredVerificationStatus(expiryDate));
+        document.setUploadedBy(currentAuthenticatedUserService.requireCurrentUser().username());
+        document.setUploadedAt(Instant.now(clock));
+        DriverDocument saved = driverDocumentRepository.save(document);
+        recordAudit(saved, "UPLOADED", "Driver document " + saved.getDocumentType().name()
+                + " was uploaded for review.", null, snapshot(saved));
+        complianceIssueSyncService.synchronizeTenantIssues(saved.getTenantId());
         return driverDocumentMapper.toResponse(saved);
     }
 
@@ -224,6 +265,19 @@ public class DriverDocumentService {
             return DriverDocumentVerificationStatus.EXPIRED;
         }
         return DriverDocumentVerificationStatus.PENDING;
+    }
+
+    private String resolveOriginalFileName(MultipartFile file) {
+        String originalFileName = file.getOriginalFilename() == null ? "document" :
+                java.nio.file.Path.of(file.getOriginalFilename()).getFileName().toString().trim();
+        return originalFileName.isEmpty() ? "document" : originalFileName.substring(0, Math.min(originalFileName.length(), 255));
+    }
+
+    private String trimToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private void recordAudit(DriverDocument document, String action, String summary, Object oldValue, Object newValue) {

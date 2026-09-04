@@ -107,6 +107,24 @@ export interface DriverPortalDocumentRecord {
   notes: string | null;
 }
 
+export type DriverPortalDocumentType =
+  | 'DRIVER_LICENSE'
+  | 'BACKGROUND_CHECK'
+  | 'DRUG_TEST'
+  | 'CONTRACT_AGREEMENT'
+  | 'CPR_FIRST_AID'
+  | 'NEMT_CERTIFICATION'
+  | 'SCHOOL_TRANSPORT_PERMIT'
+  | 'INSURANCE_PROOF'
+  | 'OTHER';
+
+export interface DriverPortalDocumentUploadPayload {
+  documentType: DriverPortalDocumentType;
+  uri: string;
+  name: string;
+  contentType: string;
+}
+
 export interface DriverPortalComplianceSummaryRecord {
   unresolvedComplianceIssues: number;
   expiringDocumentsSoon: number;
@@ -189,6 +207,17 @@ export const driverPortalApi = {
   async getComplianceSummary() {
     const r = await apiClient.get(`${base}/compliance`);
     return unwrapResponse<DriverPortalComplianceSummaryRecord>(r.data);
+  },
+  async uploadDocument(payload: DriverPortalDocumentUploadPayload) {
+    const formData = new FormData();
+    formData.append('documentType', payload.documentType);
+    formData.append('file', {
+      uri: payload.uri,
+      name: payload.name,
+      type: payload.contentType,
+    } as never);
+    const r = await apiClient.post(`${base}/documents`, formData);
+    return unwrapResponse<DriverPortalDocumentRecord>(r.data);
   },
   async searchRides(params?: Record<string, unknown>) {
     const r = await apiClient.get(`${base}/rides`, { params });

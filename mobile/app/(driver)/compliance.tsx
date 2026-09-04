@@ -1,23 +1,56 @@
-import React from 'react';
-import { StyleSheet, ScrollView, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Modal, StyleSheet, ScrollView, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { driverPortalApi } from '@api/driverPortalApi';
-import { AppBadge } from '@components/ui';
+import * as DocumentPicker from 'expo-document-picker';
+import { driverPortalApi, type DriverPortalDocumentType } from '@api/driverPortalApi';
+import { AppBadge, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { SectionHeader } from '@components/SectionHeader';
 import { MetricTile } from '@components/MetricTile';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
 import { formatDate } from '@utils/formatDate';
 
 export default function DriverCompliancePage() {
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
+  const [documentPickerOpen, setDocumentPickerOpen] = useState(false);
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['driver-compliance'],
     queryFn: () => driverPortalApi.getComplianceSummary(),
   });
 
   if (isLoading) return <LoadingState />;
+
+  async function uploadDocument(documentType: DriverPortalDocumentType) {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/jpeg', 'image/png'],
+        copyToCacheDirectory: false,
+        multiple: false,
+      });
+      if (result.canceled) return;
+      const file = result.assets[0];
+      if (file.size && file.size > 10 * 1024 * 1024) {
+        Alert.alert('File too large', 'Choose a PDF, JPEG, or PNG that is 10 MB or smaller.');
+        return;
+      }
+      await driverPortalApi.uploadDocument({
+        documentType,
+        uri: file.uri,
+        name: file.name,
+        contentType: file.mimeType ?? 'application/pdf',
+      });
+      Alert.alert('Document submitted', 'Your document is pending tenant compliance review.');
+      await refetch();
+    } catch {
+      Alert.alert('Upload failed', 'The document could not be submitted. Please try again.');
+    }
+  }
+
+  function chooseDocumentType(documentType: DriverPortalDocumentType) {
+    setDocumentPickerOpen(false);
+    void uploadDocument(documentType);
+  }
 
   return (
     <ScrollView
@@ -32,6 +65,12 @@ export default function DriverCompliancePage() {
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
       <SectionHeader title="Compliance" subtitle="Documents and issues" />
+
+      <View style={styles.uploadCard}>
+        <Text style={styles.uploadTitle}>Submit a document</Text>
+        <Text style={styles.uploadText}>Upload your license or another required document for tenant review.</Text>
+        <AppButton label="Upload document" leftIcon="file-upload-outline" onPress={() => setDocumentPickerOpen(true)} />
+      </View>
 
       <View style={[styles.metricRow, isCompact && styles.metricRowCompact]}>
         <MetricTile
@@ -84,6 +123,21 @@ export default function DriverCompliancePage() {
           ))}
         </>
       )}
+      <Modal transparent visible={documentPickerOpen} animationType="fade" onRequestClose={() => setDocumentPickerOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.uploadTitle}>Choose document type</Text>
+            <View style={styles.documentOptions}>
+              <AppButton label="Driver license" variant="outlined" onPress={() => chooseDocumentType('DRIVER_LICENSE')} />
+              <AppButton label="Background check" variant="outlined" onPress={() => chooseDocumentType('BACKGROUND_CHECK')} />
+              <AppButton label="Drug test" variant="outlined" onPress={() => chooseDocumentType('DRUG_TEST')} />
+              <AppButton label="Contract agreement" variant="outlined" onPress={() => chooseDocumentType('CONTRACT_AGREEMENT')} />
+              <AppButton label="Other document" variant="outlined" onPress={() => chooseDocumentType('OTHER')} />
+              <AppButton label="Cancel" variant="ghost" onPress={() => setDocumentPickerOpen(false)} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -93,6 +147,12 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   metricRow: { flexDirection: 'row', gap: Spacing.sm },
   metricRowCompact: { flexDirection: 'column' },
+  uploadCard: { borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface, padding: Spacing.md, gap: Spacing.sm },
+  uploadTitle: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
+  uploadText: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary, lineHeight: 18 },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(16,35,71,0.38)', padding: Spacing.md },
+  modalContent: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },
+  documentOptions: { gap: Spacing.sm },
   groupHeading: {
     fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: Typography.sizeLg,

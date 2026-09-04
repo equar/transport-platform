@@ -9,17 +9,19 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { driverPortalApi } from '@api/driverPortalApi';
 import { LoadingState } from '@components/LoadingState';
 import { SectionHeader } from '@components/SectionHeader';
 import { EmptyState } from '@components/EmptyState';
-import { AppCard } from '@components/ui';
+import { AppButton, AppCard } from '@components/ui';
 import { Colors, Spacing, Typography } from '@theme/tokens';
 import { DriverRoleTheme } from '@theme/roleTheme';
 
 type ProfileTab = 'driver' | 'vehicle';
 
 export default function DriverProfilePage() {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
   const [tab, setTab] = React.useState<ProfileTab>('driver');
@@ -112,6 +114,12 @@ export default function DriverProfilePage() {
             <Row
               label="Training"
               value={profile.trainingCompletionDate ?? '—'}
+            />
+            <AppButton
+              label="Upload driving license"
+              variant="outlined"
+              leftIcon="card-account-details-outline"
+              onPress={() => router.push('/(driver)/compliance')}
             />
           </AppCard>
 

@@ -181,7 +181,7 @@ export function DriverDetailsPage() {
     }
   }
 
-  async function handleDocumentSubmit(payload: DriverDocumentPayload) {
+  async function handleDocumentSubmit(payload: DriverDocumentPayload, file: File | null) {
     if (!driver) {
       return;
     }
@@ -191,8 +191,19 @@ export function DriverDetailsPage() {
         await driversApi.updateDocument(selectedDocument.id, payload);
         showSuccess("Driver document updated successfully.");
       } else {
-        await driversApi.createDocument(driver.id, payload);
-        showSuccess("Driver document added successfully.");
+        if (!file) {
+          return;
+        }
+        await driversApi.uploadDocument(driver.id, {
+          documentType: payload.documentType,
+          file,
+          documentNumber: payload.documentNumber,
+          issuingAuthority: payload.issuingAuthority,
+          issueDate: payload.issueDate,
+          expiryDate: payload.expiryDate,
+          notes: payload.notes,
+        });
+        showSuccess("Driver document uploaded for review.");
       }
       setDocumentDialogOpen(false);
       setSelectedDocument(null);
@@ -269,8 +280,7 @@ export function DriverDetailsPage() {
 
   const missingRequiredDocuments = driver.complianceSummary.missingRequiredDocumentTypes;
   const documentReviewBlocked =
-    missingRequiredDocuments.length > 0 ||
-    driver.complianceSummary.expiredDocumentCount > 0;
+    driver.complianceSummary.overallStatus !== "COMPLIANT";
 
   return (
     <Stack spacing={3}>
@@ -402,7 +412,9 @@ export function DriverDetailsPage() {
                 ? `Complete document review is unavailable. Missing required documents: ${missingRequiredDocuments
                     .map((type) => type.replaceAll("_", " "))
                     .join(", ")}.`
-                : `${driver.complianceSummary.expiredDocumentCount} required document(s) are expired and must be replaced.`}
+                : driver.complianceSummary.expiredDocumentCount > 0
+                  ? `${driver.complianceSummary.expiredDocumentCount} required document(s) are expired and must be replaced.`
+                  : "Complete document review is unavailable until all required documents are verified."}
             </Alert>
           ) : null}
         </Stack>

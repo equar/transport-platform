@@ -21,7 +21,7 @@ interface DriverDocumentUpsertDialogProps {
   document: DriverDocumentRecord | null;
   loading: boolean;
   onClose: () => void;
-  onSubmit: (payload: DriverDocumentPayload) => Promise<void>;
+  onSubmit: (payload: DriverDocumentPayload, file: File | null) => Promise<void>;
 }
 
 const documentTypes: DriverDocumentType[] = [
@@ -65,6 +65,7 @@ export function DriverDocumentUpsertDialog({
   onSubmit,
 }: DriverDocumentUpsertDialogProps) {
   const [form, setForm] = useState<DriverDocumentPayload>(emptyForm());
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -73,6 +74,7 @@ export function DriverDocumentUpsertDialog({
     }
 
     setErrors({});
+    setSelectedFile(null);
     if (!document) {
       setForm(emptyForm());
       return;
@@ -106,8 +108,11 @@ export function DriverDocumentUpsertDialog({
 
   function validate() {
     const nextErrors: Record<string, string> = {};
-    if (!form.fileName.trim()) {
+    if (document && !form.fileName.trim()) {
       nextErrors.fileName = "File name is required.";
+    }
+    if (!document && !selectedFile) {
+      nextErrors.file = "Select a PDF, JPEG, or PNG file to upload.";
     }
     if (form.issueDate && form.expiryDate && form.expiryDate < form.issueDate) {
       nextErrors.expiryDate =
@@ -121,7 +126,7 @@ export function DriverDocumentUpsertDialog({
     if (!validate()) {
       return;
     }
-    await onSubmit(form);
+    await onSubmit(form, selectedFile);
   }
 
   return (
@@ -169,7 +174,7 @@ export function DriverDocumentUpsertDialog({
             variant="outlined"
             sx={{ alignSelf: "flex-start" }}
           >
-            Select File Metadata
+            {selectedFile ? "Replace Selected File" : "Select File"}
             <input
               hidden
               type="file"
@@ -178,6 +183,7 @@ export function DriverDocumentUpsertDialog({
                 if (!file) {
                   return;
                 }
+                setSelectedFile(file);
                 setForm((current) => ({
                   ...current,
                   fileName: file.name,
@@ -187,9 +193,15 @@ export function DriverDocumentUpsertDialog({
               }}
             />
           </Button>
+          {errors.file ? (
+            <Typography variant="caption" color="error">
+              {errors.file}
+            </Typography>
+          ) : null}
           <Typography variant="caption" color="text.secondary">
-            Selecting a file fills in the document metadata so your team can
-            finish the record even if the file is stored outside the platform.
+            {document
+              ? "Document metadata can be updated here. To replace the stored file, archive this record and upload a new document."
+              : "Uploads are limited to PDF, JPEG, and PNG files up to 10 MB and are submitted for compliance review."}
           </Typography>
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <TextField

@@ -22,8 +22,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 public class DriverDocumentController {
@@ -88,6 +90,22 @@ public class DriverDocumentController {
     public ApiResponse<DriverDocumentResponse> createCompanyDriverDocument(@PathVariable Long driverId,
             @Valid @RequestBody DriverDocumentUpsertRequest request) {
         return ApiResponse.success(driverDocumentService.createCompanyDriverDocument(driverId, request));
+    }
+
+    @PostMapping(value = "/company/drivers/{driverId}/documents/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<DriverDocumentResponse> uploadCompanyDriverDocument(
+            @PathVariable Long driverId,
+            @RequestParam DriverDocumentType documentType,
+            @RequestParam(required = false) String documentNumber,
+            @RequestParam(required = false) String issuingAuthority,
+            @RequestParam(required = false) java.time.LocalDate issueDate,
+            @RequestParam(required = false) java.time.LocalDate expiryDate,
+            @RequestParam(required = false) String notes,
+            @RequestPart("file") MultipartFile file) {
+        return ApiResponse.success(driverDocumentService.uploadCompanyDriverDocument(driverId, documentType,
+                documentNumber, issuingAuthority, issueDate, expiryDate, notes, file));
     }
 
     @PutMapping("/company/driver-documents/{documentId}")
