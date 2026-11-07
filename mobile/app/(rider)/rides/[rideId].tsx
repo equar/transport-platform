@@ -1,3 +1,5 @@
+import { SupportContact } from '@components/SupportContact';
+import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, ScrollView, View, Text, Alert, RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -19,7 +21,7 @@ export default function RiderRideDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
 
-  const { data: ride, isLoading, refetch, isRefetching } = useQuery({
+  const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['rider-ride', rideId],
     queryFn: () => riderPortalApi.getRide(Number(rideId)),
     enabled: !!rideId,
@@ -52,7 +54,8 @@ export default function RiderRideDetailPage() {
     ]);
   }
 
-  if (isLoading || !ride) return <LoadingState />;
+  if (isLoading) return <LoadingState />;
+  if (isError || !ride) return <RequestError onRetry={() => void refetch()} />;
 
   const canCancel = CANCELLABLE.has(ride.status);
 
@@ -129,6 +132,7 @@ export default function RiderRideDetailPage() {
           </View>
         </View>
       )}
+      <SupportContact />
     </ScrollView>
   );
 }

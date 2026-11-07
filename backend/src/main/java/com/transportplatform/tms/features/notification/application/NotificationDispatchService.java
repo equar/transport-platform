@@ -31,7 +31,7 @@ public class NotificationDispatchService {
     private final NotificationTemplateRepository notificationTemplateRepository;
     private final NotificationCodeGenerator notificationCodeGenerator;
     private final NotificationTemplateRenderer notificationTemplateRenderer;
-    private final NotificationPushSender notificationPushSender;
+    private final PushDeliveryWorker pushDeliveryWorker;
     private final PortalPushDeviceTokenService portalPushDeviceTokenService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
@@ -40,7 +40,7 @@ public class NotificationDispatchService {
             NotificationTemplateRepository notificationTemplateRepository,
             NotificationCodeGenerator notificationCodeGenerator,
             NotificationTemplateRenderer notificationTemplateRenderer,
-            NotificationPushSender notificationPushSender,
+            PushDeliveryWorker pushDeliveryWorker,
             PortalPushDeviceTokenService portalPushDeviceTokenService,
             ObjectMapper objectMapper,
             Clock clock) {
@@ -48,7 +48,7 @@ public class NotificationDispatchService {
         this.notificationTemplateRepository = notificationTemplateRepository;
         this.notificationCodeGenerator = notificationCodeGenerator;
         this.notificationTemplateRenderer = notificationTemplateRenderer;
-        this.notificationPushSender = notificationPushSender;
+        this.pushDeliveryWorker = pushDeliveryWorker;
         this.portalPushDeviceTokenService = portalPushDeviceTokenService;
         this.objectMapper = objectMapper;
         this.clock = clock;
@@ -171,13 +171,7 @@ public class NotificationDispatchService {
                 notification.getTenantId(),
                 notification.getRecipientUserId());
         for (PortalPushDeviceToken token : tokens) {
-            NotificationPushSender.DeliveryResult result = notificationPushSender.send(
-                    new NotificationPushSender.PushNotificationCommand(
-                            token.getPushToken(),
-                            notification.getTitle(),
-                            notification.getMessage(),
-                            context));
-            portalPushDeviceTokenService.markDeliveryResult(token.getId(), result.sent(), result.errorMessage());
+            pushDeliveryWorker.enqueue(notification, token);
         }
     }
 }

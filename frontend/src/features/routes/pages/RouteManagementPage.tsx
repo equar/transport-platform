@@ -1,3 +1,4 @@
+import { useUrlFilters } from "../../../shared/hooks/useUrlFilters";
 import {
   Alert,
   Button,
@@ -74,7 +75,7 @@ function defaultPayload(): RoutePayload {
 export function RouteManagementPage() {
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
-  const [filters, setFilters] = useState<RouteSearchParams>(defaultFilters());
+  const [filters, setFilters] = useUrlFilters<RouteSearchParams>(defaultFilters());
   const [items, setItems] = useState<RouteRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [driverOptions, setDriverOptions] = useState<LookupOption[]>([]);

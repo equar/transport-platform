@@ -30,6 +30,12 @@ export interface ChangePasswordPayload {
 }
 
 export const authApi = {
+  async requestPasswordReset(email: string) {
+    return unwrapResponse<string>((await apiClient.post("/v1/auth/forgot-password", { email })).data);
+  },
+  async resetPassword(token: string, password: string) {
+    return unwrapResponse<string>((await apiClient.post("/v1/auth/reset-password", { token, password })).data);
+  },
   async signIn(payload: LoginPayload): Promise<AuthSession> {
     const response = await apiClient.post('/v1/auth/login', payload);
     const tokens = unwrapResponse<AuthTokensResponse>(response.data);

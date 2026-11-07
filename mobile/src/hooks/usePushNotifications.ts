@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
@@ -101,7 +102,9 @@ function resolvePortalScope(explicitScope: unknown, sessionRoles: string[] | und
 }
 
 export function usePushNotifications() {
+  const client = useQueryClient();
   const router = useRouter();
+  const handled = useRef<string | null>(null);
   const { session } = useAuth();
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
@@ -133,22 +136,25 @@ export function usePushNotifications() {
     }
 
     notificationListener.current = Notifications.addNotificationReceivedListener(() => {
-      // Foreground notification received — PaperProvider toasts can be triggered here
+      void client.invalidateQueries();
     });
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+    const handleResponse = (response: Notifications.NotificationResponse) => {
+      if (!session || handled.current === response.notification.request.identifier) return;
       const data = response.notification.request.content.data as Record<string, unknown>;
+      const scope = resolvePortalScope(undefined, session.identity.roles);
       const deepLink = toSafeDeepLink(data?.deepLink);
-      if (deepLink) {
+      const rideId = Number(data?.rideId);
+      if (deepLink && deepLink.startsWith(`/(${scope})/`)) {
+        handled.current = response.notification.request.identifier;
         router.push(deepLink as never);
-        return;
+      } else if (Number.isSafeInteger(rideId) && rideId > 0) {
+        handled.current = response.notification.request.identifier;
+        router.push(`/(${scope})/rides/${rideId}` as never);
       }
-      // Navigate to relevant detail screen based on notification payload
-      if (data?.rideId) {
-        const scope = resolvePortalScope(data.portalScope, session?.identity.roles);
-        router.push(`/${`(${scope})`}/rides/${data.rideId}` as never);
-      }
-    });
+    };
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(handleResponse);
+    void Notifications.getLastNotificationResponseAsync().then(response => { if (response) handleResponse(response); });
 
     return () => {
       notificationListener.current?.remove();

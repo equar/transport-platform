@@ -34,6 +34,7 @@ public class PaymentMapper {
                 effectiveInvoiceStatus,
                 payment.getPaymentDate(),
                 payment.getAmount(),
+                payment.getInvoice() == null ? null : payment.getInvoice().getCurrency(),
                 payment.getPaymentMethod(),
                 payment.getReferenceNumber(),
                 payment.getPayerName(),

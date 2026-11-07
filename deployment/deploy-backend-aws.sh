@@ -1,17 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/aws/deploy-common.sh"
-
-require_commands ssh scp mvn curl
-require_ssh_key
-
-staging_dir="$(create_staging_dir)"
-trap 'rm -rf -- "$staging_dir"' EXIT
-
-backend_artifact="$staging_dir/transport-platform-backend.jar"
-
-build_backend_artifact "$backend_artifact"
-check_remote_host
-deploy_backend_artifact "$backend_artifact"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+python3 "$ROOT/deployment/aws/validate-config.py" --target backend
+(cd "$ROOT/backend" && mvn -B clean verify)
+exec bash "$ROOT/deployment/aws/deploy-backend.sh"

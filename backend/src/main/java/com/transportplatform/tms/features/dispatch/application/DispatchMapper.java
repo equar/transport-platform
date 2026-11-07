@@ -17,6 +17,7 @@ public class DispatchMapper {
             DispatchAssignmentValidationService.DispatchWarnings warnings) {
         return new DispatchRideSummaryResponse(
                 ride.getId(),
+                ride.getVersion(),
                 ride.getRideNumber(),
                 ride.getRider().getId(),
                 ride.getRider().getRiderCode(),

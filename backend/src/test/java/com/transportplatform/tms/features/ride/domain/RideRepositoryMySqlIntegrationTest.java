@@ -81,6 +81,60 @@ class RideRepositoryMySqlIntegrationTest {
                 .isInstanceOf(OptimisticLockingFailureException.class);
     }
 
+    @Autowired private org.springframework.transaction.PlatformTransactionManager transactions;
+    @Autowired private com.transportplatform.tms.features.driver.domain.DriverRepository drivers;
+    @Autowired private com.transportplatform.tms.features.vehicle.domain.VehicleRepository vehicles;
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional(propagation=org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    void concurrentOverlappingAssignmentsAllowOnlyOneRideToClaimTheDriver() throws Exception {
+        String tenantId=UUID.randomUUID().toString();
+        var tx=new org.springframework.transaction.support.TransactionTemplate(transactions);
+        var ids=tx.execute(status -> {
+            Ride first=saveRide(tenantId),second=saveRide(tenantId);
+            second.setScheduledPickupAt(first.getScheduledPickupAt());rideRepository.saveAndFlush(second);
+            var driver=new com.transportplatform.tms.features.driver.domain.Driver();
+            driver.setTenantId(tenantId);driver.setDriverCode("driver-"+UUID.randomUUID());driver.setFirstName("Casey");driver.setLastName("Driver");driver.setPhone("555-0101");
+            driver.setDriverType(com.transportplatform.tms.features.driver.domain.DriverType.EMPLOYEE);
+            driver.setStatus(com.transportplatform.tms.features.driver.domain.DriverStatus.ACTIVE);
+            driver.setBackgroundCheckStatus(com.transportplatform.tms.features.driver.domain.DriverQualificationStatus.CLEAR);
+            driver.setDrugTestStatus(com.transportplatform.tms.features.driver.domain.DriverQualificationStatus.CLEAR);
+            driver.setTrainingStatus(com.transportplatform.tms.features.driver.domain.DriverTrainingStatus.COMPLETED);
+            drivers.saveAndFlush(driver);
+            return java.util.List.of(first.getId(),second.getId(),driver.getId());
+        });
+        var access=org.mockito.Mockito.mock(com.transportplatform.tms.features.ride.application.RideAccessService.class);
+        org.mockito.Mockito.when(access.requireCompanyTenantId()).thenReturn(tenantId);
+        org.mockito.Mockito.when(access.findRideForCompanyScope(org.mockito.ArgumentMatchers.anyLong())).thenAnswer(call -> rideRepository.findByIdAndTenantId(call.getArgument(0),tenantId).orElseThrow());
+        var compliance=org.mockito.Mockito.mock(com.transportplatform.tms.features.driver.application.DriverComplianceSummaryService.class,org.mockito.Mockito.RETURNS_DEEP_STUBS);
+        org.mockito.Mockito.when(compliance.getSummary(org.mockito.ArgumentMatchers.eq(tenantId),org.mockito.ArgumentMatchers.any()).overallStatus()).thenReturn(com.transportplatform.tms.features.driver.domain.DriverComplianceStatus.COMPLIANT);
+        var approval=org.mockito.Mockito.mock(com.transportplatform.tms.features.compliance.application.TenantTransportComplianceService.class);
+        org.mockito.Mockito.when(approval.isDispatchApproved(tenantId)).thenReturn(true);
+        var validator=new com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService(rideRepository,drivers,vehicles,compliance,
+            org.mockito.Mockito.mock(com.transportplatform.tms.features.vehicle.application.VehicleComplianceSummaryService.class),approval);
+        var dispatch=new com.transportplatform.tms.features.dispatch.application.DispatchService(tenantRepository,
+            org.mockito.Mockito.mock(com.transportplatform.tms.features.settings.domain.TenantSettingsRepository.class),java.time.Clock.systemUTC(),rideRepository,
+            org.mockito.Mockito.mock(com.transportplatform.tms.features.location.domain.DriverLocationSnapshotRepository.class),drivers,vehicles,access,validator,
+            org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchMapper.class),
+            org.mockito.Mockito.mock(com.transportplatform.tms.features.rideevent.application.RideEventService.class),
+            org.mockito.Mockito.mock(com.transportplatform.tms.features.audit.application.AuditLogService.class),
+            org.mockito.Mockito.mock(com.transportplatform.tms.features.notification.application.NotificationEventService.class));
+        var start=new java.util.concurrent.CountDownLatch(1);
+        try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var futures=new java.util.ArrayList<java.util.concurrent.Future<Boolean>>();
+            for(Long rideId:ids.subList(0,2)) futures.add(executor.submit(() -> {
+                start.await();
+                try {return tx.execute(status -> {dispatch.replaceRideResources(rideId,ids.get(2),null,0L);return true;});}
+                catch(com.transportplatform.tms.common.exception.ApiException ex) {
+                    assertThat(ex.getErrorCode()).isEqualTo(com.transportplatform.tms.common.exception.ErrorCode.RESOURCE_CONFLICT);return false;
+                }
+            }));
+            start.countDown();
+            int accepted=0;for(var future:futures) if(future.get(20,java.util.concurrent.TimeUnit.SECONDS)) accepted++;
+            assertThat(accepted).isEqualTo(1);
+        }
+    }
+
     private Ride saveRide(String tenantId) {
         Tenant tenant = new Tenant();
         tenant.setId(tenantId);
@@ -97,7 +151,7 @@ class RideRepositoryMySqlIntegrationTest {
         tenant.setBusinessType("Transportation");
         tenant.setSubscriptionPlan("STANDARD");
         tenant.setStatus(TenantStatus.ACTIVE);
-        tenantRepository.saveAndFlush(tenant);
+        if(!tenantRepository.existsById(tenantId)) tenantRepository.saveAndFlush(tenant);
 
         Rider rider = new Rider();
         rider.setTenantId(tenantId);

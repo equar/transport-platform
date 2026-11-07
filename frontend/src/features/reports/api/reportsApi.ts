@@ -223,7 +223,19 @@ function getReport<T>(path: string, params: ReportFilters) {
     .then((response) => unwrapResponse<CompanyReportResponse<T>>(response.data));
 }
 
+export interface ExportJob { id: string; status: string; progress: number; error: string | null; expiresAt: string }
 export const reportsApi = {
+  async startExport(reportType: string, filters: ReportFilters) {
+    const normalized = Object.fromEntries(Object.entries(filters).filter(([, value]) => value != null && value !== '').map(([key, value]) => [key, String(value)]));
+    return unwrapResponse<ExportJob>((await apiClient.post('/company/report-exports', { reportType, filters: normalized })).data);
+  },
+  async exportStatus(id: string) { return unwrapResponse<ExportJob>((await apiClient.get(`/company/report-exports/${id}`)).data); },
+  async cancelExport(id: string) { await apiClient.delete(`/company/report-exports/${id}`); },
+  async downloadExport(id: string) {
+    const response = await apiClient.get(`/company/report-exports/${id}/download`, { responseType: 'blob' });
+    const url = URL.createObjectURL(response.data); const link = document.createElement('a');
+    link.href = url; link.download = 'transport-report.csv'; link.click(); URL.revokeObjectURL(url);
+  },
   async listDefinitions() {
     const response = await apiClient.get("/company/reports");
     return unwrapResponse<ReportDefinitionRecord[]>(response.data);

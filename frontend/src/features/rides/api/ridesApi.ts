@@ -1,21 +1,7 @@
 import { apiClient, unwrapResponse } from "../../../shared/api/client";
 import type { PageResponse } from "../../../shared/api/types";
 
-export type RideStatus =
-  | "DRAFT"
-  | "REQUESTED"
-  | "PENDING_REVIEW"
-  | "SCHEDULED"
-  | "ASSIGNED"
-  | "DRIVER_EN_ROUTE"
-  | "ARRIVED"
-  | "RIDER_NO_SHOW"
-  | "PICKED_UP"
-  | "DROPPED_OFF"
-  | "COMPLETED"
-  | "CANCELLED"
-  | "MISSED"
-  | "FAILED";
+export type RideStatus = NonNullable<import("../../../shared/api/generated/contracts").RideResponse["status"]>;
 
 export type RideTripType = "ONE_WAY" | "ROUND_TRIP";
 export type RidePriorityLevel = "LOW" | "STANDARD" | "HIGH" | "URGENT";
@@ -25,15 +11,7 @@ export type RideBillingType =
   | "SPONSORED"
   | "INTERNAL"
   | "OTHER";
-export type ServiceType =
-  | "GENERAL_TRANSPORT"
-  | "SCHOOL_TRANSPORT"
-  | "NEMT"
-  | "DIALYSIS"
-  | "EMPLOYER_COMMUTER"
-  | "ADA_PARATRANSIT"
-  | "SHUTTLE"
-  | "OTHER";
+export type ServiceType = NonNullable<import("../../../shared/api/generated/contracts").RideResponse["serviceType"]>;
 export type RideRecurrencePatternType = "DAILY" | "WEEKLY" | "CUSTOM";
 export type RideRecurrenceStatus =
   | "DRAFT"

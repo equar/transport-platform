@@ -48,16 +48,14 @@ class RideAccessServiceTest {
     }
 
     @Test
-    void requireCompanyTenantIdRejectsUserWithoutTenantAdminRole() {
+    void requireCompanyTenantIdAcceptsDispatcherRole() {
         RideAccessService service = new RideAccessService(
                 currentAuthenticatedUserService,
                 rideRepository,
                 recurringRideScheduleRepository);
         when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(dispatcher("tenant-a"));
 
-        ApiException exception = assertThrows(ApiException.class, service::requireCompanyTenantId);
-
-        assertEquals("FORBIDDEN", exception.getErrorCode().name());
+        assertEquals("tenant-a", service.requireCompanyTenantId());
     }
 
     private AuthenticatedUser companyAdmin(String tenantId) {

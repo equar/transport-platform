@@ -1,3 +1,4 @@
+import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, ScrollView, View, Text, RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -13,13 +14,14 @@ export default function DriverRouteDetailPage() {
   const { routeId } = useLocalSearchParams<{ routeId: string }>();
   const router = useRouter();
 
-  const { data: route, isLoading, refetch, isRefetching } = useQuery({
+  const { data: route, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-route', routeId],
     queryFn: () => driverPortalApi.getRoute(Number(routeId)),
     enabled: !!routeId,
   });
 
-  if (isLoading || !route) return <LoadingState />;
+  if (isLoading) return <LoadingState />;
+  if (isError || !route) return <RequestError onRetry={() => void refetch()} />;
 
   return (
     <ScrollView

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, Linking, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@components/ui';
 import { Colors, Spacing, Typography } from '@theme/tokens';
@@ -46,6 +46,9 @@ export function TripTrackingCard({
   onRefresh,
   refreshing = false,
 }: TripTrackingCardProps) {
+  const [mapFailed, setMapFailed] = useState(false);
+  const [details, setDetails] = useState(false);
+  const ageMinutes = snapshot ? Math.max(0, Math.floor((Date.now() - Date.parse(snapshot.capturedAt)) / 60000)) : null;
   const mapUrl = snapshot ? buildStaticMapUrl(snapshot) : null;
 
   return (
@@ -54,16 +57,23 @@ export function TripTrackingCard({
       <View style={styles.body}>
         {snapshot ? (
           <>
-            {mapUrl ? (
-              <Image source={{ uri: mapUrl }} style={styles.map} resizeMode="cover" />
+            {mapUrl && !mapFailed ? (
+              <Image accessibilityLabel="Latest reported vehicle location" onError={() => setMapFailed(true)} source={{ uri: mapUrl }} style={styles.map} resizeMode="cover" />
             ) : null}
+            <Text>{ageMinutes != null && ageMinutes >= 2 ? `Location may be stale (${ageMinutes} minutes ago).` : 'Latest reported location'}</Text>
+            {mapFailed ? <Text>Map unavailable. Open the location in Maps below.</Text> : null}
+            {pickupAddress ? <Row label="Pickup" value={pickupAddress} /> : null}
+            {dropoffAddress ? <Row label="Drop-off" value={dropoffAddress} /> : null}
             <Row label="Updated" value={new Date(snapshot.capturedAt).toLocaleString()} />
+            <AppButton label={details ? "Hide location details" : "Location details"} variant="ghost" onPress={() => setDetails(!details)} />
+            {details ? <>
             <Row label="Accuracy" value={snapshot.accuracyMeters != null ? `${snapshot.accuracyMeters.toFixed(1)} m` : '-'} />
             <Row label="Speed" value={formatSpeed(snapshot.speedMps)} />
             <Row
               label="Location"
               value={`${snapshot.latitude.toFixed(6)}, ${snapshot.longitude.toFixed(6)}`}
             />
+            </> : null}
             <View style={styles.actions}>
               <AppButton
                 label="Open in Maps"

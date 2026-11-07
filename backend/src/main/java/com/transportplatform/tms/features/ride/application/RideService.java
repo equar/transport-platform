@@ -32,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class RideService {
 
+    private final com.transportplatform.tms.features.tenant.domain.TenantRepository dispatchTenants;
+    private final com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService dispatchValidation;
     private final RideRepository rideRepository;
     private final RideAccessService rideAccessService;
     private final RideReferenceValidationService rideReferenceValidationService;
@@ -50,7 +52,9 @@ public class RideService {
             RideEventService rideEventService,
             AuditLogService auditLogService,
             NotificationEventService notificationEventService,
-            Clock clock) {
+            Clock clock, com.transportplatform.tms.features.tenant.domain.TenantRepository dispatchTenants,
+            com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService dispatchValidation) {
+        this.dispatchTenants=dispatchTenants;this.dispatchValidation=dispatchValidation;
         this.rideRepository = rideRepository;
         this.rideAccessService = rideAccessService;
         this.rideReferenceValidationService = rideReferenceValidationService;
@@ -119,6 +123,8 @@ public class RideService {
         ride.setStatus(RideStatusWorkflow.resolveInitialStatus(request.status()));
         rideMapper.apply(ride, request, references);
         validateBusinessRules(ride);
+        if(ride.getDriverId()!=null) dispatchValidation.requireAssignableDriver(ride.getTenantId(),ride,ride.getDriverId());
+        if(ride.getVehicleId()!=null) dispatchValidation.requireAssignableVehicle(ride.getTenantId(),ride,ride.getVehicleId());
         Ride saved = rideRepository.save(ride);
         rideEventService.recordRideCreated(saved, "Ride created.");
         recordAudit(saved, "CREATED", "Ride " + saved.getRideNumber() + " was created.", null, snapshot(saved));
@@ -127,6 +133,7 @@ public class RideService {
 
     @Transactional
     public RideResponse updateCompanyRide(Long rideId, RideUpsertRequest request) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanEdit(ride.getStatus());
         RideReferenceValidationService.ResolvedReferences references = rideReferenceValidationService.resolve(
@@ -139,6 +146,8 @@ public class RideService {
         Object oldSnapshot = snapshot(ride);
         rideMapper.apply(ride, request, references);
         validateBusinessRules(ride);
+        if(ride.getDriverId()!=null) dispatchValidation.requireAssignableDriver(ride.getTenantId(),ride,ride.getDriverId());
+        if(ride.getVehicleId()!=null) dispatchValidation.requireAssignableVehicle(ride.getTenantId(),ride,ride.getVehicleId());
         Ride saved = rideRepository.save(ride);
         recordAudit(saved, "UPDATED", "Ride " + saved.getRideNumber() + " was updated.", oldSnapshot,
                 snapshot(saved));

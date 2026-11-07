@@ -1,5 +1,6 @@
 import {
   Alert,
+  Collapse,
   Button,
   Dialog,
   DialogActions,
@@ -115,6 +116,10 @@ export function RideUpsertDialog({
   onClose,
   onSubmit,
 }: RideUpsertDialogProps) {
+  const [dirty, setDirty] = useState(false);
+  function closeForm() { if (!dirty || window.confirm("Discard unsaved ride details?")) onClose(); }
+  const [reviewing, setReviewing] = useState(false);
+  const [showInternal, setShowInternal] = useState(false);
   const [form, setForm] = useState<RidePayload>(emptyForm());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [referenceLoading, setReferenceLoading] = useState(false);
@@ -134,6 +139,8 @@ export function RideUpsertDialog({
     if (!open) {
       return;
     }
+    setReviewing(false);
+    setDirty(false);
     setErrors({});
     setRiderDefaultsMessage("");
     if (!ride) {
@@ -210,6 +217,7 @@ export function RideUpsertDialog({
     field: K,
     value: RidePayload[K],
   ) {
+    setReviewing(false);
     setForm((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: "" }));
   }
@@ -340,6 +348,7 @@ export function RideUpsertDialog({
     if (!validate(form)) {
       return;
     }
+    if (!reviewing) { setReviewing(true); return; }
     await onSubmit({
       ...form,
       pickupAddressLine1: form.pickupAddressLine1.trim(),
@@ -384,7 +393,7 @@ export function RideUpsertDialog({
   return (
     <Dialog
       open={open}
-      onClose={loading ? undefined : onClose}
+      onClose={loading ? undefined : closeForm}
       fullWidth
       maxWidth="lg"
     >
@@ -831,6 +840,8 @@ export function RideUpsertDialog({
               }
               fullWidth
             />
+            <Button onClick={() => setShowInternal(!showInternal)}>{showInternal ? "Hide internal notes" : "Add internal notes"}</Button>
+            <Collapse in={showInternal}><Stack spacing={2}>
             <TextField
               label="Internal Notes"
               multiline
@@ -851,11 +862,12 @@ export function RideUpsertDialog({
               }
               fullWidth
             />
+            </Stack></Collapse>
           </Stack>
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} color="inherit" disabled={loading}>
+        <Button onClick={closeForm} color="inherit" disabled={loading}>
           Close
         </Button>
         <Button
@@ -863,7 +875,7 @@ export function RideUpsertDialog({
           variant="contained"
           disabled={loading || referenceLoading || riderDefaultsLoading}
         >
-          {loading ? "Saving..." : ride ? "Update Ride" : "Create Ride"}
+          {loading ? "Saving..." : reviewing ? (ride ? "Confirm update" : "Confirm ride") : "Review ride"}
         </Button>
       </DialogActions>
     </Dialog>

@@ -1,3 +1,4 @@
+import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, ScrollView, View, Text, RefreshControl, Pressable, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -17,7 +18,7 @@ export default function DriverDashboard() {
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
 
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-dashboard'],
     queryFn: () => driverPortalApi.getDashboard(),
   });
@@ -38,6 +39,7 @@ export default function DriverDashboard() {
   });
 
   if (isLoading) return <LoadingState />;
+  if (isError) return <RequestError onRetry={() => void refetch()} />;
 
   const fullName =
     [session?.identity.firstName, session?.identity.lastName].filter(Boolean).join(' ') || 'Driver';

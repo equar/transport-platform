@@ -1,3 +1,4 @@
+import { apiClient } from "../../../shared/api/client";
 import { useState, type FormEvent } from "react";
 import {
   Alert,
@@ -36,9 +37,15 @@ const contactChannels = [
 export function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitted(true);
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    setPending(true); setError(null);
+    try { await apiClient.post('/demo-inquiries', values); setSubmitted(true); }
+    catch { setError('Your request could not be sent. Please try again.'); }
+    finally { setPending(false); }
   }
 
   return (
@@ -89,6 +96,7 @@ export function ContactPage() {
               </Typography>
             </Box>
 
+            {error ? <Alert severity="error">{error}</Alert> : null}
             {submitted ? (
               <Alert severity="success">
                 Thanks. Your request has been captured and is ready for your
@@ -106,16 +114,16 @@ export function ContactPage() {
                 },
               }}
             >
-              <TextField label="Full Name" placeholder="Jordan Avery" />
-              <TextField label="Company" placeholder="Northbound Mobility" />
+              <TextField name="name" required label="Full Name" placeholder="Jordan Avery" />
+              <TextField name="company" required label="Company" placeholder="Northbound Mobility" />
               <TextField
-                label="Work Email"
+                name="email" required label="Work Email"
                 type="email"
                 placeholder="jordan@northboundmobility.com"
               />
-              <TextField label="Phone" placeholder="(555) 010-2200" />
+              <TextField name="phone" required label="Phone" placeholder="(555) 010-2200" />
               <TextField
-                label="What are you solving for?"
+                name="message" required label="What are you solving for?"
                 placeholder="Tenant onboarding, dispatch visibility, rider portals, billing controls..."
                 multiline
                 minRows={4}
@@ -126,7 +134,7 @@ export function ContactPage() {
                 spacing={1.5}
                 sx={{ gridColumn: { md: "1 / -1" } }}
               >
-                <Button type="submit" variant="contained" size="large">
+                <Button disabled={pending || submitted} type="submit" variant="contained" size="large">
                   Request demo
                 </Button>
                 <Button

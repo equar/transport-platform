@@ -66,9 +66,10 @@ public class SecurityConfig {
                         .accessDeniedHandler(restAccessDeniedHandler))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers(publicDocumentationEndpoints).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/v1/auth/login", "/v1/auth/refresh", "/v1/auth/logout").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/company-applications").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/auth/login", "/v1/auth/refresh", "/v1/auth/logout", "/v1/auth/forgot-password", "/v1/auth/reset-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/company-applications", "/demo-inquiries").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/auth/status").permitAll()
                         .requestMatchers(HttpMethod.GET, "/runtime/tenant-branding").permitAll()
                         .anyRequest().authenticated())
@@ -86,7 +87,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(securityProperties.getAllowedOrigins());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Tenant-Id", "X-Client-Platform",
-                "Idempotency-Key", "If-Match", RequestCorrelationFilter.HEADER_NAME));
+                "Idempotency-Key", "X-Expected-Ride-Status", "If-Match", RequestCorrelationFilter.HEADER_NAME));
         configuration.setExposedHeaders(List.of("Authorization", RequestCorrelationFilter.HEADER_NAME));
         configuration.setAllowCredentials(true);
 

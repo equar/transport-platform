@@ -13,13 +13,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,notificationDelivery
+        include: health,info,notificationDelivery,metrics
 
 app:
   bootstrap:
     platform-admin:
-      enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:true}
-      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:samuelweld2018@gmail.com}
+      enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:false}
+      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:}
       password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:}
   security:
     api-docs-enabled: false

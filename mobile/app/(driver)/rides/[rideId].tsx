@@ -1,3 +1,4 @@
+import { SupportContact } from '@components/SupportContact';
 import React from 'react';
 import {
   StyleSheet,
@@ -10,8 +11,8 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
-import NetInfo from '@react-native-community/netinfo';
-import * as Location from 'expo-location';
+import NetInfo, { useNetInfo } from '@react-native-community/netinfo';
+import { startTripTracking, stopTripTracking, useTrackingState } from '../../../src/tracking/activeTrip';
 import { driverPortalApi, type DriverRideAction } from '@api/driverPortalApi';
 import { TripTrackingCard } from '@components/TripTrackingCard';
 import { useOfflineQueue } from '@stores/offlineQueueStore';
@@ -55,12 +56,13 @@ export default function DriverRideDetailPage() {
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
   const router = useRouter();
   const qc = useQueryClient();
-  const { enqueue, queue, conflicts, dismissConflict } = useOfflineQueue();
+  const network = useNetInfo();
+  const { enqueue, queue, conflicts, dismissConflict, retry } = useOfflineQueue();
   const { session } = useAuth();
   const locationPermissionAlertShownRef = React.useRef(false);
   const actionInFlightRef = React.useRef(false);
 
-  const { data: ride, isLoading, refetch, isRefetching } = useQuery({
+  const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-ride', rideId],
     queryFn: () => driverPortalApi.getRide(Number(rideId)),
     enabled: !!rideId,
@@ -81,6 +83,7 @@ export default function DriverRideDetailPage() {
     mutationFn: ({ action, idempotencyKey }: { action: DriverRideAction; idempotencyKey: string }) =>
       driverPortalApi.postRideAction(Number(rideId), action, idempotencyKey),
     onSuccess: () => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       qc.invalidateQueries({ queryKey: ['driver-rides'] });
       qc.invalidateQueries({ queryKey: ['driver-ride', rideId] });
     },
@@ -129,7 +132,7 @@ export default function DriverRideDetailPage() {
         text: 'Confirm',
         onPress: () => {
           performAction({ action, idempotencyKey: createIdempotencyKey('driver-action') });
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
         },
       },
     ], {
@@ -140,68 +143,22 @@ export default function DriverRideDetailPage() {
     });
   }
 
+  const { data: rideActions } = useQuery({ queryKey: ["ride-actions"], queryFn: driverPortalApi.getRideActions, staleTime: 3600000 });
+  const tracking = useTrackingState();
   React.useEffect(() => {
-    if (!rideId || !ride || !TRACKABLE_STATUSES.has(ride.status)) {
-      return;
+    if (!ride || !session?.identity.tenantId) return;
+    if (['DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP', 'DROPPED_OFF'].includes(ride.status)) {
+      void startTripTracking({ rideId: ride.id, tenantId: session.identity.tenantId, userId: session.identity.id })
+        .catch(() => Alert.alert('Tracking unavailable', 'Check location permission in Settings.'));
+    } else if (['COMPLETED', 'CANCELLED', 'FAILED', 'RIDER_NO_SHOW'].includes(ride.status)) {
+      void stopTripTracking();
     }
+  }, [ride?.status, rideId, session?.identity.id]);
 
-    let cancelled = false;
+  if (isLoading) return <LoadingState />;
+  if (isError || !ride) return <View style={{ padding: 24, gap: 16 }}><Text>Trip unavailable. Check your connection and try again.</Text><AppButton label="Retry" onPress={() => void refetch()} /></View>;
 
-    async function captureSnapshot() {
-      try {
-        const permission = await Location.requestForegroundPermissionsAsync();
-        if (permission.status !== 'granted' || cancelled) {
-          if (permission.status !== 'granted' && !locationPermissionAlertShownRef.current) {
-            locationPermissionAlertShownRef.current = true;
-            Alert.alert(
-              'Location access required',
-              'Enable location access to keep live trip tracking updated.',
-            );
-          }
-          return;
-        }
-        const position = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        if (cancelled) {
-          return;
-        }
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-          return;
-        }
-        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-          return;
-        }
-        await driverPortalApi.captureRideLocationSnapshot(Number(rideId), {
-          latitude,
-          longitude,
-          accuracyMeters: position.coords.accuracy ?? null,
-          speedMps: position.coords.speed ?? null,
-          headingDegrees: position.coords.heading ?? null,
-          capturedAt: new Date(position.timestamp).toISOString(),
-        });
-        void refetchLocationSnapshot();
-      } catch {
-        // Location reporting should never block the trip workflow.
-      }
-    }
-
-    void captureSnapshot();
-    const timer = setInterval(() => {
-      void captureSnapshot();
-    }, 60000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [rideId, ride?.status]);
-
-  if (isLoading || !ride) return <LoadingState />;
-
-  const primaryAction = PRIMARY_STATUS_ACTIONS[ride.status];
+  const primaryAction = rideActions?.[ride.status] ?? PRIMARY_STATUS_ACTIONS[ride.status];
   const secondaryActions = SECONDARY_STATUS_ACTIONS[ride.status] ?? [];
   const currentRideId = Number(rideId);
   const queuedAction = session?.identity.tenantId
@@ -224,7 +181,7 @@ export default function DriverRideDetailPage() {
       <View style={styles.heroCard}>
         <View style={styles.heroTopRow}>
           <Text style={styles.heroTitle}>Current Trip</Text>
-          <Text style={styles.onlineBadge}>Online</Text>
+          <Text style={[styles.onlineBadge, { backgroundColor: network.isConnected ? "#15803d" : "#92400e" }]}>{network.isConnected ? "Online" : "Offline"}</Text>
         </View>
         <Text style={styles.rideNumberHero}>{ride.rideNumber}</Text>
         <View style={styles.heroMetaRow}>
@@ -233,8 +190,53 @@ export default function DriverRideDetailPage() {
         </View>
       </View>
 
+      <Text accessibilityRole="text">{tracking.message}{tracking.lastSyncedAt ? ` • Last synced ${new Date(tracking.lastSyncedAt).toLocaleTimeString()}` : ""}</Text>
       <Text style={styles.back} onPress={() => router.back()}>← Dispatches</Text>
 
+      {/* Action */}
+      {(primaryAction || secondaryActions.length > 0) && (
+        <Section title="Trip Actions">
+          <View style={styles.primaryActionRow}>
+            <View style={styles.primaryActionSlot}>
+              <AppButton
+                label="Navigate"
+                variant="outlined"
+                onPress={() => {
+                  const target = ['PICKED_UP', 'DROPPED_OFF'].includes(ride.status) ? ride.dropoffAddress : ride.pickupAddress;
+                  if (!target) { Alert.alert('Address unavailable', 'Contact dispatch for the destination.'); return; }
+                  void Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(target)}`);
+                }}
+                fullWidth
+              />
+            </View>
+            {primaryAction ? (
+              <View style={styles.primaryActionSlot}>
+                <AppButton
+                  label={primaryAction.label}
+                  onPress={() => handleAction(primaryAction.action, primaryAction.label)}
+                  loading={actionPending}
+                  fullWidth
+                  size="lg"
+                />
+              </View>
+            ) : null}
+          </View>
+          {secondaryActions.length > 0 ? (
+            <View style={styles.secondaryActionGroup}>
+              {secondaryActions.map((item) => (
+                <AppButton
+                  key={item.action}
+                  label={item.label}
+                  onPress={() => handleAction(item.action, item.label)}
+                  disabled={actionPending}
+                  variant="outlined"
+                  fullWidth
+                />
+              ))}
+            </View>
+          ) : null}
+        </Section>
+      )}
       {/* Rider */}
       <Section title="Rider">
         <Row label="Name" value={ride.riderName} />
@@ -282,8 +284,9 @@ export default function DriverRideDetailPage() {
         <View style={styles.queuedActionState}>
           <Text style={styles.queuedActionTitle}>Trip action queued</Text>
           <Text style={styles.queuedActionText}>
-            {queuedAction.action.replace(/-/g, ' ')} will sync when a connection is available.
+            {queuedAction.failed ? queuedAction.error : `${queuedAction.action.replace(/-/g, " ")} will sync when a connection is available.`}
           </Text>
+          {queuedAction.failed ? <AppButton label="Retry sync" onPress={() => retry(queuedAction.id)} /> : null}
         </View>
       ) : null}
 
@@ -301,49 +304,8 @@ export default function DriverRideDetailPage() {
         </View>
       ) : null}
 
-      {/* Action */}
-      {(primaryAction || secondaryActions.length > 0) && (
-        <Section title="Trip Actions">
-          <View style={styles.primaryActionRow}>
-            <View style={styles.primaryActionSlot}>
-              <AppButton
-                label="Navigate"
-                variant="outlined"
-                onPress={() => {
-                  const target = ride.pickupAddress ?? `${locationSnapshot?.latitude},${locationSnapshot?.longitude}`;
-                  void Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(target ?? '')}`);
-                }}
-                fullWidth
-              />
-            </View>
-            {primaryAction ? (
-              <View style={styles.primaryActionSlot}>
-                <AppButton
-                  label={primaryAction.label}
-                  onPress={() => handleAction(primaryAction.action, primaryAction.label)}
-                  loading={actionPending}
-                  fullWidth
-                  size="lg"
-                />
-              </View>
-            ) : null}
-          </View>
-          {secondaryActions.length > 0 ? (
-            <View style={styles.secondaryActionGroup}>
-              {secondaryActions.map((item) => (
-                <AppButton
-                  key={item.action}
-                  label={item.label}
-                  onPress={() => handleAction(item.action, item.label)}
-                  disabled={actionPending}
-                  variant="outlined"
-                  fullWidth
-                />
-              ))}
-            </View>
-          ) : null}
-        </Section>
-      )}
+
+      <SupportContact />
     </ScrollView>
   );
 }

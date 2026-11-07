@@ -1,3 +1,4 @@
+import { stopTripTracking } from '../tracking/activeTrip';
 import React, {
   createContext,
   useContext,
@@ -6,7 +7,7 @@ import React, {
   type PropsWithChildren,
 } from 'react';
 import { authApi, type LoginPayload } from '@api/authApi';
-import { SESSION_KEY, onSessionExpired } from '@api/client';
+import { SESSION_KEY, onSessionExpired, onSessionRefreshed, invalidateSessionRequests } from '@api/client';
 import type { AuthSession } from './types';
 import { Roles } from './types';
 import { deleteSessionValue, getSessionValue, setSessionValue } from './sessionStorage';
@@ -29,7 +30,11 @@ async function readStoredSession(): Promise<AuthSession | null> {
   try {
     const raw = await getSessionValue(SESSION_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as AuthSession;
+    const parsed=JSON.parse(raw) as AuthSession;
+    if (!parsed.accessToken || !parsed.refreshToken || !parsed.identity || !Number.isSafeInteger(parsed.identity.id) || !Array.isArray(parsed.identity.roles)) {
+      await deleteSessionValue(SESSION_KEY); return null;
+    }
+    return parsed;
   } catch {
     await deleteSessionValue(SESSION_KEY);
     return null;
@@ -46,6 +51,7 @@ function resolveDefaultRoute(session: AuthSession | null): string {
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const logoutInFlight = React.useRef<Promise<void> | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -55,12 +61,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setIsLoading(false);
     });
 
+    const unsubscribeRefresh = onSessionRefreshed(setSession);
     const unsubscribe = onSessionExpired(() => {
+      void stopTripTracking();
+      useOfflineQueue.getState().pause();
       setSession(null);
     });
 
     return () => {
       unsubscribe();
+      unsubscribeRefresh();
     };
   }, []);
 
@@ -70,6 +80,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     isLoading,
 
     async signIn(payload: LoginPayload) {
+      await logoutInFlight.current;
+      invalidateSessionRequests();
+      useOfflineQueue.getState().pause();
       const next = await authApi.signIn(payload);
       await setSessionValue(SESSION_KEY, JSON.stringify(next));
       setSession(next);
@@ -77,18 +90,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
     },
 
     async signOut() {
+      if (logoutInFlight.current) return logoutInFlight.current;
       const currentRefreshToken = session?.refreshToken;
-      try {
-        await unregisterCurrentPushToken();
-      } catch {
-        // Best-effort cleanup only.
-      }
-      if (currentRefreshToken) {
-        try { await authApi.signOut(currentRefreshToken); } catch { /* local sign-out must still complete */ }
-      }
-      await deleteSessionValue(SESSION_KEY);
-      useOfflineQueue.getState().clear();
+      invalidateSessionRequests();
       setSession(null);
+      useOfflineQueue.getState().pause();
+      logoutInFlight.current = (async () => {
+        try { await stopTripTracking(); } catch { /* credentials must still be cleared */ }
+        try { await unregisterCurrentPushToken(); } catch { /* token is re-scoped on next registration */ }
+        if (currentRefreshToken) {
+          try { await authApi.signOut(currentRefreshToken); } catch { /* finish local logout offline */ }
+        }
+        await deleteSessionValue(SESSION_KEY);
+      })().finally(() => { logoutInFlight.current = null; });
+      return logoutInFlight.current;
     },
 
     hasRole(role: string) {

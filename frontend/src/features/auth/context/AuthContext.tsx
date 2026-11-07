@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   type PropsWithChildren,
 } from "react";
 import { authApi } from "../api/authApi";
@@ -15,7 +16,7 @@ import {
   AUTH_SESSION_STORAGE_KEY,
   AUTH_SESSION_INVALIDATED_EVENT,
 } from "../../../shared/config/storage";
-import { setApiSession } from "../../../shared/api/client";
+import { setApiSession, SESSION_REFRESHED_EVENT } from "../../../shared/api/client";
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -65,6 +66,7 @@ function readPersistedSession(): AuthSession | null {
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const logoutInFlight = useRef<Promise<unknown> | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -87,6 +89,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     }).finally(() => setIsLoading(false));
 
+    const handleRefreshed = (event: Event) => { const refreshed=(event as CustomEvent<AuthSession>).detail; setSession(refreshed); persistSession(refreshed); };
+    window.addEventListener(SESSION_REFRESHED_EVENT, handleRefreshed);
     const handleSessionInvalidated = () => {
       setApiSession(null);
       setSession(null);
@@ -99,6 +103,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     );
 
     return () => {
+      window.removeEventListener(SESSION_REFRESHED_EVENT, handleRefreshed);
       window.removeEventListener(
         AUTH_SESSION_INVALIDATED_EVENT,
         handleSessionInvalidated,
@@ -111,6 +116,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     isAuthenticated: Boolean(session?.accessToken),
     isLoading,
     async signIn(payload: LoginPayload) {
+      await logoutInFlight.current;
       setApiSession(null);
       setSession(null);
       persistSession(null);
@@ -121,7 +127,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return nextSession;
     },
     signOut() {
-      void authApi.signOut().catch(() => undefined);
+      logoutInFlight.current = authApi.signOut().catch(() => undefined).finally(() => { logoutInFlight.current = null; });
       setApiSession(null);
       setSession(null);
       persistSession(null);

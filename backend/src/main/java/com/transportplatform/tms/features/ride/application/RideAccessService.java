@@ -30,12 +30,13 @@ public class RideAccessService {
     public AuthenticatedUser requireCompanyUser() {
         AuthenticatedUser user = currentAuthenticatedUserService.requireCurrentUser();
         boolean companyAdmin = user.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals(RoleName.ROLE_TENANT_ADMIN.name()));
+                .anyMatch(authority -> authority.getAuthority().equals(RoleName.ROLE_TENANT_ADMIN.name())
+                        || authority.getAuthority().equals(RoleName.ROLE_DISPATCHER.name()));
         if (!companyAdmin || user.tenantId() == null || user.tenantId().isBlank()) {
             throw new ApiException(
                     ErrorCode.FORBIDDEN,
                     HttpStatus.FORBIDDEN,
-                    "A company administrator account is required for this operation.");
+                    "A tenant administrator or dispatcher account is required for this operation.");
         }
         return user;
     }

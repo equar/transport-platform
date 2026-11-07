@@ -1,3 +1,4 @@
+import { OnboardingChecklist } from '../components/OnboardingChecklist';
 import { useEffect, useState, type ReactNode } from "react";
 import { Alert, Box, Button, Skeleton, Stack, Typography } from "@mui/material";
 import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
@@ -529,6 +530,7 @@ export function DashboardPage() {
 
   return (
     <Stack spacing={3}>
+      {!platformAdmin ? <OnboardingChecklist /> : null}
       <PageHero
         eyebrow={platformAdmin ? "Platform command center" : "Operations command center"}
         title={platformAdmin ? "Run every tenant from one clear control surface." : "Keep today’s transportation operation moving."}

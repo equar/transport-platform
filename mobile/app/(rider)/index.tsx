@@ -1,3 +1,4 @@
+import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, ScrollView, View, Text, RefreshControl, Pressable, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -18,7 +19,7 @@ export default function RiderDashboard() {
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
 
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['rider-dashboard'],
     queryFn: () => riderPortalApi.getDashboard(),
   });
@@ -33,6 +34,7 @@ export default function RiderDashboard() {
   });
 
   if (isLoading) return <LoadingState />;
+  if (isError) return <RequestError onRetry={() => void refetch()} />;
 
   const name = [session?.identity.firstName, session?.identity.lastName]
     .filter(Boolean)

@@ -1,3 +1,4 @@
+import type { RiderGuardianPortalRideCreateRequest } from './generated/contracts';
 import { apiClient, unwrapResponse } from './client';
 import type { PageResponse } from './types';
 import type { DriverLocationSnapshotPayload } from './driverPortalApi';
@@ -84,40 +85,7 @@ export interface RiderPortalRideDetailRecord extends RiderPortalRideRecord {
   specialInstructions?: string | null;
 }
 
-export interface RiderPortalRideCreatePayload {
-  riderId?: number;
-  guardianId?: number;
-  serviceType:
-    | 'GENERAL_TRANSPORT'
-    | 'SCHOOL_TRANSPORT'
-    | 'NEMT'
-    | 'DIALYSIS'
-    | 'EMPLOYER_COMMUTER'
-    | 'ADA_PARATRANSIT'
-    | 'SHUTTLE'
-    | 'OTHER';
-  tripType: 'ONE_WAY' | 'ROUND_TRIP';
-  pickupAddressLine1: string;
-  pickupAddressLine2?: string;
-  pickupCity: string;
-  pickupState: string;
-  pickupZipCode: string;
-  pickupCountry: string;
-  dropoffAddressLine1: string;
-  dropoffAddressLine2?: string;
-  dropoffCity: string;
-  dropoffState: string;
-  dropoffZipCode: string;
-  dropoffCountry: string;
-  scheduledPickupAt: string;
-  scheduledDropoffAt?: string;
-  returnPickupAt?: string;
-  returnDropoffAt?: string;
-  wheelchairRequired?: boolean;
-  escortRequired?: boolean;
-  companionCount?: number;
-  specialInstructions?: string;
-}
+export type RiderPortalRideCreatePayload = RiderGuardianPortalRideCreateRequest;
 
 export interface RiderRideLocationSnapshotRecord extends DriverLocationSnapshotPayload {
   id: number;
@@ -146,13 +114,23 @@ export interface RiderPortalPaymentRecord {
   invoiceNumber: string | null;
   paymentDate: string;
   amount: number;
+  currency: string | null;
   paymentMethod: string | null;
   status: string;
 }
 
 const base = '/portal/rider';
 
+export interface SavedLocation { addressLine1: string; city: string; state: string; zipCode: string; country: string }
+export interface PortalInvoiceDetail extends RiderPortalInvoiceRecord {
+  subtotal: number; taxAmount: number; discountAmount: number; amountPaid: number;
+  lines: { description: string; quantity: number; unitPrice: number; amount: number; serviceDate: string | null }[];
+}
+export interface PortalPaymentReceipt { paymentNumber: string; invoiceNumber: string; paymentDate: string; amount: number; currency: string; status: string; paymentMethod: string }
 export const riderPortalApi = {
+  async invoiceDetail(id: number) { return unwrapResponse<PortalInvoiceDetail>((await apiClient.get(`${base}/invoices/${id}`)).data); },
+  async paymentReceipt(id: number) { return unwrapResponse<PortalPaymentReceipt>((await apiClient.get(`${base}/payments/${id}/receipt`)).data); },
+  async savedLocations(riderId?: number) { return unwrapResponse<SavedLocation[]>((await apiClient.get(`${base}/saved-locations`, { params: { riderId } })).data); },
   async getDashboard() {
     const r = await apiClient.get(`${base}/dashboard`);
     return unwrapResponse<RiderPortalDashboardRecord>(r.data);
@@ -177,8 +155,8 @@ export const riderPortalApi = {
     const r = await apiClient.get(`${base}/rides/${rideId}`);
     return unwrapResponse<RiderPortalRideDetailRecord>(r.data);
   },
-  async createRide(payload: RiderPortalRideCreatePayload) {
-    const r = await apiClient.post(`${base}/rides`, payload);
+  async createRide(payload: RiderPortalRideCreatePayload, idempotencyKey?: string) {
+    const r = await apiClient.post(`${base}/rides`, payload, { headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined });
     return unwrapResponse<RiderPortalRideDetailRecord>(r.data);
   },
   async getRideLocationSnapshot(rideId: number) {

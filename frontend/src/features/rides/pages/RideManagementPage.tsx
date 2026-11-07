@@ -1,3 +1,4 @@
+import { useUrlFilters } from "../../../shared/hooks/useUrlFilters";
 import {
   Alert,
   Button,
@@ -72,7 +73,7 @@ function defaultFilters(): RideSearchParams {
 export function RideManagementPage() {
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
-  const [filters, setFilters] = useState<RideSearchParams>(defaultFilters());
+  const [filters, setFilters] = useUrlFilters<RideSearchParams>(defaultFilters());
   const [items, setItems] = useState<RideRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);

@@ -13,6 +13,7 @@ export interface TenantBrandingRecord {
 }
 
 export const runtimeApi = {
+  async capabilities() { return unwrapResponse<{ operationalSettings: { timezone: string; currency: string } }>((await apiClient.get('/runtime/tenant-capabilities')).data); },
   async getTenantBranding(tenantId: string) {
     const r = await apiClient.get('/runtime/tenant-branding', {
       params: { tenantId },

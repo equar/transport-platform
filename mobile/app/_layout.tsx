@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { OfflineSyncStatus } from '@components/OfflineSyncStatus';
+import { useEffect, useMemo } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -18,31 +19,54 @@ import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider } from '@theme/ThemeProvider';
 import { AuthProvider, useAuth } from '@auth/AuthContext';
 import NetInfo from '@react-native-community/netinfo';
+import { AppState } from 'react-native';
+import { refreshTripTracking } from '../src/tracking/activeTrip';
 import { useOfflineQueue } from '@stores/offlineQueueStore';
 import { usePushNotifications } from '@hooks/usePushNotifications';
 import { Colors } from '@theme/tokens';
 
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 2, staleTime: 30_000 } },
-});
+function SessionQueries({ children }: { children: React.ReactNode }) {
+  const { session } = useAuth();
+  const owner = `${session?.identity.tenantId ?? ''}:${session?.identity.id ?? 'anonymous'}:${session?.identity.roles.slice().sort().join(',') ?? ''}`;
+  const client = useMemo(() => new QueryClient({
+    defaultOptions: { queries: { retry: 2, staleTime: 30_000 } },
+  }), [owner]);
+  useEffect(() => () => { void client.cancelQueries(); client.clear(); }, [client]);
+  return <QueryClientProvider key={owner} client={client}>{children}</QueryClientProvider>;
+}
 
 function AuthGate() {
+  const client = useQueryClient();
   const { isAuthenticated, isLoading, getDefaultRoute, session } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const { drain } = useOfflineQueue();
   usePushNotifications();
 
+  useEffect(() => {
+    if (!session?.identity.roles.includes('ROLE_DRIVER')) return;
+    void refreshTripTracking();
+    const timer = setInterval(() => void refreshTripTracking(), 30000);
+    const listener = AppState.addEventListener('change', state => { if (state === 'active') void refreshTripTracking(); });
+    return () => { clearInterval(timer); listener.remove(); };
+  }, [session?.identity.id]);
+
   // Drain offline queue when connectivity restores
   useEffect(() => {
-    const unsub = NetInfo.addEventListener((state) => {
-      if (state.isConnected && session?.identity.tenantId && session.identity.roles.includes('ROLE_DRIVER')) {
-        drain({ tenantId: session.identity.tenantId, userId: session.identity.id });
+    async function sync() {
+      if (!session?.identity.tenantId || !session.identity.roles.includes('ROLE_DRIVER')) return;
+      const state = await NetInfo.fetch();
+      if (state.isConnected && state.isInternetReachable !== false) {
+        const result = await drain({ tenantId: session.identity.tenantId, userId: session.identity.id });
+        if (result.success || result.conflicts) await client.invalidateQueries();
       }
-    });
-    return unsub;
+    }
+    const unsub = NetInfo.addEventListener(() => { void sync(); });
+    const timer = setInterval(() => { void sync(); }, 15000);
+    const listener = AppState.addEventListener('change', state => { if (state === 'active') void sync(); });
+    return () => { unsub(); clearInterval(timer); listener.remove(); };
   }, [drain, session?.identity.id, session?.identity.tenantId, session?.identity.roles]);
 
   useEffect(() => {
@@ -62,6 +86,8 @@ function AuthGate() {
   }, [isAuthenticated, isLoading, segments, session]);
 
   return (
+    <>
+    <OfflineSyncStatus />
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(driver)" />
@@ -69,6 +95,7 @@ function AuthGate() {
       <Stack.Screen name="(guardian)" />
       <Stack.Screen name="+not-found" />
     </Stack>
+    </>
   );
 }
 
@@ -95,13 +122,11 @@ export default function RootLayout() {
           edges={['top', 'left', 'right', 'bottom']}
         >
           <StatusBar style="dark" />
-          <QueryClientProvider client={queryClient}>
-            <ThemeProvider>
-              <AuthProvider>
-                <AuthGate />
-              </AuthProvider>
-            </ThemeProvider>
-          </QueryClientProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <SessionQueries><AuthGate /></SessionQueries>
+            </AuthProvider>
+          </ThemeProvider>
         </SafeAreaView>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -1,4 +1,8 @@
 spring:
+  task:
+    scheduling:
+      pool:
+        size: 6
   servlet:
     multipart:
       max-file-size: 10MB
@@ -38,7 +42,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,notificationDelivery
+        include: health,info,notificationDelivery,metrics
   endpoint:
     health:
       probes:

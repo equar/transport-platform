@@ -28,7 +28,9 @@ public class ExpoNotificationPushSender implements NotificationPushSender {
             @Value("${app.push.expo-access-token:}") String accessToken) {
         this.enabled = enabled;
         this.accessToken = accessToken == null ? "" : accessToken.trim();
-        this.restClient = RestClient.builder()
+        var factory=new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10000);factory.setReadTimeout(15000);
+        this.restClient = RestClient.builder().requestFactory(factory)
                 .baseUrl(expoPushUrl.replace("/--/api/v2/push/send", ""))
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
@@ -62,18 +64,33 @@ public class ExpoNotificationPushSender implements NotificationPushSender {
                 Object status = ticket.get("status");
                 if ("ok".equals(String.valueOf(status))) {
                     LOGGER.info("Expo push accepted for token {}", redact(command.token()));
-                    return new DeliveryResult(true, null);
+                    return new DeliveryResult(true, null, ticket.get("id") == null ? null : String.valueOf(ticket.get("id")));
                 }
                 Object details = ticket.get("details");
                 String errorMessage = details == null ? String.valueOf(ticket.get("message")) : String.valueOf(details);
                 LOGGER.warn("Expo push send failed for token {}: {}", redact(command.token()), errorMessage);
                 return new DeliveryResult(false, errorMessage);
             }
-            return new DeliveryResult(true, null);
+            return new DeliveryResult(false, "Push provider returned no valid ticket.");
         } catch (RuntimeException exception) {
             LOGGER.warn("Expo push delivery failed for token {}: {}", redact(command.token()), exception.getMessage());
             return new DeliveryResult(false, exception.getMessage());
         }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ReceiptResult receipt(String id) {
+        try {
+            var request=restClient.post().uri("/--/api/v2/push/getReceipts").contentType(MediaType.APPLICATION_JSON);
+            if(!accessToken.isBlank()) request.header(HttpHeaders.AUTHORIZATION,"Bearer "+accessToken);
+            Map<String,Object> response=request.body(Map.of("ids",java.util.List.of(id))).retrieve().body(Map.class);
+            if(response!=null && response.get("data") instanceof Map<?,?> data && data.get(id) instanceof Map<?,?> receipt) {
+                if("ok".equals(receipt.get("status"))) return new ReceiptResult("PROVIDER_CONFIRMED",null);
+                return new ReceiptResult("FAILED",String.valueOf(receipt.get("details")));
+            }
+            return new ReceiptResult("PENDING",null);
+        } catch(RuntimeException ex) {return new ReceiptResult("PENDING","Push receipt provider unavailable.");}
     }
 
     private String redact(String token) {

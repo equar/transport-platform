@@ -1,3 +1,4 @@
+import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -12,7 +13,7 @@ import { formatDate } from '@utils/formatDate';
 
 export default function DriverRoutesPage() {
   const router = useRouter();
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-routes'],
     queryFn: () => driverPortalApi.searchRoutes({ size: 50, sort: 'routeDate,asc' }),
   });
@@ -20,6 +21,7 @@ export default function DriverRoutesPage() {
   const routes = data?.items ?? [];
 
   if (isLoading) return <LoadingState />;
+  if (isError) return <RequestError onRetry={() => void refetch()} />;
 
   return (
     <View style={styles.container}>

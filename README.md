@@ -151,27 +151,16 @@ Frontend:
 
 For non-Docker AWS deployment, keep `VITE_API_BASE_URL=/api` when the frontend and backend are served behind the same host, or set it to the full backend URL such as `https://api.example.com/api` when they are deployed separately.
 
-## Non-Docker AWS Deployment
+## Production Deployment
 
-Backend jar deployment:
+See [deployment/README.md](deployment/README.md) for the unified Lightsail/EC2 SSH
+release workflow, selective backend/frontend deployments, verified SSH hosts,
+MySQL TLS, HTTPS setup, configuration, and rollback procedures. The pipeline is
+adapted from `bingo-platform` while retaining Transport's `/api` context, port
+8087, schema, service and document paths.
 
-```powershell
-Set-Location backend
-mvn -B -DskipTests package
-java -jar target/transport-platform-backend-0.1.0-SNAPSHOT.jar
-```
-
-Provide production values for `APP_SECURITY_JWT_SECRET`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, and `APP_SECURITY_ALLOWED_ORIGINS` before starting the jar on the AWS server or VM.
-
-Frontend static deployment:
-
-```powershell
-Set-Location frontend
-npm ci
-npm run build
-```
-
-Deploy the generated `frontend/dist/` assets to your AWS web server or static host. If the backend is reverse-proxied under `/api` on the same host, the default API base URL is sufficient.
+Deployments run after reviewed PR merges into `main`; manual releases on `main`
+can select `all`, `backend`, or `frontend`. Local development remains unchanged.
 
 ## Troubleshooting
 

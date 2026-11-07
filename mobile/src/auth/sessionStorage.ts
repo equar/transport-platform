@@ -10,7 +10,7 @@ function resolveSimulatorFallbackFlag() {
   return (extraFlag ?? envFlag ?? '').toLowerCase() === 'true';
 }
 
-const allowSimulatorFallback = resolveSimulatorFallbackFlag();
+const allowSimulatorFallback = __DEV__ && resolveSimulatorFallbackFlag();
 
 export async function getSessionValue(key: string): Promise<string | null> {
   try {

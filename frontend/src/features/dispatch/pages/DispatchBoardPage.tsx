@@ -1,5 +1,9 @@
+import { useAuth } from "../../auth/context/AuthContext";
 import {
   Alert,
+  Checkbox,
+  Autocomplete,
+  TableContainer,
   Box,
   Button,
   Dialog,
@@ -27,8 +31,8 @@ import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import RouteRoundedIcon from "@mui/icons-material/RouteRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import { EmptyState } from "../../../shared/components/EmptyState";
 import { LoadingState } from "../../../shared/components/LoadingState";
@@ -52,12 +56,13 @@ import {
   type RideStatus,
   type ServiceType,
 } from "../../rides/api/ridesApi";
+import { useRuntimeCapabilities } from "../../runtime/context/RuntimeCapabilitiesContext";
 import { env } from "../../../shared/config/env";
 
-function todayValue() {
-  const now = new Date();
-  const offset = now.getTimezoneOffset() * 60_000;
-  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+function todayValue(zone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const part = (name: string) => parts.find(item => item.type === name)!.value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 const lifecycleActions: Partial<Record<RideStatus, { label: string; run: (rideId: number) => Promise<unknown> }>> = {
@@ -84,7 +89,7 @@ function buildDispatchStaticMapUrl(items: DispatchRideMapRecord[]) {
   return `https://maps.googleapis.com/maps/api/staticmap?size=1200x520&scale=2&maptype=roadmap&${markerParams}&key=${encodeURIComponent(env.googleMapsApiKey)}`;
 }
 
-function defaultFilters(): DispatchSearchParams {
+function defaultFilters(zone?: string): DispatchSearchParams {
   return {
     keyword: "",
     view: "ALL",
@@ -93,8 +98,8 @@ function defaultFilters(): DispatchSearchParams {
     driverId: null,
     vehicleId: null,
     organizationId: null,
-    fromDate: todayValue(),
-    toDate: todayValue(),
+    fromDate: todayValue(zone),
+    toDate: todayValue(zone),
     page: 0,
     size: 10,
     sortBy: "scheduledPickupAt",
@@ -103,10 +108,33 @@ function defaultFilters(): DispatchSearchParams {
 }
 
 export function DispatchBoardPage() {
+  const { session } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { capabilities } = useRuntimeCapabilities();
+  const tenantZone = capabilities?.operationalSettings.timezone ?? 'UTC';
+  const savedKey = `dispatch-saved-view:${session?.identity.tenantId}:${session?.identity.id}`;
   const { showError, showSuccess } = useToast();
   const [filters, setFilters] =
-    useState<DispatchSearchParams>(defaultFilters());
+    useState<DispatchSearchParams>(() => {
+      const initial = defaultFilters(tenantZone);
+      for (const key of ['keyword', 'fromDate', 'toDate'] as const) if (searchParams.has(key)) initial[key] = searchParams.get(key)!;
+      const view = searchParams.get('view');
+      if (view && ['ALL', 'UNASSIGNED', 'ASSIGNED', 'EXCEPTIONS'].includes(view)) initial.view = view as DispatchSearchParams['view'];
+      const page = Number(searchParams.get('page'));
+      if (Number.isInteger(page) && page >= 0) initial.page = page;
+      return initial;
+    });
+  const initialDateProvided = useRef(searchParams.has('fromDate'));
+  const adjustedTenantDay = useRef(false);
+  useEffect(() => {
+    if (!capabilities || adjustedTenantDay.current) return;
+    adjustedTenantDay.current = true;
+    if (!initialDateProvided.current) setFilters(current => ({ ...current, fromDate: todayValue(tenantZone), toDate: todayValue(tenantZone) }));
+  }, [capabilities, tenantZone]);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [bulk, setBulk] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ rideId: number; success: boolean; message: string }[] | null>(null);
   const [items, setItems] = useState<DispatchRideRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [summary, setSummary] = useState({
@@ -119,6 +147,7 @@ export function DispatchBoardPage() {
   });
   const [driverOptions, setDriverOptions] = useState<LookupOption[]>([]);
   const [vehicleOptions, setVehicleOptions] = useState<LookupOption[]>([]);
+  const [mapUnavailable, setMapUnavailable] = useState(false);
   const [mapItems, setMapItems] = useState<DispatchRideMapRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +162,23 @@ export function DispatchBoardPage() {
       ? null
       : driverOptions.find((item) => item.id === selectedDriverId) ?? null;
 
+  const requestId = useRef(0);
+  const controller = useRef<AbortController | null>(null);
+  const resourceCache = useRef<{ time: number; promise: Promise<[LookupOption[], LookupOption[]]> } | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(filters)) if (value !== null && value !== '') params.set(key, String(value));
+    setSearchParams(params, { replace: true });
+  }, [filters]);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   async function loadBoard() {
+    const currentRequest = ++requestId.current;
+    controller.current?.abort();
+    const activeController = new AbortController();
+    controller.current = activeController;
+    if (!resourceCache.current || Date.now() - resourceCache.current.time > 300000) {
+      resourceCache.current = { time: Date.now(), promise: Promise.all([dispatchApi.listDriverOptions(), dispatchApi.listVehicleOptions()]) };
+    }
     setLoading(true);
     setError(null);
     try {
@@ -149,28 +194,31 @@ export function DispatchBoardPage() {
       };
       const [pageResponse, summaryResponse, mapResponse, drivers, vehicles] =
         await Promise.all([
-          dispatchApi.search(filters),
-          dispatchApi.getSummary(boardParams),
-          dispatchApi.getMap(boardParams),
-          dispatchApi.listDriverOptions(),
-          dispatchApi.listVehicleOptions(),
+          dispatchApi.search(filters, activeController.signal),
+          dispatchApi.getSummary(boardParams, activeController.signal),
+          dispatchApi.getMap(boardParams, activeController.signal).catch(() => null),
+          resourceCache.current.promise.then(values => values[0]),
+          resourceCache.current.promise.then(values => values[1]),
         ]);
+      if (currentRequest !== requestId.current) return;
+      setLastUpdated(new Date());
       setItems(pageResponse.items);
       setTotal(pageResponse.totalElements);
       setSummary(summaryResponse);
-      setMapItems(mapResponse);
+      setMapUnavailable(mapResponse === null);
+      if (mapResponse) setMapItems(mapResponse);
       setDriverOptions(drivers);
       setVehicleOptions(vehicles);
     } catch {
-      setError("Dispatch board data could not be loaded.");
-      setMapItems([]);
+      if (currentRequest === requestId.current && !activeController.signal.aborted) { resourceCache.current = null; setError("Dispatch board data could not be loaded. Showing the last available data."); }
     } finally {
-      setLoading(false);
+      if (currentRequest === requestId.current) setLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadBoard();
+    const timer = window.setTimeout(() => void loadBoard(), 300);
+    return () => { window.clearTimeout(timer); requestId.current++; controller.current?.abort(); };
   }, [filters]);
 
   useEffect(() => {
@@ -204,6 +252,21 @@ export function DispatchBoardPage() {
     }));
   }
 
+  async function handleBulk(preview: boolean) {
+    setSaving(true);
+    try {
+      const results = await dispatchApi.bulkResources({
+        rides: items.filter(item => selected.includes(item.rideId)).map(item => ({ rideId: item.rideId, expectedVersion: item.version })),
+        driverId: selectedDriverId === '' ? null : selectedDriverId,
+        vehicleId: selectedVehicleId === '' ? null : selectedVehicleId,
+        preview,
+      });
+      setBulkResult(results);
+      if (!preview) { await loadBoard(); setSelected([]); }
+    } catch (error) { showError(error, 'Bulk assignment failed.'); }
+    finally { setSaving(false); }
+  }
+
   async function handleAssignmentSave() {
     if (!dialogRide) {
       return;
@@ -213,19 +276,9 @@ export function DispatchBoardPage() {
       const nextDriverId = selectedDriverId === "" ? null : selectedDriverId;
       const nextVehicleId = selectedVehicleId === "" ? null : selectedVehicleId;
 
-      if (nextDriverId !== null || nextVehicleId !== null) {
-        await dispatchApi.assignResources(dialogRide.rideId, {
-          driverId: nextDriverId,
-          vehicleId: nextVehicleId,
-        });
-      }
-
-      if (dialogRide.driverId !== nextDriverId && nextDriverId === null) {
-        await dispatchApi.unassignDriver(dialogRide.rideId);
-      }
-      if (dialogRide.vehicleId !== nextVehicleId && nextVehicleId === null) {
-        await dispatchApi.unassignVehicle(dialogRide.rideId);
-      }
+      await dispatchApi.replaceResources(dialogRide.rideId, {
+        driverId: nextDriverId, vehicleId: nextVehicleId, expectedVersion: dialogRide.version,
+      });
       showSuccess("Dispatch assignment updated successfully.");
       setDialogRide(null);
       await loadBoard();
@@ -283,6 +336,21 @@ export function DispatchBoardPage() {
         </Button>
       </SectionHeader>
 
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Typography variant="h6">Needs attention</Typography>
+        <Typography variant="caption">Current page • Company timezone: {tenantZone}</Typography>
+        {items.filter(item => item.warningMessages.length || ['FAILED', 'MISSED', 'RIDER_NO_SHOW'].includes(item.status) || (!item.driverId && item.status === 'SCHEDULED')).slice(0, 8).map(item =>
+          <Stack key={item.rideId} direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" sx={{ py: 1 }}>
+            <Box><Typography fontWeight={700}>{item.rideNumber} • {item.riderName}</Typography><Typography variant="body2">{item.warningMessages.join(' · ') || (item.driverId ? 'Trip exception: contact driver and rider' : 'Needs a driver')} • {item.driverName ?? 'Dispatch team'}</Typography></Box>
+            <Button onClick={() => navigate(`/company/rides/${item.rideId}`)}>Review trip</Button>
+          </Stack>)}
+        <Stack direction="row" spacing={1}>
+          <Button onClick={() => updateFilters('view', 'EXCEPTIONS')}>All exceptions</Button>
+          <Button onClick={() => { sessionStorage.setItem(savedKey, JSON.stringify(filters)); showSuccess('View saved for this browser session.'); }}>Save view</Button>
+          <Button onClick={() => { try { const saved = sessionStorage.getItem(savedKey); if (saved) setFilters({ ...defaultFilters(tenantZone), ...JSON.parse(saved) }); } catch { showError('Saved view is unavailable.'); } }}>Restore saved view</Button>
+        </Stack>
+      </Paper>
+      <Typography variant="caption" role="status">{loading ? "Refreshing dispatch…" : lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : "Waiting for dispatch data"}</Typography>
       <Stack
         sx={{
           display: "grid",
@@ -351,6 +419,7 @@ export function DispatchBoardPage() {
               {mapItems.length} active ride{mapItems.length === 1 ? "" : "s"} on map
             </Typography>
           </Stack>
+          {mapUnavailable ? <Alert severity="warning">The map could not refresh. Any displayed locations are from the last successful update.</Alert> : null}
           {staticMapUrl ? (
             <Box
               component="img"
@@ -367,7 +436,7 @@ export function DispatchBoardPage() {
           ) : (
             <Alert severity="info">
               {mapItems.length > 0 && !env.googleMapsApiKey
-                ? "Google Maps API key is not configured. Set VITE_GOOGLE_MAPS_API_KEY to render the operations map."
+                ? "The operations map is unavailable. Trip details remain available below."
                 : "No active rides with captured driver locations are available for this window yet."}
             </Alert>
           )}
@@ -454,8 +523,8 @@ export function DispatchBoardPage() {
         </ToggleButtonGroup>
         <Button
           size="small"
-          onClick={() => setFilters(defaultFilters())}
-          disabled={JSON.stringify(filters) === JSON.stringify(defaultFilters())}
+          onClick={() => setFilters(defaultFilters(tenantZone))}
+          disabled={JSON.stringify(filters) === JSON.stringify(defaultFilters(tenantZone))}
         >
           Reset to today
         </Button>
@@ -525,9 +594,11 @@ export function DispatchBoardPage() {
           borderColor: "divider",
         }}
       >
-        <Table>
+        <Button disabled={!items.some(item => selected.includes(item.rideId))} onClick={() => { setBulk(true); setBulkResult(null); setSelectedDriverId(''); setSelectedVehicleId(''); }}>Assign selected rides</Button>
+        <TableContainer sx={{ overflowX: "auto" }}><Table sx={{ minWidth: 800 }}>
           <TableHead>
             <TableRow>
+              <TableCell>Select</TableCell>
               <TableCell>Ride</TableCell>
               <TableCell>Window</TableCell>
               <TableCell>Assignment</TableCell>
@@ -538,6 +609,7 @@ export function DispatchBoardPage() {
           <TableBody>
             {items.map((item) => (
               <TableRow key={item.rideId} hover>
+                <TableCell><Checkbox disabled={!['SCHEDULED', 'ASSIGNED'].includes(item.status)} checked={selected.includes(item.rideId)} inputProps={{ 'aria-label': `Select ${item.rideNumber}` }} onChange={(_, checked) => setSelected(values => checked ? [...values, item.rideId] : values.filter(id => id !== item.rideId))} /></TableCell>
                 <TableCell>
                   <Stack spacing={0.5}>
                     <Typography fontWeight={700}>{item.rideNumber}</Typography>
@@ -664,7 +736,7 @@ export function DispatchBoardPage() {
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+        </Table></TableContainer>
         {!loading && items.length === 0 ? (
           <EmptyState
             title="No dispatch work found"
@@ -685,12 +757,12 @@ export function DispatchBoardPage() {
       </Paper>
 
       <Dialog
-        open={Boolean(dialogRide)}
-        onClose={() => setDialogRide(null)}
+        open={Boolean(dialogRide) || bulk}
+        onClose={() => { setDialogRide(null); setBulk(false); }}
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>Assign Ride Resources</DialogTitle>
+        <DialogTitle>{bulk ? `Assign ${selected.length} selected rides` : "Assign Ride Resources"}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Typography variant="body2" color="text.secondary">
@@ -698,53 +770,22 @@ export function DispatchBoardPage() {
                 ? `Update dispatch assignments for ${dialogRide.rideNumber}.`
                 : ""}
             </Typography>
-            <TextField
-              select
-              label="Driver"
-              value={selectedDriverId}
-              onChange={(event) => {
-                const nextDriverId =
-                  event.target.value === "" ? "" : Number(event.target.value);
-                setSelectedDriverId(nextDriverId);
-
-                if (nextDriverId === "") {
-                  return;
-                }
-
-                const linkedVehicleId =
-                  driverOptions.find((item) => item.id === nextDriverId)?.assignedVehicleId ??
-                  null;
-                if (linkedVehicleId != null) {
-                  setSelectedVehicleId(linkedVehicleId);
-                }
-              }}
-            >
-              <MenuItem value="">Unassigned</MenuItem>
-              {driverOptions.map((option) => (
-                <MenuItem key={option.id} value={option.id}>
-                  {option.label}
-                  {option.code ? ` (${option.code})` : ""}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              label="Vehicle"
-              value={selectedVehicleId}
-              onChange={(event) =>
-                setSelectedVehicleId(
-                  event.target.value === "" ? "" : Number(event.target.value),
-                )
-              }
-            >
-              <MenuItem value="">Unassigned</MenuItem>
-              {vehicleOptions.map((option) => (
-                <MenuItem key={option.id} value={option.id}>
-                  {option.label}
-                  {option.code ? ` (${option.code})` : ""}
-                </MenuItem>
-              ))}
-            </TextField>
+            {bulk ? <Alert severity="info">Preview each ride before saving. Availability can change; any failed assignments will be reported individually.</Alert> : null}
+            {bulkResult?.map(result => <Alert key={result.rideId} severity={result.success ? 'success' : 'error'}>Ride #{result.rideId}: {result.message}</Alert>)}
+            <Autocomplete
+              options={driverOptions}
+              getOptionLabel={option => `${option.label} ${option.code ?? ''}`}
+              value={driverOptions.find(option => option.id === selectedDriverId) ?? null}
+              onChange={(_, option) => { setBulkResult(null); setSelectedDriverId(option?.id ?? ""); if (option?.assignedVehicleId) setSelectedVehicleId(option.assignedVehicleId); }}
+              renderInput={params => <TextField {...params} label="Search compliant drivers" />}
+            />
+            <Autocomplete
+              options={vehicleOptions}
+              getOptionLabel={option => `${option.label} ${option.code ?? ''}`}
+              value={vehicleOptions.find(option => option.id === selectedVehicleId) ?? null}
+              onChange={(_, option) => { setBulkResult(null); setSelectedVehicleId(option?.id ?? ""); }}
+              renderInput={params => <TextField {...params} label="Search compliant vehicles" />}
+            />
             <Typography variant="caption" color="text.secondary">
               {selectedDriverOption?.assignedVehicleId
                 ? "A linked driver vehicle was applied automatically. You can keep it or leave the vehicle unassigned."
@@ -753,7 +794,8 @@ export function DispatchBoardPage() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogRide(null)}>Close</Button>
+          <Button onClick={() => { setDialogRide(null); setBulk(false); }}>Close</Button>
+          {bulk ? <Button disabled={saving || selected.length === 0} onClick={() => void handleBulk(!bulkResult)}>{bulkResult ? 'Save assignments' : 'Preview assignments'}</Button> : <>
           <Button
             variant="contained"
             onClick={() => void handleAssignmentSave()}
@@ -764,6 +806,7 @@ export function DispatchBoardPage() {
           >
             Save Assignment
           </Button>
+          </>}
         </DialogActions>
       </Dialog>
     </Stack>

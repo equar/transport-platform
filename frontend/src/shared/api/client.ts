@@ -10,13 +10,16 @@ import {
   getCorrelationHeaderName,
 } from '../observability/correlationId';
 
-type ClientSession = { accessToken?: string; identity?: { tenantId?: string | null } };
+type ClientSession = { accessToken?: string; identity?: { id?: number; tenantId?: string | null } };
 let currentSession: ClientSession | null = null;
+let sessionGeneration = 0;
+export const SESSION_REFRESHED_EVENT = "transport.session-refreshed";
 
 const RETRYABLE_METHODS = new Set(['get', 'head', 'options']);
 const MAX_RETRY_ATTEMPTS = 2;
 
 export function setApiSession(session: ClientSession | null) {
+  if (!session || !currentSession || session.identity?.tenantId !== currentSession.identity?.tenantId || (session.identity as { id?: number })?.id !== (currentSession.identity as { id?: number })?.id) sessionGeneration++;
   currentSession = session;
 }
 
@@ -25,8 +28,10 @@ function readSession() { return currentSession; }
 let refreshPromise: Promise<string | null> | null = null;
 
 async function refreshAccessToken() {
+  const generation = sessionGeneration;
   const response = await axios.post(`${env.apiBaseUrl}/v1/auth/refresh`, undefined, {
     withCredentials: true,
+    timeout: 10000,
   });
   const tokens = unwrapResponse<{
     accessToken: string;
@@ -35,7 +40,11 @@ async function refreshAccessToken() {
     expiresInSeconds: number;
     user: unknown;
   }>(response.data);
+  if (generation !== sessionGeneration) return null;
   setApiSession({ accessToken: tokens.accessToken, identity: tokens.user as { tenantId?: string | null } });
+  window.dispatchEvent(new CustomEvent(SESSION_REFRESHED_EVENT, { detail: {
+    accessToken: tokens.accessToken, tokenType: tokens.tokenType, expiresInSeconds: tokens.expiresInSeconds, identity: tokens.user,
+  } }));
   return tokens.accessToken;
 }
 
@@ -69,6 +78,9 @@ async function delay(ms: number) {
 }
 
 apiClient.interceptors.request.use((config) => {
+  const request = config as typeof config & { _sessionGeneration?: number };
+  request._sessionGeneration ??= sessionGeneration;
+  if (request._sessionGeneration !== sessionGeneration) throw new axios.CanceledError('The account changed.');
   const correlationHeaderName = getCorrelationHeaderName();
   if (!config.headers[correlationHeaderName]) {
     config.headers[correlationHeaderName] = buildCorrelationId();
@@ -97,8 +109,9 @@ apiClient.interceptors.response.use(
   async (error) => {
     const status = error?.response?.status;
     const originalRequest = error?.config as
-      | (typeof error.config & { _authRetry?: boolean; _retryAttempt?: number })
+      | (typeof error.config & { _authRetry?: boolean; _retryAttempt?: number; _sessionGeneration?: number })
       | undefined;
+    if (axios.isCancel(error) || (originalRequest && originalRequest._sessionGeneration !== sessionGeneration)) return Promise.reject(error);
 
     if (originalRequest && shouldRetryTransientError(status, originalRequest.method)) {
       const retryAttempt = originalRequest._retryAttempt ?? 0;

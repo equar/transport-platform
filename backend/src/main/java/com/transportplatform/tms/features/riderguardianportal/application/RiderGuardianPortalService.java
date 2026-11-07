@@ -290,6 +290,20 @@ public class RiderGuardianPortalService {
         return PageResponse.from(result.map(this::toRideSummary));
     }
 
+    public record SavedLocation(String addressLine1,String city,String state,String zipCode,String country) {}
+    @Transactional(readOnly = true)
+    public java.util.List<SavedLocation> savedLocations(Long requestedRiderId) {
+        var scope=accessService.resolveCurrentScope();
+        Long riderId=resolveRequestedRiderId(scope,requestedRiderId);
+        var rides=rideRepository.findAll((root,query,cb)->cb.and(
+            cb.equal(root.get("tenantId"),scope.user().tenantId()),cb.equal(root.get("rider").get("id"),riderId)),
+            org.springframework.data.domain.PageRequest.of(0,50,org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC,"scheduledPickupAt")));
+        return rides.getContent().stream().flatMap(ride->java.util.stream.Stream.of(
+            new SavedLocation(ride.getPickupAddressLine1(),ride.getPickupCity(),ride.getPickupState(),ride.getPickupZipCode(),ride.getPickupCountry()),
+            new SavedLocation(ride.getDropoffAddressLine1(),ride.getDropoffCity(),ride.getDropoffState(),ride.getDropoffZipCode(),ride.getDropoffCountry())))
+            .distinct().toList();
+    }
+
     @Transactional(readOnly = true)
     public RiderGuardianPortalRideDetailResponse getRide(Long rideId) {
         var scope = accessService.resolveCurrentScope();
@@ -306,7 +320,6 @@ public class RiderGuardianPortalService {
     @Transactional
     public RiderGuardianPortalRideDetailResponse createRide(RiderGuardianPortalRideCreateRequest request) {
         var scope = accessService.resolveCurrentScope();
-        requireRiderScopeForMutation(scope, "Guardians can only track rides and receive notifications.");
         Long riderId = resolveRequestedRiderId(scope, request.riderId());
         Long guardianId = resolveRequestedGuardianId(scope, riderId, request.guardianId());
         var references = rideReferenceValidationService.resolve(

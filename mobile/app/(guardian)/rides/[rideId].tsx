@@ -1,3 +1,5 @@
+import { SupportContact } from '@components/SupportContact';
+import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, ScrollView, View, Text, RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -14,7 +16,7 @@ export default function GuardianRideDetailPage() {
 	const router = useRouter();
 	const { rideId } = useLocalSearchParams<{ rideId: string }>();
 
-	const { data: ride, isLoading, refetch, isRefetching } = useQuery({
+	const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
 		queryKey: ['guardian-ride-detail', rideId],
 		queryFn: () => riderPortalApi.getRide(Number(rideId)),
 		enabled: Boolean(rideId),
@@ -31,7 +33,8 @@ export default function GuardianRideDetailPage() {
 		refetchInterval: 30000,
 	});
 
-	if (isLoading || !ride) return <LoadingState />;
+	if (isLoading) return <LoadingState />;
+  if (isError || !ride) return <RequestError onRetry={() => void refetch()} />;
 
 	return (
 		<ScrollView

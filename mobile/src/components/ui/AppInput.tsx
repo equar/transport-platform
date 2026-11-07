@@ -74,6 +74,7 @@ export function AppInput({
             dense && styles.inputDense,
             multiline && { height: numberOfLines * 20, textAlignVertical: 'top' },
           ]}
+          accessibilityLabel={label ?? placeholder}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -89,7 +90,7 @@ export function AppInput({
           maxLength={maxLength}
         />
         {secureTextEntry ? (
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={showPassword ? "Hide password" : "Show password"} onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
             <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁'}</Text>
           </TouchableOpacity>
         ) : null}
@@ -157,7 +158,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   eyeButton: {
-    padding: Spacing.xs,
+    padding: Spacing.sm,
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    alignItems: "center",
   },
   eyeText: {
     fontSize: Typography.sizeMd,

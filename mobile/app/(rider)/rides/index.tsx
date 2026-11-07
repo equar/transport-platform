@@ -1,3 +1,4 @@
+import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl, useWindowDimensions } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -18,7 +19,7 @@ export default function RiderRidesPage() {
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
   const [segment, setSegment] = React.useState<RideSegment>('upcoming');
-  const { data, isLoading, fetchNextPage, hasNextPage, refetch, isRefetching } = useInfiniteQuery({
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, refetch, isRefetching } = useInfiniteQuery({
     queryKey: ['rider-rides'],
     queryFn: ({ pageParam = 0 }) =>
       riderPortalApi.searchRides({ page: pageParam, size: 20, sort: 'scheduledPickupAt,asc' }),
@@ -38,6 +39,7 @@ export default function RiderRidesPage() {
   });
 
   if (isLoading) return <LoadingState />;
+  if (isError && !data) return <RequestError onRetry={() => void refetch()} />;
 
   return (
     <View style={styles.container}>

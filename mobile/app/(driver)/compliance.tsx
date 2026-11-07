@@ -1,3 +1,4 @@
+import { RequestError } from '@components/RequestError';
 import React, { useState } from 'react';
 import { Alert, Modal, StyleSheet, ScrollView, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -17,12 +18,13 @@ export default function DriverCompliancePage() {
   const [documentPickerOpen, setDocumentPickerOpen] = useState(false);
   const [submittedDocumentName, setSubmittedDocumentName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-compliance'],
     queryFn: () => driverPortalApi.getComplianceSummary(),
   });
 
   if (isLoading) return <LoadingState />;
+  if (isError) return <RequestError onRetry={() => void refetch()} />;
 
   async function uploadDocument(documentType: DriverPortalDocumentType) {
     try {

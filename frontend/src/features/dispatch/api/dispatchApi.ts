@@ -8,6 +8,7 @@ export type DispatchRideView = "ALL" | "UNASSIGNED" | "ASSIGNED" | "EXCEPTIONS";
 
 export interface DispatchRideRecord {
   rideId: number;
+  version: number;
   rideNumber: string;
   riderId: number;
   riderCode: string;
@@ -92,8 +93,15 @@ export const dispatchViewOptions: DispatchRideView[] = [
 ];
 
 export const dispatchApi = {
-  async search(params: DispatchSearchParams) {
+  async bulkResources(payload: { rides: { rideId: number; expectedVersion: number }[]; driverId: number | null; vehicleId: number | null; preview: boolean }) {
+    return unwrapResponse<{ rideId: number; success: boolean; message: string }[]>((await apiClient.post('/company/dispatch/bulk-resources', payload)).data);
+  },
+  async replaceResources(rideId: number, payload: { driverId: number | null; vehicleId: number | null; expectedVersion: number }) {
+    return unwrapResponse<RideRecord>((await apiClient.put(`/company/rides/${rideId}/resources`, payload)).data);
+  },
+  async search(params: DispatchSearchParams, signal?: AbortSignal) {
     const response = await apiClient.get("/company/dispatch/rides", {
+      signal,
       params: {
         keyword: params.keyword,
         view: params.view,
@@ -112,8 +120,9 @@ export const dispatchApi = {
     });
     return unwrapResponse<PageResponse<DispatchRideRecord>>(response.data);
   },
-  async getSummary(params: Omit<DispatchSearchParams, "view" | "page" | "size" | "sortBy" | "sortDirection">) {
+  async getSummary(params: Omit<DispatchSearchParams, "view" | "page" | "size" | "sortBy" | "sortDirection">, signal?: AbortSignal) {
     const response = await apiClient.get("/company/dispatch/summary", {
+      signal,
       params: {
         keyword: params.keyword,
         status: params.status || undefined,
@@ -127,8 +136,9 @@ export const dispatchApi = {
     });
     return unwrapResponse<DispatchBoardSummary>(response.data);
   },
-  async getMap(params: Omit<DispatchSearchParams, "view" | "page" | "size" | "sortBy" | "sortDirection">) {
+  async getMap(params: Omit<DispatchSearchParams, "view" | "page" | "size" | "sortBy" | "sortDirection">, signal?: AbortSignal) {
     const response = await apiClient.get("/company/dispatch/map", {
+      signal,
       params: {
         keyword: params.keyword,
         status: params.status || undefined,

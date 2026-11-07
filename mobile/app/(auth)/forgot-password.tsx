@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { authApi } from '@api/authApi';
 import { AppInput, AppButton } from '@components/ui';
 import { Colors, Spacing, Typography } from '@theme/tokens';
 
@@ -9,13 +10,23 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  function handleSubmit() {
+  const [pending, setPending] = useState(false);
+  async function handleSubmit() {
     if (!email.trim()) {
       Alert.alert('Email required', 'Enter your email address to reset your password.');
       return;
     }
-    // Backend reset endpoint not yet wired — show confirmation UI
-    setSubmitted(true);
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+      Alert.alert('Invalid email', 'Enter a valid email address.');
+      return;
+    }
+    setPending(true);
+    try {
+      await authApi.requestPasswordReset(email.trim());
+      setSubmitted(true);
+    } catch {
+      Alert.alert('Unable to send instructions', 'Please try again when your connection is available.');
+    } finally { setPending(false); }
   }
 
   if (submitted) {
@@ -41,7 +52,7 @@ export default function ForgotPasswordPage() {
         keyboardType="email-address"
         autoCapitalize="none"
       />
-      <AppButton label="Send reset link" onPress={handleSubmit} fullWidth />
+      <AppButton label="Send reset link" loading={pending} onPress={handleSubmit} fullWidth />
       <Text style={styles.link} onPress={() => router.back()}>
         Back to sign in
       </Text>

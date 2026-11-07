@@ -62,6 +62,8 @@ async function readSession() {
   }
 }
 
+let sessionGeneration = 0;
+export function invalidateSessionRequests() { sessionGeneration++; }
 async function writeSession(session: AuthSession) {
   await setSessionValue(SESSION_KEY, JSON.stringify(session));
 }
@@ -69,6 +71,7 @@ async function writeSession(session: AuthSession) {
 let refreshPromise: Promise<AuthSession | null> | null = null;
 
 async function refreshAccessToken() {
+  const generation = sessionGeneration;
   const session = await readSession();
   if (!session?.refreshToken) return null;
 
@@ -98,7 +101,10 @@ async function refreshAccessToken() {
       expiresInSeconds: tokens.expiresInSeconds,
       identity: tokens.user,
     };
+    if (generation !== sessionGeneration) return null;
     await writeSession(refreshed);
+    if (generation !== sessionGeneration) return null;
+    sessionRefreshedCallbacks.forEach(callback => callback(refreshed));
     return refreshed;
   } catch {
     return null;
@@ -112,11 +118,17 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(async (config) => {
+  const request = config as typeof config & { _sessionGeneration?: number };
+  request._sessionGeneration ??= sessionGeneration;
+  if (request._sessionGeneration !== sessionGeneration) throw new axios.CanceledError('The account changed.');
   const correlationHeaderName = getCorrelationHeaderName();
   if (!config.headers[correlationHeaderName]) {
     config.headers[correlationHeaderName] = buildCorrelationId();
   }
   config.headers['X-Client-Platform'] = 'mobile';
+  if (['/v1/auth/login', '/v1/auth/forgot-password', '/v1/auth/reset-password'].some(path => String(config.url ?? '').includes(path))) {
+    delete config.headers.Authorization; delete config.headers['X-Tenant-Id']; return config;
+  }
   const session = await readSession();
   if (session?.accessToken) {
     config.headers.Authorization = `Bearer ${session.accessToken}`;
@@ -131,9 +143,10 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error?.config as
-      | ({ _retry?: boolean; _retryAttempt?: number; headers?: Record<string, string> } & Record<string, unknown>)
+      | ({ _retry?: boolean; _retryAttempt?: number; _sessionGeneration?: number; headers?: Record<string, string> } & Record<string, unknown>)
       | undefined;
     const status = error?.response?.status as number | undefined;
+    if (axios.isCancel(error) || (originalRequest && originalRequest._sessionGeneration !== sessionGeneration)) return Promise.reject(error);
 
     if (originalRequest && shouldRetryTransientError(status, String(originalRequest.method ?? 'get'))) {
       const retryAttempt = originalRequest._retryAttempt ?? 0;
@@ -183,11 +196,14 @@ apiClient.interceptors.response.use(
             originalRequest?.headers?.[getCorrelationHeaderName()] ??
             error?.response?.headers?.[getCorrelationHeaderName().toLowerCase()],
         });
+        invalidateSessionRequests();
         await deleteSessionValue(SESSION_KEY);
         sessionExpiredCallbacks.forEach((cb) => cb(status));
       }
     }
 
+    const apiError = error?.response?.data?.error;
+    if (apiError?.message) error.message = apiError.message;
     return Promise.reject(error);
   },
 );
@@ -206,4 +222,9 @@ export function unwrapResponse<T>(response: ApiResponse<T>): T {
     throw new Error(response.error?.message ?? 'Request failed.');
   }
   return response.data;
+}
+
+const sessionRefreshedCallbacks = new Set<(session: AuthSession) => void>();
+export function onSessionRefreshed(callback: (session: AuthSession) => void) {
+  sessionRefreshedCallbacks.add(callback); return () => sessionRefreshedCallbacks.delete(callback);
 }

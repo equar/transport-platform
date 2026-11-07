@@ -1,3 +1,4 @@
+import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, FlatList, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,7 +14,7 @@ export default function NotificationsPage() {
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
   const qc = useQueryClient();
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => notificationsApi.search({ size: 50 }),
   });
@@ -26,6 +27,7 @@ export default function NotificationsPage() {
   const items = data?.items ?? [];
 
   if (isLoading) return <LoadingState />;
+  if (isError) return <RequestError onRetry={() => void refetch()} />;
 
   return (
     <View style={styles.container}>

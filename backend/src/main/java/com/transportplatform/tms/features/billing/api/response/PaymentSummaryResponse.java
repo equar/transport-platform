@@ -17,6 +17,7 @@ public record PaymentSummaryResponse(
         InvoiceStatus invoiceStatus,
         LocalDate paymentDate,
         BigDecimal amount,
+        String currency,
         PaymentMethod paymentMethod,
         String referenceNumber,
         String payerName,

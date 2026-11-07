@@ -192,6 +192,9 @@ export interface DriverPortalRouteDetailRecord extends DriverPortalRouteSummaryR
 const base = '/portal/driver';
 
 export const driverPortalApi = {
+  async getRideActions() {
+    return unwrapResponse<Record<string, { action: DriverRideAction; label: string }>>((await apiClient.get('/runtime/ride-actions')).data);
+  },
   async getDashboard() {
     const r = await apiClient.get(`${base}/dashboard`);
     return unwrapResponse<DriverPortalDashboardRecord>(r.data);
@@ -233,9 +236,9 @@ export const driverPortalApi = {
     const r = await apiClient.get(`${base}/rides/${rideId}/location-snapshot`);
     return unwrapResponse<DriverRideLocationSnapshotRecord | null>(r.data);
   },
-  async postRideAction(rideId: number, action: DriverRideAction, idempotencyKey?: string) {
+  async postRideAction(rideId: number, action: DriverRideAction, idempotencyKey?: string, expectedStatus?: string) {
     const r = await apiClient.post(`${base}/rides/${rideId}/actions/${action}`, undefined, {
-      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+      headers: { ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}), ...(expectedStatus ? { 'X-Expected-Ride-Status': expectedStatus } : {}) },
     });
     return unwrapResponse<DriverPortalRideDetailRecord>(r.data);
   },

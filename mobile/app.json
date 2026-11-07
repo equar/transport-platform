@@ -19,7 +19,10 @@
         "NSCameraUsageDescription": "Upload compliance documents.",
         "NSLocationWhenInUseUsageDescription": "Show your location on the route map.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Track your active route.",
-        "NSPhotoLibraryUsageDescription": "Pick a document to upload."
+        "NSPhotoLibraryUsageDescription": "Pick a document to upload.",
+        "UIBackgroundModes": [
+          "location"
+        ]
       }
     },
     "android": {
@@ -33,7 +36,9 @@
         "ACCESS_FINE_LOCATION",
         "FOREGROUND_SERVICE",
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "VIBRATE",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE_LOCATION"
       ]
     },
     "androidStatusBar": {
@@ -64,7 +69,10 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Transport Platform to use your location."
+          "locationAlwaysAndWhenInUsePermission": "Allow Transport Platform to use your location.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ]
     ],

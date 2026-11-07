@@ -1,17 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/aws/deploy-common.sh"
-
-require_commands ssh scp npm tar curl
-require_ssh_key
-
-staging_dir="$(create_staging_dir)"
-trap 'rm -rf -- "$staging_dir"' EXIT
-
-frontend_artifact="$staging_dir/transport-platform-frontend.tar.gz"
-
-build_frontend_artifact "$frontend_artifact"
-check_remote_host
-deploy_frontend_artifact "$frontend_artifact"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+python3 "$ROOT/deployment/aws/validate-config.py" --target frontend
+(cd "$ROOT/frontend" && npm ci && npm test && VITE_API_BASE_URL=/api npm run build)
+exec bash "$ROOT/deployment/aws/deploy-frontend.sh"

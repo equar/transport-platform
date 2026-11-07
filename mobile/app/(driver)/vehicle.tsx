@@ -1,3 +1,4 @@
+import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, ScrollView, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -10,12 +11,13 @@ import { DriverRoleTheme } from '@theme/roleTheme';
 export default function DriverVehiclePage() {
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
-  const { data: profile, isLoading, refetch, isRefetching } = useQuery({
+  const { data: profile, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-profile'],
     queryFn: () => driverPortalApi.getProfile(),
   });
 
   if (isLoading) return <LoadingState />;
+  if (isError) return <RequestError onRetry={() => void refetch()} />;
   if (!profile) return null;
 
   return (

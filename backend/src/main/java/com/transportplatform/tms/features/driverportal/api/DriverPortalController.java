@@ -118,44 +118,51 @@ public class DriverPortalController {
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/driver-en-route")
     public ApiResponse<DriverPortalRideDetailResponse> markRideDriverEnRoute(@PathVariable Long rideId,
-            @RequestHeader(value = "Idempotency-Key", required = false) String key) {
-        return action(rideId, key, "driver-en-route", () -> driverPortalService.markRideDriverEnRoute(rideId));
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "driver-en-route", () -> driverPortalService.markRideDriverEnRoute(rideId));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/arrived")
     public ApiResponse<DriverPortalRideDetailResponse> markRideArrived(@PathVariable Long rideId,
-            @RequestHeader(value = "Idempotency-Key", required = false) String key) {
-        return action(rideId, key, "arrived", () -> driverPortalService.markRideArrived(rideId));
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "arrived", () -> driverPortalService.markRideArrived(rideId));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/picked-up")
     public ApiResponse<DriverPortalRideDetailResponse> markRidePickedUp(@PathVariable Long rideId,
-            @RequestHeader(value = "Idempotency-Key", required = false) String key) {
-        return action(rideId, key, "picked-up", () -> driverPortalService.markRidePickedUp(rideId));
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "picked-up", () -> driverPortalService.markRidePickedUp(rideId));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/dropped-off")
     public ApiResponse<DriverPortalRideDetailResponse> markRideDroppedOff(@PathVariable Long rideId,
-            @RequestHeader(value = "Idempotency-Key", required = false) String key) {
-        return action(rideId, key, "dropped-off", () -> driverPortalService.markRideDroppedOff(rideId));
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "dropped-off", () -> driverPortalService.markRideDroppedOff(rideId));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/complete")
     public ApiResponse<DriverPortalRideDetailResponse> completeRide(@PathVariable Long rideId,
-            @RequestHeader(value = "Idempotency-Key", required = false) String key) {
-        return action(rideId, key, "complete", () -> driverPortalService.completeRide(rideId));
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "complete", () -> driverPortalService.completeRide(rideId));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/no-show")
     public ApiResponse<DriverPortalRideDetailResponse> markRideNoShow(@PathVariable Long rideId,
-            @RequestHeader(value = "Idempotency-Key", required = false) String key) {
-        return action(rideId, key, "no-show", () -> driverPortalService.markRideNoShow(rideId));
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "no-show", () -> driverPortalService.markRideNoShow(rideId));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/failed")
     public ApiResponse<DriverPortalRideDetailResponse> markRideFailed(@PathVariable Long rideId,
-            @RequestHeader(value = "Idempotency-Key", required = false) String key) {
-        return action(rideId, key, "failed", () -> driverPortalService.markRideFailed(rideId));
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "failed", () -> driverPortalService.markRideFailed(rideId));
     }
 
     @GetMapping("/portal/driver/rides/{rideId}/location-snapshot")
@@ -202,9 +209,16 @@ public class DriverPortalController {
         return ApiResponse.success(driverPortalService.getMyRoute(routeId));
     }
 
-    private ApiResponse<DriverPortalRideDetailResponse> action(Long rideId, String key, String action,
+    private ApiResponse<DriverPortalRideDetailResponse> action(Long rideId, String key, String expectedStatus, String action,
             Supplier<DriverPortalRideDetailResponse> operation) {
-        return ApiResponse.success(idempotencyService.execute(key, rideId, action, operation,
+        return ApiResponse.success(idempotencyService.execute(key, rideId, action, () -> {
+            if (expectedStatus != null && !driverPortalService.getMyRide(rideId).status().name().equals(expectedStatus)) {
+                throw new com.transportplatform.tms.common.exception.ApiException(
+                    com.transportplatform.tms.common.exception.ErrorCode.RESOURCE_CONFLICT,
+                    org.springframework.http.HttpStatus.CONFLICT, "Trip status changed. Refresh before choosing another action.");
+            }
+            return operation.get();
+        },
                 () -> driverPortalService.getMyRide(rideId)));
     }
 }

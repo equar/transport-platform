@@ -28,6 +28,7 @@ export default function GuardianLayout() {
         },
       }}
     >
+      <Tabs.Screen name="schedule" options={{ href: null }} />
       <Tabs.Screen
         name="index"
         options={{
@@ -38,7 +39,7 @@ export default function GuardianLayout() {
       <Tabs.Screen
         name="riders"
         options={{
-          title: 'Live',
+          title: 'Riders',
           tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'locate' : 'locate-outline'} size={size} color={color} />,
         }}
       />
