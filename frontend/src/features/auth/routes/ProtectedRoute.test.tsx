@@ -86,6 +86,14 @@ describe('ProtectedRoute role boundaries', () => {
     useAuth.mockReset();
   });
 
+  it('does not let a temporary-password account bypass password replacement by entering a workspace URL', () => {
+    const temporary = session(['ROLE_TENANT_ADMIN']); temporary.identity.mustChangePassword = true;
+    useAuth.mockReturnValue({ isAuthenticated: true, isLoading: false, hasRole: () => true, session: temporary });
+    renderAt('/company/users');
+    expect(screen.getByTestId('location').textContent).toBe('/account/password');
+    expect(screen.queryByText('Protected workspace')).toBeNull();
+  });
+
   it('redirects a platform administrator away from the company workspace', () => {
     useAuth.mockReturnValue({
       isAuthenticated: true,

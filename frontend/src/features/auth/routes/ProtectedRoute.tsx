@@ -63,6 +63,10 @@ export function ProtectedRoute({
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  if (session?.identity.mustChangePassword && location.pathname !== "/account/password") {
+    return <Navigate to="/account/password" replace />;
+  }
+
   if (allowedRoles && !allowedRoles.some((role) => hasRole(role))) {
     return renderUnauthorizedRedirect();
   }

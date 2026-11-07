@@ -32,7 +32,7 @@ class NotificationEmailRetryServiceTest {
     private NotificationRepository notificationRepository;
 
     @Mock
-    private AppUserRepository appUserRepository;
+    private NotificationDeliveryAccess deliveryAccess;
 
     @Mock
     private NotificationEmailSender notificationEmailSender;
@@ -44,7 +44,7 @@ class NotificationEmailRetryServiceTest {
         recipient.setEmail("rider@example.com");
         when(notificationRepository.findByChannelAndDeliveryStatusInAndNextDeliveryAttemptAtLessThanEqualOrderByNextDeliveryAttemptAtAsc(
                 any(), any(), any(), any())).thenReturn(List.of(notification));
-        when(appUserRepository.findByIdAndTenantId(7L, "tenant-123")).thenReturn(Optional.of(recipient));
+        when(deliveryAccess.recipient(notification)).thenReturn(Optional.of(recipient));
         AtomicReference<String> senderCorrelationId = new AtomicReference<>();
         AtomicReference<NotificationEmailSender.NotificationEmailCommand> emailCommand = new AtomicReference<>();
         when(notificationEmailSender.send(any())).thenAnswer(invocation -> {
@@ -74,7 +74,7 @@ class NotificationEmailRetryServiceTest {
         recipient.setEmail("rider@example.com");
         when(notificationRepository.findByChannelAndDeliveryStatusInAndNextDeliveryAttemptAtLessThanEqualOrderByNextDeliveryAttemptAtAsc(
                 any(), any(), any(), any())).thenReturn(List.of(notification));
-        when(appUserRepository.findByIdAndTenantId(7L, "tenant-123")).thenReturn(Optional.of(recipient));
+        when(deliveryAccess.recipient(notification)).thenReturn(Optional.of(recipient));
         when(notificationEmailSender.send(any())).thenReturn(new NotificationEmailSender.DeliveryResult(false, "Mail provider unavailable."));
 
         retryService().retryDueEmailNotifications();
@@ -86,7 +86,7 @@ class NotificationEmailRetryServiceTest {
     }
 
     private NotificationEmailRetryService retryService() {
-        return new NotificationEmailRetryService(notificationRepository, appUserRepository, notificationEmailSender,
+        return new NotificationEmailRetryService(notificationRepository, deliveryAccess, notificationEmailSender,
                 Clock.fixed(Instant.parse("2026-09-03T12:00:00Z"), ZoneOffset.UTC));
     }
 

@@ -23,16 +23,16 @@ public class NotificationEmailRetryService {
     private static final int BATCH_SIZE = 50;
 
     private final NotificationRepository notificationRepository;
-    private final AppUserRepository appUserRepository;
+    private final NotificationDeliveryAccess deliveryAccess;
     private final NotificationEmailSender notificationEmailSender;
     private final Clock clock;
 
     public NotificationEmailRetryService(NotificationRepository notificationRepository,
-            AppUserRepository appUserRepository,
+            NotificationDeliveryAccess deliveryAccess,
             NotificationEmailSender notificationEmailSender,
             Clock clock) {
         this.notificationRepository = notificationRepository;
-        this.appUserRepository = appUserRepository;
+        this.deliveryAccess = deliveryAccess;
         this.notificationEmailSender = notificationEmailSender;
         this.clock = clock;
     }
@@ -56,10 +56,10 @@ public class NotificationEmailRetryService {
             notificationRepository.save(notification);
             return;
         }
-        var recipient = appUserRepository.findByIdAndTenantId(notification.getRecipientUserId(), notification.getTenantId());
+        var recipient = deliveryAccess.recipient(notification);
         if (recipient.isEmpty() || recipient.get().getEmail() == null || recipient.get().getEmail().isBlank()) {
             notification.setDeliveryStatus(NotificationDeliveryStatus.SKIPPED);
-            notification.setErrorMessage("Recipient email is unavailable.");
+            notification.setErrorMessage("Recipient access or email is no longer available.");
             notification.setNextDeliveryAttemptAt(null);
             notificationRepository.save(notification);
             return;

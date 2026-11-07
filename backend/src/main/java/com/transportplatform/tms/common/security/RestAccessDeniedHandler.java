@@ -29,9 +29,10 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
             AccessDeniedException accessDeniedException) throws IOException, ServletException {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        boolean passwordChangeRequired = "Password change required".equals(accessDeniedException.getMessage());
         ApiResponse<Void> body = ApiResponse.failure(ApiErrorResponse.of(
                 ErrorCode.FORBIDDEN.name(),
-                "Access is denied.",
+                passwordChangeRequired ? "A password change is required. Update it in the admin portal before continuing." : "Access is denied.",
                 Map.of("path", request.getRequestURI())));
         objectMapper.writeValue(response.getOutputStream(), body);
     }

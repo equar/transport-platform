@@ -40,6 +40,12 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long>, JpaSpec
                         """)
         boolean existsByEmailIgnoreCaseAndIdNot(@Param("email") String email, @Param("userId") Long userId);
 
+        @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+        @Query("select u from AppUser u where ((:tenantId is null and u.tenantId is null) or u.tenantId = :tenantId) "
+                + "and :role member of u.roles and u.status = :status order by u.id")
+        List<AppUser> lockActiveAdministrators(@Param("tenantId") String tenantId,
+                @Param("role") RoleName role, @Param("status") UserStatus status);
+
         Optional<AppUser> findByIdAndTenantId(Long id, String tenantId);
 
         @Query("""

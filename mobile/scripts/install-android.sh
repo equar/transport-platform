@@ -62,8 +62,6 @@ require_command adb
 ensure_node_modules
 
 # Optional local test login prefill. Keep empty unless explicitly set for local-only use.
-export EXPO_PUBLIC_TEST_DRIVER_EMAIL="${EXPO_PUBLIC_TEST_DRIVER_EMAIL:-}"
-export EXPO_PUBLIC_TEST_DRIVER_PASSWORD="${EXPO_PUBLIC_TEST_DRIVER_PASSWORD:-}"
 
 if [[ -z "$API_URL" ]]; then
   API_TARGET="android-emulator"

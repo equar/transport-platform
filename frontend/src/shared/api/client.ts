@@ -10,7 +10,7 @@ import {
   getCorrelationHeaderName,
 } from '../observability/correlationId';
 
-type ClientSession = { accessToken?: string; identity?: { id?: number; tenantId?: string | null } };
+type ClientSession = { accessToken?: string; identity?: { id?: number; tenantId?: string | null; roles?: string[]; mustChangePassword?: boolean } };
 let currentSession: ClientSession | null = null;
 let sessionGeneration = 0;
 export const SESSION_REFRESHED_EVENT = "transport.session-refreshed";
@@ -18,8 +18,12 @@ export const SESSION_REFRESHED_EVENT = "transport.session-refreshed";
 const RETRYABLE_METHODS = new Set(['get', 'head', 'options']);
 const MAX_RETRY_ATTEMPTS = 2;
 
+function sessionScope(session: ClientSession | null) {
+  return JSON.stringify([session?.identity?.tenantId, session?.identity?.id,
+    session?.identity?.roles?.slice().sort(), session?.identity?.mustChangePassword]);
+}
 export function setApiSession(session: ClientSession | null) {
-  if (!session || !currentSession || session.identity?.tenantId !== currentSession.identity?.tenantId || (session.identity as { id?: number })?.id !== (currentSession.identity as { id?: number })?.id) sessionGeneration++;
+  if (!session || !currentSession || sessionScope(session) !== sessionScope(currentSession)) sessionGeneration++;
   currentSession = session;
 }
 
@@ -41,7 +45,7 @@ async function refreshAccessToken() {
     user: unknown;
   }>(response.data);
   if (generation !== sessionGeneration) return null;
-  setApiSession({ accessToken: tokens.accessToken, identity: tokens.user as { tenantId?: string | null } });
+  setApiSession({ accessToken: tokens.accessToken, identity: tokens.user as { tenantId?: string | null; roles?: string[]; mustChangePassword?: boolean } });
   window.dispatchEvent(new CustomEvent(SESSION_REFRESHED_EVENT, { detail: {
     accessToken: tokens.accessToken, tokenType: tokens.tokenType, expiresInSeconds: tokens.expiresInSeconds, identity: tokens.user,
   } }));
@@ -105,7 +109,12 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if ((response.config as typeof response.config & { _sessionGeneration?: number })._sessionGeneration !== sessionGeneration) {
+      throw new axios.CanceledError('The account changed.');
+    }
+    return response;
+  },
   async (error) => {
     const status = error?.response?.status;
     const originalRequest = error?.config as
@@ -152,6 +161,8 @@ apiClient.interceptors.response.use(
         // Fall through to the canonical session-invalidated flow.
       }
     }
+
+    if (originalRequest && originalRequest._sessionGeneration !== sessionGeneration) return Promise.reject(new axios.CanceledError('The account changed.'));
 
     const isLoginRequest = String(originalRequest?.url ?? '').includes('/v1/auth/login');
     if (status === 401 && !isLoginRequest && readSession()?.accessToken) {

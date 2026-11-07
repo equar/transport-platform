@@ -60,6 +60,10 @@ public class JwtService {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+        if (claims.getSubject() == null || claims.getIssuedAt() == null || claims.getExpiration() == null
+                || claims.get("userId") == null || claims.get("roles") == null) {
+            throw new JwtException("Required access-token claims are missing.");
+        }
         Collection<?> rawRoles = claims.get("roles", Collection.class);
         return new JwtClaims(
                 claims.get("userId", Long.class),
@@ -71,7 +75,8 @@ public class JwtService {
                 claims.get("mustChangePassword", Boolean.class),
                 claims.get("tokenType", String.class),
                 claims.getIssuedAt().toInstant(),
-                claims.getExpiration().toInstant());
+                claims.getExpiration().toInstant(),
+                claims.get("securityVersion", Long.class) == null ? 0L : claims.get("securityVersion", Long.class));
     }
 
     private String createToken(AuthenticatedUser user, java.time.Duration ttl, String tokenType) {
@@ -87,6 +92,7 @@ public class JwtService {
                 .claim("tenantId", user.tenantId())
                 .claim("roles", extractRoles(user.getAuthorities()))
                 .claim("mustChangePassword", user.mustChangePassword())
+                .claim("securityVersion", user.securityVersion())
                 .claim("tokenType", tokenType)
                 .signWith(signingKey())
                 .compact();

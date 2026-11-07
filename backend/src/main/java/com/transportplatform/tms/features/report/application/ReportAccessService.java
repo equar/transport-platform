@@ -12,9 +12,11 @@ import org.springframework.stereotype.Component;
 public class ReportAccessService {
 
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
+    private final com.transportplatform.tms.features.saas.application.TenantModulePolicy modules;
 
-    public ReportAccessService(CurrentAuthenticatedUserService currentAuthenticatedUserService) {
+    public ReportAccessService(CurrentAuthenticatedUserService currentAuthenticatedUserService, com.transportplatform.tms.features.saas.application.TenantModulePolicy modules) {
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
+        this.modules = modules;
     }
 
     public AuthenticatedUser requireCompanyAdmin() {
@@ -25,6 +27,8 @@ public class ReportAccessService {
             throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
                     "A company administrator account is required for report access.");
         }
+        modules.requireEnabled(user.tenantId(), "REPORTS");
         return user;
     }
+    public void requireModule(String tenantId, String module) { modules.requireEnabled(tenantId, module); }
 }

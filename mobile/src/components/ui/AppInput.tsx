@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle, type TextInputProps } from 'react-native';
 import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
 
 interface AppInputProps {
@@ -8,6 +8,7 @@ interface AppInputProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   secureTextEntry?: boolean;
+  autoComplete?: TextInputProps['autoComplete'];
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   error?: string;
@@ -29,6 +30,7 @@ export function AppInput({
   placeholder,
   secureTextEntry = false,
   autoCapitalize = 'none',
+  autoComplete,
   keyboardType = 'default',
   error,
   success,
@@ -81,6 +83,8 @@ export function AppInput({
           placeholderTextColor={Colors.textSecondary}
           secureTextEntry={secureTextEntry && !showPassword}
           autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
+          autoCorrect={!secureTextEntry}
           keyboardType={keyboardType}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}

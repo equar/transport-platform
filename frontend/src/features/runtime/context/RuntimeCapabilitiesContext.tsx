@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   type PropsWithChildren,
 } from "react";
 import { isPlatformAdmin } from "../../auth/access";
@@ -48,39 +49,41 @@ export function RuntimeCapabilitiesProvider({ children, session = null }: PropsW
   const [branding, setBranding] = useState<RuntimeBranding | null>(
     defaultBranding,
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(Boolean(session && !isPlatformAdmin(session)));
+  const requestVersion = useRef(0);
 
   async function loadCapabilities() {
+    const version = ++requestVersion.current;
     if (!isAuthenticated || !session || isPlatformAdmin(session)) {
       setCapabilities(null);
       setBranding(defaultBranding);
+      setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     try {
       const nextCapabilities = await runtimeApi.getTenantCapabilities();
+      if (version !== requestVersion.current) return;
       setCapabilities(nextCapabilities);
       setBranding(nextCapabilities.branding ?? defaultBranding);
     } catch {
+      if (version !== requestVersion.current) return;
       setCapabilities(null);
       setBranding(defaultBranding);
     } finally {
-      setIsLoading(false);
+      if (version === requestVersion.current) setIsLoading(false);
     }
   }
 
   useEffect(() => {
     void loadCapabilities();
+    return () => { requestVersion.current++; };
   }, [isAuthenticated, session?.accessToken, session?.identity.tenantId]);
 
   useEffect(() => {
     const effectiveBranding = branding ?? defaultBranding;
     document.title = (effectiveBranding.displayName || "Transport Platform") + (import.meta.env.VITE_SITE_KIND === "admin" ? " | Admin" : "");
-
-    if (!effectiveBranding.faviconUrl) {
-      return;
-    }
 
     let favicon = document.querySelector(
       "link[rel='icon']",
@@ -90,7 +93,7 @@ export function RuntimeCapabilitiesProvider({ children, session = null }: PropsW
       favicon.rel = "icon";
       document.head.appendChild(favicon);
     }
-    favicon.href = effectiveBranding.faviconUrl;
+    favicon.href = effectiveBranding.faviconUrl || "/branding/bakaroo-app-icon.png";
   }, [branding]);
 
   return (

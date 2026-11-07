@@ -220,11 +220,9 @@ public class UserManagementService {
         AppUser user = findUser(userId);
         var oldSnapshot = snapshot(user);
         Set<RoleName> previousRoles = new LinkedHashSet<>(user.getRoles());
-        String previousPasswordHash = user.getPasswordHash();
-        UserStatus previousStatus = user.getStatus();
         applyUserValues(user, request, AdminScope.PLATFORM, false);
         AppUser saved = appUserRepository.save(user);
-        revokeSessionsWhenCredentialsChanged(saved, previousRoles, previousPasswordHash, previousStatus);
+        authSessionService.revokeAllForUser(saved.getId());
         syncPortalScope(saved, request, false);
         recordUserUpdated(saved, oldSnapshot, previousRoles);
         return toResponse(saved);
@@ -235,11 +233,9 @@ public class UserManagementService {
         AppUser user = findUserForCompanyScope(userId);
         var oldSnapshot = snapshot(user);
         Set<RoleName> previousRoles = new LinkedHashSet<>(user.getRoles());
-        String previousPasswordHash = user.getPasswordHash();
-        UserStatus previousStatus = user.getStatus();
         applyUserValues(user, request, AdminScope.COMPANY, false);
         AppUser saved = appUserRepository.save(user);
-        revokeSessionsWhenCredentialsChanged(saved, previousRoles, previousPasswordHash, previousStatus);
+        authSessionService.revokeAllForUser(saved.getId());
         syncPortalScope(saved, request, false);
         recordUserUpdated(saved, oldSnapshot, previousRoles);
         return toResponse(saved);
@@ -304,6 +300,7 @@ public class UserManagementService {
     }
 
     private UserResponse updateStatus(AppUser user, UserStatus status) {
+        ensureAdminContinuity(user, user.getRoles(), status, user.getTenantId());
         var oldSnapshot = snapshot(user);
         UserStatus previousStatus = user.getStatus();
         user.setStatus(status);
@@ -331,9 +328,30 @@ public class UserManagementService {
         return toResponse(saved);
     }
 
+    private void ensureAdminContinuity(AppUser user, Set<RoleName> nextRoles, UserStatus nextStatus, String nextTenant) {
+        RoleName adminRole = user.getTenantId() == null ? RoleName.ROLE_PLATFORM_ADMIN : RoleName.ROLE_TENANT_ADMIN;
+        boolean losesAccess = user.getStatus() == UserStatus.ACTIVE && user.getRoles().contains(adminRole)
+                && (nextStatus != UserStatus.ACTIVE || !nextRoles.contains(adminRole)
+                        || !Objects.equals(user.getTenantId(), nextTenant));
+        if (!losesAccess) return;
+        if (Objects.equals(user.getId(), currentAuthenticatedUserService.requireCurrentUser().id())) {
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                    "You cannot remove your own administrative access. Ask another administrator to make this change.");
+        }
+        if (appUserRepository.lockActiveAdministrators(user.getTenantId(), adminRole, UserStatus.ACTIVE).size() <= 1) {
+            throw new ApiException(ErrorCode.RESOURCE_CONFLICT, HttpStatus.CONFLICT,
+                    "The last active administrator cannot be removed. Assign another administrator first.");
+        }
+    }
+
     private void applyUserValues(AppUser user, UserUpsertRequest request, AdminScope scope, boolean creating) {
         String tenantId = resolveTenantId(scope, request.tenantId());
+        if (!creating && !Objects.equals(user.getTenantId(), tenantId)) {
+            throw new ApiException(ErrorCode.RESOURCE_CONFLICT, HttpStatus.CONFLICT,
+                    "An existing account cannot move between workspaces. Create a separate account to preserve tenant history.");
+        }
         Set<RoleName> roles = validateRoles(new LinkedHashSet<>(request.roles()), scope, tenantId);
+        if (!creating) ensureAdminContinuity(user, roles, request.status() == null ? UserStatus.ACTIVE : request.status(), tenantId);
         String normalizedEmail = request.email().trim().toLowerCase();
 
         if (creating && (request.password() == null || request.password().isBlank())) {
@@ -387,17 +405,6 @@ public class UserManagementService {
                 Map.of("userId", saved.getId(), "email", saved.getEmail(), "mustChangePassword", true)));
         notificationEventService.publishCompanyUserCreated(saved);
         return toResponse(saved);
-    }
-
-    private void revokeSessionsWhenCredentialsChanged(AppUser user,
-            Set<RoleName> previousRoles,
-            String previousPasswordHash,
-            UserStatus previousStatus) {
-        if (!previousRoles.equals(user.getRoles())
-                || !Objects.equals(previousPasswordHash, user.getPasswordHash())
-                || (previousStatus != user.getStatus() && isSessionInvalidatingStatus(user.getStatus()))) {
-            authSessionService.revokeAllForUser(user.getId());
-        }
     }
 
     private boolean isSessionInvalidatingStatus(UserStatus status) {
@@ -512,14 +519,9 @@ public class UserManagementService {
 
     private AppUser findUserForCompanyScope(Long userId) {
         String tenantId = requireCompanyAdminTenantId();
-        AppUser user = findUser(userId);
-        if (!tenantId.equals(user.getTenantId())) {
-            throw new ApiException(
-                    ErrorCode.FORBIDDEN,
-                    HttpStatus.FORBIDDEN,
-                    "Company administrators can only manage users within their tenant.");
-        }
-        return user;
+        return appUserRepository.findByIdAndTenantId(userId, tenantId)
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND,
+                        "The requested user could not be found."));
     }
 
     private String requireCompanyAdminTenantId() {

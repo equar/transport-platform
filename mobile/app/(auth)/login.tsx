@@ -1,3 +1,4 @@
+import { mobileDefaultRoute } from "@auth/access";
 import React, { useState } from 'react';
 import {
   StyleSheet,
@@ -15,36 +16,14 @@ import { useAuth } from '@auth/AuthContext';
 import { AppInput, AppButton } from '@components/ui';
 import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
 
-const defaultDriverEmail = process.env.EXPO_PUBLIC_TEST_DRIVER_EMAIL ?? '';
-const defaultDriverPassword = process.env.EXPO_PUBLIC_TEST_DRIVER_PASSWORD ?? '';
-
-const quickTestDrivers = [
-  'samuelweld2018+d1@gmail.com',
-  'samuelweld2018+d2@gmail.com',
-  'samuelweld2018+d3@gmail.com',
-];
-
 export default function LoginPage() {
-  const { signIn, getDefaultRoute } = useAuth();
+  const { signIn } = useAuth();
   const router = useRouter();
 
-  const [email, setEmail] = useState(defaultDriverEmail);
-  const [password, setPassword] = useState(defaultDriverPassword);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showQuickDriverList, setShowQuickDriverList] = useState(false);
-
-  function handleQuickDriverSelect(selectedEmail: string) {
-    setEmail(selectedEmail);
-    setPassword('Password123');
-    setErrors((current) => ({
-      ...current,
-      email: '',
-      password: '',
-    }));
-    setShowQuickDriverList(false);
-  }
-
   function validate() {
     const e: Record<string, string> = {};
     if (!email.trim()) e.email = 'Email is required.';
@@ -57,11 +36,11 @@ export default function LoginPage() {
     if (!validate()) return;
     setLoading(true);
     try {
-      await signIn({
+      const session = await signIn({
         email: email.trim().toLowerCase(),
         password,
       });
-      router.replace(getDefaultRoute() as never);
+      router.replace(mobileDefaultRoute(session) as never);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'Invalid credentials. Please try again.';
@@ -93,39 +72,6 @@ export default function LoginPage() {
         </View>
 
         <View style={styles.card}>
-          <View style={styles.quickDriverSection}>
-            <Text style={styles.quickDriverLabel}>Quick test driver</Text>
-            <Pressable
-              style={styles.quickDriverTrigger}
-              onPress={() => setShowQuickDriverList((current) => !current)}
-              accessibilityRole="button"
-              accessibilityLabel="Toggle test driver list"
-            >
-              <Text style={styles.quickDriverTriggerText}>
-                {email && quickTestDrivers.includes(email)
-                  ? email
-                  : 'Choose test driver account'}
-              </Text>
-              <Text style={styles.quickDriverChevron}>{showQuickDriverList ? '▲' : '▼'}</Text>
-            </Pressable>
-            {showQuickDriverList ? (
-              <View style={styles.quickDriverList}>
-                {quickTestDrivers.map((driverEmail) => (
-                  <Pressable
-                    key={driverEmail}
-                    style={styles.quickDriverOption}
-                    onPress={() => handleQuickDriverSelect(driverEmail)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Select ${driverEmail}`}
-                  >
-                    <Text style={styles.quickDriverOptionText}>{driverEmail}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-            <Text style={styles.quickDriverHint}>Selecting a driver also fills password: Password123</Text>
-          </View>
-
           <AppInput
             label="Email"
             value={email}

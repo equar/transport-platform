@@ -42,10 +42,11 @@ public class AuthSessionService {
         Instant now = clock.instant();
         AuthRefreshSession current = repository.findByTokenHash(hash(rawToken)).orElseThrow(this::invalidToken);
         if (current.getUsedAt() != null || current.getReplacedByTokenHash() != null) {
-            repository.revokeFamily(current.getFamilyId(), now);
+            revokeAllForUser(current.getUser().getId()); // A replay is a credential-compromise event.
             throw invalidToken();
         }
-        if (current.getRevokedAt() != null || !current.getExpiresAt().isAfter(now)) throw invalidToken();
+        if (current.getRevokedAt() != null || !current.getExpiresAt().isAfter(now)
+                || current.getSecurityVersion() != current.getUser().getSecurityVersion()) throw invalidToken();
         String clientType = normalizeClientType(requestedClientType);
         if (!current.getClientType().equals(clientType)) throw invalidToken();
 
@@ -66,11 +67,13 @@ public class AuthSessionService {
     @Transactional
     public void revokeAllForUser(Long userId) {
         repository.revokeAllForUser(userId, clock.instant());
+        repository.invalidateUserAccess(userId);
     }
 
     @Transactional
     public void revokeAllForTenant(String tenantId) {
         repository.revokeAllForTenant(tenantId, clock.instant());
+        repository.invalidateTenantAccess(tenantId);
     }
 
     private IssuedRefreshToken create(AppUser user, String familyId, String clientType) {
@@ -80,6 +83,7 @@ public class AuthSessionService {
         Instant now = clock.instant();
         AuthRefreshSession session = new AuthRefreshSession();
         session.setUser(user);
+        session.setSecurityVersion(user.getSecurityVersion());
         session.setFamilyId(familyId);
         session.setTokenHash(hash(rawToken));
         session.setIssuedAt(now);

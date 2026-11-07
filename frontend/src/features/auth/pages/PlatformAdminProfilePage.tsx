@@ -16,7 +16,7 @@ import { useAuth } from "../context/AuthContext";
 import { authApi } from "../api/authApi";
 
 export function PlatformAdminProfilePage() {
-  const { session } = useAuth();
+  const { session, signOut } = useAuth();
   const { showError, showSuccess } = useToast();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -59,7 +59,8 @@ export function PlatformAdminProfilePage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      showSuccess(response.message);
+      showSuccess(response.message + " Sign in again with your new password.");
+      signOut();
     } catch (caughtError) {
       const message =
         typeof caughtError === "object" &&

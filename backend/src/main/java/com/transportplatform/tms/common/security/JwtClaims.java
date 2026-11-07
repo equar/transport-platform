@@ -13,5 +13,9 @@ public record JwtClaims(
         Boolean mustChangePassword,
         String tokenType,
         Instant issuedAt,
-        Instant expiresAt) {
+        Instant expiresAt, long securityVersion) {
+    public JwtClaims(Long userId, String subject, String firstName, String lastName, String tenantId,
+            Set<String> roles, Boolean mustChangePassword, String tokenType, Instant issuedAt, Instant expiresAt) {
+        this(userId, subject, firstName, lastName, tenantId, roles, mustChangePassword, tokenType, issuedAt, expiresAt, 0L);
+    }
 }

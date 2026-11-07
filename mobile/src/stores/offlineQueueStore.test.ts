@@ -59,3 +59,10 @@ it('retains a server conflict with the latest trip status for review', async () 
   expect(await useOfflineQueue.getState().drain(owner)).toEqual({ success: 0, failed: 0, conflicts: 1 });
   expect(useOfflineQueue.getState().conflicts).toMatchObject([{ currentStatus: 'DROPPED_OFF', ...owner }]);
 });
+it('keeps this driver’s unsent work on reauthentication and removes every foreign owner', () => {
+  useOfflineQueue.getState().enqueue(11, 'picked-up', owner, 'ARRIVED');
+  useOfflineQueue.getState().enqueue(22, 'picked-up', { tenantId: 'tenant-b', userId: 8 }, 'ARRIVED');
+  useOfflineQueue.getState().retainOwner(owner);
+  expect(useOfflineQueue.getState().queue).toHaveLength(1);
+  expect(useOfflineQueue.getState().queue[0]).toMatchObject({ tenantId: owner.tenantId, userId: owner.userId, rideId: 11 });
+});

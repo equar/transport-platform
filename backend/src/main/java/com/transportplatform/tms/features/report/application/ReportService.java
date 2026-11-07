@@ -315,6 +315,7 @@ public class ReportService {
             LocalDate fromDate,
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
+        reportAccessService.requireModule(tenantId, "ROUTES");
         List<Route> routes = ReportQueryLimits.load(routeRepository,
                 RouteSpecifications.search(tenantId, keyword, status, serviceType, fromDate, toDate, driverId),
                 Sort.by(Sort.Direction.DESC, "routeDate"));
@@ -353,6 +354,7 @@ public class ReportService {
             LocalDate toDate,
             Boolean overdueOnly) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
+        reportAccessService.requireModule(tenantId, "BILLING");
         LocalDate today = LocalDate.now(clock.withZone(zone(tenantId)));
         List<Invoice> invoices = ReportQueryLimits.load(invoiceRepository,
                 InvoiceSpecifications.search(tenantId, keyword, status, null, billToType, fromDate, toDate, overdueOnly,
@@ -388,6 +390,7 @@ public class ReportService {
             LocalDate fromDate,
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
+        reportAccessService.requireModule(tenantId, "BILLING");
         List<Payment> payments = ReportQueryLimits.load(paymentRepository,
                 PaymentSpecifications.search(tenantId, keyword, status, paymentMethod, fromDate, toDate),
                 Sort.by(Sort.Direction.DESC, "paymentDate"));
@@ -426,6 +429,7 @@ public class ReportService {
             LocalDate fromDate,
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
+        reportAccessService.requireModule(tenantId, "COMPLIANCE");
         LocalDate today = LocalDate.now(clock.withZone(zone(tenantId)));
         complianceIssueSyncService.synchronizeTenantIssues(tenantId);
         List<ComplianceIssue> issues = ReportQueryLimits.load(complianceIssueRepository,
@@ -476,6 +480,7 @@ public class ReportService {
             LocalDate fromDate,
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
+        reportAccessService.requireModule(tenantId, "INCIDENTS");
         List<Incident> incidents = ReportQueryLimits.load(incidentRepository,
                 IncidentSpecifications.search(
                         tenantId,

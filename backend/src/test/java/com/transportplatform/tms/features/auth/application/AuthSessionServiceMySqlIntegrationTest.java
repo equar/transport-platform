@@ -90,11 +90,43 @@ class AuthSessionServiceMySqlIntegrationTest {
                 .orElseThrow();
         assertThat(revokedSession.getRevokedAt()).isEqualTo(Instant.parse("2025-01-01T00:00:00Z"));
         assertThat(validSession.getRevokedAt()).isNull();
+        assertThat(appUserRepository.findById(suspendedTenantUser.getId()).orElseThrow().getSecurityVersion()).isEqualTo(1L);
+        assertThat(appUserRepository.findById(otherTenantUser.getId()).orElseThrow().getSecurityVersion()).isZero();
         assertThatThrownBy(() -> authSessionService.rotate(revokedToken.rawToken(), "WEB"))
                 .isInstanceOf(ApiException.class)
                 .hasMessage("The refresh session is invalid or expired.");
         assertThat(authSessionService.rotate(validToken.rawToken(), "MOBILE").user().getId())
                 .isEqualTo(otherTenantUser.getId());
+    }
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    void concurrentRefreshAllowsOneReplacementAndRevokesTheReplayedFamily() throws Exception {
+        AppUser user = saveUser("race-" + UUID.randomUUID().toString().substring(0, 8));
+        var token = authSessionService.issue(user, "MOBILE");
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            java.util.concurrent.Callable<String> rotate = () -> {
+                start.await();
+                try { return authSessionService.rotate(token.rawToken(), "MOBILE").token().rawToken(); }
+                catch (ApiException denied) { return null; }
+            };
+            var one = executor.submit(rotate); var two = executor.submit(rotate); start.countDown();
+            String first = one.get(30, java.util.concurrent.TimeUnit.SECONDS);
+            String second = two.get(30, java.util.concurrent.TimeUnit.SECONDS);
+            assertThat((first == null) != (second == null)).isTrue();
+            String winner = first == null ? second : first;
+            assertThatThrownBy(() -> authSessionService.rotate(winner, "MOBILE")).isInstanceOf(ApiException.class);
+        }
+    }
+
+    @Test
+    void administratorLocksRemainTenantScoped() {
+        AppUser a = saveUser("lock-a"); AppUser b = saveUser("lock-b");
+        assertThat(appUserRepository.lockActiveAdministrators("lock-a", RoleName.ROLE_TENANT_ADMIN, UserStatus.ACTIVE))
+                .extracting(AppUser::getId).containsExactly(a.getId()).doesNotContain(b.getId());
+        assertThat(appUserRepository.lockActiveAdministrators(null, RoleName.ROLE_PLATFORM_ADMIN, UserStatus.ACTIVE))
+                .allSatisfy(user -> { assertThat(user.getTenantId()).isNull(); assertThat(user.getRoles()).contains(RoleName.ROLE_PLATFORM_ADMIN); });
     }
 
     private AppUser saveUser(String tenantId) {

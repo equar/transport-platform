@@ -22,11 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class DriverLocationSnapshotService {
 
     private static final Set<RideStatus> TRACKABLE_RIDE_STATUSES = Set.of(
-            RideStatus.ASSIGNED,
             RideStatus.DRIVER_EN_ROUTE,
             RideStatus.ARRIVED,
-            RideStatus.PICKED_UP,
-            RideStatus.DROPPED_OFF);
+            RideStatus.PICKED_UP);
 
     private final DriverPortalAccessService driverPortalAccessService;
     private final RideAccessService rideAccessService;

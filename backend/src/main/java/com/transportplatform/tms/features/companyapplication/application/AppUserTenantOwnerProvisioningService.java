@@ -44,6 +44,7 @@ public class AppUserTenantOwnerProvisioningService implements TenantOwnerProvisi
                     HttpStatus.BAD_REQUEST,
                     "A temporary password is required for the tenant owner account.");
         }
+        user.setMustChangePassword(true);
         user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
         user.setStatus(UserStatus.ACTIVE);
         user.setRoles(Set.of(RoleName.ROLE_TENANT_ADMIN));

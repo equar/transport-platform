@@ -29,6 +29,7 @@ public class SecurityConfig {
         private final AuthRateLimitFilter authRateLimitFilter;
     private final TenantContextFilter tenantContextFilter;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final TenantModuleAccessFilter tenantModuleAccessFilter;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
 
@@ -37,6 +38,7 @@ public class SecurityConfig {
                         AuthRateLimitFilter authRateLimitFilter,
             TenantContextFilter tenantContextFilter,
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            TenantModuleAccessFilter tenantModuleAccessFilter,
             RestAuthenticationEntryPoint restAuthenticationEntryPoint,
             RestAccessDeniedHandler restAccessDeniedHandler) {
         this.securityProperties = securityProperties;
@@ -44,6 +46,7 @@ public class SecurityConfig {
                 this.authRateLimitFilter = authRateLimitFilter;
         this.tenantContextFilter = tenantContextFilter;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.tenantModuleAccessFilter = tenantModuleAccessFilter;
         this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
         this.restAccessDeniedHandler = restAccessDeniedHandler;
     }
@@ -72,11 +75,17 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/company-applications", "/demo-inquiries").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/auth/status").permitAll()
                         .requestMatchers(HttpMethod.GET, "/runtime/tenant-branding").permitAll()
+                        .requestMatchers("/platform/**").hasRole("PLATFORM_ADMIN")
+                        .requestMatchers("/company/**").hasAnyRole("TENANT_ADMIN", "DISPATCHER", "BILLING_ADMIN", "COMPLIANCE_ADMIN")
+                        .requestMatchers("/portal/driver/**").hasRole("DRIVER")
+                        .requestMatchers("/portal/rider/**").hasAnyRole("RIDER", "GUARDIAN")
+                        .requestMatchers("/portal/organization/**").hasRole("ORGANIZATION_USER")
                         .anyRequest().authenticated())
                 .addFilterBefore(requestCorrelationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(authRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(tenantContextFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(tenantModuleAccessFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

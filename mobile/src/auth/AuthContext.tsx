@@ -1,3 +1,4 @@
+import { mobileDefaultRoute, mobileRoleGroup } from "./access";
 import { stopTripTracking } from '../tracking/activeTrip';
 import React, {
   createContext,
@@ -31,7 +32,7 @@ async function readStoredSession(): Promise<AuthSession | null> {
     const raw = await getSessionValue(SESSION_KEY);
     if (!raw) return null;
     const parsed=JSON.parse(raw) as AuthSession;
-    if (!parsed.accessToken || !parsed.refreshToken || !parsed.identity || !Number.isSafeInteger(parsed.identity.id) || !Array.isArray(parsed.identity.roles)) {
+    if (!parsed.accessToken || !parsed.refreshToken || !parsed.identity || !Number.isSafeInteger(parsed.identity.id) || !Array.isArray(parsed.identity.roles) || !mobileRoleGroup(parsed)) {
       await deleteSessionValue(SESSION_KEY); return null;
     }
     return parsed;
@@ -41,25 +42,13 @@ async function readStoredSession(): Promise<AuthSession | null> {
   }
 }
 
-function resolveDefaultRoute(session: AuthSession | null): string {
-  if (!session) return '/(auth)/login';
-  const roles = session.identity.roles;
-  if (roles.includes(Roles.DRIVER)) return '/(driver)';
-  if (roles.includes(Roles.GUARDIAN)) return '/(guardian)';
-  if (roles.includes(Roles.RIDER)) return '/(rider)';
-  return '/(auth)/login';
-}
-
 export function AuthProvider({ children }: PropsWithChildren) {
   const logoutInFlight = React.useRef<Promise<void> | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    readStoredSession().then((s) => {
-      setSession(s);
-      setIsLoading(false);
-    });
+    readStoredSession().then(setSession).catch(() => setSession(null)).finally(() => setIsLoading(false));
 
     const unsubscribeRefresh = onSessionRefreshed(setSession);
     const unsubscribe = onSessionExpired(() => {
@@ -83,7 +72,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
       await logoutInFlight.current;
       invalidateSessionRequests();
       useOfflineQueue.getState().pause();
+      await stopTripTracking();
+      await deleteSessionValue(SESSION_KEY);
+      setSession(null);
       const next = await authApi.signIn(payload);
+      if (!mobileRoleGroup(next)) {
+        try { await authApi.signOut(next.refreshToken); } catch { /* no unsupported credentials are retained */ }
+        throw new Error('This account uses the admin portal. Sign in at admin.transport.bakaroo.com.');
+      }
+      useOfflineQueue.getState().retainOwner({ tenantId: next.identity.tenantId!, userId: next.identity.id });
       await setSessionValue(SESSION_KEY, JSON.stringify(next));
       setSession(next);
       return next;
@@ -94,7 +91,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const currentRefreshToken = session?.refreshToken;
       invalidateSessionRequests();
       setSession(null);
-      useOfflineQueue.getState().pause();
+      useOfflineQueue.getState().clear();
       logoutInFlight.current = (async () => {
         try { await stopTripTracking(); } catch { /* credentials must still be cleared */ }
         try { await unregisterCurrentPushToken(); } catch { /* token is re-scoped on next registration */ }
@@ -111,7 +108,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     },
 
     getDefaultRoute() {
-      return resolveDefaultRoute(session);
+      return mobileDefaultRoute(session);
     },
   } as AuthContextValue;
 

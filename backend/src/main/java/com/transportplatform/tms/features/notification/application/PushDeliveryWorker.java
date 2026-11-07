@@ -23,13 +23,14 @@ public class PushDeliveryWorker {
     private final ObjectMapper mapper;
     private final Clock clock;
     private final TransactionTemplate transaction;
+    private final NotificationDeliveryAccess deliveryAccess;
     public PushDeliveryWorker(JdbcTemplate jdbc, NotificationRepository notifications,
             PortalPushDeviceTokenRepository tokens, NotificationPushSender sender,
             PortalPushDeviceTokenService tokenService, ObjectMapper mapper, Clock clock,
-            PlatformTransactionManager manager) {
+            PlatformTransactionManager manager, NotificationDeliveryAccess deliveryAccess) {
         this.jdbc=jdbc; this.notifications=notifications; this.tokens=tokens; this.sender=sender;
         this.tokenService=tokenService; this.mapper=mapper; this.clock=clock;
-        this.transaction=new TransactionTemplate(manager);
+        this.transaction=new TransactionTemplate(manager); this.deliveryAccess=deliveryAccess;
     }
     public void enqueue(Notification notification, PortalPushDeviceToken token) {
         jdbc.update("INSERT INTO push_delivery_jobs(notification_id,device_token_id) VALUES (?,?)", notification.getId(), token.getId());
@@ -53,14 +54,22 @@ public class PushDeliveryWorker {
             boolean sent=false; String error=null; String receiptId=null;
             if(notification.isEmpty() || token.isEmpty() || token.get().getStatus()!=PortalPushDeviceTokenStatus.ACTIVE
                     || !java.util.Objects.equals(notification.get().getTenantId(),token.get().getTenantId())
-                    || !java.util.Objects.equals(notification.get().getRecipientUserId(),token.get().getAppUserId())) {
+                    || !java.util.Objects.equals(notification.get().getRecipientUserId(),token.get().getAppUserId())
+                    || deliveryAccess.recipient(notification.get()).isEmpty()) {
                 jdbc.update("UPDATE push_delivery_jobs SET status='SKIPPED', next_attempt_at=NULL WHERE id=?",id);
                 continue;
             }
             try {
                 var n=notification.get();
                 Map<String,Object> data=n.getMetadataJson()==null ? Map.of() : mapper.readValue(n.getMetadataJson(),new TypeReference<Map<String,Object>>(){});
-                var result=sender.send(new NotificationPushSender.PushNotificationCommand(token.get().getPushToken(),n.getTitle(),n.getMessage(),data));
+                var safeData = new java.util.HashMap<String,Object>();
+                for (String key : java.util.List.of("deepLink", "rideId", "routeId")) {
+                    if (data.containsKey(key)) safeData.put(key, data.get(key));
+                }
+                safeData.put("tenantId", n.getTenantId()); safeData.put("recipientUserId", n.getRecipientUserId());
+                safeData.put("notificationId", n.getId());
+                var result=sender.send(new NotificationPushSender.PushNotificationCommand(token.get().getPushToken(),
+                    "Transport update", "Open Bakaroo to view your notification.",safeData));
                 sent=result.sent(); error=result.errorMessage(); receiptId=result.receiptId();
             } catch(Exception exception) { error="Push delivery provider failed."; }
             int attempts=((Number)job.get("attempts")).intValue()+1;

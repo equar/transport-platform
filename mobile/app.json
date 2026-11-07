@@ -18,7 +18,7 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Upload compliance documents.",
         "NSLocationWhenInUseUsageDescription": "Show your location on the route map.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Track your active route.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Share driver location during an active trip. Tracking stops after drop-off or sign-out.",
         "NSPhotoLibraryUsageDescription": "Pick a document to upload.",
         "UIBackgroundModes": [
           "location"
@@ -39,6 +39,9 @@
         "VIBRATE",
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "androidStatusBar": {
@@ -69,10 +72,18 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Transport Platform to use your location.",
+          "locationAlwaysAndWhenInUsePermission": "Share driver location during an active trip. Tracking stops after drop-off or sign-out.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Take a photo of a compliance document when you choose to upload one.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ]
     ],

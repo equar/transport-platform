@@ -130,6 +130,7 @@ apiClient.interceptors.request.use(async (config) => {
     delete config.headers.Authorization; delete config.headers['X-Tenant-Id']; return config;
   }
   const session = await readSession();
+  if (request._sessionGeneration !== sessionGeneration) throw new axios.CanceledError('The account changed.');
   if (session?.accessToken) {
     config.headers.Authorization = `Bearer ${session.accessToken}`;
   }
@@ -140,7 +141,12 @@ apiClient.interceptors.request.use(async (config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if ((response.config as typeof response.config & { _sessionGeneration?: number })._sessionGeneration !== sessionGeneration) {
+      throw new axios.CanceledError('The account changed.');
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error?.config as
       | ({ _retry?: boolean; _retryAttempt?: number; _sessionGeneration?: number; headers?: Record<string, string> } & Record<string, unknown>)
@@ -186,8 +192,10 @@ apiClient.interceptors.response.use(
       }
     }
 
+    if (originalRequest && originalRequest._sessionGeneration !== sessionGeneration) return Promise.reject(new axios.CanceledError('The account changed.'));
     if (status === 401) {
       const session = await readSession();
+      if (originalRequest && originalRequest._sessionGeneration !== sessionGeneration) return Promise.reject(new axios.CanceledError('The account changed.'));
       if (session?.accessToken) {
         logClientEvent('warn', 'auth.session.invalidated', {
           path: String(originalRequest?.url ?? ''),

@@ -1,3 +1,4 @@
+import { useAuth } from "../context/AuthContext";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import {
@@ -16,6 +17,7 @@ import { useToast } from "../../../shared/providers/ToastProvider";
 import { authApi } from "../api/authApi";
 
 export function PasswordChangeCard() {
+  const { signOut } = useAuth();
   const { showSuccess } = useToast();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -45,7 +47,8 @@ export function PasswordChangeCard() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmation("");
-      showSuccess(response.message);
+      showSuccess(response.message + " Sign in again with your new password.");
+      signOut();
     } catch (caughtError) {
       setError(normalizeBusinessError(caughtError, "Password could not be updated.").message);
     } finally {

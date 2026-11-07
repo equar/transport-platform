@@ -188,23 +188,7 @@ export function canAccessScope(
 }
 
 export function getDefaultRoute(session: AuthSession | null) {
-  if (session?.identity.mustChangePassword) {
-    if (isPlatformAdmin(session)) {
-      return "/platform/profile";
-    }
-    if (canAccessCompanyWorkspace(session)) {
-      return "/company/security";
-    }
-    if (isDriverPortalUser(session)) {
-      return "/portal/driver/profile";
-    }
-    if (isRiderPortalUser(session) || isGuardianPortalUser(session)) {
-      return "/portal/rider/profile";
-    }
-    if (isOrganizationPortalUser(session)) {
-      return "/portal/organization/profile";
-    }
-  }
+  if (session?.identity.mustChangePassword) return "/account/password";
   if (isPlatformAdmin(session)) {
     return "/platform";
   }

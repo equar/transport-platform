@@ -14,3 +14,18 @@ it('never refreshes or replays an old account request using a newly signed-in ac
   rejectRequest(new AxiosError('expired','ERR_BAD_REQUEST',config,undefined,{status:401,statusText:'Unauthorized',headers:{},config,data:{}}));
   await assertion;expect(adapter).toHaveBeenCalledTimes(1);expect(refresh).not.toHaveBeenCalled();
 });
+it('discards a successful response that arrives after switching tenants', async () => {
+  let finish!: (value: unknown) => void;
+  let started!: () => void;
+  const ready = new Promise<void>(resolve => { started = resolve; });
+  apiClient.defaults.adapter = ((config: InternalAxiosRequestConfig) => new Promise(resolve => {
+    finish = data => resolve({ config, data, status: 200, statusText: 'OK', headers: {} }); started();
+  })) as AxiosAdapter;
+  setApiSession({ accessToken: 'tenant-a', identity: { id: 1, tenantId: 'a' } });
+  const request = apiClient.get('/company/riders');
+  const assertion = expect(request).rejects.toThrow('The account changed.');
+  await ready;
+  setApiSession({ accessToken: 'tenant-b', identity: { id: 2, tenantId: 'b' } });
+  finish({ riders: ['tenant-a-private-data'] });
+  await assertion;
+});

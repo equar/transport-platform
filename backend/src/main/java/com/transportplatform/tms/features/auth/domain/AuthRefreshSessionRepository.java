@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface AuthRefreshSessionRepository extends JpaRepository<AuthRefreshSession, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     Optional<AuthRefreshSession> findByTokenHash(String tokenHash);
 
     @Modifying
@@ -15,7 +16,7 @@ public interface AuthRefreshSessionRepository extends JpaRepository<AuthRefreshS
             + "where s.familyId = :familyId and s.revokedAt is null")
     int revokeFamily(@Param("familyId") String familyId, @Param("now") Instant now);
 
-    @Modifying
+    @Modifying(flushAutomatically = true)
     @Query("update AuthRefreshSession s set s.revokedAt = :now "
             + "where s.user.id = :userId and s.revokedAt is null")
     int revokeAllForUser(@Param("userId") Long userId, @Param("now") Instant now);
@@ -24,5 +25,11 @@ public interface AuthRefreshSessionRepository extends JpaRepository<AuthRefreshS
     @Query("update AuthRefreshSession s set s.revokedAt = :now "
             + "where s.user.tenantId = :tenantId and s.revokedAt is null")
     int revokeAllForTenant(@Param("tenantId") String tenantId, @Param("now") Instant now);
-}
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update AppUser u set u.securityVersion = u.securityVersion + 1 where u.id = :userId")
+    int invalidateUserAccess(@Param("userId") Long userId);
 
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update AppUser u set u.securityVersion = u.securityVersion + 1 where u.tenantId = :tenantId")
+    int invalidateTenantAccess(@Param("tenantId") String tenantId);
+}

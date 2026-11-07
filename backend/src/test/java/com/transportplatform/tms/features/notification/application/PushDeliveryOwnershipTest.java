@@ -19,7 +19,7 @@ class PushDeliveryOwnershipTest {
         when(jdbc.queryForList(anyString(),eq(1L),any())).thenReturn(List.of(job));
         Notification n=new Notification();n.setTenantId("tenant-a");n.setRecipientUserId(7L);when(notifications.findById(2L)).thenReturn(Optional.of(n));
         PortalPushDeviceToken t=new PortalPushDeviceToken();t.setTenantId("tenant-b");t.setAppUserId(8L);t.setStatus(PortalPushDeviceTokenStatus.ACTIVE);when(tokens.findById(3L)).thenReturn(Optional.of(t));
-        var worker=new PushDeliveryWorker(jdbc,notifications,tokens,sender,mock(PortalPushDeviceTokenService.class),new ObjectMapper(),Clock.systemUTC(),tx);
+        var worker=new PushDeliveryWorker(jdbc,notifications,tokens,sender,mock(PortalPushDeviceTokenService.class),new ObjectMapper(),Clock.systemUTC(),tx,mock(NotificationDeliveryAccess.class));
         worker.deliverDue();
         verifyNoInteractions(sender);
         verify(jdbc).update("UPDATE push_delivery_jobs SET status='SKIPPED', next_attempt_at=NULL WHERE id=?",1L);

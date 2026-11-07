@@ -22,7 +22,7 @@ export async function getSessionValue(key: string): Promise<string | null> {
   return AsyncStorage.getItem(key);
 }
 
-export async function setSessionValue(key: string, value: string): Promise<void> {
+async function writeValue(key: string, value: string): Promise<void> {
   try {
     await SecureStore.setItemAsync(key, value);
     if (allowSimulatorFallback) await AsyncStorage.removeItem(key);
@@ -33,7 +33,7 @@ export async function setSessionValue(key: string, value: string): Promise<void>
   await AsyncStorage.setItem(key, value);
 }
 
-export async function deleteSessionValue(key: string): Promise<void> {
+async function removeValue(key: string): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(key);
   } catch (error) {
@@ -60,3 +60,14 @@ export async function deleteCachedTenantBranding(tenantId: string): Promise<void
   const key = `tenant_branding_${tenantId}`;
   return deleteSessionValue(key);
 }
+
+const pendingWrites = new Map<string, Promise<void>>();
+function serialize(key: string, mutation: () => Promise<void>): Promise<void> {
+  const next = (pendingWrites.get(key) ?? Promise.resolve()).catch(() => undefined).then(mutation);
+  pendingWrites.set(key, next);
+  const cleanup = () => { if (pendingWrites.get(key) === next) pendingWrites.delete(key); };
+  next.then(cleanup, cleanup);
+  return next;
+}
+export function setSessionValue(key: string, value: string): Promise<void> { return serialize(key, () => writeValue(key, value)); }
+export function deleteSessionValue(key: string): Promise<void> { return serialize(key, () => removeValue(key)); }
