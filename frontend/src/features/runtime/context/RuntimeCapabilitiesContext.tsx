@@ -1,3 +1,4 @@
+import { setServiceTimezone } from "../../../shared/utils/serviceTime";
 import {
   createContext,
   useContext,
@@ -55,6 +56,7 @@ export function RuntimeCapabilitiesProvider({ children, session = null }: PropsW
   async function loadCapabilities() {
     const version = ++requestVersion.current;
     if (!isAuthenticated || !session || isPlatformAdmin(session)) {
+      setServiceTimezone(null);
       setCapabilities(null);
       setBranding(defaultBranding);
       setIsLoading(false);
@@ -65,10 +67,12 @@ export function RuntimeCapabilitiesProvider({ children, session = null }: PropsW
     try {
       const nextCapabilities = await runtimeApi.getTenantCapabilities();
       if (version !== requestVersion.current) return;
+      setServiceTimezone(nextCapabilities.operationalSettings.timezone);
       setCapabilities(nextCapabilities);
       setBranding(nextCapabilities.branding ?? defaultBranding);
     } catch {
       if (version !== requestVersion.current) return;
+      setServiceTimezone(null);
       setCapabilities(null);
       setBranding(defaultBranding);
     } finally {
@@ -77,6 +81,7 @@ export function RuntimeCapabilitiesProvider({ children, session = null }: PropsW
   }
 
   useEffect(() => {
+    setServiceTimezone(null);
     void loadCapabilities();
     return () => { requestVersion.current++; };
   }, [isAuthenticated, session?.accessToken, session?.identity.tenantId]);

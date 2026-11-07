@@ -86,6 +86,7 @@ export default function GuardianRideDetailPage() {
 					<AppButton label="Riders" onPress={() => router.push('/(guardian)/riders')} fullWidth />
 				</View>
 			</View>
+            <Text style={styles.personText}>To change or cancel a booking, contact your transport provider.</Text>
             <SupportContact />
 		</ScrollView>
 	);

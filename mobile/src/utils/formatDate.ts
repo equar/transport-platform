@@ -1,30 +1,21 @@
+import { formatServiceDateTime, scheduleEpoch } from './serviceTime';
 export function formatShortDateTime(iso: string | null | undefined): string {
   if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
+  return formatServiceDateTime(iso, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
 }
-
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return formatServiceDateTime(iso, { month: 'short', day: 'numeric', year: 'numeric' });
 }
-
 export function formatTime(iso: string | null | undefined): string {
   if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return formatServiceDateTime(iso, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
-
 export function timeUntil(iso: string | null | undefined): string {
   if (!iso) return '—';
-  const diff = new Date(iso).getTime() - Date.now();
+  const epoch = scheduleEpoch(iso);
+  if (epoch === null) return 'Service local time';
+  const diff = epoch - Date.now();
   if (diff < 0) return 'Past';
   const mins = Math.floor(diff / 60000);
   if (mins < 60) return `${mins}m`;

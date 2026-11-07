@@ -1,5 +1,6 @@
 package com.transportplatform.tms.features.billing.application;
 
+import com.transportplatform.tms.features.settings.application.TenantTimeService;
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.features.audit.application.AuditLogCommand;
@@ -36,19 +37,22 @@ public class ReceivablesService {
     private final InvoiceFinancialService invoiceFinancialService;
     private final AuditLogService auditLogService;
     private final Clock clock;
+    private final TenantTimeService tenantTime;
 
     public ReceivablesService(BillingAccessService billingAccessService,
             CollectionNoteRepository collectionNoteRepository,
             PaymentRepository paymentRepository,
             InvoiceFinancialService invoiceFinancialService,
             AuditLogService auditLogService,
-            Clock clock) {
+            Clock clock,
+            TenantTimeService tenantTime) {
         this.billingAccessService = billingAccessService;
         this.collectionNoteRepository = collectionNoteRepository;
         this.paymentRepository = paymentRepository;
         this.invoiceFinancialService = invoiceFinancialService;
         this.auditLogService = auditLogService;
         this.clock = clock;
+        this.tenantTime = tenantTime;
     }
 
     @Transactional(readOnly = true)
@@ -58,7 +62,7 @@ public class ReceivablesService {
 
     @Transactional(readOnly = true)
     public ReceivablesSummaryResponse getReceivablesSummary(String tenantId) {
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(tenantId);
         List<Invoice> invoices = billingAccessService.findAllInvoicesForTenant(tenantId);
         List<Invoice> openReceivables = invoices.stream()
                 .filter(invoiceFinancialService::isReceivable)

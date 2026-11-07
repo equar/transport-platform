@@ -1,5 +1,6 @@
 package com.transportplatform.tms.features.dispatch.application;
 
+import com.transportplatform.tms.features.route.domain.RouteStopRepository;
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.features.driver.application.DriverComplianceSummaryService;
@@ -38,6 +39,7 @@ public class DispatchAssignmentValidationService {
             RideStatus.DROPPED_OFF);
 
     private final RideRepository rideRepository;
+    private final RouteStopRepository routeStops;
     private final DriverRepository driverRepository;
     private final VehicleRepository vehicleRepository;
     private final DriverComplianceSummaryService driverComplianceSummaryService;
@@ -49,8 +51,10 @@ public class DispatchAssignmentValidationService {
             VehicleRepository vehicleRepository,
             DriverComplianceSummaryService driverComplianceSummaryService,
             VehicleComplianceSummaryService vehicleComplianceSummaryService,
-            TenantTransportComplianceService tenantTransportComplianceService) {
+            TenantTransportComplianceService tenantTransportComplianceService,
+            RouteStopRepository routeStops) {
         this.rideRepository = rideRepository;
+        this.routeStops = routeStops;
         this.driverRepository = driverRepository;
         this.vehicleRepository = vehicleRepository;
         this.driverComplianceSummaryService = driverComplianceSummaryService;
@@ -116,6 +120,14 @@ public class DispatchAssignmentValidationService {
                 && (vehicle.getWheelchairCapacity() == null || vehicle.getWheelchairCapacity() < 1)) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
                     "A wheelchair-capable vehicle is required for this ride.");
+        }
+        if (ride.getRouteId() != null) {
+            List<Ride> pooled = new ArrayList<>(rideRepository.findAllByTenantIdAndRouteId(tenantId, ride.getRouteId()));
+            pooled.removeIf(candidate -> java.util.Objects.equals(candidate.getId(), ride.getId()));
+            pooled.add(ride);
+            var planned = routeStops.findAllByTenantIdAndRoute_IdOrderByStopSequenceAsc(tenantId, ride.getRouteId()).stream()
+                    .collect(java.util.stream.Collectors.toMap(stop -> stop.getRide().getId(), stop -> stop, (a, b) -> a));
+            PooledRideCapacity.validate(vehicle, pooled, planned);
         }
         if (hasVehicleConflict(tenantId, ride, vehicleId)) {
             throw new ApiException(

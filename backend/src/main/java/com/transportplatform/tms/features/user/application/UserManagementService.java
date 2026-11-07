@@ -412,6 +412,10 @@ public class UserManagementService {
     }
 
     private Set<RoleName> validateRoles(Set<RoleName> roles, AdminScope scope, String tenantId) {
+        if (roles.contains(RoleName.ROLE_VIEWER)) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                    "Viewer access is not yet available. Select a supported role.");
+        }
         if (roles.isEmpty()) {
             throw new ApiException(
                     ErrorCode.VALIDATION_FAILED,

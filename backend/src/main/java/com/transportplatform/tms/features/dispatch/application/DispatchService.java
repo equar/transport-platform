@@ -289,6 +289,8 @@ public class DispatchService {
                 lockDispatch();
                 Ride ride = rideAccessService.findRideForCompanyScope(rideId);
                 RideStatusWorkflow.ensureCanAssignResources(ride.getStatus());
+                if (ride.getRouteId() != null) throw new ApiException(ErrorCode.RESOURCE_CONFLICT,
+                        HttpStatus.CONFLICT, "Update resources on the linked route, or remove the ride from the route first.");
                 Object oldSnapshot = snapshot(ride);
                 Driver driver = dispatchAssignmentValidationService.requireAssignableDriver(ride.getTenantId(), ride,
                                 driverId);
@@ -314,6 +316,8 @@ public class DispatchService {
                 lockDispatch();
                 Ride ride = rideAccessService.findRideForCompanyScope(rideId);
                 RideStatusWorkflow.ensureCanAssignResources(ride.getStatus());
+                if (ride.getRouteId() != null) throw new ApiException(ErrorCode.RESOURCE_CONFLICT,
+                        HttpStatus.CONFLICT, "Update resources on the linked route, or remove the ride from the route first.");
                 Object oldSnapshot = snapshot(ride);
                 Vehicle vehicle = dispatchAssignmentValidationService.requireAssignableVehicle(ride.getTenantId(), ride,
                                 vehicleId);
@@ -353,6 +357,8 @@ public class DispatchService {
                 lockDispatch();
                 Ride ride = rideAccessService.findRideForCompanyScope(rideId);
                 RideStatusWorkflow.ensureCanUnassignResources(ride.getStatus());
+                if (ride.getRouteId() != null) throw new ApiException(ErrorCode.RESOURCE_CONFLICT,
+                        HttpStatus.CONFLICT, "Update resources on the linked route, or remove the ride from the route first.");
                 Object oldSnapshot = snapshot(ride);
                 Long previousDriverId = ride.getDriverId();
                 RideStatus previousStatus = ride.getStatus();
@@ -378,6 +384,8 @@ public class DispatchService {
                 lockDispatch();
                 Ride ride = rideAccessService.findRideForCompanyScope(rideId);
                 RideStatusWorkflow.ensureCanUnassignResources(ride.getStatus());
+                if (ride.getRouteId() != null) throw new ApiException(ErrorCode.RESOURCE_CONFLICT,
+                        HttpStatus.CONFLICT, "Update resources on the linked route, or remove the ride from the route first.");
                 Object oldSnapshot = snapshot(ride);
                 Long previousVehicleId = ride.getVehicleId();
                 RideStatus previousStatus = ride.getStatus();
@@ -402,6 +410,8 @@ public class DispatchService {
                 Ride ride=rideAccessService.findRideForCompanyScope(rideId);
                 if(!java.util.Objects.equals(ride.getVersion(),expectedVersion)) throw new ApiException(ErrorCode.RESOURCE_CONFLICT,HttpStatus.CONFLICT,"Ride changed. Refresh before assigning.");
                 RideStatusWorkflow.ensureCanAssignResources(ride.getStatus());
+                if (ride.getRouteId() != null) throw new ApiException(ErrorCode.RESOURCE_CONFLICT,
+                        HttpStatus.CONFLICT, "Update resources on the linked route, or remove the ride from the route first.");
                 if(driverId!=null) dispatchAssignmentValidationService.requireAssignableDriver(ride.getTenantId(),ride,driverId);
                 if(vehicleId!=null) dispatchAssignmentValidationService.requireAssignableVehicle(ride.getTenantId(),ride,vehicleId);
         }
@@ -415,6 +425,8 @@ public class DispatchService {
                                         "The ride changed. Refresh before saving the assignment.");
                 }
                 RideStatusWorkflow.ensureCanAssignResources(ride.getStatus());
+                if (ride.getRouteId() != null) throw new ApiException(ErrorCode.RESOURCE_CONFLICT,
+                        HttpStatus.CONFLICT, "Update resources on the linked route, or remove the ride from the route first.");
                 if (driverId != null) dispatchAssignmentValidationService.requireAssignableDriver(ride.getTenantId(), ride, driverId);
                 if (vehicleId != null) dispatchAssignmentValidationService.requireAssignableVehicle(ride.getTenantId(), ride, vehicleId);
                 Object before = snapshot(ride);

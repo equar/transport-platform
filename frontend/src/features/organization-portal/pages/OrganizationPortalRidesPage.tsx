@@ -7,6 +7,7 @@ import {
   Stack,
   TextField,
   Typography,
+  TablePagination,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { LoadingState } from "../../../shared/components/LoadingState";
@@ -25,11 +26,9 @@ import {
 
 const rideStatuses = [
   "",
-  "REQUESTED",
-  "SCHEDULED",
-  "ASSIGNED",
-  "COMPLETED",
-  "CANCELLED",
+  "DRAFT", "REQUESTED", "PENDING_REVIEW", "SCHEDULED", "ASSIGNED",
+  "DRIVER_EN_ROUTE", "ARRIVED", "PICKED_UP", "DROPPED_OFF", "COMPLETED",
+  "CANCELLED", "RIDER_NO_SHOW", "MISSED", "FAILED",
 ] as const;
 
 export function OrganizationPortalRidesPage() {
@@ -37,6 +36,8 @@ export function OrganizationPortalRidesPage() {
     useState<OrganizationPortalDashboardRecord | null>(null);
   const [rides, setRides] = useState<OrganizationPortalRideRecord[]>([]);
   const [status, setStatus] = useState("");
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +52,7 @@ export function OrganizationPortalRidesPage() {
           organizationPortalApi.getDashboard(),
           organizationPortalApi.searchRides({
             status: status || undefined,
+            page,
             size: 25,
             sortBy: "scheduledPickupAt",
             sortDirection: "ASC",
@@ -59,6 +61,7 @@ export function OrganizationPortalRidesPage() {
         if (!cancelled) {
           setDashboard(dashboardResponse);
           setRides(ridesResponse.items);
+          setTotal(ridesResponse.totalElements);
         }
       } catch {
         if (!cancelled) {
@@ -76,7 +79,7 @@ export function OrganizationPortalRidesPage() {
     return () => {
       cancelled = true;
     };
-  }, [status]);
+  }, [status, page]);
 
   if (loading) {
     return <LoadingState />;
@@ -123,7 +126,7 @@ export function OrganizationPortalRidesPage() {
           select
           label="Ride status"
           value={status}
-          onChange={(event) => setStatus(event.target.value)}
+          onChange={(event) => { setStatus(event.target.value); setPage(0); }}
           sx={{ minWidth: { md: 220 } }}
         >
           {rideStatuses.map((option) => (
@@ -134,7 +137,7 @@ export function OrganizationPortalRidesPage() {
         </TextField>
       </PageCard>
       <Stack spacing={2}>
-        {rides.length === 0 ? (
+        {!error && rides.length === 0 ? (
           <PageCard>
             <Typography color="text.secondary">
               No rides match the current filter.
@@ -172,6 +175,9 @@ export function OrganizationPortalRidesPage() {
           ))
         )}
       </Stack>
+      <TablePagination component="div" count={total} page={page} rowsPerPage={25}
+        rowsPerPageOptions={[25]} onPageChange={(_, next) => setPage(next)}
+        labelRowsPerPage="Rides per page" />
     </Stack>
   );
 }

@@ -12,6 +12,7 @@ import {
   TableRow,
   TextField,
   Typography,
+  TablePagination,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { LoadingState } from "../../../shared/components/LoadingState";
@@ -33,13 +34,7 @@ const invoiceStatuses = [
   "PAID",
   "OVERDUE",
 ] as const;
-const paymentStatuses = [
-  "",
-  "PENDING",
-  "COMPLETED",
-  "FAILED",
-  "REFUNDED",
-] as const;
+const paymentStatuses = ["", "RECORDED", "APPLIED", "PARTIALLY_APPLIED", "VOID", "FAILED"] as const;
 
 function formatCurrency(value: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
@@ -61,7 +56,7 @@ function formatDate(value?: string | null) {
     return "-";
   }
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-    new Date(value),
+    new Date(value.length === 10 ? `${value}T12:00:00` : value),
   );
 }
 
@@ -76,6 +71,10 @@ export function OrganizationPortalBillingPage() {
   );
   const [invoiceStatus, setInvoiceStatus] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
+  const [invoicePage, setInvoicePage] = useState(0);
+  const [paymentPage, setPaymentPage] = useState(0);
+  const [invoiceTotal, setInvoiceTotal] = useState(0);
+  const [paymentTotal, setPaymentTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,12 +89,14 @@ export function OrganizationPortalBillingPage() {
             organizationPortalApi.getDashboard(),
             organizationPortalApi.searchInvoices({
               status: invoiceStatus || undefined,
+              page: invoicePage,
               size: 25,
               sortBy: "invoiceDate",
               sortDirection: "DESC",
             }),
             organizationPortalApi.searchPayments({
               status: paymentStatus || undefined,
+              page: paymentPage,
               size: 25,
               sortBy: "paymentDate",
               sortDirection: "DESC",
@@ -104,7 +105,9 @@ export function OrganizationPortalBillingPage() {
         if (!cancelled) {
           setDashboard(dashboardResponse);
           setInvoices(invoicesResponse.items);
+          setInvoiceTotal(invoicesResponse.totalElements);
           setPayments(paymentsResponse.items);
+          setPaymentTotal(paymentsResponse.totalElements);
         }
       } catch {
         if (!cancelled) {
@@ -120,7 +123,7 @@ export function OrganizationPortalBillingPage() {
     return () => {
       cancelled = true;
     };
-  }, [invoiceStatus, paymentStatus]);
+  }, [invoiceStatus, paymentStatus, invoicePage, paymentPage]);
 
   if (loading) {
     return <LoadingState />;
@@ -158,8 +161,8 @@ export function OrganizationPortalBillingPage() {
           <Box>
             <MetricCard
               icon={<PaymentsRoundedIcon color="primary" />}
-              label="Recent Payments"
-              value={payments.length}
+              label="Matching Payments"
+              value={paymentTotal}
             />
           </Box>
         </Box>
@@ -170,7 +173,7 @@ export function OrganizationPortalBillingPage() {
             select
             label="Invoice status"
             value={invoiceStatus}
-            onChange={(event) => setInvoiceStatus(event.target.value)}
+            onChange={(event) => { setInvoiceStatus(event.target.value); setInvoicePage(0); }}
             sx={{ minWidth: { md: 220 } }}
           >
             {invoiceStatuses.map((option) => (
@@ -183,7 +186,7 @@ export function OrganizationPortalBillingPage() {
             select
             label="Payment status"
             value={paymentStatus}
-            onChange={(event) => setPaymentStatus(event.target.value)}
+            onChange={(event) => { setPaymentStatus(event.target.value); setPaymentPage(0); }}
             sx={{ minWidth: { md: 220 } }}
           >
             {paymentStatuses.map((option) => (
@@ -233,7 +236,7 @@ export function OrganizationPortalBillingPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {invoices.length === 0 ? (
+              {!error && invoices.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5}>
                     <Typography color="text.secondary">
@@ -244,6 +247,8 @@ export function OrganizationPortalBillingPage() {
               ) : null}
             </TableBody>
           </Table>
+          <TablePagination component="div" count={invoiceTotal} page={invoicePage} rowsPerPage={25}
+            rowsPerPageOptions={[25]} onPageChange={(_, next) => setInvoicePage(next)} />
         </PageCard>
         <PageCard sx={{ p: 0, overflow: "hidden" }}>
           <Stack spacing={2} sx={{ p: { xs: 3, md: 4 } }}>
@@ -277,7 +282,7 @@ export function OrganizationPortalBillingPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {payments.length === 0 ? (
+              {!error && payments.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6}>
                     <Typography color="text.secondary">
@@ -288,6 +293,8 @@ export function OrganizationPortalBillingPage() {
               ) : null}
             </TableBody>
           </Table>
+          <TablePagination component="div" count={paymentTotal} page={paymentPage} rowsPerPage={25}
+            rowsPerPageOptions={[25]} onPageChange={(_, next) => setPaymentPage(next)} />
         </PageCard>
       </Box>
     </Stack>

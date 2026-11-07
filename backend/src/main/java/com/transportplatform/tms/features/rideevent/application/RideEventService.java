@@ -1,5 +1,6 @@
 package com.transportplatform.tms.features.rideevent.application;
 
+import com.transportplatform.tms.common.security.CurrentAuthenticatedUserService;
 import com.transportplatform.tms.common.security.AuthenticatedUser;
 import com.transportplatform.tms.features.ride.application.RideAccessService;
 import com.transportplatform.tms.features.ride.domain.Ride;
@@ -17,10 +18,13 @@ public class RideEventService {
 
     private final RideEventRepository rideEventRepository;
     private final RideAccessService rideAccessService;
+    private final CurrentAuthenticatedUserService currentUser;
 
-    public RideEventService(RideEventRepository rideEventRepository, RideAccessService rideAccessService) {
+    public RideEventService(RideEventRepository rideEventRepository, RideAccessService rideAccessService,
+            CurrentAuthenticatedUserService currentUser) {
         this.rideEventRepository = rideEventRepository;
         this.rideAccessService = rideAccessService;
+        this.currentUser = currentUser;
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +92,11 @@ public class RideEventService {
             RideStatus previousStatus,
             RideStatus newStatus,
             String notes) {
-        AuthenticatedUser actor = rideAccessService.requireCompanyUser();
+        // The owning workflow authorizes the mutation; portal actors must also be auditable.
+        AuthenticatedUser actor = currentUser.requireCurrentUser();
+        if (!java.util.Objects.equals(actor.tenantId(), ride.getTenantId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Ride events must belong to the actor's tenant.");
+        }
         RideEvent rideEvent = new RideEvent();
         rideEvent.setTenantId(ride.getTenantId());
         rideEvent.setRide(ride);

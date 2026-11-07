@@ -145,6 +145,7 @@ export default function RiderSchedulePage() {
       </AppCard> : null}
       <AppCard>
         <SectionHeader title="Trip Type" />
+        {tripType === 'ROUND_TRIP' ? <Text style={styles.note}>Round trips share one assignment and trip status. Book two one-way rides when the return needs its own driver or tracking.</Text> : null}
         <View style={styles.optionRow}>
           <OptionPill label="One Way" active={tripType === 'ONE_WAY'} onPress={() => setTripType('ONE_WAY')} />
           <OptionPill label="Round Trip" active={tripType === 'ROUND_TRIP'} onPress={() => setTripType('ROUND_TRIP')} />

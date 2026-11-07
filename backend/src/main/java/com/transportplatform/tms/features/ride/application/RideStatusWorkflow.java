@@ -24,10 +24,12 @@ public final class RideStatusWorkflow {
     }
 
     public static void ensureCanEdit(RideStatus currentStatus) {
-        if (currentStatus == RideStatus.CANCELLED
-                || currentStatus == RideStatus.COMPLETED
-                || currentStatus == RideStatus.DROPPED_OFF) {
-            throw invalidTransition("Completed or cancelled rides cannot be edited.");
+        if (currentStatus != RideStatus.DRAFT
+                && currentStatus != RideStatus.REQUESTED
+                && currentStatus != RideStatus.PENDING_REVIEW
+                && currentStatus != RideStatus.SCHEDULED
+                && currentStatus != RideStatus.ASSIGNED) {
+            throw invalidTransition("Only pre-departure rides can be edited.");
         }
     }
 
@@ -100,8 +102,8 @@ public final class RideStatusWorkflow {
     }
 
     public static void ensureCanMarkNoShow(RideStatus currentStatus) {
-        if (currentStatus != RideStatus.ASSIGNED && currentStatus != RideStatus.ARRIVED) {
-            throw invalidTransition("Only assigned or arrived rides can be marked as rider no show.");
+        if (currentStatus != RideStatus.ARRIVED) {
+            throw invalidTransition("Arrival must be recorded before a rider can be marked as no show.");
         }
     }
 
@@ -122,8 +124,12 @@ public final class RideStatusWorkflow {
     }
 
     public static void ensureCanCancel(RideStatus currentStatus) {
-        if (currentStatus == RideStatus.CANCELLED || currentStatus == RideStatus.COMPLETED) {
-            throw invalidTransition("This ride can no longer be cancelled.");
+        if (currentStatus != RideStatus.DRAFT
+                && currentStatus != RideStatus.REQUESTED
+                && currentStatus != RideStatus.PENDING_REVIEW
+                && currentStatus != RideStatus.SCHEDULED
+                && currentStatus != RideStatus.ASSIGNED) {
+            throw invalidTransition("Only pre-departure rides can be cancelled. Contact dispatch for an active trip.");
         }
     }
 

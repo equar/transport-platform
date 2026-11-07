@@ -751,6 +751,9 @@ export function RideUpsertDialog({
             />
           </Stack>
 
+          {form.tripType === "ROUND_TRIP" ? <Alert severity="info">
+            Round trips share one assignment and trip status. Create two one-way rides when the return needs its own driver or tracking.
+          </Alert> : null}
           {sectionTitle(
             "Return Trip Information",
             "Round-trip rides require a coherent return pickup and return dropoff sequence.",

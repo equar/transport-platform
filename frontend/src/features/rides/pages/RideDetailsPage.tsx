@@ -378,6 +378,7 @@ export function RideDetailsPage() {
             variant="outlined"
             startIcon={<EditRoundedIcon />}
             onClick={() => setDialogOpen(true)}
+            disabled={!["DRAFT", "REQUESTED", "PENDING_REVIEW", "SCHEDULED", "ASSIGNED"].includes(ride.status)}
           >
             Update Ride
           </Button>
@@ -454,7 +455,7 @@ export function RideDetailsPage() {
                 Schedule Ride
               </Button>
             ) : null}
-            {!["CANCELLED", "COMPLETED", "FAILED"].includes(ride.status) ? (
+            {["DRAFT", "REQUESTED", "PENDING_REVIEW", "SCHEDULED", "ASSIGNED"].includes(ride.status) ? (
               <Button
                 startIcon={<CancelRoundedIcon />}
                 color="error"
@@ -843,7 +844,7 @@ export function RideDetailsPage() {
                   Complete
                 </Button>
               ) : null}
-              {ride.status === "ASSIGNED" || ride.status === "ARRIVED" ? (
+              {ride.status === "ARRIVED" ? (
                 <Button
                   color="warning"
                   onClick={() => void handleOperationalAction("noShow")}

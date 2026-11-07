@@ -1,5 +1,6 @@
 package com.transportplatform.tms.features.billing.application;
 
+import com.transportplatform.tms.features.settings.application.TenantTimeService;
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.response.PageResponse;
@@ -44,6 +45,7 @@ public class PaymentService {
     private final AuditLogService auditLogService;
     private final NotificationEventService notificationEventService;
     private final Clock clock;
+    private final TenantTimeService tenantTime;
 
     public PaymentService(PaymentRepository paymentRepository,
             BillingAccessService billingAccessService,
@@ -53,7 +55,8 @@ public class PaymentService {
             InvoiceFinancialService invoiceFinancialService,
             AuditLogService auditLogService,
             NotificationEventService notificationEventService,
-            Clock clock) {
+            Clock clock,
+            TenantTimeService tenantTime) {
         this.paymentRepository = paymentRepository;
         this.billingAccessService = billingAccessService;
         this.paymentMapper = paymentMapper;
@@ -63,6 +66,7 @@ public class PaymentService {
         this.auditLogService = auditLogService;
         this.notificationEventService = notificationEventService;
         this.clock = clock;
+        this.tenantTime = tenantTime;
     }
 
     @Transactional(readOnly = true)
@@ -76,7 +80,7 @@ public class PaymentService {
             String sortBy,
             Sort.Direction sortDirection) {
         String tenantId = billingAccessService.requireCompanyTenantId();
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(billingAccessService.requireCompanyTenantId());
         var pageable = PageRequest.of(page, size, Sort.by(sortDirection, resolveSortField(sortBy)));
         var result = paymentRepository.findAll(
                 PaymentSpecifications.search(tenantId, keyword, status, paymentMethod, fromDate, toDate),
@@ -89,13 +93,13 @@ public class PaymentService {
     public PaymentDetailResponse getCompanyPayment(Long paymentId) {
         Payment payment = billingAccessService.findPaymentForCompanyScope(paymentId);
         return paymentMapper.toDetail(payment,
-                InvoiceStatusWorkflow.resolveEffectiveStatus(payment.getInvoice(), LocalDate.now(clock)));
+                InvoiceStatusWorkflow.resolveEffectiveStatus(payment.getInvoice(), tenantTime.today(billingAccessService.requireCompanyTenantId())));
     }
 
     @Transactional(readOnly = true)
     public List<PaymentSummaryResponse> listCompanyInvoicePayments(Long invoiceId) {
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(invoiceId);
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(billingAccessService.requireCompanyTenantId());
         return paymentRepository
                 .findAllByInvoiceIdAndTenantIdOrderByPaymentDateDescCreatedAtDesc(invoice.getId(),
                         invoice.getTenantId())
@@ -108,7 +112,7 @@ public class PaymentService {
     @Transactional(readOnly = true)
     public PaymentPreviewResponse previewCompanyPayment(PaymentPreviewRequest request) {
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(request.invoiceId());
-        validateInvoiceAcceptsPayment(invoice, request.amount(), LocalDate.now(clock));
+        validateInvoiceAcceptsPayment(invoice, request.amount(), tenantTime.today(billingAccessService.requireCompanyTenantId()));
         BigDecimal resultingBalance = invoiceFinancialService.previewResultingBalance(invoice, request.amount());
         return new PaymentPreviewResponse(
                 invoice.getId(),
@@ -117,7 +121,7 @@ public class PaymentService {
                 invoice.getBalanceDue(),
                 request.amount().setScale(2, RoundingMode.HALF_UP),
                 resultingBalance,
-                invoiceFinancialService.previewResultingStatus(invoice, request.amount(), LocalDate.now(clock)));
+                invoiceFinancialService.previewResultingStatus(invoice, request.amount(), tenantTime.today(billingAccessService.requireCompanyTenantId())));
     }
 
     @Transactional
@@ -129,7 +133,7 @@ public class PaymentService {
             return getCompanyPayment(idempotency.getPaymentId());
         }
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(request.invoiceId());
-        validateInvoiceAcceptsPayment(invoice, request.amount(), LocalDate.now(clock));
+        validateInvoiceAcceptsPayment(invoice, request.amount(), tenantTime.today(billingAccessService.requireCompanyTenantId()));
 
         Payment payment = new Payment();
         payment.setTenantId(tenantId);
@@ -141,7 +145,7 @@ public class PaymentService {
         Object oldInvoiceSnapshot = snapshot(invoice);
         if (applyImmediately) {
             BigDecimal resultingBalance = invoiceFinancialService.applyPayment(invoice, payment.getAmount(),
-                    LocalDate.now(clock));
+                    tenantTime.today(billingAccessService.requireCompanyTenantId()));
             payment.setStatus(paymentMapper.resolveAppliedStatus(resultingBalance));
         } else {
             payment.setStatus(PaymentStatus.RECORDED);
@@ -162,7 +166,7 @@ public class PaymentService {
         }
         notificationEventService.publishPaymentRecorded(saved, applyImmediately);
         return paymentMapper.toDetail(saved,
-                InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, LocalDate.now(clock)));
+                InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId())));
     }
 
     @Transactional
@@ -170,7 +174,7 @@ public class PaymentService {
         Payment payment = billingAccessService.findPaymentForCompanyScope(paymentId);
         PaymentStatusWorkflow.ensureCanUpdate(payment);
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(request.invoiceId());
-        validateInvoiceAcceptsPayment(invoice, request.amount(), LocalDate.now(clock));
+        validateInvoiceAcceptsPayment(invoice, request.amount(), tenantTime.today(billingAccessService.requireCompanyTenantId()));
         Object oldSnapshot = snapshot(payment);
         payment.setInvoice(invoice);
         paymentMapper.apply(payment, request);
@@ -178,7 +182,7 @@ public class PaymentService {
         recordPaymentAudit(saved, "UPDATED", "Payment " + saved.getPaymentNumber() + " was updated.", oldSnapshot,
                 snapshot(saved));
         return paymentMapper.toDetail(saved,
-                InvoiceStatusWorkflow.resolveEffectiveStatus(saved.getInvoice(), LocalDate.now(clock)));
+                InvoiceStatusWorkflow.resolveEffectiveStatus(saved.getInvoice(), tenantTime.today(billingAccessService.requireCompanyTenantId())));
     }
 
     @Transactional
@@ -186,11 +190,11 @@ public class PaymentService {
         Payment payment = billingAccessService.findPaymentForCompanyScope(paymentId);
         PaymentStatusWorkflow.ensureCanApply(payment);
         Invoice invoice = payment.getInvoice();
-        validateInvoiceAcceptsPayment(invoice, payment.getAmount(), LocalDate.now(clock));
+        validateInvoiceAcceptsPayment(invoice, payment.getAmount(), tenantTime.today(billingAccessService.requireCompanyTenantId()));
         Object oldPaymentSnapshot = snapshot(payment);
         Object oldInvoiceSnapshot = snapshot(invoice);
         BigDecimal resultingBalance = invoiceFinancialService.applyPayment(invoice, payment.getAmount(),
-                LocalDate.now(clock));
+                tenantTime.today(billingAccessService.requireCompanyTenantId()));
         payment.setStatus(paymentMapper.resolveAppliedStatus(resultingBalance));
         Payment saved = paymentRepository.save(payment);
         recordPaymentAudit(saved, "APPLIED", "Payment " + saved.getPaymentNumber() + " was applied.",
@@ -201,7 +205,7 @@ public class PaymentService {
                 snapshot(invoice));
         notificationEventService.publishPaymentApplied(saved);
         return paymentMapper.toDetail(saved,
-                InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, LocalDate.now(clock)));
+                InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId())));
     }
 
     @Transactional
@@ -212,7 +216,7 @@ public class PaymentService {
         Invoice invoice = payment.getInvoice();
         Object oldInvoiceSnapshot = snapshot(invoice);
         if (payment.getStatus() == PaymentStatus.APPLIED || payment.getStatus() == PaymentStatus.PARTIALLY_APPLIED) {
-            invoiceFinancialService.reversePayment(invoice, payment.getAmount(), LocalDate.now(clock));
+            invoiceFinancialService.reversePayment(invoice, payment.getAmount(), tenantTime.today(billingAccessService.requireCompanyTenantId()));
             recordInvoiceAudit(invoice, "PAYMENT_REVERSED",
                     "Payment " + payment.getPaymentNumber() + " was voided and reversed from invoice "
                             + invoice.getInvoiceNumber() + ".",
@@ -226,7 +230,7 @@ public class PaymentService {
                 oldPaymentSnapshot,
                 snapshot(saved));
         return paymentMapper.toDetail(saved,
-                InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, LocalDate.now(clock)));
+                InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId())));
     }
 
     public long countTotalPayments(String tenantId) {
@@ -257,7 +261,7 @@ public class PaymentService {
         if (amount.setScale(2, RoundingMode.HALF_UP).compareTo(invoice.getBalanceDue()) > 0) {
             throw validationFailure("Payment amount cannot exceed the current outstanding invoice balance.");
         }
-        if (invoice.getInvoiceDate() != null && invoice.getInvoiceDate().isAfter(LocalDate.now(clock).plusYears(5))) {
+        if (invoice.getInvoiceDate() != null && invoice.getInvoiceDate().isAfter(tenantTime.today(billingAccessService.requireCompanyTenantId()).plusYears(5))) {
             throw validationFailure("Invoice context is invalid for payment recording.");
         }
     }

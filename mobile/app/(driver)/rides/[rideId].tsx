@@ -35,7 +35,7 @@ const PRIMARY_STATUS_ACTIONS: Record<string, { action: DriverRideAction; label: 
 };
 
 const SECONDARY_STATUS_ACTIONS: Record<string, { action: DriverRideAction; label: string }[]> = {
-  ASSIGNED: [{ action: 'no-show', label: 'Mark No-Show' }],
+
   DRIVER_EN_ROUTE: [{ action: 'failed', label: 'Report Failed Trip' }],
   ARRIVED: [
     { action: 'no-show', label: 'Mark No-Show' },

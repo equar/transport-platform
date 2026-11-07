@@ -111,7 +111,8 @@ class RideRepositoryMySqlIntegrationTest {
         var approval=org.mockito.Mockito.mock(com.transportplatform.tms.features.compliance.application.TenantTransportComplianceService.class);
         org.mockito.Mockito.when(approval.isDispatchApproved(tenantId)).thenReturn(true);
         var validator=new com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService(rideRepository,drivers,vehicles,compliance,
-            org.mockito.Mockito.mock(com.transportplatform.tms.features.vehicle.application.VehicleComplianceSummaryService.class),approval);
+            org.mockito.Mockito.mock(com.transportplatform.tms.features.vehicle.application.VehicleComplianceSummaryService.class),approval,
+            org.mockito.Mockito.mock(com.transportplatform.tms.features.route.domain.RouteStopRepository.class));
         var dispatch=new com.transportplatform.tms.features.dispatch.application.DispatchService(tenantRepository,
             org.mockito.Mockito.mock(com.transportplatform.tms.features.settings.domain.TenantSettingsRepository.class),java.time.Clock.systemUTC(),rideRepository,
             org.mockito.Mockito.mock(com.transportplatform.tms.features.location.domain.DriverLocationSnapshotRepository.class),drivers,vehicles,access,validator,
@@ -133,6 +134,48 @@ class RideRepositoryMySqlIntegrationTest {
             int accepted=0;for(var future:futures) if(future.get(20,java.util.concurrent.TimeUnit.SECONDS)) accepted++;
             assertThat(accepted).isEqualTo(1);
         }
+    }
+
+    @Autowired private com.transportplatform.tms.features.route.domain.RouteRepository routes;
+    @Autowired private com.transportplatform.tms.features.route.domain.RouteStopRepository routeStops;
+
+    @Test
+    void pooledCapacityUsesPersistedRouteRidesAndAllowsReusingWheelchairSpace() {
+        String tenantId = "capacity-tenant";
+        Ride first = saveRide(tenantId), second = saveRide(tenantId);
+        var route = new com.transportplatform.tms.features.route.domain.Route();
+        route.setTenantId(tenantId); route.setRouteCode("CAPACITY"); route.setRouteName("Capacity trial");
+        route.setRouteDate(java.time.LocalDate.of(2026, 11, 7)); route.setServiceType(ServiceType.NEMT);
+        route.setStatus(com.transportplatform.tms.features.route.domain.RouteStatus.PLANNED);
+        routes.saveAndFlush(route);
+        var start = java.time.LocalDateTime.of(2026, 11, 7, 9, 0);
+        for (Ride ride : java.util.List.of(first, second)) {
+            ride.setRouteId(route.getId()); ride.setWheelchairRequired(true);
+            ride.setScheduledPickupAt(start); ride.setScheduledDropoffAt(start.plusHours(1));
+            rideRepository.saveAndFlush(ride);
+        }
+        var vehicle = new com.transportplatform.tms.features.vehicle.domain.Vehicle();
+        vehicle.setTenantId(tenantId); vehicle.setVehicleCode("CAPACITY-VAN");
+        vehicle.setOwnershipType(com.transportplatform.tms.features.vehicle.domain.VehicleOwnershipType.COMPANY_OWNED);
+        vehicle.setMake("Ford"); vehicle.setModel("Transit"); vehicle.setYear(2024);
+        vehicle.setPlateNumber("CAPACITY"); vehicle.setPlateState("IL"); vehicle.setCapacity(8); vehicle.setWheelchairCapacity(1);
+        vehicle.setStatus(com.transportplatform.tms.features.vehicle.domain.VehicleStatus.ACTIVE);
+        vehicles.saveAndFlush(vehicle);
+        var compliance = org.mockito.Mockito.mock(com.transportplatform.tms.features.vehicle.application.VehicleComplianceSummaryService.class,
+                org.mockito.Mockito.RETURNS_DEEP_STUBS);
+        org.mockito.Mockito.when(compliance.getSummary(tenantId, vehicle).overallStatus())
+                .thenReturn(com.transportplatform.tms.features.vehicle.domain.VehicleComplianceStatus.COMPLIANT);
+        var approval = org.mockito.Mockito.mock(com.transportplatform.tms.features.compliance.application.TenantTransportComplianceService.class);
+        org.mockito.Mockito.when(approval.isDispatchApproved(tenantId)).thenReturn(true);
+        var validation = new com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService(
+                rideRepository, drivers, vehicles, org.mockito.Mockito.mock(com.transportplatform.tms.features.driver.application.DriverComplianceSummaryService.class),
+                compliance, approval, routeStops);
+        assertThatThrownBy(() -> validation.requireAssignableVehicle(tenantId, first, vehicle.getId()))
+                .isInstanceOf(com.transportplatform.tms.common.exception.ApiException.class)
+                .hasMessageContaining("wheelchair capacity");
+        second.setScheduledPickupAt(start.plusHours(1)); second.setScheduledDropoffAt(start.plusHours(2));
+        rideRepository.saveAndFlush(second);
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> validation.requireAssignableVehicle(tenantId, first, vehicle.getId()));
     }
 
     private Ride saveRide(String tenantId) {

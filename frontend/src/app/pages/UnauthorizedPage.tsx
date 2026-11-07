@@ -13,7 +13,7 @@ interface RouterState {
 
 export function UnauthorizedPage() {
   const location = useLocation();
-  const { isAuthenticated, getDefaultRoute } = useAuth();
+  const { isAuthenticated, getDefaultRoute, signOut } = useAuth();
   const attemptedPath = (location.state as RouterState | null)?.from?.pathname;
   const fallbackPath =
     (location.state as RouterState | null)?.fallbackTo ?? getDefaultRoute();
@@ -36,7 +36,7 @@ export function UnauthorizedPage() {
       }
       footer={
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          {isAuthenticated ? (
+          {isAuthenticated && fallbackPath !== "/unauthorized" ? (
             <Button
               component={RouterLink}
               to={fallbackPath}
@@ -58,6 +58,7 @@ export function UnauthorizedPage() {
           <Button
             component={RouterLink}
             to="/login"
+            onClick={() => { void signOut(); }}
             variant="outlined"
             size="large"
           >

@@ -13,3 +13,9 @@ it('requires password replacement before entering a portal', () => {
   expect(mobileDefaultRoute(session('ROLE_DRIVER'))).toBe('/(driver)');
   expect(mobileDefaultRoute(session('ROLE_GUARDIAN'))).toBe('/(guardian)');
 });
+
+it('routes signed-in web-only roles to a sign-out-capable support screen', () => {
+  expect(mobileDefaultRoute(session('ROLE_TENANT_ADMIN'))).toBe('/unsupported');
+  expect(mobileDefaultRoute(session('ROLE_VIEWER'))).toBe('/unsupported');
+  expect(mobileDefaultRoute(null)).toBe('/(auth)/login');
+});

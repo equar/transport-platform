@@ -8,7 +8,8 @@ export function mobileRoleGroup(session: AuthSession | null): '(driver)' | '(gua
   return null;
 }
 export function mobileDefaultRoute(session: AuthSession | null): string {
-  if (!session || !mobileRoleGroup(session)) return '/(auth)/login';
+  if (!session) return '/(auth)/login';
+  if (!mobileRoleGroup(session)) return '/unsupported';
   if (session.identity.mustChangePassword) return '/(auth)/change-password';
   return '/' + mobileRoleGroup(session);
 }

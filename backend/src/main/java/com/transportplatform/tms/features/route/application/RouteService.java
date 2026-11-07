@@ -1,5 +1,9 @@
 package com.transportplatform.tms.features.route.application;
 
+import com.transportplatform.tms.features.dispatch.application.PooledRideCapacity;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
+import com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService;
+import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.response.PageResponse;
@@ -12,6 +16,7 @@ import com.transportplatform.tms.features.driver.domain.DriverRepository;
 import com.transportplatform.tms.features.driver.domain.DriverStatus;
 import com.transportplatform.tms.features.organization.domain.ServiceType;
 import com.transportplatform.tms.features.ride.application.RideAccessService;
+import com.transportplatform.tms.features.ride.application.RideStatusWorkflow;
 import com.transportplatform.tms.features.ride.domain.Ride;
 import com.transportplatform.tms.features.ride.domain.RideRepository;
 import com.transportplatform.tms.features.ride.domain.RideStatus;
@@ -49,8 +54,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class RouteService {
 
-    private final com.transportplatform.tms.features.tenant.domain.TenantRepository dispatchTenants;
-    private final com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService dispatchValidation;
+    private final TenantRepository dispatchTenants;
+    private final DispatchAssignmentValidationService dispatchValidation;
     private final RouteRepository routeRepository;
     private final RouteStopRepository routeStopRepository;
     private final RideRepository rideRepository;
@@ -64,9 +69,10 @@ public class RouteService {
     private final VehicleComplianceSummaryService vehicleComplianceSummaryService;
     private final RideEventService rideEventService;
     private final AuditLogService auditLogService;
+    private final NotificationEventService notifications;
 
-    public RouteService(com.transportplatform.tms.features.tenant.domain.TenantRepository dispatchTenants,
-            com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService dispatchValidation,
+    public RouteService(TenantRepository dispatchTenants,
+            DispatchAssignmentValidationService dispatchValidation,
             RouteRepository routeRepository,
             RouteStopRepository routeStopRepository,
             RideRepository rideRepository,
@@ -79,7 +85,8 @@ public class RouteService {
             DriverComplianceSummaryService driverComplianceSummaryService,
             VehicleComplianceSummaryService vehicleComplianceSummaryService,
             RideEventService rideEventService,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            NotificationEventService notifications) {
         this.dispatchTenants=dispatchTenants;this.dispatchValidation=dispatchValidation;
         this.routeRepository = routeRepository;
         this.routeStopRepository = routeStopRepository;
@@ -94,6 +101,7 @@ public class RouteService {
         this.vehicleComplianceSummaryService = vehicleComplianceSummaryService;
         this.rideEventService = rideEventService;
         this.auditLogService = auditLogService;
+        this.notifications = notifications;
     }
 
     @Transactional(readOnly = true)
@@ -207,6 +215,7 @@ public class RouteService {
         Object oldSnapshot = snapshot(route);
         route.setAssignedDriverId(null);
         Route saved = routeRepository.save(route);
+        syncLinkedRideResourcesFromRoute(saved);
         recordRouteAudit(saved, "DRIVER_UNASSIGNED",
                 "Driver assignment was removed from route " + saved.getRouteCode() + ".",
                 oldSnapshot,
@@ -222,6 +231,7 @@ public class RouteService {
         Object oldSnapshot = snapshot(route);
         route.setAssignedVehicleId(null);
         Route saved = routeRepository.save(route);
+        syncLinkedRideResourcesFromRoute(saved);
         recordRouteAudit(saved, "VEHICLE_UNASSIGNED",
                 "Vehicle assignment was removed from route " + saved.getRouteCode() + ".",
                 oldSnapshot,
@@ -256,6 +266,7 @@ public class RouteService {
                     HttpStatus.BAD_REQUEST,
                     "A route must have both driver and vehicle resources assigned before it can start.");
         }
+        syncLinkedRideResourcesFromRoute(route);
         return updateRouteStatus(route, RouteStatus.IN_PROGRESS, "STARTED",
                 "Route " + route.getRouteCode() + " was started.");
     }
@@ -284,6 +295,7 @@ public class RouteService {
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanEdit(route.getStatus());
         Ride ride = rideAccessService.findRideForCompanyScope(request.rideId());
+        RideStatusWorkflow.ensureCanAssignResources(ride.getStatus());
         if (ride.getStatus() == RideStatus.CANCELLED || ride.getStatus() == RideStatus.COMPLETED) {
             throw new ApiException(
                     ErrorCode.VALIDATION_FAILED,
@@ -351,6 +363,7 @@ public class RouteService {
         }
         validateRouteStop(routeStop);
         RouteStop saved = routeStopRepository.save(routeStop);
+        validateRouteCapacity(route);
         recordRouteStopAudit(saved, "STOP_UPDATED",
                 "Route stop was updated for route " + route.getRouteCode() + ".",
                 oldSnapshot,
@@ -368,10 +381,18 @@ public class RouteService {
             throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Route stop was not found.");
         }
         Ride ride = routeStop.getRide();
+        RideStatusWorkflow.ensureCanAssignResources(ride.getStatus());
         routeStopRepository.delete(routeStop);
         normalizeStopSequences(route.getTenantId(), route.getId());
         ride.setRouteId(null);
+        RideStatus previousStatus = ride.getStatus();
+        if (ride.getDriverId() != null) rideEventService.recordDriverUnassigned(ride, ride.getDriverId().toString(), "Removed from route.");
+        if (ride.getVehicleId() != null) rideEventService.recordVehicleUnassigned(ride, ride.getVehicleId().toString(), "Removed from route.");
+        ride.setDriverId(null);
+        ride.setVehicleId(null);
+        ride.setStatus(RideStatus.SCHEDULED);
         rideRepository.save(ride);
+        if (previousStatus != ride.getStatus()) notifications.publishRideStatusChanged(ride, previousStatus, ride.getStatus());
         rideEventService.recordRouteUnassigned(ride, route.getRouteCode(), routeStop.getNotes());
         recordRouteStopAudit(routeStop, "STOP_REMOVED",
                 "Ride " + ride.getRideNumber() + " was removed from route " + route.getRouteCode() + ".",
@@ -413,6 +434,7 @@ public class RouteService {
         }
         routeStopRepository.saveAll(currentStops);
         normalizeStopSequences(route.getTenantId(), route.getId());
+        validateRouteCapacity(route);
         recordRouteAudit(route, "STOPS_REORDERED", "Route stops were reordered for route " + route.getRouteCode() + ".",
                 null, Map.of("stopCount", currentStops.size()));
         return getCompanyRoute(route.getId());
@@ -426,7 +448,17 @@ public class RouteService {
         return getCompanyRoute(saved.getId());
     }
 
+    private void validateRouteCapacity(Route route) {
+        if (route.getAssignedVehicleId() == null) return;
+        Vehicle vehicle = requireAssignableVehicle(route.getTenantId(), route.getAssignedVehicleId());
+        var stops = routeStopRepository.findAllByTenantIdAndRoute_IdOrderByStopSequenceAsc(route.getTenantId(), route.getId());
+        var planned = stops.stream().collect(Collectors.toMap(stop -> stop.getRide().getId(), stop -> stop, (a, b) -> a));
+        PooledRideCapacity.validate(vehicle,
+                stops.stream().map(RouteStop::getRide).toList(), planned);
+    }
+
     private void syncLinkedRideResourcesFromRoute(Route route) {
+        validateRouteCapacity(route);
         List<RouteStop> linkedStops = routeStopRepository.findAllByTenantIdAndRoute_IdOrderByStopSequenceAsc(
                 route.getTenantId(),
                 route.getId());
@@ -439,28 +471,49 @@ public class RouteService {
     }
 
     private void applyRouteResourcesToRide(Ride ride, Route route) {
-        boolean changed = false;
-        if (ride.getRouteId() == null || !ride.getRouteId().equals(route.getId())) {
-            ride.setRouteId(route.getId());
-            changed = true;
+        boolean resourcesChanged = !java.util.Objects.equals(ride.getDriverId(), route.getAssignedDriverId())
+                || !java.util.Objects.equals(ride.getVehicleId(), route.getAssignedVehicleId());
+        if (resourcesChanged) RideStatusWorkflow.ensureCanEdit(ride.getStatus());
+        if (route.getAssignedDriverId() != null) {
+            dispatchValidation.requireAssignableDriver(ride.getTenantId(), ride, route.getAssignedDriverId());
         }
-        if (ride.getDriverId() == null && route.getAssignedDriverId() != null) {
-            dispatchValidation.requireAssignableDriver(ride.getTenantId(),ride,route.getAssignedDriverId());
-            ride.setDriverId(route.getAssignedDriverId());
-            changed = true;
+        if (route.getAssignedVehicleId() != null) {
+            dispatchValidation.requireAssignableVehicle(ride.getTenantId(), ride, route.getAssignedVehicleId());
         }
-        if (ride.getVehicleId() == null && route.getAssignedVehicleId() != null) {
-            dispatchValidation.requireAssignableVehicle(ride.getTenantId(),ride,route.getAssignedVehicleId());
-            ride.setVehicleId(route.getAssignedVehicleId());
-            changed = true;
+        Long previousDriver = ride.getDriverId();
+        Long previousVehicle = ride.getVehicleId();
+        RideStatus previousStatus = ride.getStatus();
+        ride.setRouteId(route.getId());
+        ride.setDriverId(route.getAssignedDriverId());
+        ride.setVehicleId(route.getAssignedVehicleId());
+        if (ride.getStatus() == RideStatus.SCHEDULED || ride.getStatus() == RideStatus.ASSIGNED) {
+            ride.setStatus(ride.getDriverId() == null ? RideStatus.SCHEDULED : RideStatus.ASSIGNED);
         }
-        if (ride.getDriverId() != null && ride.getStatus() == RideStatus.SCHEDULED) {
-            ride.setStatus(RideStatus.ASSIGNED);
-            changed = true;
+        rideRepository.save(ride);
+        if (!java.util.Objects.equals(previousDriver, ride.getDriverId())) {
+            if (previousDriver != null) rideEventService.recordDriverUnassigned(ride, previousDriver.toString(), "Route resources changed.");
+            if (ride.getDriverId() != null) rideEventService.recordDriverAssigned(ride, ride.getDriverId().toString(), "Route resources changed.");
         }
-        if (changed) {
-            rideRepository.save(ride);
+        if (!java.util.Objects.equals(previousVehicle, ride.getVehicleId())) {
+            if (previousVehicle != null) rideEventService.recordVehicleUnassigned(ride, previousVehicle.toString(), "Route resources changed.");
+            if (ride.getVehicleId() != null) rideEventService.recordVehicleAssigned(ride, ride.getVehicleId().toString(), "Route resources changed.");
         }
+        if (previousStatus != ride.getStatus()) {
+            rideEventService.recordStatusChanged(ride, previousStatus, ride.getStatus(), "Route resources changed.");
+            notifications.publishRideStatusChanged(ride, previousStatus, ride.getStatus());
+        }
+        if (!java.util.Objects.equals(previousDriver, ride.getDriverId()) && ride.getDriverId() != null) {
+            driversForNotification(ride);
+        }
+        if (!java.util.Objects.equals(previousVehicle, ride.getVehicleId()) && ride.getVehicleId() != null) {
+            vehicleRepository.findByIdAndTenantId(ride.getVehicleId(), ride.getTenantId())
+                    .ifPresent(vehicle -> notifications.publishRideVehicleAssigned(ride, vehicle));
+        }
+    }
+
+    private void driversForNotification(Ride ride) {
+        driverRepository.findByIdAndTenantId(ride.getDriverId(), ride.getTenantId())
+                .ifPresent(driver -> notifications.publishRideDriverAssigned(ride, driver));
     }
 
     private Driver requireAssignableDriver(String tenantId, Long driverId) {
