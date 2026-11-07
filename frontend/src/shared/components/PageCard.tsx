@@ -21,7 +21,7 @@ export function PageCard({ children, sx, variant = "default" }: PageCardProps) {
       boxShadow: "none",
     },
     elevated: {
-      border: "none",
+      border: "1px solid #e5e9ee",
       boxShadow: shadowTokens.tableCard,
     },
   };

@@ -43,9 +43,12 @@ jobs:
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
       APP_SECURITY_JWT_SECRET: ${{ secrets.APP_SECURITY_JWT_SECRET }}
       APP_PUBLIC_URL: ${{ vars.APP_PUBLIC_URL || 'https://transport.bakaroo.com' }}
+      APP_ADMIN_URL: ${{ vars.APP_ADMIN_URL || 'https://admin.transport.bakaroo.com' }}
+      VITE_PUBLIC_SITE_URL: ${{ vars.APP_PUBLIC_URL || 'https://transport.bakaroo.com' }}
+      VITE_ADMIN_SITE_URL: ${{ vars.APP_ADMIN_URL || 'https://admin.transport.bakaroo.com' }}
       VITE_API_BASE_URL: /api
       VITE_GOOGLE_MAPS_API_KEY: ${{ vars.VITE_GOOGLE_MAPS_API_KEY }}
-      APP_SECURITY_ALLOWED_ORIGINS: ${{ vars.APP_SECURITY_ALLOWED_ORIGINS || 'https://transport.bakaroo.com' }}
+      APP_SECURITY_ALLOWED_ORIGINS: ${{ vars.APP_SECURITY_ALLOWED_ORIGINS || 'https://transport.bakaroo.com,https://admin.transport.bakaroo.com' }}
       APP_AUTH_PASSWORD_RESET_BASE_URL: ${{ vars.APP_AUTH_PASSWORD_RESET_BASE_URL }}
       APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED: ${{ vars.APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED || 'false' }}
       APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL: ${{ vars.APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL }}

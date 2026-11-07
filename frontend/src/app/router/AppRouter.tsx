@@ -6,8 +6,6 @@ import {
 } from "react-router-dom";
 import { AppShell } from "../layouts/AppShell";
 import { AuthLayout } from "../layouts/AuthLayout";
-import { PublicAuthLayout } from "../layouts/PublicAuthLayout";
-import { PublicLayout } from "../layouts/PublicLayout";
 import { ProtectedRoute } from "../../features/auth/routes/ProtectedRoute";
 import {
   canAccessCompanyWorkspace,
@@ -157,11 +155,6 @@ const CompanyApplicationsPage = lazyPage(
   () =>
     import("../../features/company-applications/pages/CompanyApplicationsPage"),
   "CompanyApplicationsPage",
-);
-const PublicCompanyApplicationPage = lazyPage(
-  () =>
-    import("../../features/company-applications/pages/PublicCompanyApplicationPage"),
-  "PublicCompanyApplicationPage",
 );
 const RoleManagementPage = lazyPage(
   () => import("../../features/roles/pages/RoleManagementPage"),
@@ -331,120 +324,19 @@ const TenantSubscriptionManagementPage = lazyPage(
   () => import("../../features/saas/pages/TenantSubscriptionManagementPage"),
   "TenantSubscriptionManagementPage",
 );
-const AboutPage = lazyPage(
-  () => import("../../features/public/pages/AboutPage"),
-  "AboutPage",
-);
-const ContactPage = lazyPage(
-  () => import("../../features/public/pages/ContactPage"),
-  "ContactPage",
-);
-const DataProcessingSupportPage = lazyPage(
-  () => import("../../features/public/pages/DataProcessingSupportPage"),
-  "DataProcessingSupportPage",
-);
-const FaqPage = lazyPage(
-  () => import("../../features/public/pages/FaqPage"),
-  "FaqPage",
-);
-const FeaturesPage = lazyPage(
-  () => import("../../features/public/pages/FeaturesPage"),
-  "FeaturesPage",
-);
 const ForgotPasswordPage = lazyPage(
-  () => import("../../features/public/pages/ForgotPasswordPage"),
+  () => import("../../features/auth/pages/ForgotPasswordPage"),
   "ForgotPasswordPage",
 );
-const HomePage = lazyPage(
-  () => import("../../features/public/pages/HomePage"),
-  "HomePage",
-);
-const PricingPage = lazyPage(
-  () => import("../../features/public/pages/PricingPage"),
-  "PricingPage",
-);
-const PrivacyAndDataHandlingPage = lazyPage(
-  () => import("../../features/public/pages/PrivacyAndDataHandlingPage"),
-  "PrivacyAndDataHandlingPage",
-);
 const ResetPasswordPage = lazyPage(
-  () => import("../../features/public/pages/ResetPasswordPage"),
+  () => import("../../features/auth/pages/ResetPasswordPage"),
   "ResetPasswordPage",
-);
-const SecurityOverviewPage = lazyPage(
-  () => import("../../features/public/pages/SecurityOverviewPage"),
-  "SecurityOverviewPage",
-);
-const ServiceAgreementsPage = lazyPage(
-  () => import("../../features/public/pages/ServiceAgreementsPage"),
-  "ServiceAgreementsPage",
-);
-const SolutionsPage = lazyPage(
-  () => import("../../features/public/pages/SolutionsPage"),
-  "SolutionsPage",
 );
 
 const router = createBrowserRouter([
+  { path: "/", element: <Navigate to="/login" replace /> },
   {
-    path: "/",
-    element: <PublicLayout />,
-    children: [
-      {
-        index: true,
-        element: <HomePage />,
-      },
-      {
-        path: "about",
-        element: <AboutPage />,
-      },
-      {
-        path: "solutions",
-        element: <SolutionsPage />,
-      },
-      {
-        path: "features",
-        element: <FeaturesPage />,
-      },
-      {
-        path: "pricing",
-        element: <PricingPage />,
-      },
-      {
-        path: "contact",
-        element: <ContactPage />,
-      },
-      {
-        path: "privacy",
-        element: <PrivacyAndDataHandlingPage />,
-      },
-      {
-        path: "service-agreements",
-        element: <ServiceAgreementsPage />,
-      },
-      {
-        path: "security",
-        element: <SecurityOverviewPage />,
-      },
-      {
-        path: "data-processing-support",
-        element: <DataProcessingSupportPage />,
-      },
-      {
-        path: "faq",
-        element: <FaqPage />,
-      },
-      {
-        path: "/apply",
-        element: <PublicCompanyApplicationPage />,
-      },
-      {
-        path: "*",
-        element: <NotFoundPage />,
-      },
-    ],
-  },
-  {
-    element: <PublicAuthLayout />,
+    element: <AuthLayout />,
     children: [
       {
         path: "/login",
@@ -826,6 +718,7 @@ const router = createBrowserRouter([
       },
     ],
   },
+  { element: <AuthLayout />, children: [{ path: "*", element: <NotFoundPage /> }] },
 ]);
 
 export function AppRouter() {

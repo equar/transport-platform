@@ -1,0 +1,12 @@
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
+import assert from 'node:assert/strict';
+assert(!existsSync('dist/index.html'), 'Legacy combined build must be removed before packaging');
+const publicAssets = readdirSync('dist/public/assets');
+const adminAssets = readdirSync('dist/admin/assets');
+assert(publicAssets.some(name => name.startsWith('HomePage-')), 'Public home page missing');
+assert(!publicAssets.some(name => /^(DashboardPage|LoginPage|DispatchBoardPage|TenantManagementPage)-/.test(name)), 'Admin pages leaked into the public build');
+assert(adminAssets.some(name => name.startsWith('LoginPage-')), 'Admin login missing');
+assert(!adminAssets.some(name => /^(HomePage|PricingPage|SolutionsPage|ContactPage)-/.test(name)), 'Marketing pages leaked into the admin build');
+assert(readFileSync('dist/admin/index.html', 'utf8').includes('noindex, nofollow'), 'Admin indexing must be disabled');
+assert(!readFileSync('dist/public/index.html', 'utf8').includes('noindex, nofollow'), 'Public website must remain indexable');
+console.log('Public/admin build isolation and indexing checks passed.');

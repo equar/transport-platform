@@ -1,3 +1,4 @@
+import { env } from "../../shared/config/env";
 import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
 import { Button, Stack, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
@@ -28,16 +29,16 @@ export function NotFoundPage() {
             Go to Home
           </Button>
           <Button
-            component={RouterLink}
-            to="/login"
+            component="a"
+            href={env.adminSiteUrl + "/login"}
             variant="outlined"
             size="large"
           >
             Sign in
           </Button>
           <Button
-            component={RouterLink}
-            to="/contact"
+            component="a"
+            href={env.publicSiteUrl + "/contact"}
             color="inherit"
             size="large"
           >

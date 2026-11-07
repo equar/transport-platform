@@ -100,7 +100,7 @@ export function DriverPortalLayout() {
   const drawer = (
     <Stack sx={{ height: "100%" }}>
       <Box sx={{ px: 2.5, py: 3 }}>
-        <BrandMark compact />
+        <BrandMark compact inverse />
       </Box>
       <Divider />
       <Box sx={{ px: 2.5, py: 2 }}>

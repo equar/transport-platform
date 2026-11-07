@@ -4,11 +4,17 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
+    "dev": "vite --mode public",
+    "build": "tsc -b && npm run clean:build && npm run build:public && npm run build:admin && npm run check:sites",
+    "preview": "vite preview --mode public --outDir dist/public",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev:admin": "vite --mode admin",
+    "build:public": "vite build --mode public --outDir dist/public",
+    "build:admin": "vite build --mode admin --outDir dist/admin",
+    "preview:admin": "vite preview --mode admin --outDir dist/admin",
+    "check:sites": "node scripts/check-site-build.mjs",
+    "clean:build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\""
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

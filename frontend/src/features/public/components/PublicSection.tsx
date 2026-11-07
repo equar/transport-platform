@@ -1,48 +1,5 @@
-import type { PropsWithChildren, ReactNode } from "react";
-import { Box, Chip, Stack, Typography } from "@mui/material";
-
-interface PublicSectionProps extends PropsWithChildren {
-  eyebrow?: string;
-  title: string;
-  description?: string;
-  actions?: ReactNode;
-}
-
-export function PublicSection({
-  eyebrow,
-  title,
-  description,
-  actions,
-  children,
-}: PublicSectionProps) {
-  return (
-    <Stack spacing={{ xs: 3, md: 4 }}>
-      <Stack spacing={2} sx={{ maxWidth: 820 }}>
-        {eyebrow ? (
-          <Chip
-            label={eyebrow}
-            color="secondary"
-            sx={{ alignSelf: "flex-start", fontWeight: 700 }}
-          />
-        ) : null}
-        <Typography
-          variant="h2"
-          sx={{ fontSize: { xs: "2.1rem", md: "3rem" }, lineHeight: 1 }}
-        >
-          {title}
-        </Typography>
-        {description ? (
-          <Typography
-            variant="body1"
-            color="text.secondary"
-            sx={{ fontSize: "1.05rem" }}
-          >
-            {description}
-          </Typography>
-        ) : null}
-        {actions}
-      </Stack>
-      <Box>{children}</Box>
-    </Stack>
-  );
+import type { PropsWithChildren, ReactNode } from 'react';
+import { Box, Stack, Typography } from '@mui/material';
+export function PublicSection({ eyebrow, title, description, actions, children }: PropsWithChildren<{ eyebrow?: string; title: string; description?: string; actions?: ReactNode }>) {
+  return <Stack spacing={{ xs: 4, md: 5 }}><Box sx={{ maxWidth: 780 }}>{eyebrow && <Typography variant="overline" color="primary">{eyebrow}</Typography>}<Typography variant="h2" sx={{ mt: 1.5, fontSize: { xs: '2rem', md: '2.65rem' }, lineHeight: 1.2 }}>{title}</Typography>{description && <Typography color="text.secondary" sx={{ mt: 2, maxWidth: 670, fontSize: '1rem' }}>{description}</Typography>}{actions && <Box mt={3}>{actions}</Box>}</Box><Box>{children}</Box></Stack>;
 }

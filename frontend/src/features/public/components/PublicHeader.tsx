@@ -1,172 +1,28 @@
-import { useState } from "react";
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
-import {
-  AppBar,
-  Box,
-  Button,
-  Container,
-  Divider,
-  Drawer,
-  IconButton,
-  Stack,
-  Toolbar,
-  Typography,
-} from "@mui/material";
-import { Link as RouterLink, useLocation } from "react-router-dom";
-import { BrandMark } from "../../../shared/components/BrandMark";
-import {
-  publicAuthCta,
-  publicNavigationItems,
-  publicPrimaryCta,
-  publicSecondaryCta,
-} from "../content/siteContent";
-
-function isActivePath(currentPath: string, targetPath: string) {
-  if (targetPath === "/") {
-    return currentPath === "/";
-  }
-
-  return currentPath.startsWith(targetPath);
-}
-
+import { useEffect, useState } from 'react';
+import { AppBar, Box, Button, Container, Drawer, IconButton, Stack, Toolbar } from '@mui/material';
+import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
+import { BrandMark } from '../../../shared/components/BrandMark';
+const navigation = [{ label: 'Solutions', to: '/solutions' }, { label: 'Platform', to: '/features' }, { label: 'Pricing', to: '/pricing' }, { label: 'About us', to: '/about' }, { label: 'Contact', to: '/contact' }];
 export function PublicHeader() {
-  const location = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  const actionButtons = (
-    <Stack direction={{ xs: "column", md: "row" }} spacing={1.25}>
-      <Button
-        component={RouterLink}
-        to={publicAuthCta.to}
-        variant="text"
-        color="inherit"
-      >
-        {publicAuthCta.label}
-      </Button>
-      <Button
-        component={RouterLink}
-        to={publicSecondaryCta.to}
-        variant="outlined"
-        endIcon={<LaunchRoundedIcon />}
-      >
-        {publicSecondaryCta.label}
-      </Button>
-      <Button
-        component={RouterLink}
-        to={publicPrimaryCta.to}
-        variant="contained"
-      >
-        {publicPrimaryCta.label}
-      </Button>
-    </Stack>
-  );
-
-  return (
-    <>
-      <AppBar
-        position="sticky"
-        color="transparent"
-        elevation={0}
-        sx={{
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          bgcolor: "rgba(247, 248, 244, 0.82)",
-          backdropFilter: "blur(18px)",
-        }}
-      >
-        <Container maxWidth="xl">
-          <Toolbar disableGutters sx={{ minHeight: 88, gap: 2 }}>
-            <Box
-              component={RouterLink}
-              to="/"
-              sx={{ textDecoration: "none", color: "inherit", flexShrink: 0 }}
-            >
-              <BrandMark compact />
-            </Box>
-
-            <Stack
-              direction="row"
-              spacing={0.5}
-              sx={{
-                ml: "auto",
-                display: { xs: "none", lg: "flex" },
-                alignItems: "center",
-              }}
-            >
-              {publicNavigationItems.map((item) => {
-                const active = isActivePath(location.pathname, item.to);
-                return (
-                  <Button
-                    key={item.to}
-                    component={RouterLink}
-                    to={item.to}
-                    color="inherit"
-                    sx={{
-                      px: 1.5,
-                      color: active ? "primary.main" : "text.primary",
-                      fontWeight: active ? 700 : 600,
-                      position: "relative",
-                    }}
-                  >
-                    {item.label}
-                  </Button>
-                );
-              })}
-            </Stack>
-
-            <Box sx={{ display: { xs: "none", lg: "block" } }}>
-              {actionButtons}
-            </Box>
-
-            <IconButton
-              color="inherit"
-              onClick={() => setMobileOpen(true)}
-              sx={{ ml: "auto", display: { xs: "inline-flex", lg: "none" } }}
-            >
-              <MenuRoundedIcon />
-            </IconButton>
-          </Toolbar>
-        </Container>
-      </AppBar>
-
-      <Drawer
-        anchor="right"
-        open={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-      >
-        <Stack sx={{ width: 320, p: 3 }} spacing={2.5}>
-          <BrandMark compact />
-          <Divider />
-          <Stack spacing={0.75}>
-            {publicNavigationItems.map((item) => {
-              const active = isActivePath(location.pathname, item.to);
-              return (
-                <Button
-                  key={item.to}
-                  component={RouterLink}
-                  to={item.to}
-                  onClick={() => setMobileOpen(false)}
-                  color="inherit"
-                  sx={{
-                    justifyContent: "flex-start",
-                    color: active ? "primary.main" : "text.primary",
-                    fontWeight: active ? 700 : 600,
-                  }}
-                >
-                  {item.label}
-                </Button>
-              );
-            })}
-          </Stack>
-          <Divider />
-          {actionButtons}
-          <Typography variant="body2" color="text.secondary">
-            Enterprise transportation SaaS for fleets, brokers, care programs,
-            and regulated service operations.
-          </Typography>
-        </Stack>
-      </Drawer>
-    </>
-  );
+  const { pathname } = useLocation();
+  const [open, setOpen] = useState(false);
+  useEffect(() => { setOpen(false); }, [pathname]);
+  const links = navigation.map(item => <Button key={item.to} component={RouterLink} to={item.to} onClick={() => setOpen(false)} aria-current={pathname === item.to ? 'page' : undefined} color="inherit" sx={{ fontSize: '.83rem', color: pathname === item.to ? 'primary.main' : 'text.secondary', px: 1.5, justifyContent: { xs: 'flex-start', md: 'center' } }}>{item.label}</Button>);
+  return <AppBar position="sticky" elevation={0} color="transparent" sx={{ bgcolor: '#faf9f6f5', backdropFilter: 'blur(16px)', borderBottom: '1px solid #e9e8e3' }}>
+    <Container maxWidth={false} sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2.5, md: 4 } }}>
+      <Toolbar disableGutters sx={{ gap: 3, minHeight: '84px !important' }}>
+        <Box component={RouterLink} to="/" aria-label="Bakaroo Transports home" sx={{ color: 'inherit', textDecoration: 'none' }}><BrandMark compact /></Box>
+        <Stack direction="row" spacing={.5} sx={{ display: { xs: 'none', md: 'flex' }, mx: 'auto' }}>{links}</Stack>
+        <Button component={RouterLink} to="/contact#request-demo" variant="contained" endIcon={<ArrowForwardRoundedIcon sx={{ fontSize: 17 }} />} sx={{ display: { xs: 'none', md: 'inline-flex' } }}>Book a demo</Button>
+        <IconButton aria-label="Open navigation menu" onClick={() => setOpen(true)} sx={{ ml: 'auto', display: { md: 'none' } }}><MenuRoundedIcon /></IconButton>
+      </Toolbar>
+    </Container>
+    <Drawer anchor="right" open={open} onClose={() => setOpen(false)} PaperProps={{ sx: { width: 'min(340px, 90vw)', p: 3 } }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={4}><BrandMark compact /><IconButton aria-label="Close navigation menu" onClick={() => setOpen(false)}><CloseRoundedIcon /></IconButton></Stack>
+      <Stack spacing={1}>{links}<Button component={RouterLink} to="/contact#request-demo" onClick={() => setOpen(false)} variant="contained" sx={{ mt: 3 }}>Book a demo</Button></Stack>
+    </Drawer>
+  </AppBar>;
 }

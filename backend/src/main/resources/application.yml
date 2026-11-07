@@ -50,7 +50,7 @@ management:
 
 app:
   auth:
-    password-reset-base-url: ${APP_AUTH_PASSWORD_RESET_BASE_URL:http://localhost:3007/reset-password}
+    password-reset-base-url: ${APP_AUTH_PASSWORD_RESET_BASE_URL:http://localhost:3008/reset-password}
     password-reset-ttl: PT2H
   email:
     enabled: ${APP_EMAIL_ENABLED:false}

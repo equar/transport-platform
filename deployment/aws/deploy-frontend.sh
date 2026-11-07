@@ -4,9 +4,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$ROOT/deployment/aws/deploy-common.sh"
 python3 "$ROOT/deployment/aws/validate-config.py" --target frontend
 public_url="${APP_PUBLIC_URL:-https://transport.bakaroo.com}"
-[[ -s "$ROOT/frontend/dist/index.html" ]] || { echo 'Build the frontend before deployment.' >&2; exit 1; }
+admin_url="${APP_ADMIN_URL:-https://admin.transport.bakaroo.com}"
+[[ -s "$ROOT/frontend/dist/public/index.html" && -s "$ROOT/frontend/dist/admin/index.html" ]] || { echo 'Build the frontend before deployment.' >&2; exit 1; }
 # Host routing and TLS are explicit one-time prerequisites, not mutated by each release.
-curl -fsS --max-time 20 "$public_url/health" >/dev/null
+for url in "$public_url" "$admin_url"; do curl -fsS --max-time 20 "$url/health" >/dev/null; done
 health_check "$public_url/api/actuator/health"
 work="$(mktemp -d)"
 remote=''
@@ -32,7 +33,12 @@ verified=false
 for _ in $(seq 1 5); do
   if curl -fsS --max-time 15 "$public_url/release.json" |
        python3 -c 'import json,sys;sys.exit(0 if json.load(sys.stdin).get("release")==sys.argv[1] else 1)' "$DEPLOY_ID"; then
-    if curl -fsS --max-time 15 "$public_url/" >/dev/null && health_check "$public_url/api/actuator/health"; then verified=true; break; fi
+    if curl -fsS --max-time 15 "$public_url/" >/dev/null &&
+       curl -fsS --max-time 15 "$admin_url/login" >/dev/null &&
+       curl -fsS --max-time 15 "$admin_url/release.json" |
+         python3 -c 'import json,sys;sys.exit(0 if json.load(sys.stdin).get("release")==sys.argv[1] else 1)' "$DEPLOY_ID"; then
+      if health_check "$admin_url/api/actuator/health"; then verified=true; break; fi
+    fi
   fi
   sleep 2
 done
@@ -55,4 +61,4 @@ fi
 REMOTE
   exit 1
 fi
-echo "Frontend release $DEPLOY_ID verified through public HTTPS."
+echo "Public and admin frontend release $DEPLOY_ID verified through HTTPS."

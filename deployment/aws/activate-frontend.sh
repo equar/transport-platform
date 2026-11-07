@@ -23,7 +23,11 @@ release="$releases/$release_id"
 [[ ! -e "$release" ]] || { echo 'Release ID already exists; choose a fresh deployment ID' >&2; exit 1; }
 install -d -m 755 "$releases" "$release"
 tar --no-same-owner --no-same-permissions -xzf "$incoming/frontend.tar.gz" -C "$release"
-[[ -s "$release/index.html" && -s "$release/release.json" ]]
+[[ -s "$release/public/index.html" && -s "$release/admin/index.html" && -s "$release/release.json" ]]
+# Preserve the previous single-site proxy during the one-time hostname cutover.
+ln -s public/index.html "$release/index.html"
+ln -s public/assets "$release/assets"
+ln -s public/branding "$release/branding"
 chown -R root:root "$release"
 find "$release" -type d -exec chmod 755 {} +
 find "$release" -type f -exec chmod 644 {} +

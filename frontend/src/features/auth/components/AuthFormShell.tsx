@@ -45,7 +45,7 @@ export function AuthFormShell({
           <Typography variant="overline" color="secondary.main">
             {eyebrow}
           </Typography>
-          <Typography variant="h3" sx={{ mt: 1 }}>
+          <Typography variant="h3" component="h1" sx={{ mt: 1 }}>
             {title}
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 680 }}>

@@ -1,31 +1,6 @@
-import { Box, Stack, Typography } from "@mui/material";
-import type { ReactNode } from "react";
-import { PageCard } from "./PageCard";
-
-interface MetricCardProps {
-  icon: ReactNode;
-  label: string;
-  value: ReactNode;
-  caption?: string;
-}
-
-export function MetricCard({ icon, label, value, caption }: MetricCardProps) {
-  return (
-    <PageCard sx={{ height: "100%", p: 2.25, position: "relative", overflow: "hidden", "&::after": { content: '\"\"', position: "absolute", inset: "0 auto auto 0", width: 84, height: 4, borderRadius: 0, bgcolor: "primary.main" } }}>
-      <Stack spacing={1.2} height="100%">
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Box sx={{ display: "grid", placeItems: "center", width: 42, height: 42, borderRadius: 1.5, color: "primary.main", bgcolor: "rgba(18, 102, 214, 0.10)", "& svg": { fontSize: 22 } }}>{icon}</Box>
-        </Stack>
-        <Typography variant="subtitle2" color="text.secondary">
-          {label}
-        </Typography>
-        <Typography variant="h4" sx={{ lineHeight: 1, fontSize: "2.2rem" }}>{value}</Typography>
-        {caption ? (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: "auto !important", lineHeight: 1.45 }}>
-            {caption}
-          </Typography>
-        ) : null}
-      </Stack>
-    </PageCard>
-  );
+import { Box, Stack, Typography } from '@mui/material';
+import type { ReactNode } from 'react';
+import { PageCard } from './PageCard';
+export function MetricCard({ icon, label, value, caption }: { icon: ReactNode; label: string; value: ReactNode; caption?: string }) {
+  return <PageCard sx={{ height: '100%', p: 2.5 }}><Stack spacing={2.5} height="100%"><Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between"><Typography variant="subtitle2" color="text.secondary">{label}</Typography><Box sx={{ width: 32, height: 32, display: 'grid', placeItems: 'center', borderRadius: 1, bgcolor: '#f1f4f8', color: '#5f7894', '& svg': { fontSize: 19 } }}>{icon}</Box></Stack><Typography variant="h3" sx={{ fontSize: '2.1rem', fontWeight: 650, fontVariantNumeric: 'tabular-nums', letterSpacing: '-.04em' }}>{value}</Typography>{caption && <Typography color="text.secondary" sx={{ fontSize: '.73rem', mt: 'auto !important', pt: .5 }}>{caption}</Typography>}</Stack></PageCard>;
 }

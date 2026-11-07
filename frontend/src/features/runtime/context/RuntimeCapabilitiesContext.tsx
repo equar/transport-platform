@@ -6,7 +6,7 @@ import {
   type PropsWithChildren,
 } from "react";
 import { isPlatformAdmin } from "../../auth/access";
-import { useAuth } from "../../auth/context/AuthContext";
+import type { AuthSession } from "../../auth/types";
 import {
   runtimeApi,
   type RuntimeBranding,
@@ -30,9 +30,9 @@ const defaultBranding: RuntimeBranding = {
   displayName: "Bakaroo Transports",
   logoUrl: null,
   faviconUrl: null,
-  primaryColor: "#1266d6",
-  secondaryColor: "#084aa8",
-  accentColor: "#4d94ee",
+  primaryColor: "#214e82",
+  secondaryColor: "#12263e",
+  accentColor: "#d8662a",
   supportEmail: "support@transportplatform.com",
   supportPhone: null,
   website: null,
@@ -41,8 +41,8 @@ const defaultBranding: RuntimeBranding = {
   customFooterText: "Bakaroo Transports transportation operations",
 };
 
-export function RuntimeCapabilitiesProvider({ children }: PropsWithChildren) {
-  const { isAuthenticated, session } = useAuth();
+export function RuntimeCapabilitiesProvider({ children, session = null }: PropsWithChildren<{ session?: AuthSession | null }>) {
+  const isAuthenticated = Boolean(session);
   const [capabilities, setCapabilities] =
     useState<RuntimeTenantCapabilities | null>(null);
   const [branding, setBranding] = useState<RuntimeBranding | null>(
@@ -76,7 +76,7 @@ export function RuntimeCapabilitiesProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const effectiveBranding = branding ?? defaultBranding;
-    document.title = effectiveBranding.displayName || "Transport Platform";
+    document.title = (effectiveBranding.displayName || "Transport Platform") + (import.meta.env.VITE_SITE_KIND === "admin" ? " | Admin" : "");
 
     if (!effectiveBranding.faviconUrl) {
       return;

@@ -3,9 +3,7 @@
 Transport now uses the deployment structure reviewed in `bingo-platform`: one
 GitHub Actions SSH release workflow, selective application builds, validated
 production configuration, protected runtime files, health checks and recovery.
-Transport keeps its own database, domain, runtime paths, credentials and API
-context. No Bingo credentials, domains, payment configuration, mobile release
-workflows or database contents are reused.
+Transport uses its own schema, hostnames and runtime paths on the authorized shared infrastructure. Bingo application data and deployment paths remain separate.
 
 ## Release flow
 
@@ -32,11 +30,28 @@ build with `VITE_API_BASE_URL=/api`. All selected applications build before SSH
 activation. PR CI remains the review gate; require it and deployment validation
 in branch protection. The workflow does not modify branch protection.
 
+## One-time split from the combined website
+
+Wait for admin DNS before cutover. Build with `cd frontend && npm run build`;
+this produces isolated `dist/public` and `dist/admin` bundles. Stage and activate
+the two-site release using `activate-frontend.sh`, then run `setup-web-host.sh`
+to expand the certificate and install both vhosts. Activation retains root
+aliases for the previous proxy during this transition. Preserve the previous
+Nginx config and release symlink for rollback.
+
+Verify both homes, login, JS assets, old recovery redirects, and API health.
+Set Actions `APP_ADMIN_URL`, both `APP_SECURITY_ALLOWED_ORIGINS`, and the admin
+`APP_AUTH_PASSWORD_RESET_BASE_URL`. Apply origins and reset URL to the runtime
+environment and restart the backend. Subsequent `deploy-frontend.sh` releases
+require HTTPS on both sites and verify both release IDs. Both sites are promoted
+atomically together to keep shared contracts and links compatible.
+
 ## Runtime contract
 
 | Component | Value |
 | --- | --- |
-| Public site and role portals | `https://transport.bakaroo.com` |
+| Public information website | `https://transport.bakaroo.com` |
+| Admin application and role portals | `https://admin.transport.bakaroo.com` |
 | API and mobile base URL | `https://transport.bakaroo.com/api` |
 | Backend listener | `127.0.0.1:8082`, context `/api` |
 | Service identity/unit | `transport`, `transport-platform-backend.service` |
@@ -45,14 +60,18 @@ in branch protection. The workflow does not modify branch protection.
 | Working directory | `/opt/transport-platform/runtime` |
 | Writable application data | `/opt/transport-platform/documents`, `/opt/transport-platform/logs` |
 | Static release root | `/var/www/transport-platform-releases/<release-id>` |
-| Current/previous SPA | `/var/www/transport-platform`, `/var/www/transport-platform.previous` symlinks |
+| Public/admin roots | `/var/www/transport-platform/public`, `/var/www/transport-platform/admin` |
+| Current/previous release | `/var/www/transport-platform`, `/var/www/transport-platform.previous` symlinks |
 | MySQL schema | `transport_platform` |
 | Isolated database CA roots | `/etc/transport-platform/database-truststore.jks` |
 
 The backend is managed only through its systemd unit. Deployment no longer
 kills arbitrary processes by port. Nginx serves ports 80/443; production does
-not use Vite or expose port 3007. HTTPS serves the SPA and proxies `/api` on the
-same origin. Only the exact public actuator health endpoint is proxied; other
+not use Vite or expose ports 3007/3008. Each hostname serves its own SPA and
+proxies `/api` to port 8082 on the same origin. Cookies remain host-only; the
+public entry point does not restore login sessions. Admin pages are excluded
+from indexing. Existing public login, recovery and workspace links redirect
+to the admin hostname, preserving path and query. Only the exact public actuator health endpoint is proxied; other
 actuator endpoints are available to authorized administrators on the private
 backend listener. Camera/geolocation remain available to same-origin portals.
 
@@ -70,7 +89,7 @@ backend listener. Camera/geolocation remain available to same-origin portals.
    Supply the database's DNS hostname: JDBC uses `sslMode=VERIFY_IDENTITY`. Backend deployment
    prepares an isolated Java truststore from standard public roots and the
    official AWS RDS root bundle, preserving outbound Graph/Expo HTTPS trust.
-3. Point the transport domain to the host. Configure HTTPS/Nginx once, before
+3. Point both `transport.bakaroo.com` and `admin.transport.bakaroo.com` to the host (`3.129.120.209` for the current deployment). Configure HTTPS/Nginx once, before
    application deployment. Copy the following relative layout to the host:
 
    ```text
@@ -81,11 +100,13 @@ backend listener. Camera/geolocation remain available to same-origin portals.
    Run on the host:
 
    ```bash
-   sudo env APP_DOMAIN=transport.bakaroo.com CERTBOT_EMAIL=ops@example.com \
+   sudo env APP_DOMAIN=transport.bakaroo.com ADMIN_DOMAIN=admin.transport.bakaroo.com CERTBOT_EMAIL=ops@example.com \
      bash deployment/aws/setup-web-host.sh
    ```
 
-   This changes only Transport's vhost and `transport-platform` certificate.
+   This changes only Transport's vhosts and `transport-platform` certificate,
+   expanding it to cover both hostnames. The public vhost remains available
+   while the admin hostname is validated.
    It validates the proxy and restores the previous config/link on failure.
    Certificate renewal reuses system timers. Nginx/certificate changes stay
    separate from routine application releases. After changing the template,
@@ -135,12 +156,14 @@ Required **secrets**:
   signing secret containing at least 32 random bytes.
 
 Required **variables**: `MYSQL_HOST`, `MYSQL_USER`; `MYSQL_PORT` defaults to 3306.
-`APP_PUBLIC_URL` and `APP_SECURITY_ALLOWED_ORIGINS` default to the transport HTTPS
-origin. CORS must contain that origin. API build URL is fixed to `/api`.
+`APP_PUBLIC_URL` defaults to `https://transport.bakaroo.com`; `APP_ADMIN_URL`
+defaults to `https://admin.transport.bakaroo.com`. CORS must include both origins.
+The workflow derives `VITE_PUBLIC_SITE_URL` and `VITE_ADMIN_SITE_URL` from these
+variables. API build URL is fixed to `/api`.
 
 Optional settings:
 
-- `APP_AUTH_PASSWORD_RESET_BASE_URL` defaults to the public `/reset-password` URL.
+- `APP_AUTH_PASSWORD_RESET_BASE_URL` defaults to the admin `/reset-password` URL.
 - `VITE_GOOGLE_MAPS_API_KEY` is a browser-visible Maps key. Restrict its referrers
   and enabled APIs; it is not treated as a backend credential.
 - Bootstrap is **off by default**, in both configuration generation and the prod
