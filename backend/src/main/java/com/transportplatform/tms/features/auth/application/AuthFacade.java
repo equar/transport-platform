@@ -201,7 +201,7 @@ public class AuthFacade {
     }
 
     private void ensureEligibleForTokenIssuance(AppUser user, boolean revokeSessionsOnFailure) {
-        if (!user.isActiveForLogin()) {
+        if (!user.isActiveForLogin() || user.isTemporaryPasswordExpired(clock.instant())) {
             if (revokeSessionsOnFailure) {
                 authSessionService.revokeAllForUser(user.getId());
             }
@@ -249,6 +249,7 @@ public class AuthFacade {
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
         user.setPasswordChangedAt(clock.instant());
         user.setMustChangePassword(mustChangePassword);
+        user.setTemporaryPasswordExpiresAt(null);
     }
 
     private void clearPasswordResetState(AppUser user) {

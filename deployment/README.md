@@ -166,11 +166,12 @@ Optional settings:
 - `APP_AUTH_PASSWORD_RESET_BASE_URL` defaults to the admin `/reset-password` URL.
 - `VITE_GOOGLE_MAPS_API_KEY` is a browser-visible Maps key. Restrict its referrers
   and enabled APIs; it is not treated as a backend credential.
-- Bootstrap is **off by default**, in both configuration generation and the prod
-  profile. For deliberate first-admin creation, set
-  `APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED=true`, the email variable, and a bootstrap
-  password secret of at least 20 characters. Deploy backend, change the initial
-  password, disable bootstrap, remove the secret and redeploy backend.
+- The deployment workflow defaults to email bootstrap for `apps@bakaroo.com` and
+  `equarhishe@gmail.com`. This requires real Graph email delivery. Existing
+  identities are never modified or emailed again. Outside deployment, bootstrap
+  remains disabled by default. See [system administrator bootstrap](aws/ADMIN_BOOTSTRAP.md).
+  Legacy single-account password bootstrap remains available but cannot be
+  enabled with email bootstrap.
 - Graph email requires `APP_EMAIL_ENABLED=true`,
   `APP_EMAIL_PROVIDER=microsoft-graph`, `APP_EMAIL_FROM`, Graph client/tenant ID
   variables and `MICROSOFT_GRAPH_CLIENT_SECRET`. Transport implements Graph and
@@ -281,3 +282,5 @@ Local adaptation verification: the backend's full Maven verification passed
 Production SSH activation, certificate issuance and GitHub execution still
 require the target host/configuration; no live release was performed during
 this adaptation.
+
+For the two email-delivered system administrator accounts, see [administrator bootstrap](aws/ADMIN_BOOTSTRAP.md).

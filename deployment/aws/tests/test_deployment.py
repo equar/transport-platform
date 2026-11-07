@@ -76,6 +76,21 @@ class SelectionTests(unittest.TestCase):
 
 
 class ConfigurationTests(unittest.TestCase):
+    def test_email_bootstrap_requires_real_delivery_and_exclusive_mode(self):
+        env = environment()
+        env.update(APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL_ENABLED='true', APP_BOOTSTRAP_PLATFORM_ADMIN_EMAILS='apps@bakaroo.com,equarhishe@gmail.com')
+        with self.assertRaisesRegex(ValueError, 'enabled email'):
+            settings(env)
+        env.update(APP_EMAIL_ENABLED='true', APP_EMAIL_PROVIDER='microsoft-graph', APP_EMAIL_FROM='sender@example.test', MICROSOFT_GRAPH_CLIENT_ID='client', MICROSOFT_GRAPH_TENANT_ID='tenant', MICROSOFT_GRAPH_CLIENT_SECRET='private')
+        self.assertEqual(runtime_settings(settings(env))['APP_BOOTSTRAP_PLATFORM_ADMIN_EMAILS'], env['APP_BOOTSTRAP_PLATFORM_ADMIN_EMAILS'])
+        env.update(APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED='true', APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL='legacy@example.test', APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD='long-password-for-legacy-account')
+        with self.assertRaisesRegex(ValueError, 'only one'):
+            settings(env)
+        env['APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED']='false'
+        env['APP_BOOTSTRAP_PLATFORM_ADMIN_EMAILS']='apps@bakaroo.com,'
+        with self.assertRaisesRegex(ValueError, 'valid email'):
+            settings(env)
+
     def test_safe_defaults_and_runtime_tls(self):
         runtime = runtime_settings(settings(environment()))
         self.assertEqual(runtime['SPRING_PROFILES_ACTIVE'], 'prod')

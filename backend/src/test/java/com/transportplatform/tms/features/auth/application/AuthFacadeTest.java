@@ -60,6 +60,18 @@ class AuthFacadeTest {
     private AuthFacade authFacade;
 
     @Test
+    void loginRejectsExpiredTemporaryPassword() {
+        AppUser user = buildUser(UserStatus.ACTIVE);
+        user.setMustChangePassword(true);
+        user.setTemporaryPasswordExpiresAt(Instant.parse("2026-11-06T12:00:00Z"));
+        when(clock.instant()).thenReturn(Instant.parse("2026-11-06T12:00:00Z"));
+        when(appUserRepository.findForAuthenticationByEmail("ops@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
+        assertThrows(ApiException.class, () -> authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB"));
+        verify(authSessionService, never()).issue(any(), any());
+    }
+
+    @Test
     void loginRejectsNonActiveUsers() {
         AppUser user = buildUser(UserStatus.SUSPENDED);
         when(appUserRepository.findForAuthenticationByEmail("ops@example.com")).thenReturn(Optional.of(user));

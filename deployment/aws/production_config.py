@@ -13,6 +13,7 @@ DEFAULTS = {
     'APP_PUBLIC_URL': 'https://transport.bakaroo.com', 'APP_ADMIN_URL': 'https://admin.transport.bakaroo.com', 'VITE_API_BASE_URL': '/api',
     'MYSQL_PORT': '3306', 'MYSQL_DATABASE': 'transport_platform',
     'APP_SECURITY_ALLOWED_ORIGINS': 'https://transport.bakaroo.com,https://admin.transport.bakaroo.com',
+    'APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL_ENABLED': 'false', 'APP_BOOTSTRAP_PLATFORM_ADMIN_EMAILS': '',
     'APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED': 'false', 'APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL': '',
     'APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD': '',
     'APP_EMAIL_ENABLED': 'false', 'APP_EMAIL_PROVIDER': 'logging', 'APP_EMAIL_FROM': '',
@@ -93,13 +94,21 @@ def settings(environ=None, target='all', require_ssh=True):
         public_origin(origin.strip(), 'APP_SECURITY_ALLOWED_ORIGINS')
     if not {env['APP_PUBLIC_URL'], env['APP_ADMIN_URL']}.issubset({origin.strip() for origin in origins}):
         raise ValueError('APP_SECURITY_ALLOWED_ORIGINS must include both website origins')
-    for key in ('APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED', 'APP_EMAIL_ENABLED', 'APP_PUSH_ENABLED'):
+    for key in ('APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED', 'APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL_ENABLED', 'APP_EMAIL_ENABLED', 'APP_PUSH_ENABLED'):
         if env[key] not in ('true', 'false'):
             raise ValueError(key + ' must be true or false')
     if env['APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED'] == 'true':
         required(env, 'APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL')
         if len(required(env, 'APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD')) < 20:
             raise ValueError('Bootstrap password must contain at least 20 characters')
+    if env['APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL_ENABLED'] == 'true':
+        if env['APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED'] == 'true':
+            raise ValueError('Enable only one platform administrator bootstrap mode')
+        emails = required(env, 'APP_BOOTSTRAP_PLATFORM_ADMIN_EMAILS').split(',')
+        if any(len(email.strip()) > 150 or not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email.strip()) for email in emails):
+            raise ValueError('APP_BOOTSTRAP_PLATFORM_ADMIN_EMAILS requires valid email addresses')
+        if env['APP_EMAIL_ENABLED'] != 'true':
+            raise ValueError('Email administrator bootstrap requires enabled email delivery')
     if env['APP_EMAIL_ENABLED'] == 'true':
         if env['APP_EMAIL_PROVIDER'] != 'microsoft-graph':
             raise ValueError('Enabled email requires the implemented microsoft-graph provider')

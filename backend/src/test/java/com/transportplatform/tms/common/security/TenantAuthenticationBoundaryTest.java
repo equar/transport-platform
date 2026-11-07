@@ -86,6 +86,11 @@ class TenantAuthenticationBoundaryTest {
         assertEquals(403, request(token(), null, "/company/rides").getStatus());
         assertEquals(200, request(token(), null, "/v1/auth/change-password").getStatus());
     }
+    @Test void expiredTemporaryPasswordCannotUseAlreadyIssuedJwt() throws Exception {
+        user.setMustChangePassword(true);
+        user.setTemporaryPasswordExpiresAt(java.time.Instant.now().minusSeconds(1));
+        assertEquals(401, request(token(), null, "/v1/auth/change-password").getStatus());
+    }
     @Test void anonymousHeaderNeverEstablishesTenantContext() throws Exception {
         var request = new MockHttpServletRequest(); request.addHeader("X-Tenant-Id", "tenant-b");
         new TenantContextFilter(new TenantProperties()).doFilter(request, new MockHttpServletResponse(),

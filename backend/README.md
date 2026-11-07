@@ -130,3 +130,5 @@ Provide production values for:
 - External integrations and downstream workflow wiring beyond the current platform implementation.
 - Additional operational hardening, scaling, and observability work as deployment requirements evolve.
 - Future domain expansion beyond the currently implemented transportation, billing, compliance, and portal capabilities.
+
+For the two email-delivered system administrator accounts, see [administrator bootstrap](../deployment/aws/ADMIN_BOOTSTRAP.md).

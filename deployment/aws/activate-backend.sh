@@ -24,8 +24,11 @@ install -d -o root -g root -m 755 "$app" "$app/runtime"
 install -d -o transport -g transport -m 750 "$app/logs" "$app/documents" "$app/documents/driver-documents"
 previous_healthy=false
 healthy() {
-  curl -fsS --max-time 5 http://127.0.0.1:8082/api/actuator/health 2>/dev/null |
-    python3 -c 'import json,sys;sys.exit(0 if json.load(sys.stdin).get("status")=="UP" else 1)' >/dev/null 2>&1
+  # Readiness becomes UP only after ApplicationRunner/bootstrap has completed.
+  for endpoint in health health/readiness; do
+    curl -fsS --max-time 5 "http://127.0.0.1:8082/api/actuator/$endpoint" 2>/dev/null |
+      python3 -c 'import json,sys;sys.exit(0 if json.load(sys.stdin).get("status")=="UP" else 1)' >/dev/null 2>&1 || return 1
+  done
 }
 if systemctl is-active --quiet "$service" && healthy && [[ -f "$app/backend.jar" && -f "$app/.env" ]]; then
   previous_healthy=true

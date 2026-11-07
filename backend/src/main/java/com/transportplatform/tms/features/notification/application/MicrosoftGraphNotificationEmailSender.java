@@ -77,8 +77,8 @@ public class MicrosoftGraphNotificationEmailSender implements NotificationEmailS
             graphServiceClient.users().byUserId(fromAddress).sendMail().post(request);
             return new DeliveryResult(true, null);
         } catch (RuntimeException exception) {
-            LOGGER.error("Microsoft Graph email delivery failed for notification recipient: {}",
-                    exception.getMessage());
+            // Provider exception messages may contain credential-bearing mail content.
+            LOGGER.error("Microsoft Graph email delivery failed.");
             return new DeliveryResult(false, "Microsoft Graph email delivery failed.");
         }
     }
