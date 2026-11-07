@@ -456,9 +456,6 @@ public class NotificationEventService {
         }
 
         Set<Long> guardianIds = new LinkedHashSet<>();
-        if (ride.getGuardian() != null && ride.getGuardian().getId() != null) {
-            guardianIds.add(ride.getGuardian().getId());
-        }
         if (ride.getRider() != null && ride.getRider().getId() != null) {
             riderGuardianRepository.findAllByTenantIdAndRider_IdAndStatusOrderByPrimaryGuardianDescUpdatedAtDesc(
                             ride.getTenantId(),

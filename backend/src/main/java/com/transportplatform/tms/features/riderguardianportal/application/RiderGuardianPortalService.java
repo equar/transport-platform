@@ -1,5 +1,6 @@
 package com.transportplatform.tms.features.riderguardianportal.application;
 
+import com.transportplatform.tms.features.settings.application.TenantTimeService;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -98,6 +99,7 @@ public class RiderGuardianPortalService {
     private final NotificationEventService notificationEventService;
     private final RiderGuardianRepository riderGuardianRepository;
     private final Clock clock;
+    private final TenantTimeService tenantTime;
 
     public RiderGuardianPortalService(RiderGuardianPortalAccessService accessService,
             RideRepository rideRepository,
@@ -116,7 +118,8 @@ public class RiderGuardianPortalService {
             RideEventService rideEventService,
             NotificationEventService notificationEventService,
             RiderGuardianRepository riderGuardianRepository,
-            Clock clock) {
+            Clock clock,
+            TenantTimeService tenantTime) {
         this.accessService = accessService;
         this.rideRepository = rideRepository;
         this.invoiceRepository = invoiceRepository;
@@ -135,13 +138,14 @@ public class RiderGuardianPortalService {
         this.notificationEventService = notificationEventService;
         this.riderGuardianRepository = riderGuardianRepository;
         this.clock = clock;
+        this.tenantTime = tenantTime;
     }
 
     @Transactional(readOnly = true)
     public RiderGuardianPortalDashboardResponse getDashboard() {
         var scope = accessService.resolveCurrentScope();
         List<Long> riderIds = scope.linkedRiders().stream().map(Rider::getId).toList();
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = tenantTime.now(scope.user().tenantId());
         long upcomingRideCount = rideRepository.count((root, query, builder) -> buildRideScopePredicate(scope, root,
                 query, builder, null, null, now, null, riderIds));
         long activeRideCount = rideRepository.count((root, query, builder) -> builder.and(
@@ -362,7 +366,7 @@ public class RiderGuardianPortalService {
             @Transactional
             public RiderGuardianPortalRideDetailResponse cancelRide(Long rideId, CancelRideRequest request) {
             var scope = accessService.resolveCurrentScope();
-                requireRiderScopeForMutation(scope, "Guardians can only track rides and receive notifications.");
+                requireRiderScopeForMutation(scope, "Contact the transport provider to change or cancel a guardian booking.");
             Ride ride = rideRepository.findByIdAndTenantId(rideId, scope.user().tenantId())
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND,
                     "Ride not found for the current portal scope."));
@@ -407,7 +411,7 @@ public class RiderGuardianPortalService {
         var scope = accessService.resolveCurrentScope();
         Sort.Direction resolvedSortDirection = Objects.requireNonNullElse(sortDirection, Sort.Direction.DESC);
         var pageable = PageRequest.of(page, size, Sort.by(resolvedSortDirection, resolvePaymentSortField(sortBy)));
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(scope.user().tenantId());
         var result = paymentRepository.findAll((root, query, builder) -> {
             var predicate = PaymentSpecifications.search(scope.user().tenantId(), keyword, status, null, null, null)
                     .toPredicate(root, query, builder);
@@ -435,7 +439,7 @@ public class RiderGuardianPortalService {
             int size,
             String sortBy,
             Sort.Direction sortDirection) {
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(scope.user().tenantId());
         Sort.Direction resolvedSortDirection = Objects.requireNonNullElse(sortDirection, Sort.Direction.DESC);
         var pageable = PageRequest.of(page, size, Sort.by(resolvedSortDirection, resolveInvoiceSortField(sortBy)));
         var result = invoiceRepository.findAll((root, query, builder) -> {
@@ -470,9 +474,8 @@ public class RiderGuardianPortalService {
         if (scope.scopeType() == PortalSubjectType.RIDER) {
             predicate = builder.and(predicate, builder.equal(root.get("rider").get("id"), scope.rider().getId()));
         } else {
-            predicate = builder.and(predicate, builder.or(
-                    builder.equal(root.get("guardian").get("id"), scope.guardian().getId()),
-                    root.get("rider").get("id").in(riderIds)));
+            predicate = builder.and(predicate, riderIds.isEmpty() ? builder.disjunction()
+                    : root.get("rider").get("id").in(riderIds));
         }
         if (keyword != null && !keyword.isBlank()) {
             String pattern = "%" + keyword.trim().toLowerCase() + "%";
@@ -604,9 +607,6 @@ public class RiderGuardianPortalService {
     private boolean canAccessRide(RiderGuardianPortalAccessService.ResolvedRiderGuardianScope scope, Ride ride) {
         if (scope.scopeType() == PortalSubjectType.RIDER) {
             return ride.getRider() != null && ride.getRider().getId().equals(scope.rider().getId());
-        }
-        if (ride.getGuardian() != null && ride.getGuardian().getId().equals(scope.guardian().getId())) {
-            return true;
         }
         List<Long> riderIds = scope.linkedRiders().stream().map(Rider::getId).toList();
         return ride.getRider() != null && riderIds.contains(ride.getRider().getId());

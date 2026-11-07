@@ -1,3 +1,5 @@
+import { runtimeApi } from '@api/runtimeApi';
+import { setServiceTimezone } from '../src/utils/serviceTime';
 import { mobileRoleGroup } from "@auth/access";
 import { LoadingState } from "@components/LoadingState";
 import { OfflineSyncStatus } from '@components/OfflineSyncStatus';
@@ -48,6 +50,17 @@ function AuthGate() {
   usePushNotifications();
 
   useEffect(() => {
+    let cancelled = false;
+    setServiceTimezone(null);
+    if (session?.identity.tenantId) {
+      void runtimeApi.capabilities().then(result => {
+        if (!cancelled) setServiceTimezone(result.operationalSettings.timezone);
+      }).catch(() => { /* Wall-clock labels remain explicit when settings are unavailable. */ });
+    }
+    return () => { cancelled = true; setServiceTimezone(null); };
+  }, [session?.identity.id, session?.identity.tenantId]);
+
+  useEffect(() => {
     if (!session?.identity.roles.includes('ROLE_DRIVER')) return;
     void refreshTripTracking();
     const timer = setInterval(() => void refreshTripTracking(), 30000);
@@ -75,7 +88,7 @@ function AuthGate() {
   const passwordScreen = inAuth && segments[1] === 'change-password';
   const group = mobileRoleGroup(session);
   const authorized = isAuthenticated
-    ? session?.identity.mustChangePassword ? passwordScreen : !!group && segments[0] === group
+    ? !group ? segments[0] === 'unsupported' : session?.identity.mustChangePassword ? passwordScreen : segments[0] === group
     : inAuth && !passwordScreen;
   useEffect(() => {
     if (!isLoading && !authorized) router.replace(getDefaultRoute() as never);
@@ -90,6 +103,7 @@ function AuthGate() {
       <Stack.Screen name="(driver)" />
       <Stack.Screen name="(rider)" />
       <Stack.Screen name="(guardian)" />
+      <Stack.Screen name="unsupported" />
       <Stack.Screen name="+not-found" />
     </Stack>
     </>

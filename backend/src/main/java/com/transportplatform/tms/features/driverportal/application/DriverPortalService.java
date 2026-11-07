@@ -1,5 +1,7 @@
 package com.transportplatform.tms.features.driverportal.application;
 
+import com.transportplatform.tms.features.settings.application.TenantTimeService;
+import com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService;
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.response.PageResponse;
@@ -98,6 +100,8 @@ public class DriverPortalService {
     private final DriverDocumentStorageService driverDocumentStorageService;
     private final ComplianceIssueSyncService complianceIssueSyncService;
     private final Clock clock;
+    private final TenantTimeService tenantTime;
+    private final DispatchAssignmentValidationService dispatchValidation;
 
     public DriverPortalService(DriverPortalAccessService driverPortalAccessService,
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
@@ -114,7 +118,9 @@ public class DriverPortalService {
             NotificationEventService notificationEventService,
             DriverDocumentStorageService driverDocumentStorageService,
             ComplianceIssueSyncService complianceIssueSyncService,
-            Clock clock) {
+            Clock clock,
+            DispatchAssignmentValidationService dispatchValidation,
+            TenantTimeService tenantTime) {
         this.driverPortalAccessService = driverPortalAccessService;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.driverRepository = driverRepository;
@@ -131,6 +137,8 @@ public class DriverPortalService {
         this.driverDocumentStorageService = driverDocumentStorageService;
         this.complianceIssueSyncService = complianceIssueSyncService;
         this.clock = clock;
+        this.tenantTime = tenantTime;
+        this.dispatchValidation = dispatchValidation;
     }
 
     @Transactional
@@ -138,7 +146,7 @@ public class DriverPortalService {
         Driver driver = driverPortalAccessService.resolveCurrentDriver();
         complianceIssueSyncService.synchronizeTenantIssues(driver.getTenantId());
         AuthenticatedUser user = currentAuthenticatedUserService.requireCurrentUser();
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(currentAuthenticatedUserService.requireCurrentUser().tenantId());
         LocalDateTime from = today.atStartOfDay();
         LocalDateTime to = LocalDateTime.of(today, LocalTime.MAX);
 
@@ -249,7 +257,7 @@ public class DriverPortalService {
         document.setExpiryDate(expiryDate);
         document.setNotes(trimToNull(notes));
         document.setStatus(DriverDocumentStatus.ACTIVE);
-        document.setVerificationStatus(expiryDate != null && expiryDate.isBefore(LocalDate.now(clock))
+        document.setVerificationStatus(expiryDate != null && expiryDate.isBefore(tenantTime.today(currentAuthenticatedUserService.requireCurrentUser().tenantId()))
                 ? DriverDocumentVerificationStatus.EXPIRED
                 : DriverDocumentVerificationStatus.PENDING);
         document.setUploadedBy(currentAuthenticatedUserService.requireCurrentUser().username());
@@ -335,6 +343,11 @@ public class DriverPortalService {
     public DriverPortalRideDetailResponse markRideDriverEnRoute(Long rideId) {
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         RideStatusWorkflow.ensureCanMarkDriverEnRoute(ride.getStatus());
+        if (ride.getDriverId() == null || ride.getVehicleId() == null) {
+            throw validationFailure("Both driver and vehicle are required before departure. Contact dispatch.");
+        }
+        dispatchValidation.requireAssignableDriver(ride.getTenantId(), ride, ride.getDriverId());
+        dispatchValidation.requireAssignableVehicle(ride.getTenantId(), ride, ride.getVehicleId());
         return driverPortalMapper.toRideDetailResponse(updateRideStatus(
                 ride,
                 RideStatus.DRIVER_EN_ROUTE,
@@ -510,7 +523,7 @@ public class DriverPortalService {
         if (verificationStatus == DriverDocumentVerificationStatus.REJECTED) {
             return false;
         }
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(currentAuthenticatedUserService.requireCurrentUser().tenantId());
         return !expiryDate.isBefore(today) && !expiryDate.isAfter(today.plusDays(30));
     }
 

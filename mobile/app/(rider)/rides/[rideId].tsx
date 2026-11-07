@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { riderPortalApi } from '@api/riderPortalApi';
 import { TripTrackingCard } from '@components/TripTrackingCard';
-import { AppBadge, AppButton } from '@components/ui';
+import { AppBadge, AppButton, AppInput } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { Colors, Spacing, Typography } from '@theme/tokens';
 import { PassengerRoleTheme } from '@theme/roleTheme';
@@ -19,6 +19,7 @@ export default function RiderRideDetailPage() {
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
   const router = useRouter();
   const qc = useQueryClient();
+  const [reason, setReason] = React.useState('');
 
   const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['rider-ride', rideId],
@@ -38,15 +39,15 @@ export default function RiderRideDetailPage() {
   });
 
   const { mutate: cancel, isPending } = useMutation({
-    mutationFn: () => riderPortalApi.cancelRide(Number(rideId)),
+    mutationFn: () => riderPortalApi.cancelRide(Number(rideId), reason.trim()),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['rider-rides'] });
-      qc.invalidateQueries({ queryKey: ['rider-ride', rideId] });
+      void qc.invalidateQueries();
     },
     onError: (err: Error) => Alert.alert('Error', err.message),
   });
 
   function handleCancel() {
+    if (!reason.trim()) { Alert.alert('Reason required', 'Enter a cancellation reason.'); return; }
     Alert.alert('Cancel Ride', 'Are you sure you want to cancel this ride?', [
       { text: 'Keep Ride', style: 'cancel' },
       { text: 'Cancel Ride', style: 'destructive', onPress: () => cancel() },
@@ -107,6 +108,7 @@ export default function RiderRideDetailPage() {
         </View>
       ) : null}
 
+      {canCancel ? <AppInput label="Cancellation reason" value={reason} onChangeText={setReason} maxLength={1000} /> : null}
       {canCancel && (
         <View style={styles.actionRow}>
           <View style={styles.actionSlot}>

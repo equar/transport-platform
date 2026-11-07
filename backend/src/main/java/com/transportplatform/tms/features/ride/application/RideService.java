@@ -193,6 +193,11 @@ public class RideService {
     public RideResponse markCompanyRideDriverEnRoute(Long rideId) {
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkDriverEnRoute(ride.getStatus());
+        if (ride.getDriverId() == null || ride.getVehicleId() == null) {
+            throw validationFailure("Both driver and vehicle are required before departure.");
+        }
+        dispatchValidation.requireAssignableDriver(ride.getTenantId(), ride, ride.getDriverId());
+        dispatchValidation.requireAssignableVehicle(ride.getTenantId(), ride, ride.getVehicleId());
         return updateStatus(ride, RideStatus.DRIVER_EN_ROUTE, "DRIVER_EN_ROUTE",
                 "Driver is en route for ride " + ride.getRideNumber() + ".");
     }

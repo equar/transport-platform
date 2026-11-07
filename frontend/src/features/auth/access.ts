@@ -213,7 +213,7 @@ export function getDefaultRoute(session: AuthSession | null) {
   if (isOrganizationPortalUser(session)) {
     return "/portal/organization";
   }
-  return "/login";
+  return session ? "/unauthorized" : "/login";
 }
 
 export function resolvePostLoginRoute(

@@ -18,6 +18,8 @@ public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificat
             Long recurrenceScheduleId,
             LocalDateTime scheduledPickupAt);
 
+    List<Ride> findAllByTenantIdAndRouteId(String tenantId, Long routeId);
+
     long countByTenantId(String tenantId);
 
     long countByTenantIdAndStatus(String tenantId, RideStatus status);

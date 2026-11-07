@@ -200,7 +200,7 @@ export function DriverPortalRideDetailsPage() {
                   variant="outlined"
                   disabled={
                     actionLoading ||
-                    !["ASSIGNED", "ARRIVED"].includes(ride.status)
+                    ride.status !== "ARRIVED"
                   }
                   onClick={() => handleAction("no-show")}
                 >

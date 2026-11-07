@@ -7,6 +7,7 @@ import {
   Stack,
   TextField,
   Typography,
+  TablePagination,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { LoadingState } from "../../../shared/components/LoadingState";
@@ -37,6 +38,8 @@ export function OrganizationPortalRosterPage() {
     useState<OrganizationPortalDashboardRecord | null>(null);
   const [riders, setRiders] = useState<OrganizationPortalRiderRecord[]>([]);
   const [status, setStatus] = useState("");
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +53,7 @@ export function OrganizationPortalRosterPage() {
           organizationPortalApi.getDashboard(),
           organizationPortalApi.searchRiders({
             status: status || undefined,
+            page,
             size: 25,
             sortBy: "lastName",
             sortDirection: "ASC",
@@ -58,6 +62,7 @@ export function OrganizationPortalRosterPage() {
         if (!cancelled) {
           setDashboard(dashboardResponse);
           setRiders(ridersResponse.items);
+          setTotal(ridersResponse.totalElements);
         }
       } catch {
         if (!cancelled) {
@@ -73,7 +78,7 @@ export function OrganizationPortalRosterPage() {
     return () => {
       cancelled = true;
     };
-  }, [status]);
+  }, [status, page]);
 
   if (loading) {
     return <LoadingState />;
@@ -105,7 +110,7 @@ export function OrganizationPortalRosterPage() {
             <MetricCard
               icon={<AccessibilityNewRoundedIcon color="primary" />}
               label="Visible Roster"
-              value={riders.length}
+              value={total}
             />
           </Box>
         </Box>
@@ -115,7 +120,7 @@ export function OrganizationPortalRosterPage() {
           select
           label="Rider status"
           value={status}
-          onChange={(event) => setStatus(event.target.value)}
+          onChange={(event) => { setStatus(event.target.value); setPage(0); }}
           sx={{ minWidth: { md: 220 } }}
         >
           {riderStatuses.map((option) => (
@@ -126,7 +131,7 @@ export function OrganizationPortalRosterPage() {
         </TextField>
       </PageCard>
       <Stack spacing={2}>
-        {riders.length === 0 ? (
+        {!error && riders.length === 0 ? (
           <PageCard>
             <Typography color="text.secondary">
               No riders match the current filter.
@@ -165,6 +170,9 @@ export function OrganizationPortalRosterPage() {
           ))
         )}
       </Stack>
+      <TablePagination component="div" count={total} page={page} rowsPerPage={25}
+        rowsPerPageOptions={[25]} onPageChange={(_, next) => setPage(next)}
+        labelRowsPerPage="Riders per page" />
     </Stack>
   );
 }

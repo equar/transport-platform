@@ -1,5 +1,6 @@
 package com.transportplatform.tms.features.billing.application;
 
+import com.transportplatform.tms.features.settings.application.TenantTimeService;
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.response.PageResponse;
@@ -69,6 +70,7 @@ public class InvoiceService {
     private final ContractRepository contractRepository;
     private final NotificationEventService notificationEventService;
     private final Clock clock;
+    private final TenantTimeService tenantTime;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
             InvoiceLineItemRepository invoiceLineItemRepository,
@@ -85,7 +87,8 @@ public class InvoiceService {
             OrganizationRepository organizationRepository,
             ContractRepository contractRepository,
             NotificationEventService notificationEventService,
-            Clock clock) {
+            Clock clock,
+            TenantTimeService tenantTime) {
         this.invoiceRepository = invoiceRepository;
         this.invoiceLineItemRepository = invoiceLineItemRepository;
         this.billingAccessService = billingAccessService;
@@ -102,6 +105,7 @@ public class InvoiceService {
         this.contractRepository = contractRepository;
         this.notificationEventService = notificationEventService;
         this.clock = clock;
+        this.tenantTime = tenantTime;
     }
 
     @Transactional(readOnly = true)
@@ -117,7 +121,7 @@ public class InvoiceService {
             String sortBy,
             Sort.Direction sortDirection) {
         String tenantId = billingAccessService.requireCompanyTenantId();
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(billingAccessService.requireCompanyTenantId());
         var pageable = PageRequest.of(page, size, Sort.by(sortDirection, resolveSortField(sortBy)));
         var result = invoiceRepository.findAll(
                 InvoiceSpecifications.search(tenantId, keyword, status, agingBucket, billToType, fromDate, toDate,
@@ -169,7 +173,7 @@ public class InvoiceService {
     @Transactional
     public InvoiceDetailResponse updateCompanyInvoice(Long invoiceId, InvoiceUpsertRequest request) {
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(invoiceId);
-        InvoiceStatusWorkflow.ensureDraftEditable(invoice, LocalDate.now(clock));
+        InvoiceStatusWorkflow.ensureDraftEditable(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
         Object oldSnapshot = snapshot(invoice);
         BillingReferenceValidationService.ResolvedBillTo billTo = billingReferenceValidationService.resolveBillTo(
                 invoice.getTenantId(),
@@ -188,7 +192,7 @@ public class InvoiceService {
     @Transactional
     public InvoiceLineItemResponse addLineItem(Long invoiceId, InvoiceLineItemUpsertRequest request) {
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(invoiceId);
-        InvoiceStatusWorkflow.ensureDraftEditable(invoice, LocalDate.now(clock));
+        InvoiceStatusWorkflow.ensureDraftEditable(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
         List<InvoiceLineItem> existingItems = invoiceLineItemRepository
                 .findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(
                         invoice.getId(),
@@ -208,7 +212,7 @@ public class InvoiceService {
     public InvoiceLineItemResponse updateLineItem(Long lineItemId, InvoiceLineItemUpsertRequest request) {
         InvoiceLineItem lineItem = billingAccessService.findInvoiceLineItemForCompanyScope(lineItemId);
         Invoice invoice = lineItem.getInvoice();
-        InvoiceStatusWorkflow.ensureDraftEditable(invoice, LocalDate.now(clock));
+        InvoiceStatusWorkflow.ensureDraftEditable(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
         Object oldSnapshot = snapshot(lineItem);
         invoiceMapper.apply(lineItem, request);
         InvoiceLineItem saved = invoiceLineItemRepository.save(lineItem);
@@ -228,7 +232,7 @@ public class InvoiceService {
     public void removeLineItem(Long lineItemId) {
         InvoiceLineItem lineItem = billingAccessService.findInvoiceLineItemForCompanyScope(lineItemId);
         Invoice invoice = lineItem.getInvoice();
-        InvoiceStatusWorkflow.ensureDraftEditable(invoice, LocalDate.now(clock));
+        InvoiceStatusWorkflow.ensureDraftEditable(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
         Object oldSnapshot = snapshot(lineItem);
         invoiceLineItemRepository.delete(lineItem);
         List<InvoiceLineItem> remainingItems = invoiceLineItemRepository
@@ -249,7 +253,7 @@ public class InvoiceService {
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(invoiceId);
         List<InvoiceLineItem> lineItems = invoiceLineItemRepository.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(
                 invoice.getId(), invoice.getTenantId());
-        InvoiceStatusWorkflow.ensureCanIssue(invoice, LocalDate.now(clock));
+        InvoiceStatusWorkflow.ensureCanIssue(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
         if (lineItems.isEmpty()) {
             throw validationFailure("At least one line item is required before issuing an invoice.");
         }
@@ -265,7 +269,7 @@ public class InvoiceService {
     @Transactional
     public InvoiceDetailResponse voidCompanyInvoice(Long invoiceId, VoidInvoiceRequest request) {
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(invoiceId);
-        InvoiceStatusWorkflow.ensureCanVoid(invoice, LocalDate.now(clock));
+        InvoiceStatusWorkflow.ensureCanVoid(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
         if (billingAccessService.invoiceHasActivePayments(invoice)) {
             throw validationFailure("Invoices with active payments cannot be voided until those payments are voided.");
         }
@@ -401,7 +405,7 @@ public class InvoiceService {
         if (request.pricingRuleId() != null) {
             PricingRule pricingRule = billingAccessService.findPricingRuleForCompanyScope(request.pricingRuleId());
             PricingRuleStatus effectiveStatus = PricingRuleStatusWorkflow.resolveEffectiveStatus(pricingRule,
-                    LocalDate.now(clock));
+                    tenantTime.today(billingAccessService.requireCompanyTenantId()));
             if (effectiveStatus != PricingRuleStatus.ACTIVE) {
                 throw validationFailure("Only active pricing rules can be used for billing preview or generation.");
             }
@@ -419,7 +423,7 @@ public class InvoiceService {
                         resolveOrganizationType(billTo.organizationId()),
                         resolveContractType(billTo.contractId()),
                         request.tripType(),
-                        request.billingPeriodStart() == null ? LocalDate.now(clock) : request.billingPeriodStart()));
+                        request.billingPeriodStart() == null ? tenantTime.today(billingAccessService.requireCompanyTenantId()) : request.billingPeriodStart()));
     }
 
     private InvoiceLineItem buildRideLineItem(Invoice invoice,
@@ -585,11 +589,11 @@ public class InvoiceService {
     }
 
     private void recalculateTotals(Invoice invoice, List<InvoiceLineItem> lineItems) {
-        invoiceFinancialService.recalculateTotals(invoice, lineItems, LocalDate.now(clock));
+        invoiceFinancialService.recalculateTotals(invoice, lineItems, tenantTime.today(billingAccessService.requireCompanyTenantId()));
     }
 
     private InvoiceDetailResponse toDetail(Invoice invoice) {
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(billingAccessService.requireCompanyTenantId());
         List<InvoiceLineItemResponse> lineItems = toLineItemResponses(
                 invoiceLineItemRepository.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(invoice.getId(),
                         invoice.getTenantId()));
@@ -742,7 +746,7 @@ public class InvoiceService {
         return invoiceRepository.countByTenantIdAndStatusInAndDueDateBeforeAndBalanceDueGreaterThan(
                 tenantId,
                 EnumSet.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID),
-                LocalDate.now(clock),
+                tenantTime.today(tenantId),
                 BigDecimal.ZERO);
     }
 
@@ -756,9 +760,9 @@ public class InvoiceService {
                 null,
                 null,
                 null,
-                LocalDate.now(clock))).stream()
+                tenantTime.today(tenantId))).stream()
                 .filter(invoice -> InvoiceStatusWorkflow.resolveEffectiveStatus(invoice,
-                        LocalDate.now(clock)) != InvoiceStatus.VOID)
+                        tenantTime.today(tenantId)) != InvoiceStatus.VOID)
                 .map(Invoice::getBalanceDue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
@@ -774,9 +778,9 @@ public class InvoiceService {
                 null,
                 null,
                 null,
-                LocalDate.now(clock))).stream()
+                tenantTime.today(tenantId))).stream()
                 .filter(invoice -> InvoiceStatusWorkflow.resolveEffectiveStatus(invoice,
-                        LocalDate.now(clock)) != InvoiceStatus.VOID)
+                        tenantTime.today(tenantId)) != InvoiceStatus.VOID)
                 .map(Invoice::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);

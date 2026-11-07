@@ -76,6 +76,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         DriverPortalAccessService.class,
         DriverPortalMapper.class,
         DriverPortalService.class,
+        com.transportplatform.tms.features.settings.application.TenantTimeService.class,
         DriverActionIdempotencyService.class,
         DriverPortalRideActionMySqlIntegrationTest.ClockTestConfiguration.class,
 })
@@ -104,6 +105,8 @@ class DriverPortalRideActionMySqlIntegrationTest {
     @Autowired private DriverPortalService driverPortalService;
     @Autowired private DriverActionIdempotencyService idempotencyService;
 
+    @MockBean private com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService dispatchValidation;
+    @Autowired private com.transportplatform.tms.features.vehicle.domain.VehicleRepository vehicles;
     @MockBean private GuardianRepository guardianRepository;
     @MockBean private com.transportplatform.tms.features.organization.domain.OrganizationContactRepository organizationContactRepository;
     @MockBean private DriverDocumentRepository driverDocumentRepository;
@@ -252,6 +255,13 @@ class DriverPortalRideActionMySqlIntegrationTest {
         ride.setRideNumber("ride-" + UUID.randomUUID());
         ride.setRider(rider);
         ride.setDriverId(driverId);
+        var vehicle = new com.transportplatform.tms.features.vehicle.domain.Vehicle();
+        vehicle.setTenantId(tenantId); vehicle.setVehicleCode("QA-" + UUID.randomUUID());
+        vehicle.setOwnershipType(com.transportplatform.tms.features.vehicle.domain.VehicleOwnershipType.COMPANY_OWNED);
+        vehicle.setMake("Ford"); vehicle.setModel("Transit"); vehicle.setYear(2024);
+        vehicle.setPlateNumber(UUID.randomUUID().toString().substring(0, 8)); vehicle.setPlateState("IL");
+        vehicle.setCapacity(6); vehicle.setStatus(com.transportplatform.tms.features.vehicle.domain.VehicleStatus.ACTIVE);
+        ride.setVehicleId(vehicles.saveAndFlush(vehicle).getId());
         ride.setServiceType(ServiceType.NEMT);
         ride.setTripType(RideTripType.ONE_WAY);
         ride.setPickupAddressLine1("1 Pickup Street");

@@ -45,7 +45,7 @@ public class RoleCatalogService {
                 displayName(role),
                 description(role),
                 scope(role),
-                assignable,
+                assignable && role != RoleName.ROLE_VIEWER,
                 tenantId == null ? appUserRepository.countByRole(role)
                         : appUserRepository.countByRoleAndTenantScope(role, tenantId));
     }
@@ -77,7 +77,7 @@ public class RoleCatalogService {
             case ROLE_RIDER -> "Rider-facing access for trip visibility and service interactions.";
             case ROLE_GUARDIAN -> "Guardian access for linked rider trip visibility and coordination.";
             case ROLE_ORGANIZATION_USER -> "Organization portal access for sponsor and trip oversight workflows.";
-            case ROLE_VIEWER -> "Read-only access for oversight and reporting.";
+            case ROLE_VIEWER -> "Reserved role. A read-only workspace is not yet available; this role cannot be assigned.";
         };
     }
 

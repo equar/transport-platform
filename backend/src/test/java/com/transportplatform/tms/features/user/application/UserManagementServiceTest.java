@@ -65,6 +65,16 @@ class UserManagementServiceTest {
     private UserManagementService userManagementService;
 
     @Test
+    void reservedViewerRoleCannotCreateAnUnusableAccount() {
+        when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
+        ApiException error = assertThrows(ApiException.class, () -> userManagementService.createCompanyUser(
+                new UserUpsertRequest(null, "Taylor", "Viewer", "viewer@example.com", "secret123",
+                        UserStatus.ACTIVE, Set.of(RoleName.ROLE_VIEWER), null, null)));
+        assertEquals("VALIDATION_FAILED", error.getErrorCode().name());
+        org.mockito.Mockito.verify(appUserRepository, org.mockito.Mockito.never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
     void companyAdminCannotProbeOrModifyAnotherTenantUser() {
         when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
         when(appUserRepository.findByIdAndTenantId(99L, "tenant-123")).thenReturn(java.util.Optional.empty());

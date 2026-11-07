@@ -1,5 +1,6 @@
 package com.transportplatform.tms.features.organizationportal.application;
 
+import com.transportplatform.tms.features.settings.application.TenantTimeService;
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.response.PageResponse;
@@ -83,6 +84,7 @@ public class OrganizationPortalService {
     private final InvoiceFinancialService invoiceFinancialService;
     private final AuditLogService auditLogService;
     private final Clock clock;
+    private final TenantTimeService tenantTime;
 
     public OrganizationPortalService(OrganizationPortalAccessService accessService,
             OrganizationContactRepository organizationContactRepository,
@@ -98,7 +100,8 @@ public class OrganizationPortalService {
             PaymentMapper paymentMapper,
             InvoiceFinancialService invoiceFinancialService,
             AuditLogService auditLogService,
-            Clock clock) {
+            Clock clock,
+            TenantTimeService tenantTime) {
         this.accessService = accessService;
         this.organizationContactRepository = organizationContactRepository;
         this.riderRepository = riderRepository;
@@ -114,6 +117,7 @@ public class OrganizationPortalService {
         this.invoiceFinancialService = invoiceFinancialService;
         this.auditLogService = auditLogService;
         this.clock = clock;
+        this.tenantTime = tenantTime;
     }
 
     @Transactional(readOnly = true)
@@ -122,7 +126,7 @@ public class OrganizationPortalService {
         Organization organization = scope.contact().getOrganization();
         long linkedRiderCount = riderRepository.countByTenantIdAndOrganizationId(scope.user().tenantId(),
                 organization.getId());
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(scope.user().tenantId());
         long activeContractCount = contractRepository.count((root, query, builder) -> builder.and(
                 builder.equal(root.get("tenantId"), scope.user().tenantId()),
                 builder.equal(root.get("organization").get("id"), organization.getId()),
@@ -134,7 +138,7 @@ public class OrganizationPortalService {
                 builder.equal(root.get("tenantId"), scope.user().tenantId()),
                 builder.equal(root.get("organization").get("id"), organization.getId()),
                 root.get("status").in(UPCOMING_RIDE_STATUSES),
-                builder.greaterThanOrEqualTo(root.get("scheduledPickupAt"), LocalDateTime.now(clock))));
+                builder.greaterThanOrEqualTo(root.get("scheduledPickupAt"), tenantTime.now(scope.user().tenantId()))));
         var invoices = loadInvoices(scope, null, null, 0, 1000, "invoiceDate", Sort.Direction.DESC).items();
         long openInvoiceCount = invoices.stream()
                 .filter(invoice -> invoice.status() == InvoiceStatus.ISSUED
@@ -276,7 +280,7 @@ public class OrganizationPortalService {
             Sort.Direction sortDirection) {
         var scope = accessService.resolveCurrentScope();
         Long organizationId = scope.contact().getOrganization().getId();
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(scope.user().tenantId());
         var pageable = PageRequest.of(page, size, Sort.by(sortDirection, resolveContractSortField(sortBy)));
         var result = contractRepository.findAll((root, query, builder) -> {
             var predicate = ContractSpecifications.search(scope.user().tenantId(), keyword, status, null, null, today)
@@ -307,7 +311,7 @@ public class OrganizationPortalService {
             Sort.Direction sortDirection) {
         var scope = accessService.resolveCurrentScope();
         Long organizationId = scope.contact().getOrganization().getId();
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(scope.user().tenantId());
         var pageable = PageRequest.of(page, size, Sort.by(sortDirection, resolvePaymentSortField(sortBy)));
         var result = paymentRepository.findAll((root, query, builder) -> {
             var predicate = PaymentSpecifications.search(scope.user().tenantId(), keyword, status, null, null, null)
@@ -336,7 +340,7 @@ public class OrganizationPortalService {
             int size,
             String sortBy,
             Sort.Direction sortDirection) {
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(scope.user().tenantId());
         Long organizationId = scope.contact().getOrganization().getId();
         var pageable = PageRequest.of(page, size, Sort.by(sortDirection, resolveInvoiceSortField(sortBy)));
         var result = invoiceRepository.findAll((root, query, builder) -> {
