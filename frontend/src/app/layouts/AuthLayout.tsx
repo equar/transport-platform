@@ -1,49 +1,16 @@
-import { Suspense } from "react";
-import { Box } from "@mui/material";
-import { Outlet } from "react-router-dom";
-import { AuthMarketingPanel } from "../../features/auth/components/AuthMarketingPanel";
-import { LoadingState } from "../../shared/components/LoadingState";
-
+import { Suspense } from 'react';
+import { Box } from '@mui/material';
+import { Outlet } from 'react-router-dom';
+import { AuthMarketingPanel } from '../../features/auth/components/AuthMarketingPanel';
+import { BrandMark } from '../../shared/components/BrandMark';
+import { LoadingState } from '../../shared/components/LoadingState';
 export function AuthLayout() {
-  return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top left, rgba(18, 102, 214, 0.16), transparent 30%), radial-gradient(circle at right, rgba(77, 148, 238, 0.12), transparent 28%), linear-gradient(180deg, #f6f8fc 0%, #edf3fb 100%)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        p: 3,
-      }}
-    >
-      <Box
-        sx={{
-          width: "100%",
-          maxWidth: 1180,
-          display: "grid",
-          gap: 4,
-          gridTemplateColumns: {
-            xs: "1fr",
-            lg: "minmax(0, 0.95fr) minmax(0, 1.05fr)",
-          },
-          alignItems: "center",
-        }}
-      >
-        <AuthMarketingPanel />
-
-        <Suspense
-          fallback={
-            <LoadingState
-              title="Loading access flow"
-              description="Please wait while the next account screen is prepared."
-              minHeight={320}
-            />
-          }
-        >
-          <Outlet />
-        </Suspense>
-      </Box>
+  return <Box sx={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(400px, .9fr) minmax(520px, 1.1fr)' }, bgcolor: '#fff' }}>
+    <Box sx={{ display: { xs: 'none', lg: 'flex' }, bgcolor: '#12263e', position: 'relative', overflow: 'hidden', p: { lg: 6, xl: 8 }, minHeight: '100vh' }}><AuthMarketingPanel /></Box>
+    <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', p: { xs: 3, sm: 6 } }}>
+      <Box sx={{ display: { lg: 'none' }, mb: 6 }}><BrandMark /></Box>
+      <Box sx={{ width: '100%', maxWidth: 440, mx: 'auto', my: 'auto', py: { xs: 2, md: 5 }, '& > .MuiPaper-root': { border: 0, boxShadow: 'none', px: 0, py: 0, borderRadius: 0, background: 'transparent' } }}><Suspense fallback={<LoadingState title="Preparing your workspace" minHeight={320} />}><Outlet /></Suspense></Box>
+      <Box sx={{ textAlign: 'center', color: '#98a2b0', fontSize: '.68rem', pt: 5 }}>© {new Date().getFullYear()} Bakaroo Transports · Workspace access</Box>
     </Box>
-  );
+  </Box>;
 }

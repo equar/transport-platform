@@ -1,8 +1,17 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), {
+    name: 'site-metadata',
+    transformIndexHtml(html) {
+      return mode === 'admin'
+        ? html.replace('<title>Bakaroo Transports</title>', '<title>Bakaroo Transports | Admin</title>')
+          .replace('<head>', '<head><meta name="robots" content="noindex, nofollow" />')
+        : html;
+    },
+  }],
+  define: { 'import.meta.env.VITE_SITE_KIND': JSON.stringify(mode === 'admin' ? 'admin' : 'public') },
   test: {
     environment: 'jsdom',
   },
@@ -42,7 +51,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 3007,
+    port: mode === 'admin' ? 3008 : 3007,
     proxy: {
       '/api': {
         target: 'http://localhost:8082',
@@ -52,6 +61,6 @@ export default defineConfig({
   },
   preview: {
     host: '0.0.0.0',
-    port: 3007,
+    port: mode === 'admin' ? 3008 : 3007,
   },
-});
+}));

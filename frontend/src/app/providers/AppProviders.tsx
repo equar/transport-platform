@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { CssBaseline, ThemeProvider } from "@mui/material";
-import { AuthProvider } from "../../features/auth/context/AuthContext";
+import { AuthProvider, useAuth } from "../../features/auth/context/AuthContext";
 import {
   RuntimeCapabilitiesProvider,
   useRuntimeCapabilities,
@@ -8,7 +8,7 @@ import {
 import { ToastProvider } from "../../shared/providers/ToastProvider";
 import { createAppTheme } from "../../shared/theme/theme";
 
-function ThemedProviders({ children }: PropsWithChildren) {
+export function ThemedProviders({ children }: PropsWithChildren) {
   const { branding } = useRuntimeCapabilities();
   const theme = createAppTheme(branding);
 
@@ -20,12 +20,15 @@ function ThemedProviders({ children }: PropsWithChildren) {
   );
 }
 
+function AuthenticatedRuntime({ children }: PropsWithChildren) {
+  const { session } = useAuth();
+  return <RuntimeCapabilitiesProvider session={session}><ThemedProviders>{children}</ThemedProviders></RuntimeCapabilitiesProvider>;
+}
+
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <AuthProvider>
-      <RuntimeCapabilitiesProvider>
-        <ThemedProviders>{children}</ThemedProviders>
-      </RuntimeCapabilitiesProvider>
+      <AuthenticatedRuntime>{children}</AuthenticatedRuntime>
     </AuthProvider>
   );
 }

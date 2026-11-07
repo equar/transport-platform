@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { Button, Link, Stack, TextField, Typography } from "@mui/material";
 import { Link as RouterLink, useSearchParams } from "react-router-dom";
-import { AuthFormShell } from "../../auth/components/AuthFormShell";
-import { authApi } from "../../auth/api/authApi";
+import { AuthFormShell } from "../components/AuthFormShell";
+import { authApi } from "../api/authApi";
 
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams();

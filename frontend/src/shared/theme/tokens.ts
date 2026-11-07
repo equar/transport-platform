@@ -1,25 +1,25 @@
 export const layoutTokens = {
-  drawerWidth: 276,
-  appBarHeight: 64,
+  drawerWidth: 264,
+  appBarHeight: 72,
 };
 
 export const surfaceTokens = {
-  canvasTop: "#f6f8fc",
-  canvasBottom: "#edf3fb",
-  overlaySoft: "rgba(18,102,214,.09)",
-  shellSidebarTop: "#084aa8",
-  shellSidebarBottom: "#102b59",
-  shellSidebarBase: "#084aa8",
+  canvasTop: "#f4f6f9",
+  canvasBottom: "#f4f6f9",
+  overlaySoft: "transparent",
+  shellSidebarTop: "#14283f",
+  shellSidebarBottom: "#14283f",
+  shellSidebarBase: "#14283f",
   shellCardBg: "rgba(255,255,255,.08)",
-  shellCardBorder: "rgba(198,220,251,.18)",
-  shellSelectedBg: "rgba(77,148,238,.25)",
-  shellSelectedBgHover: "rgba(77,148,238,.34)",
+  shellCardBorder: "rgba(255,255,255,.08)",
+  shellSelectedBg: "rgba(255,255,255,.10)",
+  shellSelectedBgHover: "rgba(255,255,255,.15)",
   shellHoverBg: "rgba(255,255,255,.09)",
-  shellAppBar: "rgba(246,248,252,.92)",
+  shellAppBar: "rgba(255,255,255,.97)",
 };
 
 export const borderTokens = {
-  subtle: "rgba(18,102,214,.16)",
+  subtle: "#e5e9ee",
   table: "#dce5f1",
 };
 
@@ -31,16 +31,16 @@ export const shadowTokens = {
   xl: "0 16px 32px rgba(29,57,100,.12)",
   button: "0 8px 20px rgba(8,74,168,.22)",
   buttonHover: "0 12px 26px rgba(8,74,168,.28)",
-  card: "0 1px 2px rgba(29,57,100,.05), 0 14px 34px rgba(29,57,100,.08)",
-  tableCard: "0 1px 2px rgba(29,57,100,.06), 0 18px 34px rgba(29,57,100,.07)",
+  card: "0 2px 4px rgba(24,45,69,.025)",
+  tableCard: "0 1px 4px rgba(24,45,69,.04)",
   dialog: "0 28px 80px rgba(16,43,89,.28)",
   menu: "0 18px 36px rgba(16,43,89,.18)",
-  appBar: "0 1px 0 rgba(255,255,255,.9), 0 10px 28px rgba(29,57,100,.08)",
+  appBar: "none",
 };
 
 export const spacingTokens = {
   pageCardX: { xs: 2.25, md: 2.75 },
   pageCardY: { xs: 2.25, md: 2.75 },
-  appShellContainerX: { xs: 1.25, md: 2.5 },
-  appShellContainerY: { xs: 1.5, md: 2 },
+  appShellContainerX: { xs: 2, md: 4 },
+  appShellContainerY: { xs: 2.5, md: 3 },
 };

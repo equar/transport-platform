@@ -10,9 +10,9 @@ SECRET_KEYS = {
     'APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD', 'MICROSOFT_GRAPH_CLIENT_SECRET', 'EXPO_ACCESS_TOKEN',
 }
 DEFAULTS = {
-    'APP_PUBLIC_URL': 'https://transport.bakaroo.com', 'VITE_API_BASE_URL': '/api',
+    'APP_PUBLIC_URL': 'https://transport.bakaroo.com', 'APP_ADMIN_URL': 'https://admin.transport.bakaroo.com', 'VITE_API_BASE_URL': '/api',
     'MYSQL_PORT': '3306', 'MYSQL_DATABASE': 'transport_platform',
-    'APP_SECURITY_ALLOWED_ORIGINS': 'https://transport.bakaroo.com',
+    'APP_SECURITY_ALLOWED_ORIGINS': 'https://transport.bakaroo.com,https://admin.transport.bakaroo.com',
     'APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED': 'false', 'APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL': '',
     'APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD': '',
     'APP_EMAIL_ENABLED': 'false', 'APP_EMAIL_PROVIDER': 'logging', 'APP_EMAIL_FROM': '',
@@ -60,6 +60,9 @@ def settings(environ=None, target='all', require_ssh=True):
         if any(c in value for c in '\r\n\0') and key not in ('LIGHTSAIL_SSH_KEY', 'LIGHTSAIL_KNOWN_HOSTS'):
             raise ValueError('Multiline runtime setting: ' + key)
     public_origin(required(env, 'APP_PUBLIC_URL'), 'APP_PUBLIC_URL')
+    public_origin(required(env, 'APP_ADMIN_URL'), 'APP_ADMIN_URL')
+    if env['APP_PUBLIC_URL'] == env['APP_ADMIN_URL']:
+        raise ValueError('Public and admin websites must use different origins')
     if env['VITE_API_BASE_URL'] != '/api':
         raise ValueError('VITE_API_BASE_URL must be /api for the transport same-origin proxy')
     if require_ssh:
@@ -88,8 +91,8 @@ def settings(environ=None, target='all', require_ssh=True):
     origins = env['APP_SECURITY_ALLOWED_ORIGINS'].split(',')
     for origin in origins:
         public_origin(origin.strip(), 'APP_SECURITY_ALLOWED_ORIGINS')
-    if env['APP_PUBLIC_URL'] not in {origin.strip() for origin in origins}:
-        raise ValueError('APP_SECURITY_ALLOWED_ORIGINS must include APP_PUBLIC_URL')
+    if not {env['APP_PUBLIC_URL'], env['APP_ADMIN_URL']}.issubset({origin.strip() for origin in origins}):
+        raise ValueError('APP_SECURITY_ALLOWED_ORIGINS must include both website origins')
     for key in ('APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED', 'APP_EMAIL_ENABLED', 'APP_PUSH_ENABLED'):
         if env[key] not in ('true', 'false'):
             raise ValueError(key + ' must be true or false')
@@ -110,9 +113,9 @@ def settings(environ=None, target='all', require_ssh=True):
         raise ValueError('Disabled push must use the logging provider')
     if env['APP_PUSH_EXPO_URL'] != DEFAULTS['APP_PUSH_EXPO_URL']:
         raise ValueError('Production push must use the official Expo HTTPS endpoint')
-    reset = env.get('APP_AUTH_PASSWORD_RESET_BASE_URL') or env['APP_PUBLIC_URL'] + '/reset-password'
-    if reset != env['APP_PUBLIC_URL'] + '/reset-password':
-        raise ValueError('APP_AUTH_PASSWORD_RESET_BASE_URL must use APP_PUBLIC_URL/reset-password')
+    reset = env.get('APP_AUTH_PASSWORD_RESET_BASE_URL') or env['APP_ADMIN_URL'] + '/reset-password'
+    if reset != env['APP_ADMIN_URL'] + '/reset-password':
+        raise ValueError('APP_AUTH_PASSWORD_RESET_BASE_URL must use APP_ADMIN_URL/reset-password')
     env['APP_AUTH_PASSWORD_RESET_BASE_URL'] = reset
     # Prevent production logs from including bound passwords, reset tokens, or rider records.
     for key in ('APP_LOGGING_LEVEL_ROOT', 'APP_LOGGING_LEVEL_APP', 'APP_LOGGING_LEVEL_WEB', 'APP_LOGGING_LEVEL_SECURITY', 'APP_LOGGING_LEVEL_SQL', 'APP_LOGGING_LEVEL_SQL_BIND'):
@@ -124,6 +127,7 @@ def settings(environ=None, target='all', require_ssh=True):
 def runtime_settings(env):
     result = {key: env[key] for key in DEFAULTS if key.startswith(('APP_', 'MICROSOFT_', 'EXPO_'))}
     result.pop('APP_PUBLIC_URL', None)
+    result.pop('APP_ADMIN_URL', None)
     result['APP_AUTH_PASSWORD_RESET_BASE_URL'] = env['APP_AUTH_PASSWORD_RESET_BASE_URL']
     result.update(FIXED)
     result['SPRING_DATASOURCE_URL'] = (f"jdbc:mysql://{env['MYSQL_HOST']}:{env['MYSQL_PORT']}/transport_platform"

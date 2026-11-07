@@ -12,7 +12,7 @@ app:
       password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:Password123}
   security:
     api-docs-enabled: true
-    allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:http://localhost:3007,http://127.0.0.1:3007}
+    allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:http://localhost:3007,http://127.0.0.1:3007,http://localhost:3008,http://127.0.0.1:3008}
     refresh-cookie:
       same-site: ${APP_SECURITY_REFRESH_COOKIE_SAME_SITE:Lax}
       path: ${APP_SECURITY_REFRESH_COOKIE_PATH:/api/v1/auth}

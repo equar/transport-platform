@@ -55,7 +55,7 @@ Defaults expected by the backend if you do not override them:
 
 Create the `transport_platform` database if needed, or let MySQL create it automatically with `createDatabaseIfNotExist=true`. Adjust `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, or `MYSQL_PASSWORD` if your local MySQL setup differs.
 
-### Start Both Apps
+### Start the Backend and Both Websites
 
 From the repository root:
 
@@ -65,13 +65,14 @@ From the repository root:
 
 Services:
 
-- Frontend: `http://localhost:3007`
+- Public website: `http://localhost:3007`
+- Admin application and role portals: `http://localhost:3008`
 - Backend: `http://localhost:8082/api`
 - MySQL: `localhost:3306`
 - Backend health: `http://localhost:8082/api/actuator/health`
 - Swagger UI in local or dev profiles: `http://localhost:8082/api/swagger-ui/index.html`
 
-Stop both local processes with:
+Stop all local processes with:
 
 ```powershell
 ./infra/scripts/stop-local.ps1
@@ -105,7 +106,7 @@ npm ci
 npm run dev
 ```
 
-The Vite dev server runs on port `3007` and proxies `/api` requests to `http://localhost:8082`, matching the AWS port layout while preserving same-origin browser requests.
+The public Vite server runs on port `3007` (`npm run dev`) and the admin server on `3008` (`npm run dev:admin`). Both proxy `/api` to `http://localhost:8082`. Production builds create separate `frontend/dist/public` and `frontend/dist/admin` sites and verify their bundle isolation.
 
 Frontend validation build:
 
@@ -116,8 +117,8 @@ npm run build
 
 ## Application Areas
 
-- Public site: `/`, `/solutions`, `/features`, `/pricing`, `/faq`, `/contact`, `/apply`
-- Auth flows: `/login`, `/forgot-password`, `/reset-password`, `/unauthorized`
+- Public site (`https://transport.bakaroo.com`): `/`, `/solutions`, `/features`, `/pricing`, `/faq`, `/contact`, `/apply`
+- Admin site (`https://admin.transport.bakaroo.com`): `/login`, `/forgot-password`, `/reset-password`, `/unauthorized`
 - Internal app shell: authenticated platform and company administration areas such as `/dashboard`, `/dispatch`, `/rides`, `/drivers`, `/vehicles`, `/billing`, and related management views
 - Driver portal: `/portal/driver/...`
 - Rider or guardian portal: `/portal/rider/...`

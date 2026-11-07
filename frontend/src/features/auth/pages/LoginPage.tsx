@@ -1,3 +1,4 @@
+import { env } from "../../../shared/config/env";
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
@@ -15,7 +16,6 @@ import { AuthFormShell } from "../components/AuthFormShell";
 import { resolvePostLoginRoute } from "../access";
 import { useAuth } from "../context/AuthContext";
 import { consumeAuthNotice } from "../utils/authNotices";
-import { publicSecondaryCta } from "../../public/content/siteContent";
 import { useToast } from "../../../shared/providers/ToastProvider";
 
 interface RouterState {
@@ -107,40 +107,21 @@ export function LoginPage() {
 
   return (
     <AuthFormShell
-      eyebrow="Secure sign in"
-      title="Sign in to your transportation workspace."
-      description="Use your email address and password. Your workspace and permissions are resolved automatically from your account."
+      eyebrow="BAKAROO WORKSPACE"
+      title="Welcome back."
+      description="Sign in to manage your team and keep the day moving."
       status={status}
-      footer={
-        <Typography variant="body2" color="text.secondary">
-          Transportation teams can get started through the{" "}
-          <Link component={RouterLink} to="/apply" underline="hover">
-            {publicSecondaryCta.label}
-          </Link>{" "}
-          page or{" "}
-          <Link
-            component={RouterLink}
-            to="/contact#request-demo"
-            underline="hover"
-          >
-            Request Demo
-          </Link>
-          . Need password help? Visit{" "}
-          <Link component={RouterLink} to="/forgot-password" underline="hover">
-            Forgot Password
-          </Link>
-          .
-        </Typography>
-      }
+      footer={<Typography variant="body2" color="text.secondary">Need access? Contact your workspace administrator or <Link href={env.publicSiteUrl + "/contact"}>get in touch</Link>.</Typography>}
     >
       <Stack spacing={2} component="form" onSubmit={handleSubmit}>
         <TextField
-          label="Work Email"
+          label="Email address"
+          autoComplete="username"
           type="email"
           value={email}
           onChange={handleEmailChange}
           required
-          helperText="Use the email address assigned to your workspace account."
+
           error={
             Boolean(error) &&
             (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim()))
@@ -148,12 +129,13 @@ export function LoginPage() {
         />
         <TextField
           label="Password"
+          autoComplete="current-password"
           type={passwordVisible ? "text" : "password"}
           value={password}
           onChange={handlePasswordChange}
           required
           error={Boolean(error) && !password.trim()}
-          helperText="Use the password assigned to your workspace account."
+
           slotProps={{
             input: {
               endAdornment: (
@@ -177,30 +159,13 @@ export function LoginPage() {
           }}
         />
 
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          alignItems={{ sm: "center" }}
-        >
-          <Button
-            type="submit"
-            variant="contained"
-            size="large"
-            disabled={submitting}
-          >
-            {submitting ? "Signing in..." : "Sign in"}
-          </Button>
-          <Typography variant="body2" color="text.secondary">
-            Your workspace is selected automatically after authentication.
-          </Typography>
-        </Stack>
+        <Button type="submit" variant="contained" size="large" disabled={submitting} fullWidth sx={{ mt: 1 }}>{submitting ? "Signing in…" : "Sign in to workspace"}</Button>
 
         <Typography variant="body2" color="text.secondary">
-          Forgot your password?{" "}
+
           <Link component={RouterLink} to="/forgot-password" underline="hover">
-            Reset your password
+            Forgot password?
           </Link>
-          .
         </Typography>
       </Stack>
     </AuthFormShell>

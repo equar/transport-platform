@@ -22,10 +22,6 @@ export const publicSecondaryCta = {
   to: "/apply",
 };
 
-export const publicAuthCta = {
-  label: "Sign in",
-  to: "/login",
-};
 
 export const publicTrustHighlights = [
   "Built-in access controls for every team",
@@ -59,7 +55,6 @@ export const publicFooterSections: PublicFooterSection[] = [
       { label: "About", to: "/about" },
       { label: "Contact", to: "/contact" },
       { label: "Request Demo", to: "/contact#request-demo" },
-      { label: "Sign in", to: "/login" },
     ],
   },
   {

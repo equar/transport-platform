@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $pidDirectory = Join-Path $repoRoot "infra\.local"
 
-foreach ($name in @("backend", "frontend")) {
+foreach ($name in @("backend", "frontend", "admin-frontend")) {
     $pidFile = Join-Path $pidDirectory "$name.pid"
     if (-not (Test-Path $pidFile)) {
         continue

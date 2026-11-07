@@ -1,3 +1,5 @@
+import { WorkspaceSearch } from "./WorkspaceSearch";
+import { env } from "../../shared/config/env";
 import { Suspense, useEffect, useState } from "react";
 import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
 import {
@@ -146,13 +148,15 @@ export function AppShell() {
     };
   }, [location.pathname, platformAdmin]);
 
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
   const drawer = (
-    <Stack sx={{ height: "100%", bgcolor: surfaceTokens.shellSidebarBase, color: "#ffffff", backgroundImage: `linear-gradient(180deg, ${surfaceTokens.shellSidebarTop} 0%, ${surfaceTokens.shellSidebarBottom} 100%)` }}>
-      <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: "rgba(8,74,168,.56)", borderBottom: `1px solid ${surfaceTokens.shellCardBorder}` }}>
-        <BrandMark compact />
+    <Stack sx={{ height: "100%", bgcolor: surfaceTokens.shellSidebarBase, color: "#ffffff", backgroundImage: "none" }}>
+      <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: "rgba(255,255,255,.02)", borderBottom: `1px solid ${surfaceTokens.shellCardBorder}` }}>
+        <BrandMark compact inverse />
       </Box>
       <Box sx={{ mx: 1.5, my: 1.5, px: 1.75, py: 1.5, bgcolor: surfaceTokens.shellCardBg, border: `1px solid ${surfaceTokens.shellCardBorder}`, borderRadius: 1.5, boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)" }}>
-        <Typography variant="caption" sx={{ color: "#c6dcfb", display: "block", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 800 }}>
+        <Typography variant="caption" sx={{ color: "#94a8bd", display: "block", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 800 }}>
           {shellView.scopeLabel}
         </Typography>
         <Typography variant="subtitle2" sx={{ color: "#fff", fontWeight: 700, mt: .35 }} noWrap>
@@ -165,7 +169,7 @@ export function AppShell() {
             <Box key={section.title}>
               <Typography
                 variant="overline"
-                sx={{ px: 1.4, pb: 0.9, display: "block", color: "#c6dcfb", fontSize: ".66rem", letterSpacing: ".14em", lineHeight: 1.4 }}
+                sx={{ px: 1.4, pb: 0.9, display: "block", color: "#94a8bd", fontSize: ".59rem", letterSpacing: ".12em", lineHeight: 1.4 }}
               >
                 {section.title}
               </Typography>
@@ -183,14 +187,14 @@ export function AppShell() {
                         minHeight: 42,
                         py: 0.75,
                         px: 1.4,
-                        color: "#e7f0ff",
+                        color: "#c8d3df",
                         borderRadius: 1.5,
                         border: "1px solid transparent",
                         "&.Mui-selected": {
                           bgcolor: surfaceTokens.shellSelectedBg,
                           color: "#fff",
                           borderColor: surfaceTokens.shellCardBorder,
-                          boxShadow: "inset 3px 0 0 #4d94ee, 0 1px 2px rgba(0,0,0,.18)",
+                          boxShadow: "inset 3px 0 0 #e9a77c",
                         },
                         "&.Mui-selected:hover": { bgcolor: surfaceTokens.shellSelectedBgHover },
                         "&:hover": { bgcolor: surfaceTokens.shellHoverBg },
@@ -199,7 +203,7 @@ export function AppShell() {
                       <ListItemIcon
                         sx={{
                           minWidth: 30,
-                          color: selected ? "#ffffff" : "#c6dcfb",
+                          color: selected ? "#ffffff" : "#94a8bd",
                         }}
                       >
                         {item.icon}
@@ -207,8 +211,8 @@ export function AppShell() {
                       <ListItemText
                         primary={item.label}
                         primaryTypographyProps={{
-                          fontWeight: selected ? 700 : 600,
-                          fontSize: ".92rem",
+                          fontWeight: selected ? 600 : 500,
+                          fontSize: ".8rem",
                           color: "inherit",
                         }}
                       />
@@ -225,13 +229,13 @@ export function AppShell() {
       <Box sx={{ px: 1.6, py: 1.4 }}>
         <Stack spacing={1}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1 }}>
-            <CircleIcon sx={{ fontSize: 8, color: "#4d94ee" }} />
-            <Typography variant="caption" sx={{ color: "#c6dcfb" }}>System operational</Typography>
+            <CircleIcon sx={{ fontSize: 8, color: "#dfad89" }} />
+            <Typography variant="caption" sx={{ color: "#94a8bd" }}>Workspace access</Typography>
           </Stack>
           <Button
-            component={RouterLink}
-            to="/"
-            sx={{ color: "#e7f0ff", justifyContent: "flex-start", fontSize: ".75rem" }}
+            component="a"
+            href={env.publicSiteUrl}
+            sx={{ color: "#c8d3df", justifyContent: "flex-start", fontSize: ".75rem" }}
             endIcon={<LaunchRoundedIcon />}
           >
             Open public site
@@ -314,19 +318,23 @@ export function AppShell() {
           <IconButton
             color="inherit"
             edge="start"
+            aria-label="Open workspace navigation"
             onClick={() => setMobileOpen(true)}
             sx={{ display: { md: "none" } }}
           >
             <MenuRoundedIcon />
           </IconButton>
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Typography variant="subtitle1" sx={{ lineHeight: 1.1, fontWeight: 800, fontSize: "1.05rem" }} noWrap>
+            <Typography sx={{ fontSize: ".62rem", color: "text.secondary", mb: .3 }}>{shellView.scopeLabel}</Typography>
+            <Typography variant="subtitle1" sx={{ lineHeight: 1.1, fontWeight: 800, fontSize: ".85rem" }} noWrap>
               {currentTitle}
             </Typography>
           </Box>
+          <WorkspaceSearch sections={visibleSections} />
           <Stack direction="row" spacing={.75} alignItems="center">
             <IconButton
               color="inherit"
+              aria-label="Open notifications"
               onClick={(event) => setNotificationAnchorEl(event.currentTarget)}
             >
               <Badge
@@ -341,10 +349,11 @@ export function AppShell() {
               label={workspaceLabel}
               color="primary"
               variant="outlined"
-              sx={{ display: { xs: "none", lg: "inline-flex" }, bgcolor: "rgba(18,102,214,.06)", borderRadius: 1.5 }}
+              sx={{ display: { xs: "none", lg: "inline-flex" }, bgcolor: "#f5f7fa", borderRadius: 1.5 }}
             />
             <Button
               color="inherit"
+              aria-label="Open account menu"
               onClick={(event) => setUserMenuAnchorEl(event.currentTarget)}
               startIcon={
                 <Avatar sx={{ width: 26, height: 26, bgcolor: "primary.main", fontSize: ".72rem" }}>
@@ -352,9 +361,9 @@ export function AppShell() {
                 </Avatar>
               }
               endIcon={<MoreHorizRoundedIcon />}
-              sx={{ borderLeft: "1px solid", borderColor: "divider", borderRadius: 0, pl: 2, ml: .25, minWidth: 0 }}
+              sx={{ borderLeft: "1px solid", borderColor: "divider", borderRadius: 0, pl: { xs: 1, sm: 2 }, ml: .25, minWidth: 0, "& .MuiButton-endIcon": { display: { xs: "none", sm: "inline-flex" } } }}
             >
-              {displayName}
+              <Box component="span" sx={{ display: { xs: "none", sm: "inline" }, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: ".78rem" }}>{displayName}</Box>
             </Button>
           </Stack>
         </Toolbar>
@@ -436,15 +445,15 @@ export function AppShell() {
           <>
             <Divider />
             <MenuItem
-              component={RouterLink}
-              to="/"
+              component="a"
+              href={env.publicSiteUrl}
               onClick={() => setUserMenuAnchorEl(null)}
             >
               View public site
             </MenuItem>
             <MenuItem
-              component={RouterLink}
-              to="/contact#request-demo"
+              component="a"
+              href={env.publicSiteUrl + "/contact#request-demo"}
               onClick={() => setUserMenuAnchorEl(null)}
             >
               Request a demo

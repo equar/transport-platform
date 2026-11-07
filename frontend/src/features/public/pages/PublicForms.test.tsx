@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ContactPage } from './ContactPage';
-import { ForgotPasswordPage } from './ForgotPasswordPage';
+import { ForgotPasswordPage } from '../../auth/pages/ForgotPasswordPage';
 const mocks=vi.hoisted(()=>({post:vi.fn(),requestPasswordReset:vi.fn()}));
 vi.mock('../../../shared/api/client',()=>({apiClient:{post:mocks.post}}));
 vi.mock('../../auth/api/authApi',()=>({authApi:{requestPasswordReset:mocks.requestPasswordReset}}));

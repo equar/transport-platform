@@ -20,8 +20,8 @@ spec.loader.exec_module(changes)
 
 
 def environment():
-    return dict(APP_PUBLIC_URL='https://transport.example.invalid', VITE_API_BASE_URL='/api',
-        APP_SECURITY_ALLOWED_ORIGINS='https://transport.example.invalid',
+    return dict(APP_PUBLIC_URL='https://transport.example.invalid', APP_ADMIN_URL='https://admin.transport.example.invalid', VITE_API_BASE_URL='/api',
+        APP_SECURITY_ALLOWED_ORIGINS='https://transport.example.invalid,https://admin.transport.example.invalid',
         LIGHTSAIL_HOST='host.example.invalid', LIGHTSAIL_USER='ubuntu',
         LIGHTSAIL_SSH_KEY_B64='dummy-key', LIGHTSAIL_KNOWN_HOSTS='host.example.invalid ssh-ed25519 dummy',
         MYSQL_HOST='db.example.invalid', MYSQL_USER='transport', MYSQL_PASSWORD='private-db-value',
@@ -83,7 +83,18 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(runtime['APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED'], 'false')
         self.assertEqual(runtime['SPRING_FLYWAY_LOCATIONS'], 'classpath:db/migration')
         self.assertIn('sslMode=VERIFY_IDENTITY', runtime['SPRING_DATASOURCE_URL'])
-        self.assertEqual(runtime['APP_AUTH_PASSWORD_RESET_BASE_URL'], 'https://transport.example.invalid/reset-password')
+        self.assertEqual(runtime['APP_AUTH_PASSWORD_RESET_BASE_URL'], 'https://admin.transport.example.invalid/reset-password')
+
+    def test_websites_require_distinct_origins_and_admin_recovery(self):
+        values = environment()
+        values['APP_ADMIN_URL'] = values['APP_PUBLIC_URL']
+        with self.assertRaises(ValueError): settings(values)
+        values = environment()
+        values['APP_SECURITY_ALLOWED_ORIGINS'] = values['APP_PUBLIC_URL']
+        with self.assertRaises(ValueError): settings(values)
+        values = environment()
+        values['APP_AUTH_PASSWORD_RESET_BASE_URL'] = values['APP_PUBLIC_URL'] + '/reset-password'
+        with self.assertRaises(ValueError): settings(values)
 
     def test_frontend_only_needs_no_database_or_jwt_credentials(self):
         values = environment()
@@ -164,10 +175,12 @@ class DeploymentScriptTests(unittest.TestCase):
             script = script.replace('/var/lock/transport-platform-deploy.lock', str(root/'deploy.lock'))
             activation = root/'activate.sh'; activation.write_text(script)
             for release in ('first', 'second'):
-                (incoming/'index.html').write_text('<html>'+release+'</html>')
+                for site in ('public', 'admin'):
+                    (incoming/site).mkdir(exist_ok=True)
+                    (incoming/site/'index.html').write_text('<html>'+site+release+'</html>')
                 (incoming/'release.json').write_text(json.dumps({'release': release}))
                 with tarfile.open(incoming/'frontend.tar.gz', 'w:gz') as archive:
-                    for name in ('index.html', 'release.json'):
+                    for name in ('public', 'admin', 'release.json'):
                         archive.add(incoming/name, arcname=name)
                 result = subprocess.run(['bash', str(activation), str(incoming), release],
                     env=dict(os.environ, PATH=str(binaries)+os.pathsep+os.environ['PATH']),
@@ -180,7 +193,9 @@ class DeploymentScriptTests(unittest.TestCase):
         root = Path(directory); aws = root/'deployment/aws'; aws.mkdir(parents=True)
         for name in ('deploy-common.sh', 'deploy-frontend.sh', 'activate-frontend.sh', 'validate-config.py', 'production_config.py'):
             shutil.copy(AWS/name, aws/name)
-        dist = root/'frontend/dist'; dist.mkdir(parents=True); (dist/'index.html').write_text('<html>Transport</html>')
+        dist = root/'frontend/dist'; dist.mkdir(parents=True)
+        for site in ('public', 'admin'):
+            (dist/site).mkdir(); (dist/site/'index.html').write_text('<html>'+site+'</html>')
         binaries = root/'bin'; binaries.mkdir(); log = root/'commands'; payload = root/'remote-payload'
         for command in ('ssh', 'scp', 'curl', 'sleep'):
             script = binaries/command
