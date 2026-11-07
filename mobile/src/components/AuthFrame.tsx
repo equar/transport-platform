@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: Spacing.xl, paddingVertical: Spacing.xxxl },
   content: { width: '100%', maxWidth: 480, alignSelf: 'center', gap: Spacing.xl },
-  brand: { flexDirection: 'row', gap: Spacing.md, alignItems: 'center', marginBottom: Spacing.sm },
+  brand: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.md, alignItems: 'center', marginBottom: Spacing.sm },
   logo: { width: 48, height: 48, borderRadius: Radius.lg },
   brandName: { fontFamily: Typography.fontHeading, fontSize: 30, letterSpacing: -1, color: Colors.textPrimary, lineHeight: 36 },
   dot: { color: Colors.accent },
