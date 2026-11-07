@@ -1,3 +1,4 @@
+import { RequestError } from '@components/RequestError';
 import { SupportContact } from '@components/SupportContact';
 import React from 'react';
 import {
@@ -18,7 +19,7 @@ import { TripTrackingCard } from '@components/TripTrackingCard';
 import { useOfflineQueue } from '@stores/offlineQueueStore';
 import { AppBadge, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
 import { DriverRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime } from '@utils/formatDate';
 import { createIdempotencyKey } from '@utils/idempotencyKey';
@@ -154,7 +155,7 @@ export default function DriverRideDetailPage() {
   }, [ride?.status, rideId, session?.identity.id]);
 
   if (isLoading) return <LoadingState />;
-  if (isError || !ride) return <View style={{ padding: 24, gap: 16 }}><Text>Trip unavailable. Check your connection and try again.</Text><AppButton label="Retry" onPress={() => void refetch()} /></View>;
+  if (isError || !ride) return <RequestError onRetry={() => void refetch()} />;
 
   const primaryAction = rideActions?.[ride.status] ?? PRIMARY_STATUS_ACTIONS[ride.status];
   const secondaryActions = SECONDARY_STATUS_ACTIONS[ride.status] ?? [];
@@ -179,7 +180,7 @@ export default function DriverRideDetailPage() {
       <View style={styles.heroCard}>
         <View style={styles.heroTopRow}>
           <Text style={styles.heroTitle}>Current Trip</Text>
-          <Text style={[styles.onlineBadge, { backgroundColor: network.isConnected ? "#15803d" : "#92400e" }]}>{network.isConnected ? "Online" : "Offline"}</Text>
+          <Text style={[styles.onlineBadge, { backgroundColor: network.isConnected ? Colors.success : Colors.warning }]}>{network.isConnected ? "Online" : "Offline"}</Text>
         </View>
         <Text style={styles.rideNumberHero}>{ride.rideNumber}</Text>
         <View style={styles.heroMetaRow}>
@@ -188,8 +189,8 @@ export default function DriverRideDetailPage() {
         </View>
       </View>
 
-      <Text accessibilityRole="text">{tracking.message}{tracking.lastSyncedAt ? ` • Last synced ${new Date(tracking.lastSyncedAt).toLocaleTimeString()}` : ""}</Text>
-      <Text style={styles.back} onPress={() => router.back()}>← Dispatches</Text>
+      <Text accessibilityRole="text" style={{ fontFamily: Typography.fontBody, color: Colors.textSecondary, lineHeight: 22 }}>{tracking.message}{tracking.lastSyncedAt ? ` • Last synced ${new Date(tracking.lastSyncedAt).toLocaleTimeString()}` : ""}</Text>
+      <Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>← Dispatches</Text>
 
       {/* Action */}
       {(primaryAction || secondaryActions.length > 0) && (
@@ -330,7 +331,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   heroCard: {
-    backgroundColor: DriverRoleTheme.primary,
+    backgroundColor: Colors.surface,
+    borderWidth: 1, borderColor: Colors.border,
     borderRadius: 8,
     padding: Spacing.lg,
     gap: Spacing.sm,
@@ -341,24 +343,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heroTitle: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeMd,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
   onlineBadge: {
-    backgroundColor: '#16a34a',
+    backgroundColor: Colors.success,
     color: Colors.white,
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
-    borderRadius: 999,
+    borderRadius: 6,
     overflow: 'hidden',
   },
   rideNumberHero: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXxl,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
   heroMetaRow: {
     flexDirection: 'row',
@@ -366,53 +368,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heroSchedule: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
   back: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeSm,
     color: Colors.primary,
   },
   instructions: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeMd,
     color: Colors.textPrimary,
   },
   queuedActionState: {
     borderLeftWidth: 4,
-    borderLeftColor: '#d97706',
-    backgroundColor: '#fffbeb',
+    borderLeftColor: Colors.warning,
+    backgroundColor: Colors.warningSoft,
     padding: Spacing.md,
     gap: Spacing.xs,
   },
   queuedActionTitle: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeMd,
-    color: '#92400e',
+    color: Colors.warning,
   },
   queuedActionText: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: '#92400e',
+    color: Colors.warning,
   },
   conflictActionState: {
     borderLeftWidth: 4,
-    borderLeftColor: '#dc2626',
-    backgroundColor: '#fef2f2',
+    borderLeftColor: Colors.error,
+    backgroundColor: Colors.errorSoft,
     padding: Spacing.md,
     gap: Spacing.sm,
   },
   conflictActionTitle: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeMd,
-    color: '#991b1b',
+    color: Colors.error,
   },
   conflictActionText: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: '#991b1b',
+    color: Colors.error,
   },
   primaryActionRow: {
     flexDirection: 'row',
@@ -432,9 +434,10 @@ const sectionStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     gap: 0,
+    backgroundColor: Colors.surface, borderRadius: 10, overflow: 'hidden',
   },
   title: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
     color: Colors.textSecondary,
     letterSpacing: 0.5,
@@ -442,7 +445,7 @@ const sectionStyles = StyleSheet.create({
     padding: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
-    backgroundColor: '#fafafa',
+    backgroundColor: Colors.surfaceMuted,
   },
   body: { padding: Spacing.md, gap: Spacing.sm },
 });
@@ -450,13 +453,13 @@ const sectionStyles = StyleSheet.create({
 const rowStyles = StyleSheet.create({
   row: { flexDirection: 'row', gap: Spacing.sm },
   label: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
     width: 90,
   },
   value: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textPrimary,
     flex: 1,

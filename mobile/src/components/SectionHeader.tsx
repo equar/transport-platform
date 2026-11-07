@@ -13,7 +13,7 @@ export function SectionHeader({ title, subtitle }: SectionHeaderProps) {
 
   return (
     <View style={styles.container}>
-      <Text
+      <Text accessibilityRole="header"
         style={[
           styles.title,
           {
@@ -40,14 +40,15 @@ export function SectionHeader({ title, subtitle }: SectionHeaderProps) {
 const styles = StyleSheet.create({
   container: { gap: 4, marginBottom: Spacing.xs },
   title: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXxl,
     color: Colors.textPrimary,
     letterSpacing: -0.4,
   },
   subtitle: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeMd,
     color: Colors.textSecondary,
+    lineHeight: 22,
   },
 });

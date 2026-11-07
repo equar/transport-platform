@@ -9,6 +9,8 @@ type Size = 'xs' | 'sm' | 'md' | 'lg';
 
 interface AppButtonProps {
   label: string;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
   onPress: () => void;
   variant?: Variant;
   size?: Size;
@@ -70,6 +72,8 @@ function getVariantStyles(variant: Variant) {
 
 export function AppButton({
   label,
+  accessibilityLabel,
+  accessibilityHint,
   onPress,
   variant = 'primary',
   size = 'md',
@@ -99,6 +103,8 @@ export function AppButton({
       ]}
       android_ripple={{ color: 'rgba(0,0,0,0.09)' }}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
     >
       {loading ? (
@@ -121,6 +127,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   contentRow: {
+    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -156,8 +163,10 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   labelBase: {
-    fontFamily: Typography.fontBodyBold,
-    fontWeight: '700',
+    flexShrink: 1,
+    textAlign: 'center',
+    fontFamily: Typography.fontBodyMedium,
+    fontWeight: '600',
   },
   labelLight: {
     color: Colors.white,

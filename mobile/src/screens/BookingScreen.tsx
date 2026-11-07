@@ -140,6 +140,7 @@ export default function RiderSchedulePage() {
 
       {guardian ? <AppCard><SectionHeader title="Rider" />
         {ridersError ? <AppButton label="Retry loading riders" onPress={() => void retryRiders()} /> : null}
+        {riders?.length === 0 ? <Text style={styles.note}>No riders are linked to your account. Contact your transport provider before requesting a ride.</Text> : null}
         {(riders ?? []).map(rider => <OptionPill key={rider.id} label={rider.riderDisplayName} active={riderId === rider.id} onPress={() => { setRiderId(rider.id); setWheelchairRequired(!!rider.wheelchairRequired); setEscortRequired(!!rider.escortRequired); }} />)}
       </AppCard> : null}
       <AppCard>
@@ -199,8 +200,8 @@ export default function RiderSchedulePage() {
         <View style={styles.fields}>
           <DateTimeField timezone={capabilities?.operationalSettings.timezone} label="Pickup" value={form.scheduledPickupAt} onChange={v => update('scheduledPickupAt', v)} />
           {tripType === 'ROUND_TRIP' ? <><DateTimeField timezone={capabilities?.operationalSettings.timezone} label="Return pickup" value={form.returnPickupAt} onChange={v => update('returnPickupAt', v)} /><DateTimeField timezone={capabilities?.operationalSettings.timezone} label="Return drop-off" value={form.returnDropoffAt} onChange={v => update('returnDropoffAt', v)} /></> : null}
-          <View style={styles.splitRow}><Text>Wheelchair required</Text><Switch accessibilityLabel="Wheelchair required" value={wheelchairRequired} onValueChange={setWheelchairRequired} /></View>
-          <View style={styles.splitRow}><Text>Escort required</Text><Switch accessibilityLabel="Escort required" value={escortRequired} onValueChange={setEscortRequired} /></View>
+          <View style={styles.assistanceRow}><Text style={styles.assistanceLabel}>Wheelchair required</Text><Switch trackColor={{ false: Colors.borderStrong, true: Colors.primary }} thumbColor={Colors.white} accessibilityLabel="Wheelchair required" value={wheelchairRequired} onValueChange={setWheelchairRequired} /></View>
+          <View style={styles.assistanceRow}><Text style={styles.assistanceLabel}>Escort required</Text><Switch trackColor={{ false: Colors.borderStrong, true: Colors.primary }} thumbColor={Colors.white} accessibilityLabel="Escort required" value={escortRequired} onValueChange={setEscortRequired} /></View>
           <AppInput
             label="Companions"
             value={form.companionCount}
@@ -220,7 +221,7 @@ export default function RiderSchedulePage() {
         </View>
       </AppCard>
 
-      <AppButton label="Request Ride" fullWidth onPress={submit} loading={isPending} />
+      <AppButton label="Review ride request" fullWidth onPress={submit} loading={isPending} />
       <Text style={styles.note}>Your request is sent to dispatch for confirmation. Times follow your transport company’s local schedule.</Text>
     </ScrollView>
   );
@@ -252,7 +253,7 @@ function validateForm(form: FormState): string | null {
   if (!form.dropoffCountry.trim()) return 'Drop-off country is required.';
   if (!form.scheduledPickupAt.trim()) return 'Scheduled pickup time is required.';
   if (Number.isNaN(Date.parse(form.scheduledPickupAt.trim()))) {
-    return 'Scheduled pickup must be a valid ISO local datetime, e.g. 2026-09-03T08:30:00.';
+    return 'Choose a valid pickup date and time.';
   }
   const companions = Number(form.companionCount || '0');
   if (!Number.isInteger(companions) || companions < 0 || companions > 10) {
@@ -287,20 +288,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.xxxl },
   hero: {
-    backgroundColor: PassengerRoleTheme.primary,
+    backgroundColor: Colors.surface,
+    borderWidth: 1, borderColor: Colors.border,
     borderRadius: 8,
     padding: Spacing.lg,
     gap: Spacing.xs,
   },
   heroTitle: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXl,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
   heroSubtitle: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.white,
+    color: Colors.textPrimary,
     opacity: 0.9,
   },
   optionRow: {
@@ -315,7 +317,7 @@ const styles = StyleSheet.create({
   pill: {
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 999,
+    borderRadius: 8,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     backgroundColor: Colors.surface,
@@ -325,13 +327,15 @@ const styles = StyleSheet.create({
     backgroundColor: PassengerRoleTheme.primary,
   },
   pillLabel: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
   },
   pillLabelActive: {
     color: Colors.white,
   },
+  assistanceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md, minHeight: 52 },
+  assistanceLabel: { flex: 1, fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: Colors.textPrimary },
   fields: {
     gap: Spacing.sm,
   },
@@ -346,7 +350,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   note: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
     lineHeight: 20,

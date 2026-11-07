@@ -14,12 +14,12 @@ export default function DriverLayout() {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          height: 70,
+          height: 64,
           paddingTop: 7,
           paddingBottom: 7,
         },
         tabBarLabelStyle: {
-          fontFamily: 'SourceSans3_600SemiBold',
+          fontFamily: 'Inter_600SemiBold',
           fontSize: Typography.sizeXs,
           marginTop: 1,
         },
@@ -38,21 +38,21 @@ export default function DriverLayout() {
       <Tabs.Screen
         name="rides"
         options={{
-          title: 'Dispatches',
+          title: 'Trips',
           tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'list' : 'list-outline'} size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="routes"
         options={{
-          title: 'Trips',
+          title: 'Routes',
           tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'map' : 'map-outline'} size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'Messages',
+          title: 'Alerts',
           tabBarIcon: ({ color, size }) => <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />,
         }}
       />

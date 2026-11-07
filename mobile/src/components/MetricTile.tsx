@@ -26,8 +26,9 @@ const styles = StyleSheet.create({
   tile: {
     flex: 1,
     backgroundColor: Colors.surface,
-    paddingHorizontal: Spacing.sm,
-    alignItems: 'center',
+    padding: Spacing.lg,
+    borderWidth: 1, borderColor: Colors.border, borderRadius: 10,
+    alignItems: 'flex-start',
     gap: Spacing.xs,
     minWidth: 120,
     overflow: 'hidden',
@@ -45,14 +46,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.error,
   },
   value: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXxxl,
     color: Colors.textPrimary,
   },
   label: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
-    textAlign: 'center',
+    textAlign: 'left',
   },
 });

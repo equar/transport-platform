@@ -14,13 +14,14 @@ export function LoadingState({ message = 'Loading…' }: { message?: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.md,
     padding: Spacing.xxxl,
   },
   text: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeMd,
     color: Colors.textSecondary,
   },

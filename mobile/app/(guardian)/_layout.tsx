@@ -14,12 +14,12 @@ export default function GuardianLayout() {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          height: 70,
+          height: 64,
           paddingTop: 7,
           paddingBottom: 7,
         },
         tabBarLabelStyle: {
-          fontFamily: 'SourceSans3_600SemiBold',
+          fontFamily: 'Inter_600SemiBold',
           fontSize: Typography.sizeXs,
           marginTop: 1,
         },
@@ -29,6 +29,7 @@ export default function GuardianLayout() {
       }}
     >
       <Tabs.Screen name="schedule" options={{ href: null }} />
+      <Tabs.Screen name="billing" options={{ href: null }} />
       <Tabs.Screen
         name="index"
         options={{
@@ -40,13 +41,13 @@ export default function GuardianLayout() {
         name="riders"
         options={{
           title: 'Riders',
-          tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'locate' : 'locate-outline'} size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'people' : 'people-outline'} size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="rides"
         options={{
-          title: 'Activity',
+          title: 'Rides',
           tabBarIcon: ({ color, size }) => <Ionicons name="car-outline" size={size} color={color} />,
         }}
       />

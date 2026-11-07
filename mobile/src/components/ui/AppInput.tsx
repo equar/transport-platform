@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle, type TextInputProps } from 'react-native';
 import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
@@ -77,6 +78,8 @@ export function AppInput({
             multiline && { height: numberOfLines * 20, textAlignVertical: 'top' },
           ]}
           accessibilityLabel={label ?? placeholder}
+          accessibilityState={{ disabled: !editable }}
+          selectionColor={Colors.primary}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -84,7 +87,8 @@ export function AppInput({
           secureTextEntry={secureTextEntry && !showPassword}
           autoCapitalize={autoCapitalize}
           autoComplete={autoComplete}
-          autoCorrect={!secureTextEntry}
+          autoCorrect={!secureTextEntry && keyboardType !== 'email-address'}
+          accessibilityHint={helperText}
           keyboardType={keyboardType}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
@@ -95,13 +99,13 @@ export function AppInput({
         />
         {secureTextEntry ? (
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={showPassword ? "Hide password" : "Show password"} onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
-            <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁'}</Text>
+            <MaterialCommunityIcons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={Colors.textSecondary} />
           </TouchableOpacity>
         ) : null}
       </View>
       {(helperText || (showCount && maxLength)) ? (
         <View style={styles.helperRow}>
-          <Text style={[styles.helperBase, helperStyle]}>{helperText ?? ' '}</Text>
+          <Text accessibilityLiveRegion={error ? 'polite' : 'none'} style={[styles.helperBase, helperStyle]}>{helperText ?? ' '}</Text>
           {showCount && maxLength ? (
             <Text style={styles.counterText}>
               {value.length}/{maxLength}
@@ -130,7 +134,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.input,
-    backgroundColor: Colors.surfaceMuted,
+    backgroundColor: Colors.surface,
     paddingHorizontal: Spacing.md,
     minHeight: 52,
   },
@@ -154,7 +158,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: Typography.fontBody,
-    fontSize: Typography.sizeMd,
+    fontSize: Typography.sizeLg,
     color: Colors.textPrimary,
     paddingVertical: Spacing.md,
   },

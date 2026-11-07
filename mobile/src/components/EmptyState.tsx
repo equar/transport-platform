@@ -1,4 +1,5 @@
 import React from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, View, Text } from 'react-native';
 import { Colors, Spacing, Typography } from '@theme/tokens';
 import { AppButton } from './ui';
@@ -14,7 +15,7 @@ export function EmptyState({ title, description, actionLabel, onAction }: EmptyS
   return (
     <View style={styles.container}>
       <View style={styles.icon}>
-        <Text style={styles.iconText}>📭</Text>
+        <MaterialCommunityIcons name="inbox-outline" size={28} color={Colors.primary} />
       </View>
       <Text style={styles.title}>{title}</Text>
       {description ? <Text style={styles.description}>{description}</Text> : null}
@@ -37,7 +38,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 8,
-    backgroundColor: Colors.divider,
+    backgroundColor: Colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -45,13 +46,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   title: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeLg,
     color: Colors.textPrimary,
     textAlign: 'center',
   },
   description: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeMd,
     color: Colors.textSecondary,
     textAlign: 'center',

@@ -30,7 +30,7 @@ export default function GuardianRidersPage() {
       <View style={styles.headerCard}>
         <SectionHeader title="Linked Riders" subtitle="Riders you're authorised to monitor" />
       </View>
-      <AppButton label="Request a ride" onPress={() => router.push("/(guardian)/schedule" as never)} />
+      <AppButton style={{ marginHorizontal: Spacing.lg, marginVertical: Spacing.md }} label="Request a ride" onPress={() => router.push("/(guardian)/schedule" as never)} />
       <FlatList
         data={riders}
         keyExtractor={(r) => String(r.id)}
@@ -86,10 +86,10 @@ const styles = StyleSheet.create({
   },
   listContent: { paddingTop: Spacing.md },
   card: { gap: Spacing.xs },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
-  code: { fontFamily: 'SpaceGrotesk_500Medium', fontSize: Typography.sizeSm, color: GuardianRoleTheme.primary },
-  meta: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
+  name: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
+  code: { fontFamily: 'Manrope_500Medium', fontSize: Typography.sizeSm, color: GuardianRoleTheme.primary },
+  meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.xs },
   sep: { height: Spacing.sm },
   emptyContent: { flex: 1 },
@@ -97,5 +97,5 @@ const styles = StyleSheet.create({
 
 const tagStyles = StyleSheet.create({
   tag: { backgroundColor: Colors.divider, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
-  text: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeXs, color: Colors.textSecondary },
+  text: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeXs, color: Colors.textSecondary },
 });

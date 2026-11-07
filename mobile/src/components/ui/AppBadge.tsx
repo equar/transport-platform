@@ -1,4 +1,5 @@
 import React from 'react';
+import { tripStatusLabel } from '@utils/tripPresentation';
 import { StyleSheet, View, Text, ViewStyle } from 'react-native';
 import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
 
@@ -38,7 +39,7 @@ function getColor(status: string) {
 }
 
 function formatLabel(status: string) {
-  return status.replace(/_/g, ' ');
+  return tripStatusLabel(status);
 }
 
 interface AppBadgeProps {
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   text: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
     textTransform: 'capitalize',
   },

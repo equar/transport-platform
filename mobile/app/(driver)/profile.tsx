@@ -1,3 +1,4 @@
+import { AccountActions } from '@components/AccountActions';
 import React from 'react';
 import {
   StyleSheet,
@@ -76,6 +77,7 @@ export default function DriverProfilePage() {
       {isError ? (
         <AppCard>
           <EmptyState
+            actionLabel="Try again" onAction={() => void refetch()}
             title="Unable to load profile"
             description={
               error instanceof Error
@@ -140,22 +142,20 @@ export default function DriverProfilePage() {
 
           <AppCard style={styles.section}>
             <Text style={styles.sectionTitle}>Fleet Assignment</Text>
-            <Row label="Vehicle Type" value="Van (Company Owned)" />
-            <Row label="Plate Number" value="Assigned by dispatch" />
-            <Row label="Capacity" value="16 seats" />
-            <Row label="Fuel Type" value="Gasoline" />
-            <Row label="Status" value="Ready" />
+            <Text style={styles.note}>Vehicle assignments are confirmed per trip. Open your assigned trip for the latest details.</Text>
+            <AppButton label="View assigned trips" variant="outlined" onPress={() => router.push('/(driver)/rides')} />
           </AppCard>
 
           <AppCard style={styles.section}>
             <Text style={styles.sectionTitle}>Operations</Text>
             <Text style={styles.note}>
-              Contact dispatch from Messages for maintenance updates, temporary
+              Contact your transport provider for maintenance updates, temporary
               reassignment, or pre-trip checklist notes.
             </Text>
           </AppCard>
         </>
       )}
+    <AccountActions />
     </ScrollView>
   );
 }
@@ -189,25 +189,26 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   hero: {
-    backgroundColor: DriverRoleTheme.primary,
-    borderRadius: 8,
+    backgroundColor: Colors.surface,
+    borderWidth: 1, borderColor: Colors.border,
+    borderRadius: 10,
     padding: Spacing.lg,
     gap: Spacing.xs,
   },
   heroTitle: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeSm,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
   heroName: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXl,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
   heroMeta: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.white,
+    color: Colors.textPrimary,
     opacity: 0.9,
   },
   tabRow: {
@@ -219,6 +220,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     borderColor: Colors.border,
+    minHeight: 48, justifyContent: 'center',
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.surface,
   },
@@ -228,7 +230,7 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     textAlign: 'center',
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
   },
@@ -237,14 +239,14 @@ const styles = StyleSheet.create({
   },
   section: { gap: Spacing.sm },
   sectionTitle: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.7,
   },
   note: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeMd,
     color: Colors.textPrimary,
   },
@@ -257,13 +259,13 @@ const rowStyles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   label: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
     width: 100,
   },
   value: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textPrimary,
     flex: 1,

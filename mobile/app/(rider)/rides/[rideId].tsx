@@ -11,7 +11,6 @@ import { LoadingState } from '@components/LoadingState';
 import { Colors, Spacing, Typography } from '@theme/tokens';
 import { PassengerRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime } from '@utils/formatDate';
-import * as Linking from 'expo-linking';
 
 const CANCELLABLE = new Set(['REQUESTED', 'PENDING_REVIEW', 'SCHEDULED', 'ASSIGNED']);
 const TRACKABLE_STATUSES = new Set(['ASSIGNED', 'DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP', 'DROPPED_OFF']);
@@ -74,7 +73,7 @@ export default function RiderRideDetailPage() {
         </View>
       </View>
 
-      <Text style={styles.back} onPress={() => router.back()}>← My Rides</Text>
+      <Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>← My Rides</Text>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>SCHEDULE</Text>
@@ -112,18 +111,8 @@ export default function RiderRideDetailPage() {
         <View style={styles.actionRow}>
           <View style={styles.actionSlot}>
             <AppButton
-              label="Call"
-              variant="outlined"
-              onPress={() => {
-                const fallback = ride.guardianName ? '+1555010000' : '+1555010001';
-                void Linking.openURL(`tel:${fallback}`);
-              }}
-              fullWidth
-            />
-          </View>
-          <View style={styles.actionSlot}>
-            <AppButton
-              label="Cancel Ride"
+              label="Cancel ride"
+              variant="destructive"
               onPress={handleCancel}
               loading={isPending}
               fullWidth
@@ -150,20 +139,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   heroCard: {
-    backgroundColor: PassengerRoleTheme.primary,
+    backgroundColor: Colors.surface,
+    borderWidth: 1, borderColor: Colors.border,
     borderRadius: 8,
     padding: Spacing.lg,
     gap: Spacing.xs,
   },
   heroTitle: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeSm,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
   heroRide: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXl,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
   heroMetaRow: {
     flexDirection: 'row',
@@ -171,13 +161,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heroTime: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
-  back: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeSm, color: Colors.primary },
-  section: { borderWidth: 1, borderColor: Colors.border },
-  sectionTitle: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeXs, color: Colors.textSecondary, letterSpacing: 0.5, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.divider, backgroundColor: '#fafafa' },
+  back: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.primary },
+  section: { borderWidth: 1, borderColor: Colors.border, borderRadius: 10, overflow: 'hidden', backgroundColor: Colors.surface },
+  sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeXs, color: Colors.textSecondary, letterSpacing: 0.5, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.divider, backgroundColor: Colors.surfaceMuted },
   actionRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -189,6 +179,6 @@ const styles = StyleSheet.create({
 
 const rowStyles = StyleSheet.create({
   row: { flexDirection: 'row', gap: Spacing.sm, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.divider },
-  label: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeSm, color: Colors.textSecondary, width: 90 },
-  value: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary, flex: 1 },
+  label: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: Colors.textSecondary, width: 90 },
+  value: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary, flex: 1 },
 });
