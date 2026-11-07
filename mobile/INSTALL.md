@@ -18,6 +18,11 @@ npm run setup:check
 
 Install dependencies and compile native projects:
 
+For a clean JavaScript install, run `npm ci` from `mobile/`. The checked-in
+`.npmrc` enables `legacy-peer-deps`, matching the resolution used for the
+lockfile and native setup scripts. Keep this configuration with the lockfile
+so local installs and GitHub Actions use the same dependency tree.
+
 ```bash
 npm run setup:android
 npm run setup:ios

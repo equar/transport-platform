@@ -1,4 +1,4 @@
-name: Build and Deploy Transport to Lightsail
+name: Deploy Transport Backend and Frontend to Lightsail
 
 on:
   workflow_dispatch:
@@ -116,11 +116,11 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         working-directory: backend
         run: mvn -B clean verify
-      - name: Check generated contracts
+      - name: Check generated frontend contracts
         if: steps.changes.outputs.backend == 'true'
         run: |
           node scripts/generate-api-types.mjs backend/target/api-contracts.json
-          git diff --exit-code -- frontend/src/shared/api/generated mobile/src/api/generated
+          git diff --exit-code -- frontend/src/shared/api/generated
       - name: Verify and build frontend
         if: steps.changes.outputs.frontend == 'true'
         working-directory: frontend

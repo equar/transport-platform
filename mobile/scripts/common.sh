@@ -47,7 +47,7 @@ ensure_node_modules() {
     return
   fi
   echo "Installing JavaScript dependencies..."
-  (cd "$PROJECT_ROOT" && npm ci --legacy-peer-deps --no-audit --no-fund)
+  (cd "$PROJECT_ROOT" && npm ci --no-audit --no-fund)
 }
 
 resolve_android_sdk() {
