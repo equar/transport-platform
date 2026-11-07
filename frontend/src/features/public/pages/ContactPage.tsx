@@ -18,19 +18,19 @@ const contactChannels = [
     title: "Sales and demos",
     description:
       "Coordinate a working session for platform evaluation, implementation planning, and deployment sequencing.",
-    detail: "sales@transportplatform.com",
+    detail: "sales@bakaroo.com",
   },
   {
     title: "Customer support",
     description:
       "Reach the operations support team for workspace access, onboarding coordination, and deployment questions.",
-    detail: "support@transportplatform.com",
+    detail: "support@bakaroo.com",
   },
   {
     title: "Partnerships",
     description:
       "Discuss broker, care-network, or transportation ecosystem partnerships and integration opportunities.",
-    detail: "partnerships@transportplatform.com",
+    detail: "partnerships@bakaroo.com",
   },
 ];
 
@@ -119,7 +119,7 @@ export function ContactPage() {
               <TextField
                 name="email" required label="Work Email"
                 type="email"
-                placeholder="jordan@northboundmobility.com"
+                placeholder="jordan@bakaroo.com"
               />
               <TextField name="phone" required label="Phone" placeholder="(555) 010-2200" />
               <TextField

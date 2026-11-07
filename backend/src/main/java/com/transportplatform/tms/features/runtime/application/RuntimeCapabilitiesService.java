@@ -149,7 +149,7 @@ public class RuntimeCapabilitiesService {
                     "#0B5FFF",
                     "#16324F",
                     "#14B8A6",
-                    "support@transportplatform.com",
+                    "support@bakaroo.com",
                     null,
                     null,
                     "Sign in with your company tenant ID or the platform workspace.",

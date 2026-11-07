@@ -79,7 +79,7 @@ export function ForgotPasswordPage() {
         <TextField
           label="Work Email"
           type="email"
-          placeholder="ops@company.com"
+          placeholder="ops@bakaroo.com"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required

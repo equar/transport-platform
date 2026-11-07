@@ -34,7 +34,7 @@ const defaultBranding: RuntimeBranding = {
   primaryColor: "#214e82",
   secondaryColor: "#12263e",
   accentColor: "#d8662a",
-  supportEmail: "support@transportplatform.com",
+  supportEmail: "support@bakaroo.com",
   supportPhone: null,
   website: null,
   customLoginWelcomeText:

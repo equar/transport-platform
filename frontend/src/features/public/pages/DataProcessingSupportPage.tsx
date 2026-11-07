@@ -87,10 +87,10 @@ export function DataProcessingSupportPage() {
           <Stack spacing={1.5}>
             <Typography color="text.secondary">
               General support and onboarding coordination:
-              support@transportplatform.com
+              support@bakaroo.com
             </Typography>
             <Typography color="text.secondary">
-              Commercial and evaluation discussions: sales@transportplatform.com
+              Commercial and evaluation discussions: sales@bakaroo.com
             </Typography>
             <Typography color="text.secondary">
               You can also use the contact page to route the request to the

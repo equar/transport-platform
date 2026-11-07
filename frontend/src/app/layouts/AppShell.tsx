@@ -563,7 +563,7 @@ export function AppShell() {
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 Support:{" "}
-                {branding?.supportEmail || "support@transportplatform.com"}
+                {branding?.supportEmail || "support@bakaroo.com"}
               </Typography>
             </Stack>
           </Box>

@@ -80,4 +80,6 @@ The shared-schema security work, backend permissions and admin/public deployment
 
 The APK uses the existing local test signing identity for direct installation. It is not a Play Store submission. Source changes remain uncommitted. The build artifact and screenshots are excluded from Git.
 
-SHA-256: `12a983e67a914a7ce79334ed6550b3f8a58741377a79196c3c953fd6d8af2766`.
+SHA-256: `f761a4a3f5c8063204793e1d3f030b6e10b5e3a5a4fb84e76194c8c4fc47e508`.
+
+7 November follow-up: centered the branded logo lockup in the shared authentication frame and rebuilt/verified the Android APK.

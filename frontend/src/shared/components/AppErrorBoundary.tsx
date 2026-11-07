@@ -44,7 +44,7 @@ export class AppErrorBoundary extends React.Component<
                 >
                   Reload application
                 </Button>
-                <Button variant="outlined" href="mailto:support@transportplatform.com">Contact support</Button>
+                <Button variant="outlined" href="mailto:support@bakaroo.com">Contact support</Button>
               </Stack>
             </Stack>
           </Box>
