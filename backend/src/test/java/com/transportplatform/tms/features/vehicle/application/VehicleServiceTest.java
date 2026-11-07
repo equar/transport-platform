@@ -53,7 +53,7 @@ class VehicleServiceTest {
                 vehicleCodeGenerator,
                 vehicleComplianceSummaryService,
                 auditLogService,
-                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
+                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC), new VehicleOwnershipPolicy(org.mockito.Mockito.mock(com.transportplatform.tms.features.driver.domain.DriverRepository.class)));
 
         when(vehicleAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
         when(vehicleCodeGenerator.generate("tenant-123")).thenReturn("VEH-000123");
@@ -81,6 +81,7 @@ class VehicleServiceTest {
                 LocalDate.of(2026, 12, 31),
                 12000L,
                 null,
+                null,
                 null));
 
         ArgumentCaptor<Vehicle> vehicleCaptor = ArgumentCaptor.forClass(Vehicle.class);
@@ -99,7 +100,7 @@ class VehicleServiceTest {
                 vehicleCodeGenerator,
                 vehicleComplianceSummaryService,
                 auditLogService,
-                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
+                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC), new VehicleOwnershipPolicy(org.mockito.Mockito.mock(com.transportplatform.tms.features.driver.domain.DriverRepository.class)));
 
         Vehicle vehicle = new Vehicle();
         vehicle.setTenantId("tenant-123");

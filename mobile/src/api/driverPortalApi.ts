@@ -191,7 +191,19 @@ export interface DriverPortalRouteDetailRecord extends DriverPortalRouteSummaryR
 
 const base = '/portal/driver';
 
+export interface DriverPortalVehicleRecord {
+  id: number; vehicleCode: string; ownershipType: 'COMPANY_OWNED' | 'DRIVER_OWNED' | 'LEASED';
+  ownedByCurrentDriver: boolean; assignedToCurrentDriver: boolean;
+  make: string; model: string; year: number; color: string | null; plateNumber: string; plateState: string;
+  capacity: number; wheelchairCapacity: number | null; fuelType: string | null; status: string;
+  insuranceExpiryDate: string | null; registrationExpiryDate: string | null; inspectionExpiryDate: string | null;
+}
+
 export const driverPortalApi = {
+  async getVehicles() {
+    const response = await apiClient.get('/portal/driver/vehicles');
+    return unwrapResponse<DriverPortalVehicleRecord[]>(response.data);
+  },
   async getRideActions() {
     return unwrapResponse<Record<string, { action: DriverRideAction; label: string }>>((await apiClient.get('/runtime/ride-actions')).data);
   },

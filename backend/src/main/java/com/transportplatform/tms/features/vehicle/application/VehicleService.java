@@ -37,6 +37,7 @@ public class VehicleService {
     private final VehicleComplianceSummaryService vehicleComplianceSummaryService;
     private final AuditLogService auditLogService;
     private final Clock clock;
+    private final VehicleOwnershipPolicy ownershipPolicy;
 
     public VehicleService(VehicleRepository vehicleRepository,
             VehicleMapper vehicleMapper,
@@ -44,7 +45,7 @@ public class VehicleService {
             VehicleCodeGenerator vehicleCodeGenerator,
             VehicleComplianceSummaryService vehicleComplianceSummaryService,
             AuditLogService auditLogService,
-            Clock clock) {
+            Clock clock, VehicleOwnershipPolicy ownershipPolicy) {
         this.vehicleRepository = vehicleRepository;
         this.vehicleMapper = vehicleMapper;
         this.vehicleAccessService = vehicleAccessService;
@@ -52,6 +53,7 @@ public class VehicleService {
         this.vehicleComplianceSummaryService = vehicleComplianceSummaryService;
         this.auditLogService = auditLogService;
         this.clock = clock;
+        this.ownershipPolicy = ownershipPolicy;
     }
 
     @Transactional(readOnly = true)
@@ -113,6 +115,7 @@ public class VehicleService {
     @Transactional
     public VehicleResponse activateCompanyVehicle(Long vehicleId) {
         Vehicle vehicle = vehicleAccessService.findVehicleForCompanyScope(vehicleId);
+        ownershipPolicy.validate(vehicle);
         VehicleComplianceSummaryResponse complianceSummary = vehicleComplianceSummaryService
                 .getSummary(vehicle.getTenantId(), vehicle);
         VehicleStatusWorkflow.ensureCanActivate(vehicle);
@@ -162,6 +165,7 @@ public class VehicleService {
     }
 
     private void validateBusinessRules(Vehicle vehicle, Long currentVehicleId) {
+        ownershipPolicy.validate(vehicle);
         int maxYear = LocalDate.now(clock).plusYears(1).getYear();
         if (vehicle.getYear() < 1980 || vehicle.getYear() > maxYear) {
             throw new ApiException(
@@ -291,6 +295,7 @@ public class VehicleService {
         values.put("vehicleCode", vehicle.getVehicleCode());
         values.put("tenantId", vehicle.getTenantId());
         values.put("status", vehicle.getStatus() == null ? null : vehicle.getStatus().name());
+        values.put("ownerDriverId", vehicle.getOwnerDriverId());
         values.put("ownershipType", vehicle.getOwnershipType() == null ? null : vehicle.getOwnershipType().name());
         values.put("make", vehicle.getMake());
         values.put("model", vehicle.getModel());

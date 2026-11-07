@@ -135,6 +135,8 @@ export function DispatchBoardPage() {
   const [selected, setSelected] = useState<number[]>([]);
   const [bulk, setBulk] = useState(false);
   const [bulkResult, setBulkResult] = useState<{ rideId: number; success: boolean; message: string }[] | null>(null);
+  const bulkPreviewPassed = selected.length > 0 && bulkResult?.length === selected.length
+    && bulkResult.every(result => result.success && selected.includes(result.rideId));
   const [items, setItems] = useState<DispatchRideRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [summary, setSummary] = useState({
@@ -253,6 +255,7 @@ export function DispatchBoardPage() {
   }
 
   async function handleBulk(preview: boolean) {
+    if (!preview && !bulkPreviewPassed) return;
     setSaving(true);
     try {
       const results = await dispatchApi.bulkResources({
@@ -263,7 +266,7 @@ export function DispatchBoardPage() {
       });
       setBulkResult(results);
       if (!preview) { await loadBoard(); setSelected([]); }
-    } catch (error) { showError(error, 'Bulk assignment failed.'); }
+    } catch (error) { setBulkResult(null); showError(error, 'Bulk assignment failed.'); }
     finally { setSaving(false); }
   }
 
@@ -762,7 +765,7 @@ export function DispatchBoardPage() {
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>{bulk ? `Assign ${selected.length} selected rides` : "Assign Ride Resources"}</DialogTitle>
+        <DialogTitle>{bulk ? `Assign ${selected.length} selected ${selected.length === 1 ? 'ride' : 'rides'}` : "Assign Ride Resources"}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Typography variant="body2" color="text.secondary">
@@ -773,6 +776,7 @@ export function DispatchBoardPage() {
             {bulk ? <Alert severity="info">Preview each ride before saving. Availability can change; any failed assignments will be reported individually.</Alert> : null}
             {bulkResult?.map(result => <Alert key={result.rideId} severity={result.success ? 'success' : 'error'}>Ride #{result.rideId}: {result.message}</Alert>)}
             <Autocomplete
+              disabled={saving}
               options={driverOptions}
               getOptionLabel={option => `${option.label} ${option.code ?? ''}`}
               value={driverOptions.find(option => option.id === selectedDriverId) ?? null}
@@ -780,6 +784,7 @@ export function DispatchBoardPage() {
               renderInput={params => <TextField {...params} label="Search compliant drivers" />}
             />
             <Autocomplete
+              disabled={saving}
               options={vehicleOptions}
               getOptionLabel={option => `${option.label} ${option.code ?? ''}`}
               value={vehicleOptions.find(option => option.id === selectedVehicleId) ?? null}
@@ -795,7 +800,7 @@ export function DispatchBoardPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => { setDialogRide(null); setBulk(false); }}>Close</Button>
-          {bulk ? <Button disabled={saving || selected.length === 0} onClick={() => void handleBulk(!bulkResult)}>{bulkResult ? 'Save assignments' : 'Preview assignments'}</Button> : <>
+          {bulk ? <Button disabled={saving || selected.length === 0} onClick={() => void handleBulk(!bulkPreviewPassed)}>{bulkPreviewPassed ? 'Save assignments' : bulkResult ? 'Retry preview' : 'Preview assignments'}</Button> : <>
           <Button
             variant="contained"
             onClick={() => void handleAssignmentSave()}

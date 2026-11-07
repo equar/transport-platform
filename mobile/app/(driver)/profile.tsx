@@ -1,3 +1,4 @@
+import { DriverVehicles } from '@components/DriverVehicles';
 import { AccountActions } from '@components/AccountActions';
 import React from 'react';
 import {
@@ -138,21 +139,7 @@ export default function DriverProfilePage() {
         </>
       ) : (
         <>
-          <SectionHeader title="Vehicle Details" subtitle="Assigned fleet and readiness" />
-
-          <AppCard style={styles.section}>
-            <Text style={styles.sectionTitle}>Fleet Assignment</Text>
-            <Text style={styles.note}>Vehicle assignments are confirmed per trip. Open your assigned trip for the latest details.</Text>
-            <AppButton label="View assigned trips" variant="outlined" onPress={() => router.push('/(driver)/rides')} />
-          </AppCard>
-
-          <AppCard style={styles.section}>
-            <Text style={styles.sectionTitle}>Operations</Text>
-            <Text style={styles.note}>
-              Contact your transport provider for maintenance updates, temporary
-              reassignment, or pre-trip checklist notes.
-            </Text>
-          </AppCard>
+          <DriverVehicles />
         </>
       )}
     <AccountActions />

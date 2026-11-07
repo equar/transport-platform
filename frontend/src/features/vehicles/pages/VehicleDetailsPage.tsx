@@ -1,3 +1,4 @@
+import { DriverReference } from '../components/DriverReference';
 import {
   Alert,
   Box,
@@ -497,8 +498,9 @@ export function VehicleDetailsPage() {
               Mileage: {vehicle.mileage ?? "-"}
             </Typography>
             <Typography color="text.secondary">
-              Assigned Driver Reference: {vehicle.assignedDriverId ?? "-"}
+              Assigned driver: <DriverReference id={vehicle.assignedDriverId} />
             </Typography>
+            <Typography color="text.secondary">Owner: {vehicle.ownershipType === 'DRIVER_OWNED' ? vehicle.ownerDriverId ? <DriverReference id={vehicle.ownerDriverId} /> : 'Select an owning driver when editing this vehicle' : vehicle.ownershipType === 'COMPANY_OWNED' ? 'Company' : 'Leased'}</Typography>
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
               {vehicle.serviceTypesSupported.length > 0 ? (
                 vehicle.serviceTypesSupported.map((serviceType) => (

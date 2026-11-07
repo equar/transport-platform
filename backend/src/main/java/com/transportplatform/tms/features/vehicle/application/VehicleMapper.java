@@ -14,6 +14,7 @@ public class VehicleMapper {
 
     public void apply(Vehicle vehicle, VehicleUpsertRequest request) {
         vehicle.setOwnershipType(request.ownershipType());
+        vehicle.setOwnerDriverId(request.ownerDriverId());
         vehicle.setMake(request.make().trim());
         vehicle.setModel(request.model().trim());
         vehicle.setYear(request.year());
@@ -63,7 +64,8 @@ public class VehicleMapper {
                 vehicle.getCreatedAt(),
                 vehicle.getUpdatedBy(),
                 vehicle.getUpdatedAt(),
-                complianceSummary);
+                complianceSummary,
+                vehicle.getOwnerDriverId());
     }
 
     private Set<String> normalizeServiceTypes(Set<String> values) {

@@ -28,5 +28,6 @@ public record VehicleUpsertRequest(
         LocalDate inspectionExpiryDate,
         @Min(value = 0, message = "Mileage cannot be negative.") Long mileage,
         @Min(value = 1, message = "Assigned driver reference must be positive.") Long assignedDriverId,
-        @Size(max = 2000, message = "Notes must be 2000 characters or fewer.") String notes) {
+        @Size(max = 2000, message = "Notes must be 2000 characters or fewer.") String notes,
+        @Min(value = 1, message = "Owner driver reference must be positive.") Long ownerDriverId) {
 }
