@@ -65,6 +65,7 @@ export default function DriverCompliancePage() {
 
   return (
     <ScrollView
+      keyboardShouldPersistTaps="handled"
       style={styles.container}
       contentContainerStyle={[
         styles.content,
@@ -79,7 +80,7 @@ export default function DriverCompliancePage() {
 
       <View style={styles.uploadCard}>
         <Text style={styles.uploadTitle}>Submit a document</Text>
-        <Text style={styles.uploadText}>Upload your license or another required document for tenant review.</Text>
+        <Text style={styles.uploadText}>Upload your license or another required document for your transport provider to review.</Text>
         <AppButton label="Upload document" leftIcon="file-upload-outline" onPress={() => setDocumentPickerOpen(true)} loading={uploading} disabled={uploading} />
       </View>
 
@@ -153,7 +154,7 @@ export default function DriverCompliancePage() {
         <View style={styles.confirmationOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.confirmationTitle}>Document submitted</Text>
-            <Text style={styles.confirmationText}>{submittedDocumentName} is pending tenant compliance review.</Text>
+            <Text style={styles.confirmationText}>{submittedDocumentName} is pending compliance review.</Text>
             <AppButton label="Done" onPress={() => setSubmittedDocumentName(null)} />
           </View>
         </View>
@@ -167,32 +168,33 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   metricRow: { flexDirection: 'row', gap: Spacing.sm },
   metricRowCompact: { flexDirection: 'column' },
-  uploadCard: { borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface, padding: Spacing.md, gap: Spacing.sm },
-  uploadTitle: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
-  uploadText: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary, lineHeight: 18 },
+  uploadCard: { borderRadius: 10, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface, padding: Spacing.md, gap: Spacing.sm },
+  uploadTitle: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
+  uploadText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary, lineHeight: 18 },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(16,35,71,0.38)', padding: Spacing.md },
   confirmationOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(16,35,71,0.38)', padding: Spacing.lg },
   modalContent: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },
   documentOptions: { gap: Spacing.sm },
-  confirmationTitle: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeXl, color: Colors.textPrimary },
-  confirmationText: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeMd, color: Colors.textSecondary, lineHeight: 20 },
+  confirmationTitle: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeXl, color: Colors.textPrimary },
+  confirmationText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeMd, color: Colors.textSecondary, lineHeight: 20 },
   groupHeading: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeLg,
     color: Colors.textPrimary,
     marginBottom: -Spacing.xs,
   },
   issueCard: {
+    backgroundColor: Colors.surface, borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.border,
     padding: Spacing.md,
     gap: Spacing.xs,
   },
   row: { flexDirection: 'row', gap: Spacing.sm },
-  summary: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
-  action: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
-  expiry: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.warning },
-  docCard: { borderWidth: 1, borderColor: Colors.border, padding: Spacing.md, gap: Spacing.xs },
-  docType: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeSm, color: Colors.textPrimary, flex: 1 },
-  docName: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
+  summary: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
+  action: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
+  expiry: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.warning },
+  docCard: { backgroundColor: Colors.surface, borderRadius: 10, borderWidth: 1, borderColor: Colors.border, padding: Spacing.md, gap: Spacing.xs },
+  docType: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.textPrimary, flex: 1 },
+  docName: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
 });

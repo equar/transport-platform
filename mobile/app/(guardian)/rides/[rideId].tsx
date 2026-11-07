@@ -43,7 +43,7 @@ export default function GuardianRideDetailPage() {
 			refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
 		>
 			<View style={styles.heroCard}>
-				<Text style={styles.heroTitle}>Live Tracking</Text>
+				<Text style={styles.heroTitle}>Trip details</Text>
 				<Text style={styles.heroRide}>{ride.rideNumber}</Text>
 				<View style={styles.heroMetaRow}>
 					<Text style={styles.heroTime}>{formatShortDateTime(ride.scheduledPickupAt)}</Text>
@@ -51,12 +51,12 @@ export default function GuardianRideDetailPage() {
 				</View>
 			</View>
 
-			<Text style={styles.back} onPress={() => router.back()}>
+			<Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>
 				← Ride Activity
 			</Text>
 
 			<AppCard style={styles.personCard}>
-				<Text style={styles.personTitle}>Rider & Driver</Text>
+				<Text style={styles.personTitle}>Rider & guardian</Text>
 				<Text style={styles.personText}>Rider: {ride.riderName ?? '—'}</Text>
 				<Text style={styles.personText}>Guardian Contact: {ride.guardianName ?? 'Not provided'}</Text>
 			</AppCard>
@@ -86,6 +86,7 @@ export default function GuardianRideDetailPage() {
 					<AppButton label="Riders" onPress={() => router.push('/(guardian)/riders')} fullWidth />
 				</View>
 			</View>
+            <SupportContact />
 		</ScrollView>
 	);
 }
@@ -94,22 +95,23 @@ const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: Colors.background },
 	content: { padding: Spacing.lg, gap: Spacing.lg },
 	heroCard: {
-		backgroundColor: GuardianRoleTheme.primary,
+		backgroundColor: Colors.surface,
+    borderWidth: 1, borderColor: Colors.border,
 		borderRadius: 8,
 		padding: Spacing.lg,
 		gap: Spacing.xs,
 	},
-	heroTitle: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeSm, color: Colors.white },
-	heroRide: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeXl, color: Colors.white },
-	heroMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-	heroTime: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeSm, color: Colors.white },
-	back: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeSm, color: GuardianRoleTheme.primary },
+	heroTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.textPrimary },
+	heroRide: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeXl, color: Colors.textPrimary },
+	heroMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
+	heroTime: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: Colors.textPrimary },
+	back: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: GuardianRoleTheme.primary },
 	personCard: { gap: Spacing.xs },
-	personTitle: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeSm, color: Colors.textSecondary, textTransform: 'uppercase' },
-	personText: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary },
+	personTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.textSecondary, textTransform: 'uppercase' },
+	personText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary },
 	routeCard: { gap: Spacing.xs },
-	sectionTitle: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeSm, color: Colors.textSecondary, textTransform: 'uppercase' },
-	routeText: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary },
+	sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.textSecondary, textTransform: 'uppercase' },
+	routeText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary },
 	actionRow: { flexDirection: 'row', gap: Spacing.sm },
 	actionSlot: { flex: 1 },
 });

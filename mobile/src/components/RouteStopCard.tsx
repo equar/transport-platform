@@ -65,17 +65,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   seq: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeMd,
     color: Colors.primary,
   },
   rider: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeLg,
     color: Colors.textPrimary,
   },
   address: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
   },

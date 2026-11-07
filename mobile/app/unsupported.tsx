@@ -26,12 +26,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   heading: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXxl,
     color: Colors.textPrimary,
   },
   body: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeMd,
     color: Colors.textSecondary,
   },

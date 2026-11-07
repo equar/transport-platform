@@ -60,8 +60,8 @@ export function TripTrackingCard({
             {mapUrl && !mapFailed ? (
               <Image accessibilityLabel="Latest reported vehicle location" onError={() => setMapFailed(true)} source={{ uri: mapUrl }} style={styles.map} resizeMode="cover" />
             ) : null}
-            <Text>{ageMinutes != null && ageMinutes >= 2 ? `Location may be stale (${ageMinutes} minutes ago).` : 'Latest reported location'}</Text>
-            {mapFailed ? <Text>Map unavailable. Open the location in Maps below.</Text> : null}
+            <Text style={styles.emptyText}>{ageMinutes != null && ageMinutes >= 2 ? `Location may be stale (${ageMinutes} minutes ago).` : 'Latest reported location'}</Text>
+            {mapFailed ? <Text style={styles.emptyText}>Map unavailable. Open the location in Maps below.</Text> : null}
             {pickupAddress ? <Row label="Pickup" value={pickupAddress} /> : null}
             {dropoffAddress ? <Row label="Drop-off" value={dropoffAddress} /> : null}
             <Row label="Updated" value={new Date(snapshot.capturedAt).toLocaleString()} />
@@ -94,7 +94,7 @@ export function TripTrackingCard({
         ) : (
           <>
             <Text style={styles.emptyText}>
-              No live route snapshot is available yet for this trip.
+              Location appears during an active trip when your driver is sharing updates. Pull down or tap refresh for the latest report.
             </Text>
             {onRefresh ? (
               <AppButton
@@ -121,16 +121,16 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  section: { borderWidth: 1, borderColor: Colors.border },
+  section: { borderWidth: 1, borderColor: Colors.border, borderRadius: 10, overflow: 'hidden', backgroundColor: Colors.surface },
   sectionTitle: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
     color: Colors.textSecondary,
     letterSpacing: 0.5,
     padding: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
-    backgroundColor: '#fafafa',
+    backgroundColor: Colors.surfaceMuted,
     textTransform: 'uppercase',
   },
   body: { padding: Spacing.md, gap: Spacing.sm },
@@ -138,24 +138,24 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 220,
     borderRadius: 8,
-    backgroundColor: '#dfe5e8',
+    backgroundColor: Colors.canvas,
   },
   row: { flexDirection: 'row', gap: Spacing.sm },
   label: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
     width: 72,
   },
   value: {
     flex: 1,
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textPrimary,
   },
   actions: { gap: Spacing.sm, marginTop: Spacing.sm },
   emptyText: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
   },

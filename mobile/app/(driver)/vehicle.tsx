@@ -1,3 +1,6 @@
+import { SupportContact } from '@components/SupportContact';
+import { AppButton } from '@components/ui';
+import { useRouter } from 'expo-router';
 import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, ScrollView, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
@@ -9,6 +12,7 @@ import { Colors, Spacing, Typography } from '@theme/tokens';
 import { DriverRoleTheme } from '@theme/roleTheme';
 
 export default function DriverVehiclePage() {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
   const { data: profile, isLoading, isError, refetch, isRefetching } = useQuery({
@@ -38,23 +42,18 @@ export default function DriverVehiclePage() {
       </View>
 
       <AppCard style={styles.card}>
-        <View style={styles.rowTop}>
-          <Text style={styles.vehicleName}>Fleet Assignment</Text>
-          <AppBadge status="ACTIVE" label="Ready" />
-        </View>
-        <Row label="Vehicle Type" value="Van (Company Owned)" />
-        <Row label="Plate Number" value="Assigned by dispatch" />
-        <Row label="Capacity" value="16 seats" />
-        <Row label="Fuel Type" value="Gasoline" />
-        <Row label="Company" value={profile.email ?? 'Company transport operations'} />
+        <Text style={styles.vehicleName}>Your trip assignment</Text>
+        <Text style={styles.cardCopy}>Vehicle details are confirmed by dispatch for each trip. We don’t have a separate vehicle assignment to display here.</Text>
+        <AppButton label="View assigned trips" onPress={() => router.push('/(driver)/rides')} />
       </AppCard>
 
       <AppCard style={styles.card}>
         <Text style={styles.cardTitle}>Safety and Service</Text>
         <Text style={styles.cardCopy}>
-          Contact dispatch from the Messages tab for maintenance notes, replacement assignment, or pre-trip checklist updates.
+          Contact your transport provider for maintenance notes, replacement assignments or pre-trip checklist updates.
         </Text>
       </AppCard>
+      <SupportContact />
     </ScrollView>
   );
 }
@@ -72,20 +71,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   hero: {
-    backgroundColor: DriverRoleTheme.primary,
+    backgroundColor: Colors.surface,
+    borderWidth: 1, borderColor: Colors.border,
     borderRadius: 8,
     padding: Spacing.lg,
     gap: Spacing.xs,
   },
   heroTitle: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXl,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
   heroSubtitle: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.white,
+    color: Colors.textPrimary,
     opacity: 0.9,
   },
   card: {
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   vehicleName: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeLg,
     color: Colors.textPrimary,
   },
@@ -108,24 +108,24 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   dataLabel: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
   },
   dataValue: {
     flex: 1,
     textAlign: 'right',
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textPrimary,
   },
   cardTitle: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeMd,
     color: Colors.textPrimary,
   },
   cardCopy: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
     lineHeight: 20,

@@ -1,3 +1,4 @@
+import { AccountActions } from '@components/AccountActions';
 import React from 'react';
 import { StyleSheet, ScrollView, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -46,6 +47,7 @@ export default function RiderProfilePage() {
       {isError ? (
         <AppCard>
           <EmptyState
+            actionLabel="Try again" onAction={() => void refetch()}
             title="Unable to load profile"
             description={error instanceof Error ? error.message : 'Pull to refresh and try again.'}
           />
@@ -82,6 +84,7 @@ export default function RiderProfilePage() {
           </AppCard>
         </>
       )}
+    <AccountActions />
     </ScrollView>
   );
 }
@@ -99,27 +102,28 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   hero: {
-    backgroundColor: PassengerRoleTheme.primary,
-    borderRadius: 8,
+    backgroundColor: Colors.surface,
+    borderWidth: 1, borderColor: Colors.border,
+    borderRadius: 10,
     padding: Spacing.lg,
     gap: Spacing.xs,
   },
   heroTitle: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeSm,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
   heroName: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXl,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
   section: { gap: Spacing.sm },
-  sectionTitle: { fontFamily: 'SourceSans3_700Bold', fontSize: Typography.sizeSm, color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.6 },
+  sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.6 },
 });
 
 const rowStyles = StyleSheet.create({
   row: { flexDirection: 'row', gap: Spacing.sm, paddingVertical: Spacing.xs },
-  label: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeSm, color: Colors.textSecondary, width: 110 },
-  value: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary, flex: 1 },
+  label: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: Colors.textSecondary, width: 110 },
+  value: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary, flex: 1 },
 });

@@ -14,12 +14,12 @@ export default function RiderLayout() {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          height: 70,
+          height: 64,
           paddingTop: 7,
           paddingBottom: 7,
         },
         tabBarLabelStyle: {
-          fontFamily: 'SourceSans3_600SemiBold',
+          fontFamily: 'Inter_600SemiBold',
           fontSize: Typography.sizeXs,
           marginTop: 1,
         },
@@ -45,14 +45,14 @@ export default function RiderLayout() {
       <Tabs.Screen
         name="billing"
         options={{
-          title: 'Wallet',
+          title: 'Billing',
           tabBarIcon: ({ color, size }) => <Ionicons name="wallet-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'Messages',
+          title: 'Alerts',
           tabBarIcon: ({ color, size }) => <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />,
         }}
       />

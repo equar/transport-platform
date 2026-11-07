@@ -42,8 +42,8 @@ export function ActionRow({ icon, title, description, onPress, tone = 'primary',
   >
     <View style={[styles.icon, effectiveDensity === 'compact' && styles.iconCompact, { backgroundColor: tone === 'primary' ? Colors.primarySoft : Colors.secondarySoft }]}><MaterialCommunityIcons name={icon} size={iconSize} color={color} /></View>
     <View style={styles.copy}>
-      <Text style={[styles.title, { fontSize: isCompact ? Typography.sizeSm : Typography.sizeMd }]}>{title}</Text>
-      <Text style={[styles.description, { fontSize: isCompact ? Typography.sizeXs : Typography.sizeSm }]}>{description}</Text>
+      <Text style={[styles.title, { fontSize: Typography.sizeMd }]}>{title}</Text>
+      <Text style={[styles.description, { fontSize: Typography.sizeSm }]}>{description}</Text>
     </View>
     <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textSecondary} />
   </Pressable>;

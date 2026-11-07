@@ -1,10 +1,11 @@
+import { isFinishedTrip } from '@utils/tripPresentation';
 import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl, useWindowDimensions } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { riderPortalApi } from '@api/riderPortalApi';
-import { AppBadge } from '@components/ui';
+import { AppBadge, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
@@ -19,24 +20,17 @@ export default function RiderRidesPage() {
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
   const [segment, setSegment] = React.useState<RideSegment>('upcoming');
-  const { data, isLoading, isError, fetchNextPage, hasNextPage, refetch, isRefetching } = useInfiniteQuery({
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } = useInfiniteQuery({
     queryKey: ['rider-rides'],
     queryFn: ({ pageParam = 0 }) =>
-      riderPortalApi.searchRides({ page: pageParam, size: 20, sort: 'scheduledPickupAt,asc' }),
+      riderPortalApi.searchRides({ page: pageParam, size: 20, sortBy: 'scheduledPickupAt', sortDirection: 'ASC' }),
     getNextPageParam: (last, pages) =>
       last.page + 1 < last.totalPages ? pages.length : undefined,
     initialPageParam: 0,
   });
 
   const rides = data?.pages.flatMap((p) => p.items) ?? [];
-  const now = Date.now();
-  const filtered = rides.filter((ride) => {
-    const ts = new Date(ride.scheduledPickupAt).getTime();
-    if (segment === 'upcoming') {
-      return ts >= now || !['COMPLETED', 'CANCELLED', 'MISSED', 'FAILED'].includes(ride.status);
-    }
-    return ts < now || ['COMPLETED', 'CANCELLED', 'MISSED', 'FAILED'].includes(ride.status);
-  });
+  const filtered = rides.filter(ride => segment === 'upcoming' ? !isFinishedTrip(ride.status) : isFinishedTrip(ride.status));
 
   if (isLoading) return <LoadingState />;
   if (isError && !data) return <RequestError onRetry={() => void refetch()} />;
@@ -48,6 +42,7 @@ export default function RiderRidesPage() {
         <View style={styles.segmentRow}>
           <TouchableOpacity
             style={[styles.segmentButton, segment === 'upcoming' && styles.segmentSelected]}
+            accessibilityRole="tab" accessibilityState={{ selected: segment === 'upcoming' }}
             onPress={() => setSegment('upcoming')}
             activeOpacity={0.85}
           >
@@ -55,10 +50,11 @@ export default function RiderRidesPage() {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.segmentButton, segment === 'post' && styles.segmentSelected]}
+            accessibilityRole="tab" accessibilityState={{ selected: segment === 'post' }}
             onPress={() => setSegment('post')}
             activeOpacity={0.85}
           >
-            <Text style={[styles.segmentLabel, segment === 'post' && styles.segmentLabelSelected]}>Post</Text>
+            <Text style={[styles.segmentLabel, segment === 'post' && styles.segmentLabelSelected]}>History</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -79,15 +75,16 @@ export default function RiderRidesPage() {
             <Text style={styles.meta}>
               {formatShortDateTime(item.scheduledPickupAt)}
             </Text>
-            <Text style={styles.address} numberOfLines={1}>
+            <Text style={styles.address} numberOfLines={2}>
               {item.pickupAddress ?? '—'} → {item.dropoffAddress ?? '—'}
             </Text>
           </TouchableOpacity>
         )}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
-        ListEmptyComponent={<EmptyState title="No rides" description="No rides for this segment." />}
+        ListEmptyComponent={<EmptyState title="No rides" description="No trips in this view. Load more records below or pull down to refresh." />}
         onEndReached={() => hasNextPage && fetchNextPage()}
         onEndReachedThreshold={0.3}
+        ListFooterComponent={hasNextPage ? <AppButton label="Load more trips" variant="outlined" loading={isFetchingNextPage} onPress={() => void fetchNextPage()} /> : null}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
         contentContainerStyle={[
           filtered.length === 0 ? styles.emptyContent : styles.listContent,
@@ -115,6 +112,7 @@ const styles = StyleSheet.create({
   },
   segmentButton: {
     flex: 1,
+    minHeight: 48, justifyContent: 'center',
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 6,
@@ -127,7 +125,7 @@ const styles = StyleSheet.create({
   },
   segmentLabel: {
     textAlign: 'center',
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
   },
@@ -143,11 +141,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: Colors.surface,
   },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  rideNumber: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
-  riderName: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
-  meta: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
-  address: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
+  rideNumber: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
+  riderName: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
+  meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
+  address: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
   sep: { height: Spacing.sm },
   listContent: { paddingTop: Spacing.sm },
   emptyContent: { flex: 1 },

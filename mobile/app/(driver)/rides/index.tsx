@@ -7,7 +7,7 @@ import { driverPortalApi, type DriverPortalRideSummaryRecord } from '@api/driver
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
-import { AppBadge } from '@components/ui';
+import { AppBadge, AppButton } from '@components/ui';
 import { Colors, Shadow, Spacing, Typography } from '@theme/tokens';
 import { DriverRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime } from '@utils/formatDate';
@@ -27,11 +27,11 @@ export default function DriverRidesPage() {
   const isCompact = width < 380;
   const [segment, setSegment] = React.useState<DispatchSegment>('assigned');
 
-  const { data, isLoading, isError, hasNextPage, fetchNextPage, refetch, isRefetching } =
+  const { data, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage, refetch, isRefetching } =
     useInfiniteQuery({
       queryKey: ['driver-rides'],
       queryFn: ({ pageParam = 0 }) =>
-        driverPortalApi.searchRides({ page: pageParam, size: PAGE_SIZE, sort: 'scheduledPickupAt,asc' }),
+        driverPortalApi.searchRides({ page: pageParam, size: PAGE_SIZE, sortBy: 'scheduledPickupAt', sortDirection: 'ASC' }),
       getNextPageParam: (last, pages) =>
         last.page + 1 < last.totalPages ? pages.length : undefined,
       initialPageParam: 0,
@@ -47,7 +47,7 @@ export default function DriverRidesPage() {
     <View style={styles.container}>
       <View style={styles.headerShell}>
         <View style={styles.header}>
-          <SectionHeader title="Dispatches" subtitle="Track assignments across current trip states" />
+          <SectionHeader title="Your trips" subtitle="Assignments, completed trips and cancellations" />
           <View style={styles.segmentRow}>
             <SegmentButton
               label="Assigned"
@@ -74,10 +74,11 @@ export default function DriverRidesPage() {
         renderItem={({ item }) => <DispatchCard item={item} onPress={() => router.push(`/(driver)/rides/${item.id}`)} />}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
         ListEmptyComponent={
-          <EmptyState title="No dispatches" description="No dispatches match the selected state." />
+          <EmptyState title="No dispatches" description="No matching trips in the loaded records. Load more below or pull down to refresh." />
         }
         onEndReached={() => hasNextPage && fetchNextPage()}
         onEndReachedThreshold={0.3}
+        ListFooterComponent={hasNextPage ? <AppButton label="Load more trips" variant="outlined" loading={isFetchingNextPage} onPress={() => void fetchNextPage()} /> : null}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
         contentContainerStyle={[
           filteredRides.length === 0 ? styles.emptyContent : styles.listContent,
@@ -102,6 +103,7 @@ function SegmentButton({
 }) {
   return (
     <TouchableOpacity
+      accessibilityRole="tab" accessibilityState={{ selected }}
       onPress={onPress}
       activeOpacity={0.85}
       style={[styles.segmentButton, selected && styles.segmentButtonSelected]}
@@ -117,8 +119,8 @@ function DispatchCard({ item, onPress }: { item: DriverPortalRideSummaryRecord; 
       <View style={styles.dispatchTopRow}>
         <View style={styles.dispatchIdBlock}>
           <Text style={styles.dispatchCode}>{item.rideNumber}</Text>
-          <Text style={styles.dispatchAddress} numberOfLines={1}>{item.pickupAddress ?? 'Pickup unavailable'}</Text>
-          <Text style={styles.dispatchAddress} numberOfLines={1}>{item.dropoffAddress ?? 'Drop-off unavailable'}</Text>
+          <Text style={styles.dispatchAddress} numberOfLines={2}>{item.pickupAddress ?? 'Pickup unavailable'}</Text>
+          <Text style={styles.dispatchAddress} numberOfLines={2}>{item.dropoffAddress ?? 'Drop-off unavailable'}</Text>
         </View>
         <View style={styles.dispatchMetaBlock}>
           <Text style={styles.dispatchTime}>{formatShortDateTime(item.scheduledPickupAt)}</Text>
@@ -148,7 +150,8 @@ const styles = StyleSheet.create({
   },
   segmentButton: {
     flex: 1,
-    borderRadius: 6,
+    minHeight: 48, justifyContent: 'center',
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: Colors.border,
     paddingVertical: Spacing.sm,
@@ -160,7 +163,7 @@ const styles = StyleSheet.create({
   },
   segmentLabel: {
     textAlign: 'center',
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
   },
@@ -169,7 +172,7 @@ const styles = StyleSheet.create({
   },
   headerMeta: {
     marginTop: Spacing.sm,
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
   },
@@ -193,12 +196,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   dispatchCode: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeMd,
     color: Colors.textPrimary,
   },
   dispatchAddress: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
   },
@@ -207,12 +210,12 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   dispatchTime: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
   },
   dispatchRider: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textPrimary,
   },

@@ -15,7 +15,7 @@ export default function DriverRoutesPage() {
   const router = useRouter();
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-routes'],
-    queryFn: () => driverPortalApi.searchRoutes({ size: 50, sort: 'routeDate,asc' }),
+    queryFn: () => driverPortalApi.searchRoutes({ size: 50, sortBy: 'routeDate', sortDirection: 'ASC' }),
   });
 
   const routes = data?.items ?? [];
@@ -43,7 +43,7 @@ export default function DriverRoutesPage() {
             </View>
             <Text style={styles.name}>{item.routeName}</Text>
             <Text style={styles.meta}>
-              {formatDate(item.routeDate)} · {item.linkedRideCount} stops
+              {formatDate(item.routeDate)} · {item.linkedRideCount} linked rides
             </Text>
           </TouchableOpacity>
         )}
@@ -52,7 +52,7 @@ export default function DriverRoutesPage() {
           <EmptyState title="No routes" description="No routes assigned to you." />
         }
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-        contentContainerStyle={routes.length === 0 && styles.emptyContent}
+        contentContainerStyle={[{ padding: Spacing.lg, gap: Spacing.sm }, routes.length === 0 && styles.emptyContent]}
       />
     </View>
   );
@@ -61,11 +61,11 @@ export default function DriverRoutesPage() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: { padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  card: { padding: Spacing.lg, gap: Spacing.xs },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  code: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeMd, color: Colors.primary },
-  name: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
-  meta: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
-  sep: { height: 1, backgroundColor: Colors.divider },
+  card: { padding: Spacing.lg, gap: Spacing.sm, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 10 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
+  code: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeMd, color: Colors.primary },
+  name: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
+  meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
+  sep: { height: Spacing.xs },
   emptyContent: { flex: 1 },
 });

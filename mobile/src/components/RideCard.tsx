@@ -15,7 +15,7 @@ export function RideCard({ ride, onPress }: RideCardProps) {
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
       <View style={styles.row}>
         <View style={styles.headerBlock}>
-          <Text style={styles.eyebrow}>Active trip</Text>
+          <Text style={styles.eyebrow}>Trip assignment</Text>
           <Text style={styles.rideNumber}>{ride.rideNumber}</Text>
         </View>
         <AppBadge status={ride.status} />
@@ -27,12 +27,12 @@ export function RideCard({ ride, onPress }: RideCardProps) {
       <View style={styles.addressRow}>
         <View style={styles.addressItem}>
           <Text style={styles.addressLabel}>FROM</Text>
-          <Text style={styles.addressText} numberOfLines={1}>{ride.pickupAddress ?? '—'}</Text>
+          <Text style={styles.addressText} numberOfLines={2}>{ride.pickupAddress ?? '—'}</Text>
         </View>
         <Text style={styles.arrow}>→</Text>
         <View style={styles.addressItem}>
           <Text style={styles.addressLabel}>TO</Text>
-          <Text style={styles.addressText} numberOfLines={1}>{ride.dropoffAddress ?? '—'}</Text>
+          <Text style={styles.addressText} numberOfLines={2}>{ride.dropoffAddress ?? '—'}</Text>
         </View>
       </View>
       <View style={styles.footerRow}>
@@ -62,25 +62,25 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   eyebrow: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
     color: Colors.secondaryDark,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
   },
   rideNumber: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeLg,
     color: Colors.textPrimary,
     letterSpacing: -0.3,
   },
   riderName: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeXl,
     color: Colors.textPrimary,
   },
   meta: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
   },
@@ -93,13 +93,13 @@ const styles = StyleSheet.create({
   },
   addressItem: { flex: 1, gap: 2 },
   addressLabel: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
     color: Colors.textSecondary,
     letterSpacing: 0.5,
   },
   addressText: {
-    fontFamily: 'SourceSans3_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: Colors.textPrimary,
   },
@@ -114,12 +114,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   time: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
     color: Colors.textSecondary,
   },
   footerLink: {
-    fontFamily: 'SourceSans3_700Bold',
+    fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeSm,
     color: Colors.primary,
   },

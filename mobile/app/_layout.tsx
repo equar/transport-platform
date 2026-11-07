@@ -9,14 +9,14 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
   useFonts,
-  SourceSans3_400Regular,
-  SourceSans3_600SemiBold,
-  SourceSans3_700Bold,
-} from '@expo-google-fonts/source-sans-3';
+  Inter_400Regular,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 import {
-  SpaceGrotesk_500Medium,
-  SpaceGrotesk_700Bold,
-} from '@expo-google-fonts/space-grotesk';
+  Manrope_500Medium,
+  Manrope_700Bold,
+} from '@expo-google-fonts/manrope';
 import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider } from '@theme/ThemeProvider';
 import { AuthProvider, useAuth } from '@auth/AuthContext';
@@ -97,25 +97,25 @@ function AuthGate() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    SourceSans3_400Regular,
-    SourceSans3_600SemiBold,
-    SourceSans3_700Bold,
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_700Bold,
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Manrope_500Medium,
+    Manrope_700Bold,
   });
 
   useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+    if (fontsLoaded || fontError) void SplashScreen.hideAsync();
+  }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
       <SafeAreaProvider>
         <SafeAreaView
-          style={{ flex: 1, backgroundColor: Colors.background }}
+          style={{ flex: 1, width: '100%', maxWidth: 840, alignSelf: 'center', backgroundColor: Colors.background }}
           edges={['top', 'left', 'right', 'bottom']}
         >
           <StatusBar style="dark" />

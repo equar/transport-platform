@@ -87,22 +87,22 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   logo: {
-    width: 36,
-    height: 36,
+    width: 24,
+    height: 24,
     borderRadius: Radius.full ?? 18,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.primarySoft,
   },
   fallbackLogo: {
-    width: 36,
-    height: 36,
+    width: 24,
+    height: 24,
     borderRadius: 8,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.primarySoft,
   },
   name: {
-    fontFamily: 'SourceSans3_600SemiBold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeMd,
-    color: Colors.white,
-    maxWidth: 220,
+    color: Colors.textSecondary,
+    flexShrink: 1,
   },
 });
 

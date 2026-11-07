@@ -1,3 +1,4 @@
+import { isFinishedTrip } from '@utils/tripPresentation';
 import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl, useWindowDimensions } from 'react-native';
@@ -5,7 +6,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { riderPortalApi } from '@api/riderPortalApi';
 import type { RiderPortalRideRecord } from '@api/riderPortalApi';
-import { AppBadge, AppCard } from '@components/ui';
+import { AppBadge, AppCard, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
@@ -20,14 +21,14 @@ export default function GuardianRidesPage() {
 	const { width } = useWindowDimensions();
 	const isCompact = width < 380;
 	const [segment, setSegment] = React.useState<RideSegment>('today');
-	const { data, isLoading, isError, fetchNextPage, hasNextPage, refetch, isRefetching } = useInfiniteQuery({
+	const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } = useInfiniteQuery({
 		queryKey: ['guardian-rides'],
 		initialPageParam: 0,
 		queryFn: ({ pageParam }) =>
 			riderPortalApi.searchRides({
 				page: pageParam,
 				size: 20,
-				sort: 'scheduledPickupAt,desc',
+				sortBy: 'scheduledPickupAt', sortDirection: 'DESC',
 			}),
 		getNextPageParam: (last) => (last.page + 1 < last.totalPages ? last.page + 1 : undefined),
 	});
@@ -36,29 +37,23 @@ export default function GuardianRidesPage() {
   if (isError && !data) return <RequestError onRetry={() => void refetch()} />;
 
 	const rides = data?.pages.flatMap((p) => p.items) ?? [];
-	const today = new Date();
-	today.setHours(0, 0, 0, 0);
-	const todayTs = today.getTime();
-	const filtered = rides.filter((ride) => {
-		const rideTs = new Date(ride.scheduledPickupAt).getTime();
-		return segment === 'today' ? rideTs >= todayTs : rideTs < todayTs;
-	});
+	const filtered = rides.filter(ride => segment === 'today' ? !isFinishedTrip(ride.status) : isFinishedTrip(ride.status));
 
 	return (
 		<View style={styles.container}>
 			<View style={styles.headerCard}>
-				<SectionHeader title="Ride Activity" subtitle="Monitor rider trip timeline" />
+				<SectionHeader title="Ride Activity" subtitle="Upcoming trips and completed ride history" />
 				<View style={styles.segmentRow}>
 					<TouchableOpacity
 						style={[styles.segmentButton, segment === 'today' ? styles.segmentSelected : undefined]}
-						onPress={() => setSegment('today')}
+						accessibilityRole="tab" accessibilityState={{ selected: segment === 'today' }} onPress={() => setSegment('today')}
 						activeOpacity={0.85}
 					>
-						<Text style={[styles.segmentLabel, segment === 'today' ? styles.segmentLabelSelected : undefined]}>Today</Text>
+						<Text style={[styles.segmentLabel, segment === 'today' ? styles.segmentLabelSelected : undefined]}>Upcoming</Text>
 					</TouchableOpacity>
 					<TouchableOpacity
 						style={[styles.segmentButton, segment === 'history' ? styles.segmentSelected : undefined]}
-						onPress={() => setSegment('history')}
+						accessibilityRole="tab" accessibilityState={{ selected: segment === 'history' }} onPress={() => setSegment('history')}
 						activeOpacity={0.85}
 					>
 						<Text style={[styles.segmentLabel, segment === 'history' ? styles.segmentLabelSelected : undefined]}>History</Text>
@@ -71,9 +66,10 @@ export default function GuardianRidesPage() {
 				keyExtractor={(r) => String(r.id)}
 				renderItem={({ item }) => <RideCard item={item} onPress={() => router.push(`/(guardian)/rides/${item.id}`)} />}
 				ItemSeparatorComponent={() => <View style={styles.sep} />}
-				ListEmptyComponent={<EmptyState title="No ride records" description="No rides for this segment." />}
+				ListEmptyComponent={<EmptyState title="No ride records" description="No trips in this view. Load more records below or pull down to refresh." />}
 				onEndReached={() => (hasNextPage ? fetchNextPage() : undefined)}
 				onEndReachedThreshold={0.3}
+        ListFooterComponent={hasNextPage ? <AppButton label="Load more trips" variant="outlined" loading={isFetchingNextPage} onPress={() => void fetchNextPage()} /> : null}
 				refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
 				contentContainerStyle={[
 					filtered.length === 0 ? styles.emptyContent : styles.listContent,
@@ -110,6 +106,7 @@ const styles = StyleSheet.create({
 	segmentRow: { flexDirection: 'row', gap: Spacing.sm },
 	segmentButton: {
 		flex: 1,
+        minHeight: 48, justifyContent: 'center',
 		borderWidth: 1,
 		borderColor: Colors.border,
 		borderRadius: 6,
@@ -122,18 +119,18 @@ const styles = StyleSheet.create({
 	},
 	segmentLabel: {
 		textAlign: 'center',
-		fontFamily: 'SourceSans3_600SemiBold',
+		fontFamily: 'Inter_600SemiBold',
 		fontSize: Typography.sizeSm,
 		color: Colors.textSecondary,
 	},
 	segmentLabelSelected: { color: Colors.white },
 	listContent: { paddingTop: Spacing.sm },
 	card: { gap: Spacing.xs },
-	row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-	rideNumber: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
-	meta: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeXs, color: Colors.textSecondary },
-	address: { fontFamily: 'SourceSans3_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary },
-	rider: { fontFamily: 'SourceSans3_600SemiBold', fontSize: Typography.sizeSm, color: GuardianRoleTheme.primary },
+	row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
+	rideNumber: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
+	meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeXs, color: Colors.textSecondary },
+	address: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary },
+	rider: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: GuardianRoleTheme.primary },
 	sep: { height: Spacing.sm },
 	emptyContent: { flex: 1 },
 });

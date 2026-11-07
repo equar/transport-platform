@@ -1,10 +1,11 @@
 import React from 'react';
-import { PaperProvider, MD3LightTheme } from 'react-native-paper';
+import { PaperProvider, MD3LightTheme, configureFonts } from 'react-native-paper';
 import { Colors, Density, Motion, Radius, Shadow, Spacing, Typography } from './tokens';
 
 const appTheme = {
   ...MD3LightTheme,
   roundness: Radius.md,
+  fonts: configureFonts({ config: { fontFamily: Typography.fontBody } }),
   colors: {
     ...MD3LightTheme.colors,
     primary: Colors.primary,
