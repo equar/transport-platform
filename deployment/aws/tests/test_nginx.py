@@ -22,9 +22,10 @@ class NginxTemplateTest(unittest.TestCase):
             self.assertIn('fonts.googleapis.com', rendered)
             self.assertIn('fonts.gstatic.com', rendered)
             self.assertIn('~^(200|304):/assets/', rendered)
-            self.assertIn('proxy_pass http://127.0.0.1:8087', rendered)
+            self.assertIn('proxy_pass http://127.0.0.1:8082', rendered)
             self.assertNotIn('listen 3007', rendered)
             self.assertIn('location ^~ /api/actuator/ { return 404; }', rendered)
+            self.assertIn('location = /index.html { try_files $uri =404; }', rendered)
             # Distribution builds can default to /var/log/nginx/access.log,
             # which an unprivileged CI runner cannot open even with -p set.
             (root/'nginx.conf').write_text(

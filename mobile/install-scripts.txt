@@ -10,8 +10,8 @@ npm run ios:dev                      # local backend + debug profile
 npm run ios:prod                     # AWS backend + release profile
 
 # physical devices need a LAN IP for local:
-LOCAL_API_BASE_URL=http://YOUR_LAN_IP:8087/api npm run android:device -- --env local
-LOCAL_API_BASE_URL=http://YOUR_LAN_IP:8087/api npm run ios:device -- --env local
+LOCAL_API_BASE_URL=http://YOUR_LAN_IP:8082/api npm run android:device -- --env local
+LOCAL_API_BASE_URL=http://YOUR_LAN_IP:8082/api npm run ios:device -- --env local
 
 # physical devices against AWS (no LAN IP needed):
 npm run android:device -- --env aws

@@ -38,7 +38,7 @@ in branch protection. The workflow does not modify branch protection.
 | --- | --- |
 | Public site and role portals | `https://transport.bakaroo.com` |
 | API and mobile base URL | `https://transport.bakaroo.com/api` |
-| Backend listener | `127.0.0.1:8087`, context `/api` |
+| Backend listener | `127.0.0.1:8082`, context `/api` |
 | Service identity/unit | `transport`, `transport-platform-backend.service` |
 | Backend JAR | `/opt/transport-platform/backend.jar` |
 | Production environment | `/opt/transport-platform/.env`, root-owned mode 600 |
@@ -61,10 +61,13 @@ backend listener. Camera/geolocation remain available to same-origin portals.
 1. Use an Ubuntu Lightsail/EC2 host with `/usr/bin/java` **25**, Python 3, Nginx,
    curl, tar, iproute2 (`ss`), util-linux (`flock`), OpenSSL, gettext-base (`envsubst`), Certbot and passwordless sudo
    for the deployment SSH account. Allow SSH from the runner and public 80/443;
-   keep 8087, 3007 and the database private. The scripts do not provision AWS.
+   keep 8082, 3007 and the database private. The scripts do not provision AWS.
 2. Provision `transport_platform` on private MySQL using a separate application
-   identity scoped to that schema with the privileges needed by Flyway. Supply
-   its DNS hostname: JDBC uses `sslMode=VERIFY_IDENTITY`. Backend deployment
+   identity scoped to that schema with the privileges needed by Flyway. Create
+   the schema before the first release; Flyway creates application tables but
+   cannot connect to a nonexistent database. An authorized database administrator
+   can create it with `CREATE DATABASE IF NOT EXISTS transport_platform CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`.
+   Supply the database's DNS hostname: JDBC uses `sslMode=VERIFY_IDENTITY`. Backend deployment
    prepares an isolated Java truststore from standard public roots and the
    official AWS RDS root bundle, preserving outbound Graph/Expo HTTPS trust.
 3. Point the transport domain to the host. Configure HTTPS/Nginx once, before
@@ -87,6 +90,10 @@ backend listener. Camera/geolocation remain available to same-origin portals.
    Certificate renewal reuses system timers. Nginx/certificate changes stay
    separate from routine application releases. After changing the template,
    explicitly rerun this setup; uploading a SPA does not install proxy changes.
+   `/health` verifies HTTPS routing only. After application deployment, also
+   verify `/`, a JavaScript asset from `index.html`, `/login`, and
+   `/api/actuator/health`. A working certificate alone does not confirm the
+   frontend files or backend are available.
 
    The existing `deployment/setup-aws-host.sh` SSH wrapper supports the same
    operation when `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `SSH_KEY`,
@@ -182,7 +189,7 @@ The new backend deliberately refuses to replace an existing service running as
      /etc/systemd/system/transport-platform-backend.service
    sudo systemctl daemon-reload
    sudo systemctl start transport-platform-backend.service
-   curl -fsS http://127.0.0.1:8087/api/actuator/health
+   curl -fsS http://127.0.0.1:8082/api/actuator/health
    ```
 
    Skip `useradd` if the account already exists. Ensure any preexisting document

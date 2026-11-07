@@ -32,8 +32,9 @@ if [[ -d "$web" && ! -L "$web" ]]; then
   mv "$web" "$releases/legacy-$release_id"
   ln -s "$releases/legacy-$release_id" "$web"
 fi
-previous="$(readlink -f "$web" 2>/dev/null || true)"
-if [[ -n "$previous" ]]; then
+previous=''
+if [[ -e "$web" || -L "$web" ]]; then
+  previous="$(readlink -f "$web")"
   [[ "$previous" == "$releases/"* && -s "$previous/index.html" ]] || { echo 'Unexpected previous web root' >&2; exit 1; }
   ln -sfn "$previous" "$web.previous.next"
   mv -Tf "$web.previous.next" "$web.previous"

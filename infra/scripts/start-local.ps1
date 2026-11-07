@@ -21,6 +21,6 @@ Set-Content -Path (Join-Path $pidDirectory "backend.pid") -Value $backendProcess
 Set-Content -Path (Join-Path $pidDirectory "frontend.pid") -Value $frontendProcess.Id
 
 Write-Host "Started backend (PID $($backendProcess.Id)) and frontend (PID $($frontendProcess.Id))."
-Write-Host "Backend: http://localhost:8080/api"
-Write-Host "Frontend: http://localhost:5173"
+Write-Host "Backend: http://localhost:8082/api"
+Write-Host "Frontend: http://localhost:3007"
 Write-Host "MySQL must already be running locally before starting the backend."
