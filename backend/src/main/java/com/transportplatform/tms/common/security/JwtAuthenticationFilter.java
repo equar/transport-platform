@@ -54,7 +54,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             JwtClaims claims = jwtService.parseAccessToken(token);
             var storedUser = appUserRepository.findById(claims.userId()).orElse(null);
             if (storedUser == null
-                    || !storedUser.isActiveForLogin()
+                    || !storedUser.isActiveForLogin() || storedUser.isTemporaryPasswordExpired(java.time.Instant.now())
                     || !storedUser.getEmail().equalsIgnoreCase(claims.subject())
                     || !java.util.Objects.equals(storedUser.getTenantId(), claims.tenantId())
                     || claims.securityVersion() != storedUser.getSecurityVersion()

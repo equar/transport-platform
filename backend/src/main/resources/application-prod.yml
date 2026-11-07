@@ -18,6 +18,8 @@ management:
 app:
   bootstrap:
     platform-admin:
+      email-enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL_ENABLED:false}
+      emails: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAILS:}
       enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:false}
       email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:}
       password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:}

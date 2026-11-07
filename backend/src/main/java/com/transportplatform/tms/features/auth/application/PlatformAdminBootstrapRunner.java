@@ -33,6 +33,9 @@ public class PlatformAdminBootstrapRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        if (properties.isEnabled() && properties.isEmailEnabled()) {
+            throw new IllegalStateException("Enable only one platform administrator bootstrap mode.");
+        }
         if (!properties.isEnabled()) {
             LOGGER.info("Platform admin bootstrap is disabled in configuration");
             return;

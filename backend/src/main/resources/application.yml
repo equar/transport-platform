@@ -70,6 +70,8 @@ app:
       scopes: ${MICROSOFT_GRAPH_SCOPES:https://graph.microsoft.com/.default}
   bootstrap:
     platform-admin:
+      email-enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL_ENABLED:false}
+      emails: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAILS:}
       enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:false}
       email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:samuelweld2018@gmail.com}
       password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:Password123}
