@@ -3,7 +3,7 @@ import type { AuthSession, LoginPayload } from '../types';
 
 interface AuthTokensResponse {
   accessToken: string;
-  refreshToken: string;
+  refreshToken: string | null;
   tokenType: string;
   expiresInSeconds: number;
   user: {
@@ -13,6 +13,7 @@ interface AuthTokensResponse {
     lastName: string | null;
     tenantId: string | null;
     status: string;
+    mustChangePassword: boolean;
     roles: string[];
   };
 }
@@ -31,10 +32,6 @@ interface ChangePasswordPayload {
   newPassword: string;
 }
 
-function delay(ms: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
 export const authApi = {
   async signIn(payload: LoginPayload): Promise<AuthSession> {
     const response = await apiClient.post('/v1/auth/login', payload);
@@ -49,6 +46,21 @@ export const authApi = {
     };
   },
 
+  async restoreSession(): Promise<AuthSession> {
+    const response = await apiClient.post('/v1/auth/refresh');
+    const tokens = unwrapResponse<AuthTokensResponse>(response.data);
+    return {
+      accessToken: tokens.accessToken,
+      tokenType: tokens.tokenType,
+      expiresInSeconds: tokens.expiresInSeconds,
+      identity: tokens.user,
+    };
+  },
+
+  async signOut() {
+    await apiClient.post('/v1/auth/logout');
+  },
+
   async changePassword(payload: ChangePasswordPayload) {
     const response = await apiClient.post('/v1/auth/change-password', payload);
     const message = unwrapResponse<string>(response.data);
@@ -59,30 +71,21 @@ export const authApi = {
   },
 
   async requestPasswordReset(payload: ForgotPasswordPayload) {
-    await delay(700);
+    const response = await apiClient.post('/v1/auth/forgot-password', payload);
+    const message = unwrapResponse<string>(response.data);
     return {
       email: payload.email,
       message:
-        "If an account exists for that email address, password recovery instructions will be prepared for delivery in this workspace.",
+        message ||
+        "If an account exists for that email address, password recovery instructions will be sent.",
     };
   },
 
   async resetPassword(payload: ResetPasswordPayload) {
-    await delay(700);
-
-    if (!payload.token || payload.token === "expired") {
-      const error = new Error("expired");
-      throw error;
-    }
-
-    if (payload.token === "invalid") {
-      const error = new Error("invalid");
-      throw error;
-    }
-
+    const response = await apiClient.post('/v1/auth/reset-password', payload);
+    const message = unwrapResponse<string>(response.data);
     return {
-      message:
-        "The password reset request was accepted for this link and is ready for the connected workspace reset flow.",
+      message: message || "Password reset successfully.",
     };
   },
 };

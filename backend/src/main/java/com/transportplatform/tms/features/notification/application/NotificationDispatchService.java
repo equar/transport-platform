@@ -14,9 +14,12 @@ import com.transportplatform.tms.features.notification.domain.NotificationTempla
 import com.transportplatform.tms.features.notification.domain.NotificationTemplateRepository;
 import com.transportplatform.tms.features.notification.domain.NotificationTemplateStatus;
 import com.transportplatform.tms.features.notification.domain.NotificationType;
+import com.transportplatform.tms.features.notification.domain.PortalPushDeviceToken;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +31,8 @@ public class NotificationDispatchService {
     private final NotificationTemplateRepository notificationTemplateRepository;
     private final NotificationCodeGenerator notificationCodeGenerator;
     private final NotificationTemplateRenderer notificationTemplateRenderer;
-    private final NotificationEmailSender notificationEmailSender;
+    private final PushDeliveryWorker pushDeliveryWorker;
+    private final PortalPushDeviceTokenService portalPushDeviceTokenService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -36,14 +40,16 @@ public class NotificationDispatchService {
             NotificationTemplateRepository notificationTemplateRepository,
             NotificationCodeGenerator notificationCodeGenerator,
             NotificationTemplateRenderer notificationTemplateRenderer,
-            NotificationEmailSender notificationEmailSender,
+            PushDeliveryWorker pushDeliveryWorker,
+            PortalPushDeviceTokenService portalPushDeviceTokenService,
             ObjectMapper objectMapper,
             Clock clock) {
         this.notificationRepository = notificationRepository;
         this.notificationTemplateRepository = notificationTemplateRepository;
         this.notificationCodeGenerator = notificationCodeGenerator;
         this.notificationTemplateRenderer = notificationTemplateRenderer;
-        this.notificationEmailSender = notificationEmailSender;
+        this.pushDeliveryWorker = pushDeliveryWorker;
+        this.portalPushDeviceTokenService = portalPushDeviceTokenService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -69,7 +75,9 @@ public class NotificationDispatchService {
                 relatedEntityType, relatedEntityId, rendered.title(), rendered.body(), context);
         notification.setDeliveryStatus(NotificationDeliveryStatus.SENT);
         notification.setSentAt(Instant.now(clock));
-        return notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+        dispatchPushNotifications(saved, context);
+        return saved;
     }
 
     @Transactional
@@ -93,26 +101,10 @@ public class NotificationDispatchService {
         Notification notification = createBaseNotification(tenantId, recipientUserId, notificationType,
                 NotificationChannel.EMAIL,
                 relatedEntityType, relatedEntityId, rendered.title(), rendered.body(), context);
+        notification.setEmailSubject(rendered.subject());
         notification.setDeliveryStatus(NotificationDeliveryStatus.PENDING);
-        Notification saved = notificationRepository.save(notification);
-        if (recipientEmail == null || recipientEmail.isBlank()) {
-            saved.setDeliveryStatus(NotificationDeliveryStatus.SKIPPED);
-            saved.setErrorMessage("Recipient email is unavailable.");
-            return notificationRepository.save(saved);
-        }
-        NotificationEmailSender.DeliveryResult deliveryResult = notificationEmailSender.send(
-                new NotificationEmailSender.NotificationEmailCommand(
-                        recipientEmail.trim(),
-                        rendered.subject() == null ? rendered.title() : rendered.subject(),
-                        rendered.title(),
-                        rendered.body()));
-        saved.setDeliveryStatus(
-                deliveryResult.sent() ? NotificationDeliveryStatus.SENT : NotificationDeliveryStatus.FAILED);
-        saved.setErrorMessage(deliveryResult.errorMessage());
-        if (deliveryResult.sent()) {
-            saved.setSentAt(Instant.now(clock));
-        }
-        return notificationRepository.save(saved);
+        notification.setNextDeliveryAttemptAt(Instant.now(clock));
+        return notificationRepository.save(notification);
     }
 
     private Notification createBaseNotification(String tenantId,
@@ -137,6 +129,7 @@ public class NotificationDispatchService {
         notification.setReadStatus(NotificationReadStatus.UNREAD);
         notification.setStatus(NotificationStatus.ACTIVE);
         notification.setMetadataJson(writeMetadata(context));
+        notification.setCorrelationId(MDC.get("correlationId"));
         return notification;
     }
 
@@ -168,5 +161,17 @@ public class NotificationDispatchService {
 
     private String trimToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private void dispatchPushNotifications(Notification notification, Map<String, Object> context) {
+        if (notification.getTenantId() == null || notification.getRecipientUserId() == null) {
+            return;
+        }
+        List<PortalPushDeviceToken> tokens = portalPushDeviceTokenService.findActiveTokens(
+                notification.getTenantId(),
+                notification.getRecipientUserId());
+        for (PortalPushDeviceToken token : tokens) {
+            pushDeliveryWorker.enqueue(notification, token);
+        }
     }
 }

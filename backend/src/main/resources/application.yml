@@ -1,12 +1,20 @@
 spring:
+  task:
+    scheduling:
+      pool:
+        size: 6
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
   application:
     name: transport-platform-backend
   profiles:
     default: local
   datasource:
-    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:transport_platform}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}}
-    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:${MYSQL_USER:transport}}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:${MYSQL_PASSWORD:transport}}}
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3311}/transport_platform?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:${MYSQL_USER:root}}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:${MYSQL_PASSWORD:root}}}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     open-in-view: false
@@ -26,7 +34,7 @@ spring:
       write-dates-as-timestamps: false
 
 server:
-  port: 8080
+  port: 8087
   servlet:
     context-path: /api
 
@@ -34,21 +42,50 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,notificationDelivery,metrics
   endpoint:
     health:
       probes:
         enabled: true
 
 app:
+  auth:
+    password-reset-base-url: ${APP_AUTH_PASSWORD_RESET_BASE_URL:http://localhost:3007/reset-password}
+    password-reset-ttl: PT2H
+  email:
+    enabled: ${APP_EMAIL_ENABLED:false}
+    provider: ${APP_EMAIL_PROVIDER:logging}
+    from: ${APP_EMAIL_FROM:}
+  push:
+    enabled: ${APP_PUSH_ENABLED:false}
+    provider: ${APP_PUSH_PROVIDER:logging}
+    expo:
+      url: ${APP_PUSH_EXPO_URL:https://exp.host/--/api/v2/push/send}
+    expo-access-token: ${EXPO_ACCESS_TOKEN:}
+  microsoft:
+    graph:
+      client-id: ${MICROSOFT_GRAPH_CLIENT_ID:}
+      tenant-id: ${MICROSOFT_GRAPH_TENANT_ID:}
+      client-secret: ${MICROSOFT_GRAPH_CLIENT_SECRET:}
+      scopes: ${MICROSOFT_GRAPH_SCOPES:https://graph.microsoft.com/.default}
   bootstrap:
     platform-admin:
-      enabled: false
-      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:platform-admin@transport-platform.local}
-      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:}
+      enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:false}
+      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:samuelweld2018@gmail.com}
+      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:Password123}
   security:
     api-docs-enabled: false
     allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:}
+    refresh-cookie:
+      same-site: ${APP_SECURITY_REFRESH_COOKIE_SAME_SITE:Lax}
+      path: ${APP_SECURITY_REFRESH_COOKIE_PATH:/api/v1/auth}
+      secure: ${APP_SECURITY_REFRESH_COOKIE_SECURE:}
+    auth-rate-limit:
+      enabled: true
+      window: PT1M
+      login-max-requests: 10
+      refresh-max-requests: 30
+      forgot-password-max-requests: 5
     jwt:
       issuer: transport-platform
       secret: ${APP_SECURITY_JWT_SECRET:}
@@ -58,6 +95,8 @@ app:
     header-name: X-Tenant-Id
 
 logging:
+  pattern:
+    level: "%5p [corr:%X{correlationId:-}]"
   level:
     root: INFO
     "[com.transportplatform.tms]": INFO

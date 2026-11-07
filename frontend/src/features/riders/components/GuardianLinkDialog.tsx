@@ -12,6 +12,8 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import { Link as RouterLink } from "react-router-dom";
 import type { GuardianRecord } from "../../guardians/api/guardiansApi";
 import type {
   RiderGuardianPayload,
@@ -110,8 +112,25 @@ export function GuardianLinkDialog({
       fullWidth
       maxWidth="sm"
     >
-      <DialogTitle>
-        {relationship ? "Update Guardian Link" : "Link Guardian"}
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 2,
+        }}
+      >
+        <span>{relationship ? "Update Guardian Link" : "Link Guardian"}</span>
+        <Button
+          component={RouterLink}
+          to="/company/guardians?create=1"
+          startIcon={<AddRoundedIcon />}
+          variant="outlined"
+          size="small"
+          onClick={onClose}
+        >
+          Create Guardian
+        </Button>
       </DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>

@@ -14,6 +14,7 @@ import com.transportplatform.tms.features.billing.api.response.PaymentSummaryRes
 import com.transportplatform.tms.features.billing.domain.Invoice;
 import com.transportplatform.tms.features.billing.domain.InvoiceStatus;
 import com.transportplatform.tms.features.billing.domain.Payment;
+import com.transportplatform.tms.features.billing.domain.PaymentCreationIdempotency;
 import com.transportplatform.tms.features.billing.domain.PaymentMethod;
 import com.transportplatform.tms.features.billing.domain.PaymentRepository;
 import com.transportplatform.tms.features.billing.domain.PaymentStatus;
@@ -38,6 +39,7 @@ public class PaymentService {
     private final BillingAccessService billingAccessService;
     private final PaymentMapper paymentMapper;
     private final PaymentNumberGenerator paymentNumberGenerator;
+    private final PaymentCreationIdempotencyService paymentCreationIdempotencyService;
     private final InvoiceFinancialService invoiceFinancialService;
     private final AuditLogService auditLogService;
     private final NotificationEventService notificationEventService;
@@ -47,6 +49,7 @@ public class PaymentService {
             BillingAccessService billingAccessService,
             PaymentMapper paymentMapper,
             PaymentNumberGenerator paymentNumberGenerator,
+            PaymentCreationIdempotencyService paymentCreationIdempotencyService,
             InvoiceFinancialService invoiceFinancialService,
             AuditLogService auditLogService,
             NotificationEventService notificationEventService,
@@ -55,6 +58,7 @@ public class PaymentService {
         this.billingAccessService = billingAccessService;
         this.paymentMapper = paymentMapper;
         this.paymentNumberGenerator = paymentNumberGenerator;
+        this.paymentCreationIdempotencyService = paymentCreationIdempotencyService;
         this.invoiceFinancialService = invoiceFinancialService;
         this.auditLogService = auditLogService;
         this.notificationEventService = notificationEventService;
@@ -117,8 +121,13 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentDetailResponse createCompanyPayment(PaymentUpsertRequest request) {
+    public PaymentDetailResponse createCompanyPayment(PaymentUpsertRequest request, String idempotencyKey) {
         String tenantId = billingAccessService.requireCompanyTenantId();
+        PaymentCreationIdempotencyService.Claim claim = paymentCreationIdempotencyService.claim(idempotencyKey, request);
+        PaymentCreationIdempotency idempotency = claim == null ? null : claim.record();
+        if (claim != null && !claim.claimedByCaller()) {
+            return getCompanyPayment(idempotency.getPaymentId());
+        }
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(request.invoiceId());
         validateInvoiceAcceptsPayment(invoice, request.amount(), LocalDate.now(clock));
 
@@ -139,6 +148,9 @@ public class PaymentService {
         }
 
         Payment saved = paymentRepository.save(payment);
+        if (idempotency != null) {
+            idempotency.setPaymentId(saved.getId());
+        }
         recordPaymentAudit(saved, "CREATED", "Payment " + saved.getPaymentNumber() + " was recorded.", null,
                 snapshot(saved));
         if (applyImmediately) {

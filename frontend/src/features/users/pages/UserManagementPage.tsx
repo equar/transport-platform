@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
-  Alert,
-  Button,
   MenuItem,
-  Paper,
-  Stack,
   Table,
   TableBody,
   TableCell,
@@ -22,14 +19,14 @@ import { useAuth } from "../../auth/context/AuthContext";
 import { rolesApi, type RoleCatalogItem } from "../../roles/api/rolesApi";
 import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
-import { EmptyState } from "../../../shared/components/EmptyState";
-import { LoadingState } from "../../../shared/components/LoadingState";
-import { PageCard } from "../../../shared/components/PageCard";
-import { SectionHeader } from "../../../shared/components/SectionHeader";
+import { WorkspacePage } from "../../../shared/components/WorkspacePage";
+import { DataTableShell } from "../../../shared/components/DataTableShell";
 import { StatusChip } from "../../../shared/components/StatusChip";
 import { TableActionButton } from "../../../shared/components/TableActionButton";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
+import { normalizeBusinessError, type BusinessError } from "../../../shared/api/businessError";
+import { BusinessErrorState } from "../../../shared/components/BusinessErrorState";
 import { UserUpsertDialog } from "../components/UserUpsertDialog";
 import {
   usersApi,
@@ -37,15 +34,18 @@ import {
   type UserScope,
   type UserUpsertPayload,
 } from "../api/usersApi";
+import { tenantsApi } from "../../tenants/api/tenantsApi";
 
 const userStatuses = ["", "ACTIVE", "INVITED", "SUSPENDED", "DEACTIVATED"];
 
 export function UserManagementPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { session } = useAuth();
   const platformAdmin = isPlatformAdmin(session);
   const scope: UserScope = platformAdmin ? "platform" : "company";
   const { showError, showSuccess } = useToast();
   const [items, setItems] = useState<UserRecord[]>([]);
+  const [tenantNamesById, setTenantNamesById] = useState<Record<string, string>>({});
   const [roles, setRoles] = useState<RoleCatalogItem[]>([]);
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("");
@@ -55,9 +55,10 @@ export function UserManagementPage() {
   const [size, setSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<BusinessError | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
+  const [initialDraft, setInitialDraft] = useState<Partial<UserUpsertPayload> | null>(null);
   const [saving, setSaving] = useState(false);
   const [statusAction, setStatusAction] = useState<{
     type: "activate" | "suspend" | "deactivate";
@@ -66,8 +67,13 @@ export function UserManagementPage() {
   const [statusLoading, setStatusLoading] = useState(false);
 
   async function loadRoles() {
-    const response = await rolesApi.list(scope);
-    setRoles(response);
+    try {
+      const response = await rolesApi.list(scope);
+      setRoles(response.filter((item) => item.assignable));
+    } catch (loadError) {
+      setRoles([]);
+      setError(normalizeBusinessError(loadError, "Available roles could not be loaded."));
+    }
   }
 
   async function loadUsers() {
@@ -84,11 +90,57 @@ export function UserManagementPage() {
       });
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
-      setError("Users could not be loaded.");
+      void resolveTenantNames(response.items);
+    } catch (loadError) {
+      setError(normalizeBusinessError(loadError, "Users could not be loaded."));
     } finally {
       setLoading(false);
     }
+  }
+
+  async function resolveTenantNames(records: UserRecord[]) {
+    if (!platformAdmin) {
+      return;
+    }
+
+    const tenantIds = Array.from(
+      new Set(
+        records
+          .map((record) => record.tenantId)
+          .filter((value): value is string => Boolean(value && value.trim())),
+      ),
+    );
+
+    const missingTenantIds = tenantIds.filter((id) => !tenantNamesById[id]);
+    if (missingTenantIds.length === 0) {
+      return;
+    }
+
+    const resolvedEntries = await Promise.all(
+      missingTenantIds.map(async (id) => {
+        try {
+          const tenant = await tenantsApi.getById(id);
+          return [id, tenant.companyName || tenant.legalName || id] as const;
+        } catch {
+          return [id, id] as const;
+        }
+      }),
+    );
+
+    setTenantNamesById((current) => {
+      const next = { ...current };
+      for (const [id, name] of resolvedEntries) {
+        next[id] = name;
+      }
+      return next;
+    });
+  }
+
+  function renderTenantLabel(item: UserRecord) {
+    if (!item.tenantId) {
+      return "Platform";
+    }
+    return tenantNamesById[item.tenantId] ?? item.tenantId;
   }
 
   useEffect(() => {
@@ -98,6 +150,33 @@ export function UserManagementPage() {
   useEffect(() => {
     void loadUsers();
   }, [scope, keyword, status, role, tenantId, page, size]);
+
+  useEffect(() => {
+    if (scope !== "platform") {
+      return;
+    }
+
+    if (searchParams.get("create") !== "1") {
+      return;
+    }
+
+    const requestedTenantId = searchParams.get("tenantId") ?? "";
+    const requestedRole = searchParams.get("role") ?? "ROLE_TENANT_ADMIN";
+
+    setSelectedUser(null);
+    setInitialDraft({
+      tenantId: requestedTenantId,
+      status: "ACTIVE",
+      roles: [requestedRole],
+    });
+    setDialogOpen(true);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("create");
+    nextParams.delete("tenantId");
+    nextParams.delete("role");
+    setSearchParams(nextParams, { replace: true });
+  }, [scope, searchParams, setSearchParams]);
 
   async function handleSubmit(payload: UserUpsertPayload) {
     setSaving(true);
@@ -111,9 +190,26 @@ export function UserManagementPage() {
       }
       setDialogOpen(false);
       setSelectedUser(null);
+      setInitialDraft(null);
       await loadUsers();
-    } catch {
-      showError("The user change could not be saved.");
+    } catch (saveError) {
+      showError(saveError, "The user change could not be saved.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleResetPassword(password: string) {
+    if (!selectedUser) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await usersApi.resetPassword(scope, selectedUser.id, { password });
+      showSuccess("Temporary password set successfully. The user must change it after login.");
+      await loadUsers();
+    } catch (error) {
+      showError(error, "The user password could not be reset.");
     } finally {
       setSaving(false);
     }
@@ -136,16 +232,15 @@ export function UserManagementPage() {
       showSuccess("User status updated successfully.");
       setStatusAction(null);
       await loadUsers();
-    } catch {
-      showError("The user status action could not be completed.");
+    } catch (statusError) {
+      showError(statusError, "The user status action could not be completed.");
     } finally {
       setStatusLoading(false);
     }
   }
 
   return (
-    <Stack spacing={3}>
-      <SectionHeader
+    <WorkspacePage
         eyebrow={
           platformAdmin ? "Platform Administration" : "Company Administration"
         }
@@ -155,17 +250,12 @@ export function UserManagementPage() {
             ? "Manage platform and tenant users, assign governed roles, and enforce account lifecycle states across the SaaS portfolio."
             : "Manage your tenant’s administrators and operators while keeping role assignment inside tenant-safe boundaries."
         }
-      >
-        <Button
-          variant="contained"
-          onClick={() => {
+        primaryAction={{ label: "Create User", onClick: () => {
             setSelectedUser(null);
+            setInitialDraft(null);
             setDialogOpen(true);
-          }}
-        >
-          Create User
-        </Button>
-      </SectionHeader>
+          } }}
+      >
 
       <AdminFilterBar>
         <TextField
@@ -222,19 +312,9 @@ export function UserManagementPage() {
         ) : null}
       </AdminFilterBar>
 
-      {error ? <Alert severity="error">{error}</Alert> : null}
+      {error ? <BusinessErrorState error={error} onRetry={() => void loadUsers()} /> : null}
 
-      <PageCard sx={{ p: 0, overflow: "hidden" }}>
-        {loading ? (
-          <LoadingState />
-        ) : items.length === 0 ? (
-          <EmptyState
-            title="No users found"
-            description="Adjust the filters or create a new user to start managing access."
-          />
-        ) : (
-          <>
-            <Paper sx={{ overflowX: "auto" }}>
+      <DataTableShell loading={loading} empty={items.length === 0} emptyTitle="No users found" emptyDescription="Adjust the filters or create a new user to start managing access." pagination={<TablePagination component="div" count={total} page={page} rowsPerPage={size} onPageChange={(_, nextPage) => setPage(nextPage)} onRowsPerPageChange={(event) => { setSize(Number(event.target.value)); setPage(0); }} />}>
               <Table>
                 <TableHead>
                   <TableRow>
@@ -256,7 +336,7 @@ export function UserManagementPage() {
                       </TableCell>
                       <TableCell>{item.email}</TableCell>
                       {platformAdmin ? (
-                        <TableCell>{item.tenantId ?? "Platform"}</TableCell>
+                        <TableCell>{renderTenantLabel(item)}</TableCell>
                       ) : null}
                       <TableCell>
                         {item.roles.map(getRoleLabel).join(", ")}
@@ -319,21 +399,7 @@ export function UserManagementPage() {
                   ))}
                 </TableBody>
               </Table>
-            </Paper>
-            <TablePagination
-              component="div"
-              count={total}
-              page={page}
-              rowsPerPage={size}
-              onPageChange={(_, nextPage) => setPage(nextPage)}
-              onRowsPerPageChange={(event) => {
-                setSize(Number(event.target.value));
-                setPage(0);
-              }}
-            />
-          </>
-        )}
-      </PageCard>
+      </DataTableShell>
 
       <UserUpsertDialog
         open={dialogOpen}
@@ -344,8 +410,11 @@ export function UserManagementPage() {
         onClose={() => {
           setDialogOpen(false);
           setSelectedUser(null);
+          setInitialDraft(null);
         }}
+        initialDraft={initialDraft}
         onSubmit={handleSubmit}
+        onResetPassword={selectedUser ? handleResetPassword : undefined}
       />
 
       <ConfirmDialog
@@ -361,6 +430,6 @@ export function UserManagementPage() {
         onCancel={() => setStatusAction(null)}
         onConfirm={handleStatusChange}
       />
-    </Stack>
+    </WorkspacePage>
   );
 }

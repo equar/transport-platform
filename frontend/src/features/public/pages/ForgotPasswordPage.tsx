@@ -35,6 +35,8 @@ export function ForgotPasswordPage() {
       });
       setSuccessMessage(response.message);
       setSubmitted(true);
+    } catch {
+      setError("Recovery instructions could not be requested. Please try again.");
     } finally {
       setSubmitting(false);
     }

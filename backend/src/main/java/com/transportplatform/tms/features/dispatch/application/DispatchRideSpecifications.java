@@ -1,6 +1,5 @@
 package com.transportplatform.tms.features.dispatch.application;
 
-import com.transportplatform.tms.features.dispatch.application.DispatchRideView;
 import com.transportplatform.tms.features.organization.domain.ServiceType;
 import com.transportplatform.tms.features.ride.domain.Ride;
 import com.transportplatform.tms.features.ride.domain.RideStatus;

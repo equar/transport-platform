@@ -29,7 +29,7 @@ public class GuardianManagementController {
     }
 
     @GetMapping("/company/guardians")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<PageResponse<GuardianResponse>> searchCompanyGuardians(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) GuardianStatus status,
@@ -51,39 +51,39 @@ public class GuardianManagementController {
     }
 
     @GetMapping("/company/guardians/{guardianId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<GuardianResponse> getCompanyGuardian(@PathVariable Long guardianId) {
         return ApiResponse.success(guardianService.getCompanyGuardian(guardianId));
     }
 
     @PostMapping("/company/guardians")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<GuardianResponse> createCompanyGuardian(@Valid @RequestBody GuardianUpsertRequest request) {
         return ApiResponse.success(guardianService.createCompanyGuardian(request));
     }
 
     @PutMapping("/company/guardians/{guardianId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<GuardianResponse> updateCompanyGuardian(@PathVariable Long guardianId,
             @Valid @RequestBody GuardianUpsertRequest request) {
         return ApiResponse.success(guardianService.updateCompanyGuardian(guardianId, request));
     }
 
     @PostMapping("/company/guardians/{guardianId}/activate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<GuardianResponse> activateCompanyGuardian(@PathVariable Long guardianId) {
         return ApiResponse.success(guardianService.activateCompanyGuardian(guardianId));
     }
 
     @PostMapping("/company/guardians/{guardianId}/suspend")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<GuardianResponse> suspendCompanyGuardian(@PathVariable Long guardianId) {
         return ApiResponse.success(guardianService.suspendCompanyGuardian(guardianId));
     }
 
     @PostMapping("/company/guardians/{guardianId}/deactivate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<GuardianResponse> deactivateCompanyGuardian(@PathVariable Long guardianId) {
         return ApiResponse.success(guardianService.deactivateCompanyGuardian(guardianId));
     }

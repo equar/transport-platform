@@ -1,5 +1,23 @@
 package com.transportplatform.tms.features.riderguardianportal.application;
 
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.response.PageResponse;
@@ -18,37 +36,36 @@ import com.transportplatform.tms.features.billing.domain.InvoiceRepository;
 import com.transportplatform.tms.features.billing.domain.InvoiceStatus;
 import com.transportplatform.tms.features.billing.domain.PaymentRepository;
 import com.transportplatform.tms.features.billing.domain.PaymentStatus;
+import com.transportplatform.tms.features.location.api.response.DriverLocationSnapshotResponse;
+import com.transportplatform.tms.features.location.application.DriverLocationSnapshotMapper;
+import com.transportplatform.tms.features.location.domain.DriverLocationSnapshotRepository;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import com.transportplatform.tms.features.notification.domain.NotificationReadStatus;
 import com.transportplatform.tms.features.notification.domain.NotificationRepository;
 import com.transportplatform.tms.features.notification.domain.NotificationStatus;
 import com.transportplatform.tms.features.portalaccess.domain.PortalSubjectType;
 import com.transportplatform.tms.features.portalcommon.api.response.PortalRideSummaryResponse;
+import com.transportplatform.tms.features.ride.api.request.CancelRideRequest;
+import com.transportplatform.tms.features.ride.api.request.RideUpsertRequest;
+import com.transportplatform.tms.features.ride.application.RideCodeGenerator;
+import com.transportplatform.tms.features.ride.application.RideMapper;
+import com.transportplatform.tms.features.ride.application.RideReferenceValidationService;
+import com.transportplatform.tms.features.ride.application.RideStatusWorkflow;
+import com.transportplatform.tms.features.ride.domain.Ride;
+import com.transportplatform.tms.features.ride.domain.RideRepository;
+import com.transportplatform.tms.features.ride.domain.RideStatus;
+import com.transportplatform.tms.features.rideevent.application.RideEventService;
 import com.transportplatform.tms.features.rider.domain.Guardian;
 import com.transportplatform.tms.features.rider.domain.Rider;
 import com.transportplatform.tms.features.rider.domain.RiderGuardian;
+import com.transportplatform.tms.features.rider.domain.RiderGuardianRepository;
+import com.transportplatform.tms.features.rider.domain.RiderGuardianStatus;
 import com.transportplatform.tms.features.riderguardianportal.api.request.RiderGuardianPortalProfileUpdateRequest;
+import com.transportplatform.tms.features.riderguardianportal.api.request.RiderGuardianPortalRideCreateRequest;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalDashboardResponse;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalLinkedRiderResponse;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalProfileResponse;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalRideDetailResponse;
-import com.transportplatform.tms.features.ride.domain.Ride;
-import com.transportplatform.tms.features.ride.domain.RideRepository;
-import com.transportplatform.tms.features.ride.domain.RideStatus;
-import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RiderGuardianPortalService {
@@ -68,10 +85,18 @@ public class RiderGuardianPortalService {
     private final InvoiceRepository invoiceRepository;
     private final PaymentRepository paymentRepository;
     private final NotificationRepository notificationRepository;
+    private final DriverLocationSnapshotRepository driverLocationSnapshotRepository;
+    private final DriverLocationSnapshotMapper driverLocationSnapshotMapper;
     private final InvoiceMapper invoiceMapper;
     private final PaymentMapper paymentMapper;
     private final InvoiceFinancialService invoiceFinancialService;
     private final AuditLogService auditLogService;
+    private final RideReferenceValidationService rideReferenceValidationService;
+    private final RideMapper rideMapper;
+    private final RideCodeGenerator rideCodeGenerator;
+    private final RideEventService rideEventService;
+    private final NotificationEventService notificationEventService;
+    private final RiderGuardianRepository riderGuardianRepository;
     private final Clock clock;
 
     public RiderGuardianPortalService(RiderGuardianPortalAccessService accessService,
@@ -79,20 +104,36 @@ public class RiderGuardianPortalService {
             InvoiceRepository invoiceRepository,
             PaymentRepository paymentRepository,
             NotificationRepository notificationRepository,
+            DriverLocationSnapshotRepository driverLocationSnapshotRepository,
+            DriverLocationSnapshotMapper driverLocationSnapshotMapper,
             InvoiceMapper invoiceMapper,
             PaymentMapper paymentMapper,
             InvoiceFinancialService invoiceFinancialService,
             AuditLogService auditLogService,
+            RideReferenceValidationService rideReferenceValidationService,
+            RideMapper rideMapper,
+            RideCodeGenerator rideCodeGenerator,
+            RideEventService rideEventService,
+            NotificationEventService notificationEventService,
+            RiderGuardianRepository riderGuardianRepository,
             Clock clock) {
         this.accessService = accessService;
         this.rideRepository = rideRepository;
         this.invoiceRepository = invoiceRepository;
         this.paymentRepository = paymentRepository;
         this.notificationRepository = notificationRepository;
+        this.driverLocationSnapshotRepository = driverLocationSnapshotRepository;
+        this.driverLocationSnapshotMapper = driverLocationSnapshotMapper;
         this.invoiceMapper = invoiceMapper;
         this.paymentMapper = paymentMapper;
         this.invoiceFinancialService = invoiceFinancialService;
         this.auditLogService = auditLogService;
+        this.rideReferenceValidationService = rideReferenceValidationService;
+        this.rideMapper = rideMapper;
+        this.rideCodeGenerator = rideCodeGenerator;
+        this.rideEventService = rideEventService;
+        this.notificationEventService = notificationEventService;
+        this.riderGuardianRepository = riderGuardianRepository;
         this.clock = clock;
     }
 
@@ -249,6 +290,20 @@ public class RiderGuardianPortalService {
         return PageResponse.from(result.map(this::toRideSummary));
     }
 
+    public record SavedLocation(String addressLine1,String city,String state,String zipCode,String country) {}
+    @Transactional(readOnly = true)
+    public java.util.List<SavedLocation> savedLocations(Long requestedRiderId) {
+        var scope=accessService.resolveCurrentScope();
+        Long riderId=resolveRequestedRiderId(scope,requestedRiderId);
+        var rides=rideRepository.findAll((root,query,cb)->cb.and(
+            cb.equal(root.get("tenantId"),scope.user().tenantId()),cb.equal(root.get("rider").get("id"),riderId)),
+            org.springframework.data.domain.PageRequest.of(0,50,org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC,"scheduledPickupAt")));
+        return rides.getContent().stream().flatMap(ride->java.util.stream.Stream.of(
+            new SavedLocation(ride.getPickupAddressLine1(),ride.getPickupCity(),ride.getPickupState(),ride.getPickupZipCode(),ride.getPickupCountry()),
+            new SavedLocation(ride.getDropoffAddressLine1(),ride.getDropoffCity(),ride.getDropoffState(),ride.getDropoffZipCode(),ride.getDropoffCountry())))
+            .distinct().toList();
+    }
+
     @Transactional(readOnly = true)
     public RiderGuardianPortalRideDetailResponse getRide(Long rideId) {
         var scope = accessService.resolveCurrentScope();
@@ -261,6 +316,75 @@ public class RiderGuardianPortalService {
         }
         return toRideDetail(ride);
     }
+
+    @Transactional
+    public RiderGuardianPortalRideDetailResponse createRide(RiderGuardianPortalRideCreateRequest request) {
+        var scope = accessService.resolveCurrentScope();
+        Long riderId = resolveRequestedRiderId(scope, request.riderId());
+        Long guardianId = resolveRequestedGuardianId(scope, riderId, request.guardianId());
+        var references = rideReferenceValidationService.resolve(
+                scope.user().tenantId(),
+                riderId,
+                guardianId,
+                null,
+                null,
+                null);
+
+        Ride ride = new Ride();
+        ride.setTenantId(scope.user().tenantId());
+        ride.setRideNumber(rideCodeGenerator.generate(scope.user().tenantId()));
+        ride.setStatus(RideStatus.REQUESTED);
+        rideMapper.apply(ride, toUpsertRequest(request, riderId, guardianId), references);
+        validateRideBusinessRules(ride);
+        Ride saved = rideRepository.save(ride);
+        rideEventService.recordRideCreated(saved, "Ride created from rider portal.");
+        recordAudit(saved.getTenantId(), "RIDER_PORTAL", "RIDE_CREATED", "RIDE", saved.getId().toString(),
+                "Ride " + saved.getRideNumber() + " was created via rider portal.", null, snapshotRide(saved));
+        return toRideDetail(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public DriverLocationSnapshotResponse getRideLocationSnapshot(Long rideId) {
+        var scope = accessService.resolveCurrentScope();
+        Ride ride = rideRepository.findByIdAndTenantId(rideId, scope.user().tenantId())
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND,
+                        "Ride not found for the current portal scope."));
+        if (!canAccessRide(scope, ride)) {
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                    "The current rider or guardian portal account cannot access this ride.");
+        }
+        return driverLocationSnapshotRepository
+                .findTopByTenantIdAndRide_IdOrderByCapturedAtDescIdDesc(ride.getTenantId(), ride.getId())
+                .map(driverLocationSnapshotMapper::toResponse)
+                .orElse(null);
+    }
+
+            @Transactional
+            public RiderGuardianPortalRideDetailResponse cancelRide(Long rideId, CancelRideRequest request) {
+            var scope = accessService.resolveCurrentScope();
+                requireRiderScopeForMutation(scope, "Guardians can only track rides and receive notifications.");
+            Ride ride = rideRepository.findByIdAndTenantId(rideId, scope.user().tenantId())
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND,
+                    "Ride not found for the current portal scope."));
+            if (!canAccessRide(scope, ride)) {
+                throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                    "The current rider or guardian portal account cannot access this ride.");
+            }
+            RideStatusWorkflow.ensureCanCancel(ride.getStatus());
+            RideStatus previousStatus = ride.getStatus();
+            Object oldSnapshot = snapshotRide(ride);
+            ride.setStatus(RideStatus.CANCELLED);
+            ride.setCancellationReason(request.reason().trim());
+            ride.setCancelledAt(Instant.now(clock));
+            ride.setCancelledBy(scope.user().displayName());
+            Ride saved = rideRepository.save(ride);
+            rideEventService.recordStatusChanged(saved, previousStatus, RideStatus.CANCELLED, request.reason().trim());
+            recordAudit(saved.getTenantId(), "RIDER_PORTAL", "RIDE_CANCELLED", "RIDE", saved.getId().toString(),
+                "Ride " + saved.getRideNumber() + " was cancelled via rider portal.", oldSnapshot,
+                snapshotRide(saved));
+            notificationEventService.publishRideStatusChanged(saved, previousStatus, saved.getStatus());
+            return toRideDetail(saved);
+            }
 
     @Transactional(readOnly = true)
     public PageResponse<InvoiceSummaryResponse> searchInvoices(String keyword,
@@ -494,6 +618,157 @@ public class RiderGuardianPortalService {
                 InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, today),
                 invoiceFinancialService.resolveDaysPastDue(invoice, today),
                 invoiceFinancialService.resolveAgingBucket(invoice, today));
+    }
+
+    private RideUpsertRequest toUpsertRequest(RiderGuardianPortalRideCreateRequest request,
+            Long riderId,
+            Long guardianId) {
+        return new RideUpsertRequest(
+                riderId,
+                guardianId,
+                null,
+                null,
+                null,
+                request.serviceType(),
+                request.tripType(),
+                request.pickupAddressLine1(),
+                request.pickupAddressLine2(),
+                request.pickupCity(),
+                request.pickupState(),
+                request.pickupZipCode(),
+                request.pickupCountry(),
+                request.dropoffAddressLine1(),
+                request.dropoffAddressLine2(),
+                request.dropoffCity(),
+                request.dropoffState(),
+                request.dropoffZipCode(),
+                request.dropoffCountry(),
+                request.scheduledPickupAt(),
+                request.scheduledDropoffAt(),
+                request.returnPickupAt(),
+                request.returnDropoffAt(),
+                request.wheelchairRequired(),
+                request.escortRequired(),
+                request.companionCount(),
+                request.specialInstructions(),
+                null,
+                null,
+                null,
+                null,
+                RideStatus.REQUESTED);
+    }
+
+    private Long resolveRequestedRiderId(RiderGuardianPortalAccessService.ResolvedRiderGuardianScope scope,
+            Long requestedRiderId) {
+        if (scope.scopeType() == PortalSubjectType.RIDER) {
+            if (requestedRiderId != null && !requestedRiderId.equals(scope.rider().getId())) {
+                throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                        "Rider portal users can only create rides for their own rider profile.");
+            }
+            return scope.rider().getId();
+        }
+        if (scope.linkedRiders().isEmpty()) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                    "No linked riders are available for ride creation.");
+        }
+        if (requestedRiderId == null) {
+            if (scope.linkedRiders().size() == 1) {
+                return scope.linkedRiders().get(0).getId();
+            }
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                    "riderId is required when multiple riders are linked to the guardian account.");
+        }
+        boolean linked = scope.linkedRiders().stream().anyMatch(rider -> rider.getId().equals(requestedRiderId));
+        if (!linked) {
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                    "Guardians can only create rides for riders linked to their account.");
+        }
+        return requestedRiderId;
+    }
+
+    private Long resolveRequestedGuardianId(RiderGuardianPortalAccessService.ResolvedRiderGuardianScope scope,
+            Long riderId,
+            Long requestedGuardianId) {
+        if (scope.scopeType() == PortalSubjectType.GUARDIAN) {
+            if (requestedGuardianId != null && !requestedGuardianId.equals(scope.guardian().getId())) {
+                throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                        "Guardian portal users can only create rides using their own guardian scope.");
+            }
+            return scope.guardian().getId();
+        }
+        if (requestedGuardianId != null) {
+            boolean linked = scope.links().stream()
+                    .filter(link -> link.getStatus() == RiderGuardianStatus.ACTIVE)
+                    .anyMatch(link -> link.getGuardian().getId().equals(requestedGuardianId));
+            if (!linked) {
+                throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                        "The selected guardian is not linked to this rider.");
+            }
+            return requestedGuardianId;
+        }
+        return riderGuardianRepository
+                .findByTenantIdAndRider_IdAndPrimaryGuardianTrueAndStatus(
+                        scope.user().tenantId(),
+                        riderId,
+                        RiderGuardianStatus.ACTIVE)
+                .filter(RiderGuardian::isAuthorizedForPickup)
+                .map(link -> link.getGuardian().getId())
+                .orElse(null);
+    }
+
+    private void validateRideBusinessRules(Ride ride) {
+        if (ride.getScheduledDropoffAt() != null
+                && ride.getScheduledDropoffAt().isBefore(ride.getScheduledPickupAt())) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                    "Scheduled dropoff time cannot be earlier than scheduled pickup time.");
+        }
+        if (ride.getTripType() == com.transportplatform.tms.features.ride.domain.RideTripType.ONE_WAY) {
+            if (ride.getReturnPickupAt() != null || ride.getReturnDropoffAt() != null) {
+                throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                        "Return trip times can only be provided for round-trip rides.");
+            }
+        } else {
+            if (ride.getReturnPickupAt() == null || ride.getReturnDropoffAt() == null) {
+                throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                        "Return pickup and return dropoff times are required for round-trip rides.");
+            }
+            if (ride.getScheduledDropoffAt() != null
+                    && ride.getReturnPickupAt().isBefore(ride.getScheduledDropoffAt())) {
+                throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                        "Return pickup time cannot be earlier than scheduled dropoff time.");
+            }
+            if (ride.getReturnDropoffAt().isBefore(ride.getReturnPickupAt())) {
+                throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                        "Return dropoff time cannot be earlier than return pickup time.");
+            }
+        }
+        if (ride.getCompanionCount() < 0) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                    "Companion count cannot be negative.");
+        }
+    }
+
+    private Object snapshotRide(Ride ride) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("id", ride.getId());
+        values.put("rideNumber", ride.getRideNumber());
+        values.put("riderId", ride.getRider() == null ? null : ride.getRider().getId());
+        values.put("guardianId", ride.getGuardian() == null ? null : ride.getGuardian().getId());
+        values.put("status", ride.getStatus() == null ? null : ride.getStatus().name());
+        values.put("scheduledPickupAt", ride.getScheduledPickupAt());
+        values.put("scheduledDropoffAt", ride.getScheduledDropoffAt());
+        values.put("returnPickupAt", ride.getReturnPickupAt());
+        values.put("returnDropoffAt", ride.getReturnDropoffAt());
+        values.put("cancellationReason", ride.getCancellationReason());
+        return values;
+    }
+
+    private void requireRiderScopeForMutation(
+            RiderGuardianPortalAccessService.ResolvedRiderGuardianScope scope,
+            String message) {
+        if (scope.scopeType() != PortalSubjectType.RIDER) {
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, message);
+        }
     }
 
     private void recordAudit(String tenantId,

@@ -20,7 +20,7 @@ import PersonOffRoundedIcon from "@mui/icons-material/PersonOffRounded";
 import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
 import { EmptyState } from "../../../shared/components/EmptyState";
@@ -31,6 +31,7 @@ import { StatusChip } from "../../../shared/components/StatusChip";
 import { TableActionButton } from "../../../shared/components/TableActionButton";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
+import { normalizeBusinessError } from "../../../shared/api/businessError";
 import {
   guardiansApi,
   type GuardianPayload,
@@ -57,6 +58,7 @@ function booleanFilterLabel(value: boolean | "") {
 }
 
 export function GuardianManagementPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
   const [items, setItems] = useState<GuardianRecord[]>([]);
@@ -108,6 +110,19 @@ export function GuardianManagementPage() {
     void loadGuardians();
   }, [keyword, status, authorizedForPickup, billingContact, page, size]);
 
+  useEffect(() => {
+    if (searchParams.get("create") !== "1") {
+      return;
+    }
+
+    setSelectedGuardian(null);
+    setDialogOpen(true);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("create");
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   async function handleSubmit(payload: GuardianPayload) {
     setSaving(true);
     try {
@@ -121,8 +136,13 @@ export function GuardianManagementPage() {
       setDialogOpen(false);
       setSelectedGuardian(null);
       await loadGuardians();
-    } catch {
-      showError("Guardian changes could not be saved.");
+    } catch (saveError) {
+      showError(
+        normalizeBusinessError(
+          saveError,
+          "Guardian changes could not be saved.",
+        ).message,
+      );
     } finally {
       setSaving(false);
     }

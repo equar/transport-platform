@@ -4,8 +4,12 @@ import com.transportplatform.tms.common.response.ApiResponse;
 import com.transportplatform.tms.common.response.PageResponse;
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
+import com.transportplatform.tms.features.user.api.request.AdminResetPasswordRequest;
 import com.transportplatform.tms.features.user.api.request.UserUpsertRequest;
 import com.transportplatform.tms.features.user.api.response.UserResponse;
+import com.transportplatform.tms.features.user.api.response.PortalSubjectOptionResponse;
+import com.transportplatform.tms.features.portalaccess.domain.PortalSubjectType;
+import java.util.List;
 import com.transportplatform.tms.features.user.application.UserManagementService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -61,6 +65,13 @@ public class UserManagementController {
         return ApiResponse.success(userManagementService.updatePlatformUser(userId, request));
     }
 
+    @PostMapping("/platform/users/{userId}/reset-password")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public ApiResponse<UserResponse> resetPlatformUserPassword(@PathVariable Long userId,
+            @Valid @RequestBody AdminResetPasswordRequest request) {
+        return ApiResponse.success(userManagementService.resetPlatformUserPassword(userId, request));
+    }
+
     @PostMapping("/platform/users/{userId}/activate")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ApiResponse<UserResponse> activatePlatformUser(@PathVariable Long userId) {
@@ -90,6 +101,14 @@ public class UserManagementController {
         return ApiResponse.success(userManagementService.searchCompanyUsers(keyword, status, role, page, size));
     }
 
+    @GetMapping("/company/users/portal-subjects")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<List<PortalSubjectOptionResponse>> listCompanyPortalSubjects(
+            @RequestParam PortalSubjectType type,
+            @RequestParam(defaultValue = "") String keyword) {
+        return ApiResponse.success(userManagementService.listCompanyPortalSubjects(type, keyword));
+    }
+
     @GetMapping("/company/users/{userId}")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ApiResponse<UserResponse> getCompanyUser(@PathVariable Long userId) {
@@ -108,6 +127,13 @@ public class UserManagementController {
     public ApiResponse<UserResponse> updateCompanyUser(@PathVariable Long userId,
             @Valid @RequestBody UserUpsertRequest request) {
         return ApiResponse.success(userManagementService.updateCompanyUser(userId, request));
+    }
+
+    @PostMapping("/company/users/{userId}/reset-password")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<UserResponse> resetCompanyUserPassword(@PathVariable Long userId,
+            @Valid @RequestBody AdminResetPasswordRequest request) {
+        return ApiResponse.success(userManagementService.resetCompanyUserPassword(userId, request));
     }
 
     @PostMapping("/company/users/{userId}/activate")

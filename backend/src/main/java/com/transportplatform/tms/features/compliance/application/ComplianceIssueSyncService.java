@@ -189,6 +189,7 @@ public class ComplianceIssueSyncService {
 
         List<ComplianceIssueCandidate> candidates = new ArrayList<>();
         for (DriverDocumentType requiredType : driverComplianceSummaryService.getRequiredDocumentTypes()) {
+            String documentLabel = documentLabel(requiredType);
             List<DriverDocument> typedDocuments = documentsByType.getOrDefault(requiredType, List.of());
             if (typedDocuments.isEmpty()) {
                 candidates.add(buildDriverCandidate(driver,
@@ -196,8 +197,8 @@ public class ComplianceIssueSyncService {
                         ComplianceIssueSeverity.CRITICAL,
                         requiredType.name(),
                         null,
-                        "Required driver document is missing.",
-                        "Upload and verify the missing driver document to restore compliance."));
+                        documentLabel + " is missing.",
+                        "Upload and verify the " + documentLabel + " to restore compliance."));
                 continue;
             }
             boolean hasVerified = typedDocuments.stream()
@@ -214,13 +215,14 @@ public class ComplianceIssueSyncService {
                             ComplianceIssueSeverity.MEDIUM,
                             requiredType.name(),
                             pendingDocument.getExpiryDate(),
-                            "Required driver document is awaiting verification.",
-                            "Review the pending driver document and verify or reject it."));
+                            documentLabel + " is awaiting verification.",
+                            "The company administrator must verify or reject the " + documentLabel + "."));
                 }
             }
         }
 
         for (DriverDocument document : activeDocuments) {
+            String documentLabel = documentLabel(document.getDocumentType());
             DriverDocumentVerificationStatus effectiveStatus = DriverDocumentStatusWorkflow
                     .resolveEffectiveVerificationStatus(document,
                             today);
@@ -233,8 +235,8 @@ public class ComplianceIssueSyncService {
                                         : ComplianceIssueSeverity.HIGH,
                         document.getDocumentType().name(),
                         document.getExpiryDate(),
-                        "Driver document has expired.",
-                        "Upload a renewed document and complete verification."));
+                        documentLabel + " has expired.",
+                        "Upload a renewed " + documentLabel + " and complete verification."));
             } else if (document.getExpiryDate() != null
                     && !document.getExpiryDate().isBefore(today)
                     && !document.getExpiryDate().isAfter(expiringSoonDate)) {
@@ -246,8 +248,8 @@ public class ComplianceIssueSyncService {
                                         : ComplianceIssueSeverity.MEDIUM,
                         document.getDocumentType().name(),
                         document.getExpiryDate(),
-                        "Driver document is expiring soon.",
-                        "Request a renewed document before the expiry date."));
+                        documentLabel + " is expiring soon.",
+                        "Upload a renewed " + documentLabel + " before the expiry date."));
             }
             if (effectiveStatus == DriverDocumentVerificationStatus.REJECTED) {
                 candidates.add(buildDriverCandidate(driver,
@@ -255,8 +257,8 @@ public class ComplianceIssueSyncService {
                         ComplianceIssueSeverity.HIGH,
                         document.getDocumentType().name(),
                         document.getExpiryDate(),
-                        "Driver document was rejected during review.",
-                        "Obtain a corrected document submission and re-review it."));
+                        documentLabel + " was rejected during review.",
+                        "Upload a corrected " + documentLabel + " for another review."));
             }
         }
         return deduplicate(candidates);
@@ -418,6 +420,11 @@ public class ComplianceIssueSyncService {
 
     private boolean isRequired(Collection<?> requiredTypes, Enum<?> candidateType) {
         return requiredTypes.stream().anyMatch(requiredType -> requiredType.toString().equals(candidateType.name()));
+    }
+
+    private String documentLabel(DriverDocumentType documentType) {
+        String normalized = documentType.name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+        return Character.toUpperCase(normalized.charAt(0)) + normalized.substring(1);
     }
 
     private record ComplianceIssueCandidate(

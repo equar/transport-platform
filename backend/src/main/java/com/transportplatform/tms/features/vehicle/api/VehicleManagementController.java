@@ -30,7 +30,7 @@ public class VehicleManagementController {
     }
 
     @GetMapping("/company/vehicles")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<PageResponse<VehicleResponse>> searchCompanyVehicles(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) VehicleStatus status,
@@ -52,51 +52,51 @@ public class VehicleManagementController {
     }
 
     @GetMapping("/company/vehicles/{vehicleId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleResponse> getCompanyVehicle(@PathVariable Long vehicleId) {
         return ApiResponse.success(vehicleService.getCompanyVehicle(vehicleId));
     }
 
     @PostMapping("/company/vehicles")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<VehicleResponse> createCompanyVehicle(@Valid @RequestBody VehicleUpsertRequest request) {
         return ApiResponse.success(vehicleService.createCompanyVehicle(request));
     }
 
     @PutMapping("/company/vehicles/{vehicleId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleResponse> updateCompanyVehicle(@PathVariable Long vehicleId,
             @Valid @RequestBody VehicleUpsertRequest request) {
         return ApiResponse.success(vehicleService.updateCompanyVehicle(vehicleId, request));
     }
 
     @PostMapping("/company/vehicles/{vehicleId}/activate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleResponse> activateCompanyVehicle(@PathVariable Long vehicleId) {
         return ApiResponse.success(vehicleService.activateCompanyVehicle(vehicleId));
     }
 
     @PostMapping("/company/vehicles/{vehicleId}/suspend")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleResponse> suspendCompanyVehicle(@PathVariable Long vehicleId) {
         return ApiResponse.success(vehicleService.suspendCompanyVehicle(vehicleId));
     }
 
     @PostMapping("/company/vehicles/{vehicleId}/maintenance")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleResponse> markCompanyVehicleMaintenance(@PathVariable Long vehicleId) {
         return ApiResponse.success(vehicleService.markCompanyVehicleMaintenance(vehicleId));
     }
 
     @PostMapping("/company/vehicles/{vehicleId}/out-of-service")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleResponse> markCompanyVehicleOutOfService(@PathVariable Long vehicleId) {
         return ApiResponse.success(vehicleService.markCompanyVehicleOutOfService(vehicleId));
     }
 
     @PostMapping("/company/vehicles/{vehicleId}/deactivate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<VehicleResponse> deactivateCompanyVehicle(@PathVariable Long vehicleId) {
         return ApiResponse.success(vehicleService.deactivateCompanyVehicle(vehicleId));
     }

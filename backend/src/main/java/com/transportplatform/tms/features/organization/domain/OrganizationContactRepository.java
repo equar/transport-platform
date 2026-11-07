@@ -9,6 +9,8 @@ public interface OrganizationContactRepository extends JpaRepository<Organizatio
 
     Optional<OrganizationContact> findByIdAndTenantId(Long id, String tenantId);
 
+    List<OrganizationContact> findAllByTenantIdOrderByLastNameAscFirstNameAsc(String tenantId);
+
     List<OrganizationContact> findAllByTenantIdAndOrganization_IdOrderByPrimaryDescUpdatedAtDesc(
             String tenantId,
             Long organizationId);

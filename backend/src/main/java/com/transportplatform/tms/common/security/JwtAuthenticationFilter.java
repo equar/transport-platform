@@ -1,6 +1,9 @@
 package com.transportplatform.tms.common.security;
 
 import com.transportplatform.tms.common.tenant.TenantContext;
+import com.transportplatform.tms.features.auth.domain.AppUserRepository;
+import com.transportplatform.tms.features.tenant.domain.TenantRepository;
+import com.transportplatform.tms.features.tenant.domain.TenantStatus;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,9 +22,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final TenantRepository tenantRepository;
+    private final AppUserRepository appUserRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService,
+            TenantRepository tenantRepository,
+            AppUserRepository appUserRepository) {
         this.jwtService = jwtService;
+        this.tenantRepository = tenantRepository;
+        this.appUserRepository = appUserRepository;
     }
 
     @Override
@@ -38,21 +47,43 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             JwtClaims claims = jwtService.parseAccessToken(token);
+            var storedUser = appUserRepository.findById(claims.userId()).orElse(null);
+            if (storedUser == null
+                    || !storedUser.isActiveForLogin()
+                    || !storedUser.getEmail().equalsIgnoreCase(claims.subject())
+                    || !java.util.Objects.equals(storedUser.getTenantId(), claims.tenantId())
+                    || (storedUser.getPasswordChangedAt() != null
+                            && claims.issuedAt().isBefore(storedUser.getPasswordChangedAt()))) {
+                SecurityContextHolder.clearContext();
+                TenantContext.clear();
+                filterChain.doFilter(request, response);
+                return;
+            }
+            if (claims.tenantId() != null && !claims.tenantId().isBlank()
+                    && tenantRepository.findById(claims.tenantId())
+                            .map(tenant -> tenant.getStatus() != TenantStatus.ACTIVE)
+                            .orElse(true)) {
+                SecurityContextHolder.clearContext();
+                TenantContext.clear();
+                filterChain.doFilter(request, response);
+                return;
+            }
             AuthenticatedUser user = new AuthenticatedUser(
                     claims.userId(),
-                    claims.tenantId(),
-                    claims.subject(),
-                    claims.firstName(),
-                    claims.lastName(),
+                    storedUser.getTenantId(),
+                    storedUser.getEmail(),
+                    storedUser.getFirstName(),
+                    storedUser.getLastName(),
                     "",
                     true,
                     true,
-                    claims.roles().stream().map(SimpleGrantedAuthority::new).toList());
+                    storedUser.isMustChangePassword(),
+                    storedUser.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.name())).toList());
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null,
                     List.copyOf(user.getAuthorities()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            if (claims.tenantId() != null && !claims.tenantId().isBlank()) {
-                TenantContext.setTenantId(claims.tenantId());
+            if (storedUser.getTenantId() != null && !storedUser.getTenantId().isBlank()) {
+                TenantContext.setTenantId(storedUser.getTenantId());
             }
         } catch (JwtException ignored) {
             SecurityContextHolder.clearContext();

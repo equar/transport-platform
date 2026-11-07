@@ -2,9 +2,7 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import {
-  Box,
   Button,
-  Divider,
   IconButton,
   InputAdornment,
   Link,
@@ -19,7 +17,6 @@ import { useAuth } from "../context/AuthContext";
 import { consumeAuthNotice } from "../utils/authNotices";
 import { publicSecondaryCta } from "../../public/content/siteContent";
 import { useToast } from "../../../shared/providers/ToastProvider";
-import { runtimeApi, type RuntimeBranding } from "../../runtime/api/runtimeApi";
 
 interface RouterState {
   from?: {
@@ -32,14 +29,11 @@ export function LoginPage() {
   const location = useLocation();
   const { signIn } = useAuth();
   const { showSuccess } = useToast();
-  const [tenantId, setTenantId] = useState("platform");
-  const [email, setEmail] = useState("platform-admin@transport-platform.local");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [brandingPreview, setBrandingPreview] =
-    useState<RuntimeBranding | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const targetPath =
@@ -48,15 +42,7 @@ export function LoginPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const normalizedTenantId = tenantId.trim();
     const normalizedEmail = email.trim();
-
-    if (!normalizedTenantId) {
-      setError(
-        "Workspace ID is required. Use 'platform' for platform administration, or enter your company workspace ID.",
-      );
-      return;
-    }
 
     if (!normalizedEmail) {
       setError("Email is required.");
@@ -79,7 +65,6 @@ export function LoginPage() {
 
     try {
       const session = await signIn({
-        tenantId: normalizedTenantId,
         email: normalizedEmail,
         password,
       });
@@ -87,15 +72,11 @@ export function LoginPage() {
       navigate(resolvePostLoginRoute(session, targetPath), { replace: true });
     } catch {
       setError(
-        "Sign-in failed. Verify the tenant, email, password, and account status, then try again.",
+        "Sign-in failed. Verify your email, password, and account status, then try again.",
       );
     } finally {
       setSubmitting(false);
     }
-  }
-
-  function handleTenantChange(event: ChangeEvent<HTMLInputElement>) {
-    setTenantId(event.target.value);
   }
 
   function handleEmailChange(event: ChangeEvent<HTMLInputElement>) {
@@ -116,31 +97,7 @@ export function LoginPage() {
       setNotice(authNotice.message);
     }
 
-    let active = true;
-    const timeout = window.setTimeout(async () => {
-      if (!tenantId.trim()) {
-        setBrandingPreview(null);
-        return;
-      }
-      try {
-        const nextBranding = await runtimeApi.getTenantBranding(
-          tenantId.trim(),
-        );
-        if (active) {
-          setBrandingPreview(nextBranding);
-        }
-      } catch {
-        if (active) {
-          setBrandingPreview(null);
-        }
-      }
-    }, 250);
-
-    return () => {
-      active = false;
-      window.clearTimeout(timeout);
-    };
-  }, [tenantId]);
+  }, []);
 
   const status = error
     ? { severity: "error" as const, message: error }
@@ -152,10 +109,7 @@ export function LoginPage() {
     <AuthFormShell
       eyebrow="Secure sign in"
       title="Sign in to your transportation workspace."
-      description={
-        brandingPreview?.customLoginWelcomeText ||
-        "Use your workspace ID, email address, and password to access your platform or company account."
-      }
+      description="Use your email address and password. Your workspace and permissions are resolved automatically from your account."
       status={status}
       footer={
         <Typography variant="body2" color="text.secondary">
@@ -178,53 +132,8 @@ export function LoginPage() {
           .
         </Typography>
       }
-      aside={
-        brandingPreview ? (
-          <>
-            <Divider />
-            <Stack spacing={1.5}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Workspace branding preview
-              </Typography>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <Box
-                  sx={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: 4,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    background: `linear-gradient(135deg, ${brandingPreview.primaryColor || "#0B5FFF"} 0%, ${brandingPreview.secondaryColor || brandingPreview.primaryColor || "#16324F"} 100%)`,
-                  }}
-                />
-                <Stack spacing={0.5}>
-                  <Typography variant="h6">
-                    {brandingPreview.displayName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {brandingPreview.customFooterText ||
-                      "Preview the branding and support details for the selected workspace."}
-                  </Typography>
-                  {brandingPreview.supportEmail ? (
-                    <Typography variant="body2" color="text.secondary">
-                      Support: {brandingPreview.supportEmail}
-                    </Typography>
-                  ) : null}
-                </Stack>
-              </Stack>
-            </Stack>
-          </>
-        ) : undefined
-      }
     >
       <Stack spacing={2} component="form" onSubmit={handleSubmit}>
-        <TextField
-          label="Workspace ID"
-          value={tenantId}
-          onChange={handleTenantChange}
-          helperText="Use 'platform' for platform administration, or enter your company workspace ID."
-          error={Boolean(error) && !tenantId.trim()}
-        />
         <TextField
           label="Work Email"
           type="email"
@@ -282,9 +191,7 @@ export function LoginPage() {
             {submitting ? "Signing in..." : "Sign in"}
           </Button>
           <Typography variant="body2" color="text.secondary">
-            {brandingPreview?.displayName
-              ? `Workspace: ${brandingPreview.displayName}`
-              : "Enter a workspace ID to preview branding before you sign in."}
+            Your workspace is selected automatically after authentication.
           </Typography>
         </Stack>
 

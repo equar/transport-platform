@@ -189,6 +189,16 @@ export interface DriverDocumentReviewPayload {
   notes?: string | null;
 }
 
+export interface DriverDocumentUploadPayload {
+  documentType: DriverDocumentType;
+  file: File;
+  documentNumber?: string | null;
+  issuingAuthority?: string | null;
+  issueDate?: string | null;
+  expiryDate?: string | null;
+  notes?: string | null;
+}
+
 export const driversApi = {
   async search(params: DriverSearchParams) {
     const response = await apiClient.get("/company/drivers", {
@@ -254,10 +264,31 @@ export const driversApi = {
     });
     return unwrapResponse<PageResponse<DriverDocumentRecord>>(response.data);
   },
+  async listAllDocuments(driverId: number) {
+    const response = await apiClient.get(
+      `/company/drivers/${driverId}/documents/all`,
+    );
+    return unwrapResponse<DriverDocumentRecord[]>(response.data);
+  },
   async createDocument(driverId: number, payload: DriverDocumentPayload) {
     const response = await apiClient.post(
       `/company/drivers/${driverId}/documents`,
       payload,
+    );
+    return unwrapResponse<DriverDocumentRecord>(response.data);
+  },
+  async uploadDocument(driverId: number, payload: DriverDocumentUploadPayload) {
+    const formData = new FormData();
+    formData.append("documentType", payload.documentType);
+    formData.append("file", payload.file);
+    if (payload.documentNumber) formData.append("documentNumber", payload.documentNumber);
+    if (payload.issuingAuthority) formData.append("issuingAuthority", payload.issuingAuthority);
+    if (payload.issueDate) formData.append("issueDate", payload.issueDate);
+    if (payload.expiryDate) formData.append("expiryDate", payload.expiryDate);
+    if (payload.notes) formData.append("notes", payload.notes);
+    const response = await apiClient.post(
+      `/company/drivers/${driverId}/documents/upload`,
+      formData,
     );
     return unwrapResponse<DriverDocumentRecord>(response.data);
   },
@@ -267,6 +298,13 @@ export const driversApi = {
       payload,
     );
     return unwrapResponse<DriverDocumentRecord>(response.data);
+  },
+  async downloadDocument(documentId: number) {
+    const response = await apiClient.get(
+      `/company/driver-documents/${documentId}/content`,
+      { responseType: "blob" },
+    );
+    return response.data as Blob;
   },
   async verifyDocument(documentId: number, payload: DriverDocumentReviewPayload) {
     const response = await apiClient.post(

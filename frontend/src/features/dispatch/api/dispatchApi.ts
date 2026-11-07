@@ -8,6 +8,7 @@ export type DispatchRideView = "ALL" | "UNASSIGNED" | "ASSIGNED" | "EXCEPTIONS";
 
 export interface DispatchRideRecord {
   rideId: number;
+  version: number;
   rideNumber: string;
   riderId: number;
   riderCode: string;
@@ -42,6 +43,25 @@ export interface DispatchBoardSummary {
   noShowTodayCount: number;
 }
 
+export interface DispatchRideMapRecord {
+  rideId: number;
+  rideNumber: string;
+  riderName: string;
+  driverName: string | null;
+  vehicleDisplayName: string | null;
+  serviceType: ServiceType;
+  status: RideStatus;
+  pickupAddress: string;
+  dropoffAddress: string;
+  scheduledPickupAt: string;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number | null;
+  speedMps: number | null;
+  headingDegrees: number | null;
+  capturedAt: string;
+}
+
 export interface DispatchSearchParams {
   keyword: string;
   view: DispatchRideView;
@@ -62,6 +82,7 @@ export interface LookupOption {
   id: number;
   label: string;
   code?: string | null;
+  assignedVehicleId?: number | null;
 }
 
 export const dispatchViewOptions: DispatchRideView[] = [
@@ -72,8 +93,15 @@ export const dispatchViewOptions: DispatchRideView[] = [
 ];
 
 export const dispatchApi = {
-  async search(params: DispatchSearchParams) {
+  async bulkResources(payload: { rides: { rideId: number; expectedVersion: number }[]; driverId: number | null; vehicleId: number | null; preview: boolean }) {
+    return unwrapResponse<{ rideId: number; success: boolean; message: string }[]>((await apiClient.post('/company/dispatch/bulk-resources', payload)).data);
+  },
+  async replaceResources(rideId: number, payload: { driverId: number | null; vehicleId: number | null; expectedVersion: number }) {
+    return unwrapResponse<RideRecord>((await apiClient.put(`/company/rides/${rideId}/resources`, payload)).data);
+  },
+  async search(params: DispatchSearchParams, signal?: AbortSignal) {
     const response = await apiClient.get("/company/dispatch/rides", {
+      signal,
       params: {
         keyword: params.keyword,
         view: params.view,
@@ -92,8 +120,9 @@ export const dispatchApi = {
     });
     return unwrapResponse<PageResponse<DispatchRideRecord>>(response.data);
   },
-  async getSummary(params: Omit<DispatchSearchParams, "view" | "page" | "size" | "sortBy" | "sortDirection">) {
+  async getSummary(params: Omit<DispatchSearchParams, "view" | "page" | "size" | "sortBy" | "sortDirection">, signal?: AbortSignal) {
     const response = await apiClient.get("/company/dispatch/summary", {
+      signal,
       params: {
         keyword: params.keyword,
         status: params.status || undefined,
@@ -106,6 +135,22 @@ export const dispatchApi = {
       },
     });
     return unwrapResponse<DispatchBoardSummary>(response.data);
+  },
+  async getMap(params: Omit<DispatchSearchParams, "view" | "page" | "size" | "sortBy" | "sortDirection">, signal?: AbortSignal) {
+    const response = await apiClient.get("/company/dispatch/map", {
+      signal,
+      params: {
+        keyword: params.keyword,
+        status: params.status || undefined,
+        serviceType: params.serviceType || undefined,
+        driverId: params.driverId ?? undefined,
+        vehicleId: params.vehicleId ?? undefined,
+        organizationId: params.organizationId ?? undefined,
+        fromDate: params.fromDate || undefined,
+        toDate: params.toDate || undefined,
+      },
+    });
+    return unwrapResponse<DispatchRideMapRecord[]>(response.data);
   },
   async assignDriver(rideId: number, driverId: number) {
     const response = await apiClient.post(`/company/rides/${rideId}/assign-driver`, { driverId });
@@ -128,23 +173,46 @@ export const dispatchApi = {
     return unwrapResponse<RideRecord>(response.data);
   },
   async listDriverOptions() {
-    const response = await apiClient.get("/company/drivers", {
-      params: {
-        keyword: "",
-        status: "ACTIVE",
-        page: 0,
-        size: 100,
-        sortBy: "updatedAt",
-        sortDirection: "DESC",
-      },
-    });
-    const page = unwrapResponse<PageResponse<DriverRecord>>(response.data);
+    const [driverResponse, vehicleResponse] = await Promise.all([
+      apiClient.get("/company/drivers", {
+        params: {
+          keyword: "",
+          status: "ACTIVE",
+          page: 0,
+          size: 100,
+          sortBy: "updatedAt",
+          sortDirection: "DESC",
+        },
+      }),
+      apiClient.get("/company/vehicles", {
+        params: {
+          keyword: "",
+          status: "ACTIVE",
+          page: 0,
+          size: 100,
+          sortBy: "updatedAt",
+          sortDirection: "DESC",
+        },
+      }),
+    ]);
+    const vehiclePage = unwrapResponse<PageResponse<VehicleRecord>>(vehicleResponse.data);
+    const assignedVehicleByDriverId = new Map<number, VehicleRecord>(
+      vehiclePage.items
+        .filter(
+          (item) =>
+            item.assignedDriverId != null &&
+            item.complianceSummary.overallStatus === "COMPLIANT",
+        )
+        .map((item) => [item.assignedDriverId as number, item]),
+    );
+    const page = unwrapResponse<PageResponse<DriverRecord>>(driverResponse.data);
     return page.items
       .filter((item) => item.complianceSummary.overallStatus === "COMPLIANT")
       .map((item) => ({
         id: item.id,
         code: item.driverCode,
         label: `${item.firstName} ${item.lastName}`.trim(),
+        assignedVehicleId: assignedVehicleByDriverId.get(item.id)?.id ?? null,
       } satisfies LookupOption));
   },
   async listVehicleOptions() {

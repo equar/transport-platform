@@ -18,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -36,7 +37,7 @@ public class PaymentManagementController {
     }
 
     @GetMapping("/company/payments")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PageResponse<PaymentSummaryResponse>> searchCompanyPayments(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) PaymentStatus status,
@@ -60,46 +61,48 @@ public class PaymentManagementController {
     }
 
     @GetMapping("/company/payments/{paymentId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PaymentDetailResponse> getCompanyPayment(@PathVariable Long paymentId) {
         return ApiResponse.success(paymentService.getCompanyPayment(paymentId));
     }
 
     @GetMapping("/company/invoices/{invoiceId}/payments")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<List<PaymentSummaryResponse>> listCompanyInvoicePayments(@PathVariable Long invoiceId) {
         return ApiResponse.success(paymentService.listCompanyInvoicePayments(invoiceId));
     }
 
     @PostMapping("/company/payments/preview")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PaymentPreviewResponse> previewCompanyPayment(
             @Valid @RequestBody PaymentPreviewRequest request) {
         return ApiResponse.success(paymentService.previewCompanyPayment(request));
     }
 
     @PostMapping("/company/payments")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<PaymentDetailResponse> createCompanyPayment(@Valid @RequestBody PaymentUpsertRequest request) {
-        return ApiResponse.success(paymentService.createCompanyPayment(request));
+    public ApiResponse<PaymentDetailResponse> createCompanyPayment(
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody PaymentUpsertRequest request) {
+        return ApiResponse.success(paymentService.createCompanyPayment(request, idempotencyKey));
     }
 
     @PutMapping("/company/payments/{paymentId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PaymentDetailResponse> updateCompanyPayment(@PathVariable Long paymentId,
             @Valid @RequestBody PaymentUpsertRequest request) {
         return ApiResponse.success(paymentService.updateCompanyPayment(paymentId, request));
     }
 
     @PostMapping("/company/payments/{paymentId}/apply")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PaymentDetailResponse> applyCompanyPayment(@PathVariable Long paymentId) {
         return ApiResponse.success(paymentService.applyCompanyPayment(paymentId));
     }
 
     @PostMapping("/company/payments/{paymentId}/void")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<PaymentDetailResponse> voidCompanyPayment(@PathVariable Long paymentId,
             @Valid @RequestBody PaymentVoidRequest request) {
         return ApiResponse.success(paymentService.voidCompanyPayment(paymentId, request));

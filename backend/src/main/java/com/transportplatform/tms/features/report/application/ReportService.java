@@ -71,7 +71,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +98,7 @@ public class ReportService {
     private final IncidentRepository incidentRepository;
     private final IncidentMapper incidentMapper;
     private final Clock clock;
+    private final com.transportplatform.tms.features.settings.domain.TenantSettingsRepository settings;
 
     public ReportService(ReportAccessService reportAccessService,
             AuditLogService auditLogService,
@@ -113,7 +113,8 @@ public class ReportService {
             ComplianceIssueSyncService complianceIssueSyncService,
             IncidentRepository incidentRepository,
             IncidentMapper incidentMapper,
-            Clock clock) {
+            Clock clock, com.transportplatform.tms.features.settings.domain.TenantSettingsRepository settings) {
+        this.settings = settings;
         this.reportAccessService = reportAccessService;
         this.auditLogService = auditLogService;
         this.driverRepository = driverRepository;
@@ -140,17 +141,17 @@ public class ReportService {
         return ReportType.values().length;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<DriverReportRowResponse> runDriverReport(String keyword,
             DriverStatus status,
             DriverType driverType,
             LocalDate fromDate,
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
-        List<Driver> drivers = driverRepository.findAll(
-                DriverSpecifications.search(tenantId, keyword, status, driverType),
+        List<Driver> drivers = ReportQueryLimits.load(driverRepository,
+                DriverSpecifications.search(tenantId, keyword, status, driverType).and(createdBetween(fromDate, toDate, tenantId)),
                 Sort.by(Sort.Direction.DESC, "updatedAt")).stream()
-                .filter(driver -> withinRange(driver.getCreatedAt(), fromDate, toDate))
+                .filter(driver -> withinRange(driver.getCreatedAt(), fromDate, toDate, tenantId))
                 .toList();
         List<DriverReportRowResponse> rows = drivers.stream()
                 .map(driver -> new DriverReportRowResponse(
@@ -175,7 +176,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<VehicleReportRowResponse> runVehicleReport(String keyword,
             VehicleStatus status,
             VehicleOwnershipType ownershipType,
@@ -183,10 +184,10 @@ public class ReportService {
             LocalDate fromDate,
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
-        List<Vehicle> vehicles = vehicleRepository.findAll(
-                VehicleSpecifications.search(tenantId, keyword, status, ownershipType, serviceType),
+        List<Vehicle> vehicles = ReportQueryLimits.load(vehicleRepository,
+                VehicleSpecifications.search(tenantId, keyword, status, ownershipType, serviceType).and(createdBetween(fromDate, toDate, tenantId)),
                 Sort.by(Sort.Direction.DESC, "updatedAt")).stream()
-                .filter(vehicle -> withinRange(vehicle.getCreatedAt(), fromDate, toDate))
+                .filter(vehicle -> withinRange(vehicle.getCreatedAt(), fromDate, toDate, tenantId))
                 .toList();
         List<VehicleReportRowResponse> rows = vehicles.stream()
                 .map(vehicle -> new VehicleReportRowResponse(
@@ -212,7 +213,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<RiderReportRowResponse> runRiderReport(String keyword,
             RiderStatus status,
             RiderType riderType,
@@ -222,11 +223,11 @@ public class ReportService {
             LocalDate fromDate,
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
-        List<Rider> riders = riderRepository.findAll(
-                RiderSpecifications.search(tenantId, keyword, status, riderType, wheelchairRequired, escortRequired),
+        List<Rider> riders = ReportQueryLimits.load(riderRepository,
+                RiderSpecifications.search(tenantId, keyword, status, riderType, wheelchairRequired, escortRequired).and(createdBetween(fromDate, toDate, tenantId)),
                 Sort.by(Sort.Direction.DESC, "updatedAt")).stream()
                 .filter(rider -> organizationId == null || organizationId.equals(rider.getOrganizationId()))
-                .filter(rider -> withinRange(rider.getCreatedAt(), fromDate, toDate))
+                .filter(rider -> withinRange(rider.getCreatedAt(), fromDate, toDate, tenantId))
                 .toList();
         List<RiderReportRowResponse> rows = riders.stream()
                 .map(rider -> new RiderReportRowResponse(
@@ -250,7 +251,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<RideReportRowResponse> runRideReport(String keyword,
             RideStatus status,
             ServiceType serviceType,
@@ -259,9 +260,7 @@ public class ReportService {
             LocalDate fromDate,
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
-        Map<Long, Driver> driversById = indexDrivers(tenantId);
-        Map<Long, Vehicle> vehiclesById = indexVehicles(tenantId);
-        List<Ride> rides = rideRepository.findAll(
+        List<Ride> rides = ReportQueryLimits.load(rideRepository,
                 RideSpecifications.search(
                         tenantId,
                         keyword,
@@ -275,6 +274,8 @@ public class ReportService {
                         toDate == null ? null : LocalDateTime.of(toDate, java.time.LocalTime.MAX),
                         null),
                 Sort.by(Sort.Direction.DESC, "scheduledPickupAt"));
+        Map<Long, Driver> driversById = indexDrivers(tenantId, rides.stream().map(Ride::getDriverId).filter(java.util.Objects::nonNull).distinct().toList());
+        Map<Long, Vehicle> vehiclesById = indexVehicles(tenantId, rides.stream().map(Ride::getVehicleId).filter(java.util.Objects::nonNull).distinct().toList());
         List<RideReportRowResponse> rows = rides.stream()
                 .map(ride -> new RideReportRowResponse(
                         ride.getId(),
@@ -306,7 +307,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<RouteReportRowResponse> runRouteReport(String keyword,
             RouteStatus status,
             ServiceType serviceType,
@@ -314,11 +315,11 @@ public class ReportService {
             LocalDate fromDate,
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
-        Map<Long, Driver> driversById = indexDrivers(tenantId);
-        Map<Long, Vehicle> vehiclesById = indexVehicles(tenantId);
-        List<Route> routes = routeRepository.findAll(
+        List<Route> routes = ReportQueryLimits.load(routeRepository,
                 RouteSpecifications.search(tenantId, keyword, status, serviceType, fromDate, toDate, driverId),
                 Sort.by(Sort.Direction.DESC, "routeDate"));
+        Map<Long, Driver> driversById = indexDrivers(tenantId, routes.stream().map(Route::getAssignedDriverId).filter(java.util.Objects::nonNull).distinct().toList());
+        Map<Long, Vehicle> vehiclesById = indexVehicles(tenantId, routes.stream().map(Route::getAssignedVehicleId).filter(java.util.Objects::nonNull).distinct().toList());
         List<RouteReportRowResponse> rows = routes.stream()
                 .map(route -> new RouteReportRowResponse(
                         route.getId(),
@@ -344,7 +345,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<InvoiceReportRowResponse> runInvoiceReport(String keyword,
             InvoiceStatus status,
             BillToType billToType,
@@ -352,8 +353,8 @@ public class ReportService {
             LocalDate toDate,
             Boolean overdueOnly) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
-        LocalDate today = LocalDate.now(clock);
-        List<Invoice> invoices = invoiceRepository.findAll(
+        LocalDate today = LocalDate.now(clock.withZone(zone(tenantId)));
+        List<Invoice> invoices = ReportQueryLimits.load(invoiceRepository,
                 InvoiceSpecifications.search(tenantId, keyword, status, null, billToType, fromDate, toDate, overdueOnly,
                         today),
                 Sort.by(Sort.Direction.DESC, "invoiceDate"));
@@ -380,14 +381,14 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<PaymentReportRowResponse> runPaymentReport(String keyword,
             PaymentStatus status,
             PaymentMethod paymentMethod,
             LocalDate fromDate,
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
-        List<Payment> payments = paymentRepository.findAll(
+        List<Payment> payments = ReportQueryLimits.load(paymentRepository,
                 PaymentSpecifications.search(tenantId, keyword, status, paymentMethod, fromDate, toDate),
                 Sort.by(Sort.Direction.DESC, "paymentDate"));
         List<PaymentReportRowResponse> rows = payments.stream()
@@ -425,9 +426,9 @@ public class ReportService {
             LocalDate fromDate,
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = LocalDate.now(clock.withZone(zone(tenantId)));
         complianceIssueSyncService.synchronizeTenantIssues(tenantId);
-        List<ComplianceIssue> issues = complianceIssueRepository.findAll(
+        List<ComplianceIssue> issues = ReportQueryLimits.load(complianceIssueRepository,
                 ComplianceIssueSpecifications.search(
                         tenantId,
                         keyword,
@@ -466,7 +467,7 @@ public class ReportService {
                 rows);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CompanyReportResponse<IncidentReportRowResponse> runIncidentReport(String keyword,
             IncidentType incidentType,
             IncidentSeverity severity,
@@ -475,7 +476,7 @@ public class ReportService {
             LocalDate fromDate,
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
-        List<Incident> incidents = incidentRepository.findAll(
+        List<Incident> incidents = ReportQueryLimits.load(incidentRepository,
                 IncidentSpecifications.search(
                         tenantId,
                         keyword,
@@ -483,8 +484,8 @@ public class ReportService {
                         severity,
                         incidentType,
                         assignedToUserId,
-                        fromDate == null ? null : fromDate.atStartOfDay().toInstant(ZoneOffset.UTC),
-                        toDate == null ? null : toDate.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC)),
+                        fromDate == null ? null : fromDate.atStartOfDay(zone(tenantId)).toInstant(),
+                        toDate == null ? null : toDate.plusDays(1).atStartOfDay(zone(tenantId)).toInstant()),
                 Sort.by(Sort.Direction.DESC, "reportedAt"));
         List<IncidentReportRowResponse> rows = incidents.stream()
                 .map(incident -> {
@@ -572,23 +573,35 @@ public class ReportService {
                 Map.of("rowCount", rowCount)));
     }
 
-    private Map<Long, Driver> indexDrivers(String tenantId) {
-        return driverRepository.findAllByTenantId(tenantId).stream()
+    private Map<Long, Driver> indexDrivers(String tenantId, java.util.Collection<Long> ids) {
+        return driverRepository.findAllByTenantIdAndIdIn(tenantId, ids).stream()
                 .collect(java.util.stream.Collectors.toMap(Driver::getId, item -> item, (left, right) -> left,
                         LinkedHashMap::new));
     }
 
-    private Map<Long, Vehicle> indexVehicles(String tenantId) {
-        return vehicleRepository.findAllByTenantId(tenantId).stream()
+    private Map<Long, Vehicle> indexVehicles(String tenantId, java.util.Collection<Long> ids) {
+        return vehicleRepository.findAllByTenantIdAndIdIn(tenantId, ids).stream()
                 .collect(java.util.stream.Collectors.toMap(Vehicle::getId, item -> item, (left, right) -> left,
                         LinkedHashMap::new));
     }
 
-    private boolean withinRange(Instant createdAt, LocalDate fromDate, LocalDate toDate) {
+    private java.time.ZoneId zone(String tenantId) {
+        return java.time.ZoneId.of(settings.findById(tenantId).map(item -> item.getTimezone()).orElse("UTC"));
+    }
+    private <T> org.springframework.data.jpa.domain.Specification<T> createdBetween(LocalDate from, LocalDate to, String tenantId) {
+        java.time.ZoneId zone = zone(tenantId);
+        return (root, query, cb) -> {
+            var conditions = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            if(from != null) conditions.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from.atStartOfDay(zone).toInstant()));
+            if(to != null) conditions.add(cb.lessThan(root.get("createdAt"), to.plusDays(1).atStartOfDay(zone).toInstant()));
+            return cb.and(conditions.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+    }
+    private boolean withinRange(Instant createdAt, LocalDate fromDate, LocalDate toDate, String tenantId) {
         if (createdAt == null) {
             return true;
         }
-        LocalDate value = createdAt.atZone(ZoneOffset.UTC).toLocalDate();
+        LocalDate value = createdAt.atZone(zone(tenantId)).toLocalDate();
         if (fromDate != null && value.isBefore(fromDate)) {
             return false;
         }

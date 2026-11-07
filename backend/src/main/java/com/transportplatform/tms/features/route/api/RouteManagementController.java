@@ -36,7 +36,7 @@ public class RouteManagementController {
     }
 
     @GetMapping("/company/routes")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<PageResponse<RouteSummaryResponse>> searchCompanyRoutes(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) RouteStatus status,
@@ -62,77 +62,77 @@ public class RouteManagementController {
     }
 
     @GetMapping("/company/routes/{routeId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> getCompanyRoute(@PathVariable Long routeId) {
         return ApiResponse.success(routeService.getCompanyRoute(routeId));
     }
 
     @PostMapping("/company/routes")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RouteResponse> createCompanyRoute(@Valid @RequestBody RouteUpsertRequest request) {
         return ApiResponse.success(routeService.createCompanyRoute(request));
     }
 
     @PutMapping("/company/routes/{routeId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> updateCompanyRoute(@PathVariable Long routeId,
             @Valid @RequestBody RouteUpsertRequest request) {
         return ApiResponse.success(routeService.updateCompanyRoute(routeId, request));
     }
 
     @PostMapping("/company/routes/{routeId}/assign-resources")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> assignCompanyRouteResources(@PathVariable Long routeId,
             @Valid @RequestBody AssignRouteResourcesRequest request) {
         return ApiResponse.success(routeService.assignCompanyRouteResources(routeId, request));
     }
 
     @PostMapping("/company/routes/{routeId}/unassign-driver")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> unassignCompanyRouteDriver(@PathVariable Long routeId) {
         return ApiResponse.success(routeService.unassignCompanyRouteDriver(routeId));
     }
 
     @PostMapping("/company/routes/{routeId}/unassign-vehicle")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> unassignCompanyRouteVehicle(@PathVariable Long routeId) {
         return ApiResponse.success(routeService.unassignCompanyRouteVehicle(routeId));
     }
 
     @PostMapping("/company/routes/{routeId}/ready")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> markCompanyRouteReady(@PathVariable Long routeId) {
         return ApiResponse.success(routeService.markCompanyRouteReady(routeId));
     }
 
     @PostMapping("/company/routes/{routeId}/start")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> startCompanyRoute(@PathVariable Long routeId) {
         return ApiResponse.success(routeService.startCompanyRoute(routeId));
     }
 
     @PostMapping("/company/routes/{routeId}/complete")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> completeCompanyRoute(@PathVariable Long routeId) {
         return ApiResponse.success(routeService.completeCompanyRoute(routeId));
     }
 
     @PostMapping("/company/routes/{routeId}/cancel")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> cancelCompanyRoute(@PathVariable Long routeId) {
         return ApiResponse.success(routeService.cancelCompanyRoute(routeId));
     }
 
     @PostMapping("/company/routes/{routeId}/stops")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> addRideToCompanyRoute(@PathVariable Long routeId,
             @Valid @RequestBody AddRouteStopRequest request) {
         return ApiResponse.success(routeService.addRideToCompanyRoute(routeId, request));
     }
 
     @PutMapping("/company/routes/{routeId}/stops/{routeStopId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> updateCompanyRouteStop(@PathVariable Long routeId,
             @PathVariable Long routeStopId,
             @Valid @RequestBody UpdateRouteStopRequest request) {
@@ -140,14 +140,14 @@ public class RouteManagementController {
     }
 
     @PostMapping("/company/routes/{routeId}/stops/reorder")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> reorderCompanyRouteStops(@PathVariable Long routeId,
             @Valid @RequestBody ReorderRouteStopsRequest request) {
         return ApiResponse.success(routeService.reorderCompanyRouteStops(routeId, request));
     }
 
     @PostMapping("/company/routes/{routeId}/stops/{routeStopId}/remove")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RouteResponse> removeRideFromCompanyRoute(@PathVariable Long routeId,
             @PathVariable Long routeStopId) {
         return ApiResponse.success(routeService.removeRideFromCompanyRoute(routeId, routeStopId));

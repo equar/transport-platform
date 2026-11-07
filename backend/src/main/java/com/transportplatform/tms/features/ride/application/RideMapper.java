@@ -7,10 +7,13 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class RideMapper {
+    private final RideScheduleValidator schedule;
+    public RideMapper(RideScheduleValidator schedule) {this.schedule=schedule;}
 
     public void apply(Ride ride,
             RideUpsertRequest request,
             RideReferenceValidationService.ResolvedReferences references) {
+        schedule.validate(ride.getTenantId(),request);
         ride.setRider(references.rider());
         ride.setGuardian(references.guardian());
         ride.setOrganization(references.organization());

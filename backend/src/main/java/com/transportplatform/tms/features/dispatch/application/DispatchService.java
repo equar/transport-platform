@@ -6,11 +6,14 @@ import com.transportplatform.tms.common.response.PageResponse;
 import com.transportplatform.tms.features.audit.application.AuditLogCommand;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
 import com.transportplatform.tms.features.dispatch.api.response.DispatchBoardSummaryResponse;
+import com.transportplatform.tms.features.dispatch.api.response.DispatchRideMapResponse;
 import com.transportplatform.tms.features.dispatch.api.response.DispatchRideSummaryResponse;
 import com.transportplatform.tms.features.driver.domain.Driver;
 import com.transportplatform.tms.features.driver.domain.DriverRepository;
 import com.transportplatform.tms.features.organization.domain.ServiceType;
 import com.transportplatform.tms.features.notification.application.NotificationEventService;
+import com.transportplatform.tms.features.location.domain.DriverLocationSnapshot;
+import com.transportplatform.tms.features.location.domain.DriverLocationSnapshotRepository;
 import com.transportplatform.tms.features.ride.application.RideAccessService;
 import com.transportplatform.tms.features.ride.application.RideStatusWorkflow;
 import com.transportplatform.tms.features.ride.domain.Ride;
@@ -50,7 +53,18 @@ public class DispatchService {
                         RideStatus.MISSED,
                         RideStatus.FAILED);
 
+        private static final EnumSet<RideStatus> MAP_ACTIVE_STATUSES = EnumSet.of(
+                        RideStatus.ASSIGNED,
+                        RideStatus.DRIVER_EN_ROUTE,
+                        RideStatus.ARRIVED,
+                        RideStatus.PICKED_UP,
+                        RideStatus.DROPPED_OFF);
+
+        private final com.transportplatform.tms.features.tenant.domain.TenantRepository tenantRepository;
+        private final com.transportplatform.tms.features.settings.domain.TenantSettingsRepository settingsRepository;
+        private final java.time.Clock clock;
         private final RideRepository rideRepository;
+        private final DriverLocationSnapshotRepository driverLocationSnapshotRepository;
         private final DriverRepository driverRepository;
         private final VehicleRepository vehicleRepository;
         private final RideAccessService rideAccessService;
@@ -60,7 +74,10 @@ public class DispatchService {
         private final AuditLogService auditLogService;
         private final NotificationEventService notificationEventService;
 
-        public DispatchService(RideRepository rideRepository,
+        public DispatchService(com.transportplatform.tms.features.tenant.domain.TenantRepository tenantRepository,
+                        com.transportplatform.tms.features.settings.domain.TenantSettingsRepository settingsRepository,
+                        java.time.Clock clock, RideRepository rideRepository,
+                        DriverLocationSnapshotRepository driverLocationSnapshotRepository,
                         DriverRepository driverRepository,
                         VehicleRepository vehicleRepository,
                         RideAccessService rideAccessService,
@@ -69,7 +86,11 @@ public class DispatchService {
                         RideEventService rideEventService,
                         AuditLogService auditLogService,
                         NotificationEventService notificationEventService) {
+                this.tenantRepository = tenantRepository;
+                this.settingsRepository = settingsRepository;
+                this.clock = clock;
                 this.rideRepository = rideRepository;
+                this.driverLocationSnapshotRepository = driverLocationSnapshotRepository;
                 this.driverRepository = driverRepository;
                 this.vehicleRepository = vehicleRepository;
                 this.rideAccessService = rideAccessService;
@@ -99,7 +120,7 @@ public class DispatchService {
                 LocalDateTime toDateTime = toDate == null ? null : LocalDateTime.of(toDate, LocalTime.MAX);
                 var pageable = PageRequest.of(page, size, Sort.by(sortDirection, resolveSortField(sortBy)));
                 if (view == DispatchRideView.EXCEPTIONS) {
-                        List<Ride> rides = rideRepository.findAll(
+                        List<Ride> rides = boundedRides(
                                         DispatchRideSpecifications.search(
                                                         tenantId,
                                                         keyword,
@@ -146,12 +167,12 @@ public class DispatchService {
                         LocalDate fromDate,
                         LocalDate toDate) {
                 String tenantId = rideAccessService.requireCompanyTenantId();
-                LocalDateTime fromDateTime = fromDate == null ? LocalDate.now().atStartOfDay()
+                LocalDateTime fromDateTime = fromDate == null ? tenantToday(tenantId).atStartOfDay()
                                 : fromDate.atStartOfDay();
-                LocalDateTime toDateTime = toDate == null ? LocalDateTime.of(LocalDate.now(), LocalTime.MAX)
+                LocalDateTime toDateTime = toDate == null ? LocalDateTime.of(tenantToday(tenantId), LocalTime.MAX)
                                 : LocalDateTime.of(toDate, LocalTime.MAX);
 
-                List<Ride> rides = rideRepository.findAll(
+                List<Ride> rides = boundedRides(
                                 DispatchRideSpecifications.search(
                                                 tenantId,
                                                 keyword,
@@ -174,13 +195,13 @@ public class DispatchService {
                 long completedTodayCount = rideRepository.countByTenantIdAndStatusInAndScheduledPickupAtBetween(
                                 tenantId,
                                 EnumSet.of(RideStatus.COMPLETED),
-                                LocalDate.now().atStartOfDay(),
-                                LocalDateTime.of(LocalDate.now(), LocalTime.MAX));
+                                tenantToday(tenantId).atStartOfDay(),
+                                LocalDateTime.of(tenantToday(tenantId), LocalTime.MAX));
                 long noShowTodayCount = rideRepository.countByTenantIdAndStatusInAndScheduledPickupAtBetween(
                                 tenantId,
                                 EnumSet.of(RideStatus.RIDER_NO_SHOW),
-                                LocalDate.now().atStartOfDay(),
-                                LocalDateTime.of(LocalDate.now(), LocalTime.MAX));
+                                tenantToday(tenantId).atStartOfDay(),
+                                LocalDateTime.of(tenantToday(tenantId), LocalTime.MAX));
                 return new DispatchBoardSummaryResponse(
                                 scheduledCount,
                                 assignedCount,
@@ -190,8 +211,82 @@ public class DispatchService {
                                 noShowTodayCount);
         }
 
+        @Transactional(readOnly = true)
+        public List<DispatchRideMapResponse> getCompanyDispatchMap(String keyword,
+                        RideStatus status,
+                        ServiceType serviceType,
+                        Long driverId,
+                        Long vehicleId,
+                        Long organizationId,
+                        LocalDate fromDate,
+                        LocalDate toDate) {
+                String tenantId = rideAccessService.requireCompanyTenantId();
+                LocalDateTime fromDateTime = fromDate == null ? tenantToday(tenantId).atStartOfDay()
+                                : fromDate.atStartOfDay();
+                LocalDateTime toDateTime = toDate == null ? LocalDateTime.of(tenantToday(tenantId), LocalTime.MAX)
+                                : LocalDateTime.of(toDate, LocalTime.MAX);
+
+                List<Ride> rides = boundedRides(
+                                DispatchRideSpecifications.search(
+                                                tenantId,
+                                                keyword,
+                                                null,
+                                                status,
+                                                serviceType,
+                                                driverId,
+                                                vehicleId,
+                                                organizationId,
+                                                fromDateTime,
+                                                toDateTime),
+                                Sort.by(Sort.Direction.ASC, "scheduledPickupAt")).stream()
+                                .filter(ride -> MAP_ACTIVE_STATUSES.contains(ride.getStatus()))
+                                .filter(ride -> ride.getDriverId() != null)
+                                .toList();
+                if (rides.isEmpty()) {
+                        return List.of();
+                }
+
+                Map<Long, DriverLocationSnapshot> latestSnapshotsByRideId = driverLocationSnapshotRepository
+                                .findLatestForRides(
+                                                tenantId,
+                                                rides.stream().map(Ride::getId).toList())
+                                .stream()
+                                .collect(Collectors.toMap(
+                                                snapshot -> snapshot.getRide().getId(),
+                                                Function.identity(),
+                                                (first, ignored) -> first,
+                                                LinkedHashMap::new));
+
+                Map<Long, Driver> driversById = driverRepository.findAllByTenantIdAndIdIn(
+                                tenantId,
+                                rides.stream().map(Ride::getDriverId).toList()).stream()
+                                .collect(Collectors.toMap(Driver::getId, Function.identity()));
+                Map<Long, Vehicle> vehiclesById = vehicleRepository.findAllByTenantIdAndIdIn(
+                                tenantId,
+                                rides.stream()
+                                                .map(Ride::getVehicleId)
+                                                .filter(java.util.Objects::nonNull)
+                                                .toList()).stream()
+                                .collect(Collectors.toMap(Vehicle::getId, Function.identity()));
+
+                return rides.stream()
+                                .map(ride -> {
+                                        DriverLocationSnapshot snapshot = latestSnapshotsByRideId.get(ride.getId());
+                                        if (snapshot == null) {
+                                                return null;
+                                        }
+                                        Driver driver = driversById.get(ride.getDriverId());
+                                        Vehicle vehicle = ride.getVehicleId() == null ? null
+                                                        : vehiclesById.get(ride.getVehicleId());
+                                        return dispatchMapper.toMapResponse(ride, driver, vehicle, snapshot);
+                                })
+                                .filter(java.util.Objects::nonNull)
+                                .toList();
+        }
+
         @Transactional
         public void assignRideDriver(Long rideId, Long driverId) {
+                lockDispatch();
                 Ride ride = rideAccessService.findRideForCompanyScope(rideId);
                 RideStatusWorkflow.ensureCanAssignResources(ride.getStatus());
                 Object oldSnapshot = snapshot(ride);
@@ -199,7 +294,7 @@ public class DispatchService {
                                 driverId);
                 RideStatus previousStatus = ride.getStatus();
                 ride.setDriverId(driver.getId());
-                if (ride.getVehicleId() != null && ride.getStatus() == RideStatus.SCHEDULED) {
+                if (ride.getStatus() == RideStatus.SCHEDULED) {
                         ride.setStatus(RideStatus.ASSIGNED);
                 }
                 Ride saved = rideRepository.save(ride);
@@ -207,6 +302,7 @@ public class DispatchService {
                 if (previousStatus != saved.getStatus()) {
                         rideEventService.recordStatusChanged(saved, previousStatus, saved.getStatus(),
                                         "Ride resources are fully assigned.");
+                        notificationEventService.publishRideStatusChanged(saved, previousStatus, saved.getStatus());
                 }
                 recordAudit(saved, "DRIVER_ASSIGNED", "Driver assigned to ride " + saved.getRideNumber() + ".",
                                 oldSnapshot, snapshot(saved));
@@ -215,6 +311,7 @@ public class DispatchService {
 
         @Transactional
         public void assignRideVehicle(Long rideId, Long vehicleId) {
+                lockDispatch();
                 Ride ride = rideAccessService.findRideForCompanyScope(rideId);
                 RideStatusWorkflow.ensureCanAssignResources(ride.getStatus());
                 Object oldSnapshot = snapshot(ride);
@@ -230,6 +327,7 @@ public class DispatchService {
                 if (previousStatus != saved.getStatus()) {
                         rideEventService.recordStatusChanged(saved, previousStatus, saved.getStatus(),
                                         "Ride resources are fully assigned.");
+                        notificationEventService.publishRideStatusChanged(saved, previousStatus, saved.getStatus());
                 }
                 recordAudit(saved, "VEHICLE_ASSIGNED", "Vehicle assigned to ride " + saved.getRideNumber() + ".",
                                 oldSnapshot, snapshot(saved));
@@ -252,6 +350,7 @@ public class DispatchService {
 
         @Transactional
         public void unassignRideDriver(Long rideId) {
+                lockDispatch();
                 Ride ride = rideAccessService.findRideForCompanyScope(rideId);
                 RideStatusWorkflow.ensureCanUnassignResources(ride.getStatus());
                 Object oldSnapshot = snapshot(ride);
@@ -276,13 +375,14 @@ public class DispatchService {
 
         @Transactional
         public void unassignRideVehicle(Long rideId) {
+                lockDispatch();
                 Ride ride = rideAccessService.findRideForCompanyScope(rideId);
                 RideStatusWorkflow.ensureCanUnassignResources(ride.getStatus());
                 Object oldSnapshot = snapshot(ride);
                 Long previousVehicleId = ride.getVehicleId();
                 RideStatus previousStatus = ride.getStatus();
                 ride.setVehicleId(null);
-                if (ride.getStatus() == RideStatus.ASSIGNED) {
+                if (ride.getStatus() == RideStatus.ASSIGNED && ride.getDriverId() == null) {
                         ride.setStatus(RideStatus.SCHEDULED);
                 }
                 Ride saved = rideRepository.save(ride);
@@ -297,18 +397,68 @@ public class DispatchService {
                                 oldSnapshot, snapshot(saved));
         }
 
+        @Transactional(readOnly = true)
+        public void previewReplacement(Long rideId, Long driverId, Long vehicleId, Long expectedVersion) {
+                Ride ride=rideAccessService.findRideForCompanyScope(rideId);
+                if(!java.util.Objects.equals(ride.getVersion(),expectedVersion)) throw new ApiException(ErrorCode.RESOURCE_CONFLICT,HttpStatus.CONFLICT,"Ride changed. Refresh before assigning.");
+                RideStatusWorkflow.ensureCanAssignResources(ride.getStatus());
+                if(driverId!=null) dispatchAssignmentValidationService.requireAssignableDriver(ride.getTenantId(),ride,driverId);
+                if(vehicleId!=null) dispatchAssignmentValidationService.requireAssignableVehicle(ride.getTenantId(),ride,vehicleId);
+        }
+
+        @Transactional
+        public void replaceRideResources(Long rideId, Long driverId, Long vehicleId, Long expectedVersion) {
+                lockDispatch();
+                Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+                if (!java.util.Objects.equals(ride.getVersion(), expectedVersion)) {
+                        throw new ApiException(ErrorCode.RESOURCE_CONFLICT, HttpStatus.CONFLICT,
+                                        "The ride changed. Refresh before saving the assignment.");
+                }
+                RideStatusWorkflow.ensureCanAssignResources(ride.getStatus());
+                if (driverId != null) dispatchAssignmentValidationService.requireAssignableDriver(ride.getTenantId(), ride, driverId);
+                if (vehicleId != null) dispatchAssignmentValidationService.requireAssignableVehicle(ride.getTenantId(), ride, vehicleId);
+                Object before = snapshot(ride);
+                RideStatus previous = ride.getStatus();
+                ride.setDriverId(driverId);
+                ride.setVehicleId(vehicleId);
+                // A driver is required; a vehicle may be supplied later.
+                ride.setStatus(driverId == null ? RideStatus.SCHEDULED : RideStatus.ASSIGNED);
+                rideRepository.saveAndFlush(ride);
+                rideEventService.recordStatusChanged(ride, previous, ride.getStatus(), "Dispatch resources updated.");
+                recordAudit(ride, "RESOURCES_REPLACED", "Dispatch resources updated.", before, snapshot(ride));
+                if (previous != ride.getStatus()) notificationEventService.publishRideStatusChanged(ride, previous, ride.getStatus());
+        }
+
+        private void lockDispatch() {
+                tenantRepository.lockForDispatch(rideAccessService.requireCompanyTenantId())
+                                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Company not found."));
+        }
+
+        private List<Ride> boundedRides(org.springframework.data.jpa.domain.Specification<Ride> specification, Sort sort) {
+                var rows = rideRepository.findAll(specification, PageRequest.of(0, 5001, sort)).getContent();
+                if(rows.size()>5000) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                        "Dispatch window exceeds 5,000 rides. Narrow the date range or filters.");
+                return rows;
+        }
+
+        private LocalDate tenantToday(String tenantId) {
+                String zone = settingsRepository.findById(tenantId).map(item -> item.getTimezone()).orElse("UTC");
+                return LocalDate.now(clock.withZone(java.time.ZoneId.of(zone)));
+        }
+
         private List<DispatchRideSummaryResponse> mapDispatchResponses(String tenantId, Collection<Ride> rides) {
-                Map<Long, Driver> driversById = driverRepository.findAllByTenantId(tenantId).stream()
+                Map<Long, Driver> driversById = driverRepository.findAllByTenantIdAndIdIn(tenantId, rides.stream().map(Ride::getDriverId).filter(java.util.Objects::nonNull).distinct().toList()).stream()
                                 .collect(Collectors.toMap(Driver::getId, Function.identity()));
-                Map<Long, Vehicle> vehiclesById = vehicleRepository.findAllByTenantId(tenantId).stream()
+                Map<Long, Vehicle> vehiclesById = vehicleRepository.findAllByTenantIdAndIdIn(tenantId, rides.stream().map(Ride::getVehicleId).filter(java.util.Objects::nonNull).distinct().toList()).stream()
                                 .collect(Collectors.toMap(Vehicle::getId, Function.identity()));
+                var warnings = dispatchAssignmentValidationService.evaluateBatch(tenantId, rides, driversById, vehiclesById);
                 return rides.stream()
                                 .map(ride -> dispatchMapper.toSummaryResponse(
                                                 ride,
                                                 ride.getDriverId() == null ? null : driversById.get(ride.getDriverId()),
                                                 ride.getVehicleId() == null ? null
                                                                 : vehiclesById.get(ride.getVehicleId()),
-                                                dispatchAssignmentValidationService.evaluateWarnings(tenantId, ride)))
+                                                warnings.get(ride.getId())))
                                 .toList();
         }
 

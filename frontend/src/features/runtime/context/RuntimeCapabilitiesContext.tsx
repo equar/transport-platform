@@ -27,18 +27,18 @@ const RuntimeCapabilitiesContext = createContext<
 >(undefined);
 
 const defaultBranding: RuntimeBranding = {
-  displayName: "Transport Platform",
+  displayName: "Bakaroo Transports",
   logoUrl: null,
   faviconUrl: null,
-  primaryColor: "#0B5FFF",
-  secondaryColor: "#16324F",
-  accentColor: "#14B8A6",
+  primaryColor: "#1266d6",
+  secondaryColor: "#084aa8",
+  accentColor: "#4d94ee",
   supportEmail: "support@transportplatform.com",
   supportPhone: null,
   website: null,
   customLoginWelcomeText:
     "Transportation operations, workspace governance, and secure access in one platform.",
-  customFooterText: "Transport Platform transportation operations",
+  customFooterText: "Bakaroo Transports transportation operations",
 };
 
 export function RuntimeCapabilitiesProvider({ children }: PropsWithChildren) {

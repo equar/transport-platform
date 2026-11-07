@@ -5,6 +5,7 @@ import com.transportplatform.tms.common.exception.ErrorCode;
 import com.transportplatform.tms.common.response.PageResponse;
 import com.transportplatform.tms.features.audit.application.AuditLogCommand;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
+import com.transportplatform.tms.features.auth.application.AuthSessionService;
 import com.transportplatform.tms.features.tenant.api.request.TenantUpsertRequest;
 import com.transportplatform.tms.features.tenant.api.response.TenantResponse;
 import com.transportplatform.tms.features.tenant.domain.Tenant;
@@ -23,12 +24,17 @@ public class TenantService {
     private final TenantRepository tenantRepository;
     private final TenantMapper tenantMapper;
     private final AuditLogService auditLogService;
+    private final TenantResourceProvisioningService tenantResourceProvisioningService;
+        private final AuthSessionService authSessionService;
 
     public TenantService(TenantRepository tenantRepository, TenantMapper tenantMapper,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService, TenantResourceProvisioningService tenantResourceProvisioningService,
+            AuthSessionService authSessionService) {
         this.tenantRepository = tenantRepository;
         this.tenantMapper = tenantMapper;
         this.auditLogService = auditLogService;
+        this.tenantResourceProvisioningService = tenantResourceProvisioningService;
+        this.authSessionService = authSessionService;
     }
 
     @Transactional(readOnly = true)
@@ -52,6 +58,7 @@ public class TenantService {
         tenant.setStatus(TenantStatus.PENDING);
         tenantMapper.apply(tenant, request);
         Tenant saved = tenantRepository.save(tenant);
+        tenantResourceProvisioningService.initialize(saved.getId());
         auditLogService.record(new AuditLogCommand(
                 null,
                 saved.getId(),
@@ -89,6 +96,7 @@ public class TenantService {
     public TenantResponse activate(String tenantId) {
         Tenant tenant = findTenant(tenantId);
         TenantStatusWorkflow.ensureCanActivate(tenant.getStatus());
+        tenantResourceProvisioningService.ensureReadyForActivation(tenant.getId());
         var oldSnapshot = snapshot(tenant);
         tenant.setStatus(TenantStatus.ACTIVE);
         Tenant saved = tenantRepository.save(tenant);
@@ -112,6 +120,7 @@ public class TenantService {
         var oldSnapshot = snapshot(tenant);
         tenant.setStatus(TenantStatus.SUSPENDED);
         Tenant saved = tenantRepository.save(tenant);
+        authSessionService.revokeAllForTenant(saved.getId());
         auditLogService.record(new AuditLogCommand(
                 null,
                 saved.getId(),
@@ -127,7 +136,9 @@ public class TenantService {
 
     @Transactional
     public Tenant createFromApplication(Tenant tenant) {
-        return tenantRepository.save(tenant);
+        Tenant saved = tenantRepository.save(tenant);
+        tenantResourceProvisioningService.initialize(saved.getId());
+        return saved;
     }
 
     private Tenant findTenant(String tenantId) {

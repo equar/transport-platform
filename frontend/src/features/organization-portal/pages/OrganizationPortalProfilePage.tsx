@@ -13,6 +13,7 @@ import { PageCard } from "../../../shared/components/PageCard";
 import { SectionHeader } from "../../../shared/components/SectionHeader";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
+import { PasswordChangeCard } from "../../auth/components/PasswordChangeCard";
 import {
   organizationPortalApi,
   type OrganizationPortalProfilePayload,
@@ -247,6 +248,7 @@ export function OrganizationPortalProfilePage() {
           </Typography>
         </Stack>
       </PageCard>
+      <PasswordChangeCard />
     </Stack>
   );
 }

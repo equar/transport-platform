@@ -5,14 +5,12 @@ import {
   Avatar,
   Badge,
   Box,
-  Breadcrumbs,
   Button,
   Chip,
   Container,
   Divider,
   Drawer,
   IconButton,
-  Link,
   List,
   ListItemButton,
   ListItemIcon,
@@ -27,6 +25,7 @@ import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
+import CircleIcon from "@mui/icons-material/Circle";
 import {
   Link as RouterLink,
   Outlet,
@@ -48,12 +47,9 @@ import {
 import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
 import { BrandMark } from "../../shared/components/BrandMark";
 import { LoadingState } from "../../shared/components/LoadingState";
+import { layoutTokens, shadowTokens, spacingTokens, surfaceTokens } from "../../shared/theme/tokens";
 
-const drawerWidth = 280;
-
-function isRouteActive(currentPath: string, targetPath: string) {
-  return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
-}
+const drawerWidth = layoutTokens.drawerWidth;
 
 function getDisplayName(firstName?: string | null, lastName?: string | null) {
   return [firstName, lastName].filter(Boolean).join(" ");
@@ -96,7 +92,11 @@ export function AppShell() {
   const workspaceLabel =
     shellView.scope === "platform"
       ? "Platform scope"
-      : branding?.displayName || session?.identity.tenantId || "Workspace";
+      : capabilities?.tenantProfile.companyName ||
+        capabilities?.tenantProfile.legalName ||
+        branding?.displayName ||
+        session?.identity.tenantId ||
+        "Workspace";
   const driverPortal = shellView.scope === "driver";
   const riderPortal = shellView.scope === "rider";
   const organizationPortal = shellView.scope === "organization";
@@ -147,35 +147,31 @@ export function AppShell() {
   }, [location.pathname, platformAdmin]);
 
   const drawer = (
-    <Stack sx={{ height: "100%" }}>
-      <Box sx={{ px: 2.5, py: 3 }}>
+    <Stack sx={{ height: "100%", bgcolor: surfaceTokens.shellSidebarBase, color: "#ffffff", backgroundImage: `linear-gradient(180deg, ${surfaceTokens.shellSidebarTop} 0%, ${surfaceTokens.shellSidebarBottom} 100%)` }}>
+      <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: "rgba(8,74,168,.56)", borderBottom: `1px solid ${surfaceTokens.shellCardBorder}` }}>
         <BrandMark compact />
       </Box>
-      <Divider />
-      <Box sx={{ px: 2.5, py: 2 }}>
-        <Typography variant="overline" color="secondary.main">
+      <Box sx={{ mx: 1.5, my: 1.5, px: 1.75, py: 1.5, bgcolor: surfaceTokens.shellCardBg, border: `1px solid ${surfaceTokens.shellCardBorder}`, borderRadius: 1.5, boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)" }}>
+        <Typography variant="caption" sx={{ color: "#c6dcfb", display: "block", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 800 }}>
           {shellView.scopeLabel}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="subtitle2" sx={{ color: "#fff", fontWeight: 700, mt: .35 }} noWrap>
           {workspaceLabel}
         </Typography>
       </Box>
-      <Divider />
-
-      <Box sx={{ flexGrow: 1, overflowY: "auto", px: 1.5, py: 2 }}>
-        <Stack spacing={2}>
+      <Box sx={{ flexGrow: 1, overflowY: "auto", px: 1.5, py: 1 }}>
+        <Stack spacing={1.75}>
           {visibleSections.map((section) => (
             <Box key={section.title}>
               <Typography
                 variant="overline"
-                color="text.secondary"
-                sx={{ px: 1.5, pb: 1, display: "block" }}
+                sx={{ px: 1.4, pb: 0.9, display: "block", color: "#c6dcfb", fontSize: ".66rem", letterSpacing: ".14em", lineHeight: 1.4 }}
               >
                 {section.title}
               </Typography>
               <List disablePadding>
                 {section.items.map((item) => {
-                  const selected = isRouteActive(location.pathname, item.to);
+                  const selected = currentItem?.to === item.to;
                   return (
                     <ListItemButton
                       key={item.to}
@@ -183,33 +179,37 @@ export function AppShell() {
                       to={item.to}
                       selected={selected}
                       sx={{
-                        borderRadius: 3,
-                        mb: 0.75,
-                        alignItems: "flex-start",
-                        py: 1.1,
+                        mb: 0.4,
+                        minHeight: 42,
+                        py: 0.75,
+                        px: 1.4,
+                        color: "#e7f0ff",
+                        borderRadius: 1.5,
+                        border: "1px solid transparent",
                         "&.Mui-selected": {
-                          bgcolor: "rgba(15, 76, 92, 0.10)",
+                          bgcolor: surfaceTokens.shellSelectedBg,
+                          color: "#fff",
+                          borderColor: surfaceTokens.shellCardBorder,
+                          boxShadow: "inset 3px 0 0 #4d94ee, 0 1px 2px rgba(0,0,0,.18)",
                         },
+                        "&.Mui-selected:hover": { bgcolor: surfaceTokens.shellSelectedBgHover },
+                        "&:hover": { bgcolor: surfaceTokens.shellHoverBg },
                       }}
                     >
                       <ListItemIcon
                         sx={{
-                          minWidth: 40,
-                          color: selected ? "primary.main" : "text.secondary",
-                          mt: 0.25,
+                          minWidth: 30,
+                          color: selected ? "#ffffff" : "#c6dcfb",
                         }}
                       >
                         {item.icon}
                       </ListItemIcon>
                       <ListItemText
                         primary={item.label}
-                        secondary={item.description}
                         primaryTypographyProps={{
                           fontWeight: selected ? 700 : 600,
-                          color: selected ? "primary.main" : "text.primary",
-                        }}
-                        secondaryTypographyProps={{
-                          sx: { lineHeight: 1.35 },
+                          fontSize: ".92rem",
+                          color: "inherit",
                         }}
                       />
                     </ListItemButton>
@@ -221,22 +221,17 @@ export function AppShell() {
         </Stack>
       </Box>
 
-      <Divider />
-      <Box sx={{ px: 2.5, py: 2.5 }}>
-        <Stack spacing={1.25}>
-          <Chip
-            label={
-              (session?.identity.roles ?? []).map(getRoleLabel).join(", ") ||
-              "No roles"
-            }
-            color="secondary"
-            variant="outlined"
-            sx={{ justifyContent: "flex-start" }}
-          />
+      <Divider sx={{ borderColor: surfaceTokens.shellCardBorder }} />
+      <Box sx={{ px: 1.6, py: 1.4 }}>
+        <Stack spacing={1}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1 }}>
+            <CircleIcon sx={{ fontSize: 8, color: "#4d94ee" }} />
+            <Typography variant="caption" sx={{ color: "#c6dcfb" }}>System operational</Typography>
+          </Stack>
           <Button
             component={RouterLink}
             to="/"
-            color="inherit"
+            sx={{ color: "#e7f0ff", justifyContent: "flex-start", fontSize: ".75rem" }}
             endIcon={<LaunchRoundedIcon />}
           >
             Open public site
@@ -292,7 +287,6 @@ export function AppShell() {
     );
 
   const currentTitle = currentItem?.label ?? shellView.title;
-  const currentDescription = currentItem?.description ?? shellView.description;
 
   return (
     <Box
@@ -311,11 +305,12 @@ export function AppShell() {
           ml: { md: `${drawerWidth}px` },
           borderBottom: "1px solid",
           borderColor: "divider",
-          backgroundColor: "rgba(247, 248, 244, 0.88)",
-          backdropFilter: "blur(12px)",
+          backgroundColor: surfaceTokens.shellAppBar,
+          backdropFilter: "blur(14px)",
+          boxShadow: shadowTokens.appBar,
         }}
       >
-        <Toolbar sx={{ gap: 2 }}>
+        <Toolbar sx={{ gap: 1.5, px: { xs: 1.5, md: 3 } }}>
           <IconButton
             color="inherit"
             edge="start"
@@ -325,17 +320,11 @@ export function AppShell() {
             <MenuRoundedIcon />
           </IconButton>
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Typography variant="overline" color="secondary.main">
-              {shellView.scopeLabel}
-            </Typography>
-            <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
-              {workspaceLabel}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" noWrap>
-              {shellView.description}
+            <Typography variant="subtitle1" sx={{ lineHeight: 1.1, fontWeight: 800, fontSize: "1.05rem" }} noWrap>
+              {currentTitle}
             </Typography>
           </Box>
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          <Stack direction="row" spacing={.75} alignItems="center">
             <IconButton
               color="inherit"
               onClick={(event) => setNotificationAnchorEl(event.currentTarget)}
@@ -349,23 +338,21 @@ export function AppShell() {
               </Badge>
             </IconButton>
             <Chip
-              label={
-                capabilities?.subscriptionPlan?.name ??
-                session?.identity.tenantId ??
-                "Platform scope"
-              }
+              label={workspaceLabel}
               color="primary"
               variant="outlined"
+              sx={{ display: { xs: "none", lg: "inline-flex" }, bgcolor: "rgba(18,102,214,.06)", borderRadius: 1.5 }}
             />
             <Button
               color="inherit"
               onClick={(event) => setUserMenuAnchorEl(event.currentTarget)}
               startIcon={
-                <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main" }}>
+                <Avatar sx={{ width: 26, height: 26, bgcolor: "primary.main", fontSize: ".72rem" }}>
                   {getInitials(displayName)}
                 </Avatar>
               }
               endIcon={<MoreHorizRoundedIcon />}
+              sx={{ borderLeft: "1px solid", borderColor: "divider", borderRadius: 0, pl: 2, ml: .25, minWidth: 0 }}
             >
               {displayName}
             </Button>
@@ -493,6 +480,7 @@ export function AppShell() {
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: drawerWidth,
+              borderRadius: 0,
             },
           }}
         >
@@ -508,7 +496,8 @@ export function AppShell() {
               width: drawerWidth,
               borderRight: "1px solid",
               borderColor: "divider",
-              backgroundColor: "#fcfcfa",
+              backgroundColor: surfaceTokens.shellSidebarBase,
+              borderRadius: 0,
             },
           }}
         >
@@ -523,52 +512,23 @@ export function AppShell() {
           width: { md: `calc(100% - ${drawerWidth}px)` },
           display: "flex",
           flexDirection: "column",
+          minWidth: 0,
         }}
       >
         <Toolbar />
         <Container
           maxWidth={false}
           sx={{
-            px: { xs: 2, md: 4 },
-            py: { xs: 2, md: 3 },
-            maxWidth: 1480,
+            px: spacingTokens.appShellContainerX,
+            py: spacingTokens.appShellContainerY,
             width: "100%",
             flexGrow: 1,
             display: "flex",
             flexDirection: "column",
-            gap: 3,
+            gap: 2,
           }}
         >
-          <Box
-            sx={{
-              borderRadius: 5,
-              border: "1px solid",
-              borderColor: "divider",
-              bgcolor: "rgba(255, 255, 255, 0.8)",
-              backdropFilter: "blur(14px)",
-              px: { xs: 2.5, md: 3 },
-              py: { xs: 2, md: 2.5 },
-            }}
-          >
-            <Stack spacing={0.75}>
-              <Breadcrumbs separator="/" aria-label="breadcrumb">
-                <Link
-                  component={RouterLink}
-                  underline="hover"
-                  color="inherit"
-                  to={workspaceHomePath}
-                >
-                  {shellView.scopeLabel}
-                </Link>
-                <Typography color="text.primary">{currentTitle}</Typography>
-              </Breadcrumbs>
-              <Typography variant="body2" color="text.secondary">
-                {currentDescription}
-              </Typography>
-            </Stack>
-          </Box>
-
-          <Box sx={{ flexGrow: 1 }}>
+          <Box sx={{ flexGrow: 1, minHeight: 0 }}>
             <Suspense
               fallback={
                 <LoadingState
@@ -582,25 +542,17 @@ export function AppShell() {
             </Suspense>
           </Box>
 
-          <Box
-            component="footer"
-            sx={{
-              borderTop: "1px solid",
-              borderColor: "divider",
-              pt: 2,
-              pb: 1,
-            }}
-          >
+          <Box component="footer" sx={{ borderTop: "1px solid", borderColor: "divider", pt: 1.25, pb: .4 }}>
             <Stack
               direction={{ xs: "column", md: "row" }}
               spacing={1}
               justifyContent="space-between"
             >
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary">
                 {branding?.displayName || "Transport Platform"} authenticated
                 workspace for {workspaceLabel.toLowerCase()}.
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary">
                 Support:{" "}
                 {branding?.supportEmail || "support@transportplatform.com"}
               </Typography>

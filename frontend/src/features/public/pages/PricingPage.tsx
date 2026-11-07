@@ -62,8 +62,6 @@ export function PricingPage() {
             sx={{
               height: "100%",
               borderColor: index === 1 ? "primary.main" : "divider",
-              boxShadow:
-                index === 1 ? "0 20px 50px rgba(15, 76, 92, 0.12)" : undefined,
             }}
           >
             <Stack spacing={2} sx={{ height: "100%" }}>

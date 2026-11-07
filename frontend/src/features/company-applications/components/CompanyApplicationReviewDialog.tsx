@@ -4,6 +4,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  MenuItem,
   Stack,
   TextField,
   Typography,
@@ -36,6 +37,7 @@ export function CompanyApplicationReviewDialog({
   const [subscriptionPlan, setSubscriptionPlan] = useState("STARTER");
   const [tenantCode, setTenantCode] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
+  const [ownerPassword, setOwnerPassword] = useState("");
 
   useEffect(() => {
     if (!open || !application) {
@@ -46,6 +48,7 @@ export function CompanyApplicationReviewDialog({
     setSubscriptionPlan("STARTER");
     setTenantCode("");
     setOwnerEmail(application.email);
+    setOwnerPassword("");
   }, [application, open]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -56,6 +59,7 @@ export function CompanyApplicationReviewDialog({
       subscriptionPlan,
       tenantCode,
       ownerEmail,
+      ...(mode === "approve" ? { ownerPassword } : {}),
     });
   }
 
@@ -65,6 +69,7 @@ export function CompanyApplicationReviewDialog({
       : mode === "reject"
         ? "Reject Application"
         : "Review Application";
+  const subscriptionPlans = ["STARTER", "GROWTH", "ENTERPRISE"];
 
   return (
     <Dialog
@@ -83,7 +88,7 @@ export function CompanyApplicationReviewDialog({
         >
           <Typography color="text.secondary">
             {mode === "approve"
-              ? "Approve this company application and create the onboarding tenant and owner account hook."
+              ? "Approve this application and provision a pending tenant workspace with its owner account. Activate the tenant after verifying onboarding readiness."
               : mode === "reject"
                 ? "Reject this application with a clear reason for the applicant and audit trail."
                 : "Move this application into the review queue and capture initial review notes."}
@@ -105,6 +110,15 @@ export function CompanyApplicationReviewDialog({
                 required
               />
               <TextField
+                label="Temporary Owner Password"
+                type="password"
+                value={ownerPassword}
+                onChange={(event) => setOwnerPassword(event.target.value)}
+                required
+                inputProps={{ minLength: 8, maxLength: 100 }}
+                helperText="Share this temporary password securely with the tenant owner. They can change it after signing in."
+              />
+              <TextField
                 label="Tenant Code Override"
                 value={tenantCode}
                 onChange={(event) => setTenantCode(event.target.value)}
@@ -112,10 +126,13 @@ export function CompanyApplicationReviewDialog({
               />
               <TextField
                 label="Subscription Plan"
+                select
                 value={subscriptionPlan}
                 onChange={(event) => setSubscriptionPlan(event.target.value)}
                 required
-              />
+              >
+                {subscriptionPlans.map((plan) => <MenuItem key={plan} value={plan}>{plan}</MenuItem>)}
+              </TextField>
             </>
           ) : null}
           {mode === "reject" ? (

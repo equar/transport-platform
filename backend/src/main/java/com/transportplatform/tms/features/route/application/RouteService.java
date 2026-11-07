@@ -22,7 +22,6 @@ import com.transportplatform.tms.features.route.api.request.ReorderRouteStopsReq
 import com.transportplatform.tms.features.route.api.request.RouteUpsertRequest;
 import com.transportplatform.tms.features.route.api.request.UpdateRouteStopRequest;
 import com.transportplatform.tms.features.route.api.response.RouteResponse;
-import com.transportplatform.tms.features.route.api.response.RouteStopResponse;
 import com.transportplatform.tms.features.route.api.response.RouteSummaryResponse;
 import com.transportplatform.tms.features.route.domain.Route;
 import com.transportplatform.tms.features.route.domain.RouteRepository;
@@ -50,6 +49,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class RouteService {
 
+    private final com.transportplatform.tms.features.tenant.domain.TenantRepository dispatchTenants;
+    private final com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService dispatchValidation;
     private final RouteRepository routeRepository;
     private final RouteStopRepository routeStopRepository;
     private final RideRepository rideRepository;
@@ -64,7 +65,9 @@ public class RouteService {
     private final RideEventService rideEventService;
     private final AuditLogService auditLogService;
 
-    public RouteService(RouteRepository routeRepository,
+    public RouteService(com.transportplatform.tms.features.tenant.domain.TenantRepository dispatchTenants,
+            com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService dispatchValidation,
+            RouteRepository routeRepository,
             RouteStopRepository routeStopRepository,
             RideRepository rideRepository,
             DriverRepository driverRepository,
@@ -77,6 +80,7 @@ public class RouteService {
             VehicleComplianceSummaryService vehicleComplianceSummaryService,
             RideEventService rideEventService,
             AuditLogService auditLogService) {
+        this.dispatchTenants=dispatchTenants;this.dispatchValidation=dispatchValidation;
         this.routeRepository = routeRepository;
         this.routeStopRepository = routeStopRepository;
         this.rideRepository = rideRepository;
@@ -138,6 +142,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse createCompanyRoute(RouteUpsertRequest request) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         String tenantId = routeAccessService.requireCompanyTenantId();
         Route route = new Route();
         route.setTenantId(tenantId);
@@ -153,6 +158,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse updateCompanyRoute(Long routeId, RouteUpsertRequest request) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanEdit(route.getStatus());
         Object oldSnapshot = snapshot(route);
@@ -166,6 +172,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse assignCompanyRouteResources(Long routeId, AssignRouteResourcesRequest request) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanEdit(route.getStatus());
         if (request.driverId() == null && request.vehicleId() == null) {
@@ -184,6 +191,7 @@ public class RouteService {
             route.setAssignedVehicleId(vehicle.getId());
         }
         Route saved = routeRepository.save(route);
+        syncLinkedRideResourcesFromRoute(saved);
         recordRouteAudit(saved, "RESOURCES_ASSIGNED",
                 "Route resources were assigned for route " + saved.getRouteCode() + ".",
                 oldSnapshot,
@@ -193,6 +201,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse unassignCompanyRouteDriver(Long routeId) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanEdit(route.getStatus());
         Object oldSnapshot = snapshot(route);
@@ -207,6 +216,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse unassignCompanyRouteVehicle(Long routeId) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanEdit(route.getStatus());
         Object oldSnapshot = snapshot(route);
@@ -221,6 +231,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse markCompanyRouteReady(Long routeId) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanMarkReady(route.getStatus());
         if (routeStopRepository.findAllByTenantIdAndRoute_IdOrderByStopSequenceAsc(route.getTenantId(), route.getId())
@@ -236,6 +247,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse startCompanyRoute(Long routeId) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanStart(route.getStatus());
         if (route.getAssignedDriverId() == null || route.getAssignedVehicleId() == null) {
@@ -250,6 +262,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse completeCompanyRoute(Long routeId) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanComplete(route.getStatus());
         return updateRouteStatus(route, RouteStatus.COMPLETED, "COMPLETED",
@@ -258,6 +271,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse cancelCompanyRoute(Long routeId) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanCancel(route.getStatus());
         return updateRouteStatus(route, RouteStatus.CANCELLED, "CANCELLED",
@@ -266,6 +280,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse addRideToCompanyRoute(Long routeId, AddRouteStopRequest request) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanEdit(route.getStatus());
         Ride ride = rideAccessService.findRideForCompanyScope(request.rideId());
@@ -302,7 +317,7 @@ public class RouteService {
         RouteStop savedStop = routeStopRepository.save(routeStop);
 
         ride.setRouteId(route.getId());
-        rideRepository.save(ride);
+        applyRouteResourcesToRide(ride, route);
         rideEventService.recordRouteAssigned(ride, route.getRouteCode(), savedStop.getNotes());
         recordRouteStopAudit(savedStop, "STOP_ADDED",
                 "Ride " + ride.getRideNumber() + " was added to route " + route.getRouteCode() + ".",
@@ -313,6 +328,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse updateCompanyRouteStop(Long routeId, Long routeStopId, UpdateRouteStopRequest request) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanEdit(route.getStatus());
         RouteStop routeStop = routeAccessService.findRouteStopForCompanyScope(routeStopId);
@@ -344,6 +360,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse removeRideFromCompanyRoute(Long routeId, Long routeStopId) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanEdit(route.getStatus());
         RouteStop routeStop = routeAccessService.findRouteStopForCompanyScope(routeStopId);
@@ -365,6 +382,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse reorderCompanyRouteStops(Long routeId, ReorderRouteStopsRequest request) {
+        dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanEdit(route.getStatus());
         List<RouteStop> currentStops = routeStopRepository.findAllByTenantIdAndRoute_IdOrderByStopSequenceAsc(
@@ -406,6 +424,43 @@ public class RouteService {
         Route saved = routeRepository.save(route);
         recordRouteAudit(saved, action, summary, oldSnapshot, snapshot(saved));
         return getCompanyRoute(saved.getId());
+    }
+
+    private void syncLinkedRideResourcesFromRoute(Route route) {
+        List<RouteStop> linkedStops = routeStopRepository.findAllByTenantIdAndRoute_IdOrderByStopSequenceAsc(
+                route.getTenantId(),
+                route.getId());
+        if (linkedStops.isEmpty()) {
+            return;
+        }
+        linkedStops.stream()
+                .map(RouteStop::getRide)
+                .forEach(ride -> applyRouteResourcesToRide(ride, route));
+    }
+
+    private void applyRouteResourcesToRide(Ride ride, Route route) {
+        boolean changed = false;
+        if (ride.getRouteId() == null || !ride.getRouteId().equals(route.getId())) {
+            ride.setRouteId(route.getId());
+            changed = true;
+        }
+        if (ride.getDriverId() == null && route.getAssignedDriverId() != null) {
+            dispatchValidation.requireAssignableDriver(ride.getTenantId(),ride,route.getAssignedDriverId());
+            ride.setDriverId(route.getAssignedDriverId());
+            changed = true;
+        }
+        if (ride.getVehicleId() == null && route.getAssignedVehicleId() != null) {
+            dispatchValidation.requireAssignableVehicle(ride.getTenantId(),ride,route.getAssignedVehicleId());
+            ride.setVehicleId(route.getAssignedVehicleId());
+            changed = true;
+        }
+        if (ride.getDriverId() != null && ride.getStatus() == RideStatus.SCHEDULED) {
+            ride.setStatus(RideStatus.ASSIGNED);
+            changed = true;
+        }
+        if (changed) {
+            rideRepository.save(ride);
+        }
     }
 
     private Driver requireAssignableDriver(String tenantId, Long driverId) {

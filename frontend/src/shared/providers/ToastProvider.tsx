@@ -7,6 +7,7 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
+import { normalizeBusinessError } from "../api/businessError";
 
 interface ToastState {
   open: boolean;
@@ -16,7 +17,7 @@ interface ToastState {
 
 interface ToastContextValue {
   showSuccess: (message: string) => void;
-  showError: (message: string) => void;
+  showError: (error: unknown, fallback?: string) => void;
   showInfo: (message: string) => void;
 }
 
@@ -38,8 +39,8 @@ export function ToastProvider({ children }: PropsWithChildren) {
       showSuccess(message) {
         show("success", message);
       },
-      showError(message) {
-        show("error", message);
+      showError(error, fallback = "The action could not be completed.") {
+        show("error", normalizeBusinessError(error, fallback).message);
       },
       showInfo(message) {
         show("info", message);

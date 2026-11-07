@@ -34,6 +34,9 @@ public class Notification extends AuditableEntity {
     @Column(name = "message", nullable = false, length = 4000)
     private String message;
 
+    @Column(name = "email_subject", length = 255)
+    private String emailSubject;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "notification_type", nullable = false, length = 60)
     private NotificationType notificationType;
@@ -65,8 +68,17 @@ public class Notification extends AuditableEntity {
     @Column(name = "error_message", length = 1000)
     private String errorMessage;
 
+    @Column(name = "delivery_attempt_count", nullable = false)
+    private int deliveryAttemptCount;
+
+    @Column(name = "next_delivery_attempt_at")
+    private Instant nextDeliveryAttemptAt;
+
     @Column(name = "metadata_json", length = 4000)
     private String metadataJson;
+
+    @Column(name = "correlation_id", length = 128)
+    private String correlationId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
@@ -114,6 +126,14 @@ public class Notification extends AuditableEntity {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public String getEmailSubject() {
+        return emailSubject;
+    }
+
+    public void setEmailSubject(String emailSubject) {
+        this.emailSubject = emailSubject;
     }
 
     public NotificationType getNotificationType() {
@@ -188,12 +208,36 @@ public class Notification extends AuditableEntity {
         this.errorMessage = errorMessage;
     }
 
+    public int getDeliveryAttemptCount() {
+        return deliveryAttemptCount;
+    }
+
+    public void setDeliveryAttemptCount(int deliveryAttemptCount) {
+        this.deliveryAttemptCount = deliveryAttemptCount;
+    }
+
+    public Instant getNextDeliveryAttemptAt() {
+        return nextDeliveryAttemptAt;
+    }
+
+    public void setNextDeliveryAttemptAt(Instant nextDeliveryAttemptAt) {
+        this.nextDeliveryAttemptAt = nextDeliveryAttemptAt;
+    }
+
     public String getMetadataJson() {
         return metadataJson;
     }
 
     public void setMetadataJson(String metadataJson) {
         this.metadataJson = metadataJson;
+    }
+
+    public String getCorrelationId() {
+        return correlationId;
+    }
+
+    public void setCorrelationId(String correlationId) {
+        this.correlationId = correlationId;
     }
 
     public NotificationStatus getStatus() {

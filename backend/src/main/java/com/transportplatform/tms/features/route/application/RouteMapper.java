@@ -1,7 +1,6 @@
 package com.transportplatform.tms.features.route.application;
 
 import com.transportplatform.tms.features.driver.domain.Driver;
-import com.transportplatform.tms.features.organization.domain.ServiceType;
 import com.transportplatform.tms.features.route.api.request.RouteUpsertRequest;
 import com.transportplatform.tms.features.route.api.response.RouteResponse;
 import com.transportplatform.tms.features.route.api.response.RouteStopResponse;

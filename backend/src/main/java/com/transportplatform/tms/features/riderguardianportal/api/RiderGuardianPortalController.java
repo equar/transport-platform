@@ -1,39 +1,55 @@
 package com.transportplatform.tms.features.riderguardianportal.api;
 
+import java.time.LocalDate;
+import java.util.List;
+
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.transportplatform.tms.common.response.ApiResponse;
 import com.transportplatform.tms.common.response.PageResponse;
 import com.transportplatform.tms.features.billing.api.response.InvoiceSummaryResponse;
 import com.transportplatform.tms.features.billing.api.response.PaymentSummaryResponse;
+import com.transportplatform.tms.features.billing.domain.InvoiceStatus;
+import com.transportplatform.tms.features.billing.domain.PaymentStatus;
+import com.transportplatform.tms.features.location.api.response.DriverLocationSnapshotResponse;
 import com.transportplatform.tms.features.portalcommon.api.response.PortalRideSummaryResponse;
+import com.transportplatform.tms.features.ride.api.request.CancelRideRequest;
+import com.transportplatform.tms.features.ride.domain.RideStatus;
 import com.transportplatform.tms.features.riderguardianportal.api.request.RiderGuardianPortalProfileUpdateRequest;
+import com.transportplatform.tms.features.riderguardianportal.api.request.RiderGuardianPortalRideCreateRequest;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalDashboardResponse;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalLinkedRiderResponse;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalProfileResponse;
 import com.transportplatform.tms.features.riderguardianportal.api.response.RiderGuardianPortalRideDetailResponse;
 import com.transportplatform.tms.features.riderguardianportal.application.RiderGuardianPortalService;
-import com.transportplatform.tms.features.billing.domain.InvoiceStatus;
-import com.transportplatform.tms.features.billing.domain.PaymentStatus;
-import com.transportplatform.tms.features.ride.domain.RideStatus;
+
 import jakarta.validation.Valid;
-import java.time.LocalDate;
-import java.util.List;
-import org.springframework.data.domain.Sort;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @PreAuthorize("hasAnyRole('RIDER','GUARDIAN')")
 public class RiderGuardianPortalController {
 
     private final RiderGuardianPortalService service;
+    private final com.transportplatform.tms.features.riderguardianportal.application.PortalBookingIdempotencyService bookings;
 
-    public RiderGuardianPortalController(RiderGuardianPortalService service) {
+    public RiderGuardianPortalController(RiderGuardianPortalService service, com.transportplatform.tms.features.riderguardianportal.application.PortalBookingIdempotencyService bookings) {
+        this.bookings=bookings;
         this.service = service;
+    }
+
+    @GetMapping("/portal/rider/saved-locations")
+    public ApiResponse<java.util.List<RiderGuardianPortalService.SavedLocation>> savedLocations(@RequestParam(required=false) Long riderId) {
+        return ApiResponse.success(service.savedLocations(riderId));
     }
 
     @GetMapping("/portal/rider/dashboard")
@@ -74,6 +90,27 @@ public class RiderGuardianPortalController {
     @GetMapping("/portal/rider/rides/{rideId}")
     public ApiResponse<RiderGuardianPortalRideDetailResponse> getRide(@PathVariable Long rideId) {
         return ApiResponse.success(service.getRide(rideId));
+    }
+
+    @PostMapping("/portal/rider/rides")
+    @PreAuthorize("hasAnyRole('RIDER','GUARDIAN')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<RiderGuardianPortalRideDetailResponse> createRide(
+            @Valid @RequestBody RiderGuardianPortalRideCreateRequest request,
+            @org.springframework.web.bind.annotation.RequestHeader(value="Idempotency-Key",required=false) String key) {
+        return ApiResponse.success(bookings.create(request,key));
+    }
+
+    @PostMapping("/portal/rider/rides/{rideId}/cancel")
+    @PreAuthorize("hasRole('RIDER')")
+    public ApiResponse<RiderGuardianPortalRideDetailResponse> cancelRide(@PathVariable Long rideId,
+            @Valid @RequestBody CancelRideRequest request) {
+        return ApiResponse.success(service.cancelRide(rideId, request));
+    }
+
+    @GetMapping("/portal/rider/rides/{rideId}/location-snapshot")
+    public ApiResponse<DriverLocationSnapshotResponse> getRideLocationSnapshot(@PathVariable Long rideId) {
+        return ApiResponse.success(service.getRideLocationSnapshot(rideId));
     }
 
     @GetMapping("/portal/rider/invoices")

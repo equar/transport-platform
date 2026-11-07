@@ -1,9 +1,5 @@
 import {
-  Alert,
-  Button,
   MenuItem,
-  Paper,
-  Stack,
   Table,
   TableBody,
   TableCell,
@@ -19,14 +15,14 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { useEffect, useState } from "react";
 import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
-import { EmptyState } from "../../../shared/components/EmptyState";
-import { LoadingState } from "../../../shared/components/LoadingState";
-import { PageCard } from "../../../shared/components/PageCard";
-import { SectionHeader } from "../../../shared/components/SectionHeader";
 import { StatusChip } from "../../../shared/components/StatusChip";
 import { TableActionButton } from "../../../shared/components/TableActionButton";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
+import { normalizeBusinessError, type BusinessError } from "../../../shared/api/businessError";
+import { BusinessErrorState } from "../../../shared/components/BusinessErrorState";
+import { WorkspacePage } from "../../../shared/components/WorkspacePage";
+import { DataTableShell } from "../../../shared/components/DataTableShell";
 import {
   companyApplicationsApi,
   type CompanyApplication,
@@ -52,7 +48,7 @@ export function CompanyApplicationsPage() {
   const [size, setSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<BusinessError | null>(null);
   const [selectedApplication, setSelectedApplication] =
     useState<CompanyApplication | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -60,6 +56,7 @@ export function CompanyApplicationsPage() {
     "under-review" | "approve" | "reject" | null
   >(null);
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [applicationLoadingId, setApplicationLoadingId] = useState<number | null>(null);
 
   async function loadApplications() {
     setLoading(true);
@@ -73,8 +70,8 @@ export function CompanyApplicationsPage() {
       });
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
-      setError("Company applications could not be loaded.");
+    } catch (loadError) {
+      setError(normalizeBusinessError(loadError, "Company applications could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -87,6 +84,26 @@ export function CompanyApplicationsPage() {
   async function refreshSelected(applicationId: number) {
     const refreshed = await companyApplicationsApi.getById(applicationId);
     setSelectedApplication(refreshed);
+  }
+
+  async function openApplication(
+    applicationId: number,
+    destination: "details" | "under-review" | "approve" | "reject",
+  ) {
+    setApplicationLoadingId(applicationId);
+    try {
+      const application = await companyApplicationsApi.getById(applicationId);
+      setSelectedApplication(application);
+      if (destination === "details") {
+        setDetailsOpen(true);
+      } else {
+        setReviewMode(destination);
+      }
+    } catch (openError) {
+      showError(openError, "The application details could not be loaded.");
+    } finally {
+      setApplicationLoadingId(null);
+    }
   }
 
   async function handleReviewSubmit(payload: CompanyApplicationReviewPayload) {
@@ -114,20 +131,19 @@ export function CompanyApplicationsPage() {
       setReviewMode(null);
       await loadApplications();
       await refreshSelected(selectedApplication.id);
-    } catch {
-      showError("The review action could not be completed.");
+    } catch (reviewError) {
+      showError(reviewError, "The review action could not be completed.");
     } finally {
       setReviewLoading(false);
     }
   }
 
   return (
-    <Stack spacing={3}>
-      <SectionHeader
+    <WorkspacePage
         eyebrow="Platform Administration"
         title="Company Applications"
         description="Review inbound transportation company applications, capture decisions, and trigger tenant onboarding when an application is approved."
-      />
+      >
 
       <AdminFilterBar>
         <TextField
@@ -157,19 +173,19 @@ export function CompanyApplicationsPage() {
         </TextField>
       </AdminFilterBar>
 
-      {error ? <Alert severity="error">{error}</Alert> : null}
+      {error ? <BusinessErrorState error={error} onRetry={() => void loadApplications()} /> : null}
 
-      <PageCard sx={{ p: 0, overflow: "hidden" }}>
-        {loading ? (
-          <LoadingState />
-        ) : items.length === 0 ? (
-          <EmptyState
-            title="No records found"
-            description="Adjust the filters or wait for new company applications to be submitted."
-          />
-        ) : (
-          <>
-            <Paper sx={{ overflowX: "auto" }}>
+      <DataTableShell
+        loading={loading}
+        empty={items.length === 0}
+        emptyTitle="No applications found"
+        emptyDescription="Adjust the filters or wait for new company applications to be submitted."
+        pagination={<TablePagination
+          component="div" count={total} page={page} rowsPerPage={size}
+          onPageChange={(_, nextPage) => setPage(nextPage)}
+          onRowsPerPageChange={(event) => { setSize(Number(event.target.value)); setPage(0); }}
+        />}
+      >
               <Table>
                 <TableHead>
                   <TableRow>
@@ -213,28 +229,16 @@ export function CompanyApplicationsPage() {
                       <TableCell align="right">
                         <TableActionButton
                           title="View details"
-                          onClick={async () => {
-                            setSelectedApplication(
-                              await companyApplicationsApi.getById(
-                                application.id,
-                              ),
-                            );
-                            setDetailsOpen(true);
-                          }}
+                          buttonProps={{ disabled: applicationLoadingId === application.id }}
+                          onClick={() => void openApplication(application.id, "details")}
                         >
                           <VisibilityRoundedIcon />
                         </TableActionButton>
                         {application.status === "SUBMITTED" ? (
                           <TableActionButton
                             title="Review application"
-                            onClick={async () => {
-                              setSelectedApplication(
-                                await companyApplicationsApi.getById(
-                                  application.id,
-                                ),
-                              );
-                              setReviewMode("under-review");
-                            }}
+                            buttonProps={{ disabled: applicationLoadingId === application.id }}
+                            onClick={() => void openApplication(application.id, "under-review")}
                           >
                             <ChecklistRoundedIcon />
                           </TableActionButton>
@@ -245,27 +249,15 @@ export function CompanyApplicationsPage() {
                           <>
                             <TableActionButton
                               title="Approve application"
-                              onClick={async () => {
-                                setSelectedApplication(
-                                  await companyApplicationsApi.getById(
-                                    application.id,
-                                  ),
-                                );
-                                setReviewMode("approve");
-                              }}
+                              buttonProps={{ disabled: applicationLoadingId === application.id }}
+                              onClick={() => void openApplication(application.id, "approve")}
                             >
                               <CheckCircleRoundedIcon />
                             </TableActionButton>
                             <TableActionButton
                               title="Reject application"
-                              onClick={async () => {
-                                setSelectedApplication(
-                                  await companyApplicationsApi.getById(
-                                    application.id,
-                                  ),
-                                );
-                                setReviewMode("reject");
-                              }}
+                              buttonProps={{ disabled: applicationLoadingId === application.id }}
+                              onClick={() => void openApplication(application.id, "reject")}
                             >
                               <CloseRoundedIcon />
                             </TableActionButton>
@@ -276,21 +268,7 @@ export function CompanyApplicationsPage() {
                   ))}
                 </TableBody>
               </Table>
-            </Paper>
-            <TablePagination
-              component="div"
-              count={total}
-              page={page}
-              rowsPerPage={size}
-              onPageChange={(_, nextPage) => setPage(nextPage)}
-              onRowsPerPageChange={(event) => {
-                setSize(Number(event.target.value));
-                setPage(0);
-              }}
-            />
-          </>
-        )}
-      </PageCard>
+      </DataTableShell>
 
       <CompanyApplicationDetailsDialog
         open={detailsOpen}
@@ -305,6 +283,6 @@ export function CompanyApplicationsPage() {
         onClose={() => setReviewMode(null)}
         onSubmit={handleReviewSubmit}
       />
-    </Stack>
+    </WorkspacePage>
   );
 }

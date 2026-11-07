@@ -49,14 +49,16 @@ class CompanyApplicationApprovalServiceTest {
                 null,
                 "GROWTH",
                 "NORTHWIND",
-                "owner@northwind.example");
+                "owner@northwind.example",
+                "Temporary123!");
 
         Tenant tenant = new Tenant();
         tenant.setId("tenant-1");
 
         when(tenantCodeGenerator.generate("Northwind Transport", "NORTHWIND")).thenReturn("NORTHWIND");
         when(tenantService.createFromApplication(any(Tenant.class))).thenReturn(tenant);
-        when(tenantOwnerProvisioningService.provisionOwner("tenant-1", "owner@northwind.example")).thenReturn(10L);
+        when(tenantOwnerProvisioningService.provisionOwner(
+                "tenant-1", "owner@northwind.example", "Temporary123!")).thenReturn(10L);
 
         CompanyApplicationApprovalService.ApprovalResult result = companyApplicationApprovalService.approve(application,
                 request);

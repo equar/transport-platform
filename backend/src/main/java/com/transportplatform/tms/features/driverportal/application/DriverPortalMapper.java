@@ -190,8 +190,12 @@ public class DriverPortalMapper {
     }
 
     private String address(String line1, String line2, String city, String state, String zipCode) {
-        return List.of(trimToNull(line1), trimToNull(line2), trimToNull(city), trimToNull(state), trimToNull(zipCode))
-                .stream()
+        return java.util.stream.Stream.of(
+                        trimToNull(line1),
+                        trimToNull(line2),
+                        trimToNull(city),
+                        trimToNull(state),
+                        trimToNull(zipCode))
                 .filter(value -> value != null && !value.isBlank())
                 .reduce((left, right) -> left + ", " + right)
                 .orElse(null);

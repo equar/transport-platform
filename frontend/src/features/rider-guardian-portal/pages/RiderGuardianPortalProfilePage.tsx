@@ -14,6 +14,7 @@ import { PageCard } from "../../../shared/components/PageCard";
 import { SectionHeader } from "../../../shared/components/SectionHeader";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
+import { PasswordChangeCard } from "../../auth/components/PasswordChangeCard";
 import {
   riderGuardianPortalApi,
   type RiderGuardianPortalLinkedRiderRecord,
@@ -422,6 +423,7 @@ export function RiderGuardianPortalProfilePage() {
           )}
         </Stack>
       </PageCard>
+      <PasswordChangeCard />
     </Stack>
   );
 }

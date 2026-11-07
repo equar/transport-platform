@@ -1,18 +1,25 @@
 package com.transportplatform.tms.common.exception;
 
-import com.transportplatform.tms.common.response.ApiErrorResponse;
-import com.transportplatform.tms.common.response.ApiResponse;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import com.transportplatform.tms.common.response.ApiErrorResponse;
+import com.transportplatform.tms.common.response.ApiResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -45,6 +52,35 @@ public class GlobalExceptionHandler {
                 "Validation failed for the request.",
                 details);
         return ResponseEntity.badRequest().body(ApiResponse.failure(error));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadableRequest(HttpMessageNotReadableException exception) {
+        LOGGER.debug("Request body could not be parsed", exception);
+        ApiErrorResponse error = ApiErrorResponse.of(
+                ErrorCode.VALIDATION_FAILED.name(),
+                "The request contains an invalid or unsupported value.",
+                Map.of());
+        return ResponseEntity.badRequest().body(ApiResponse.failure(error));
+    }
+
+        @ExceptionHandler(AccessDeniedException.class)
+        public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException exception,
+                        HttpServletRequest request) {
+                ApiErrorResponse error = ApiErrorResponse.of(
+                                ErrorCode.FORBIDDEN.name(),
+                                "Access is denied.",
+                                Map.of("path", request.getRequestURI()));
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.failure(error));
+        }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOptimisticConflict(OptimisticLockingFailureException exception) {
+        ApiErrorResponse error = ApiErrorResponse.of(
+                ErrorCode.RESOURCE_CONFLICT.name(),
+                "This record changed while your request was being processed. Refresh and try again.",
+                Map.of());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.failure(error));
     }
 
     @ExceptionHandler(Exception.class)

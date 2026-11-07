@@ -1,4 +1,4 @@
-import { Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 import { PageCard } from "./PageCard";
 
@@ -11,15 +11,17 @@ interface MetricCardProps {
 
 export function MetricCard({ icon, label, value, caption }: MetricCardProps) {
   return (
-    <PageCard>
-      <Stack spacing={1.5}>
-        {icon}
-        <Typography variant="body2" color="text.secondary">
+    <PageCard sx={{ height: "100%", p: 2.25, position: "relative", overflow: "hidden", "&::after": { content: '\"\"', position: "absolute", inset: "0 auto auto 0", width: 84, height: 4, borderRadius: 0, bgcolor: "primary.main" } }}>
+      <Stack spacing={1.2} height="100%">
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Box sx={{ display: "grid", placeItems: "center", width: 42, height: 42, borderRadius: 1.5, color: "primary.main", bgcolor: "rgba(18, 102, 214, 0.10)", "& svg": { fontSize: 22 } }}>{icon}</Box>
+        </Stack>
+        <Typography variant="subtitle2" color="text.secondary">
           {label}
         </Typography>
-        <Typography variant="h3">{value}</Typography>
+        <Typography variant="h4" sx={{ lineHeight: 1, fontSize: "2.2rem" }}>{value}</Typography>
         {caption ? (
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ mt: "auto !important", lineHeight: 1.45 }}>
             {caption}
           </Typography>
         ) : null}

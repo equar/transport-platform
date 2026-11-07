@@ -24,6 +24,7 @@ import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
 import type { AuthSession } from "../../features/auth/types";
 import type { RuntimeModuleAccess } from "../../features/runtime/api/runtimeApi";
 import {
+  canAccessCompanyWorkspace,
   getDefaultRoute,
   hasRole,
   isCompanyAdmin,
@@ -311,6 +312,14 @@ const companySections: AppShellNavSection[] = [
         audiences: ["company-admin", "compliance-admin"],
       },
       {
+        label: "Transport Compliance",
+        description: "Operator authority, insurance, safeguarding, privacy, and accessibility attestation.",
+        to: "/company/transport-compliance",
+        icon: <FactCheckRoundedIcon fontSize="small" />,
+        requiredModule: "compliance",
+        audiences: ["company-admin"],
+      },
+      {
         label: "Incidents",
         description: "Complaint, safety, and operational issue workflow.",
         to: "/company/incidents",
@@ -512,7 +521,7 @@ function filterCompanySections(
       ...section,
       items: section.items.filter((item) => {
         const moduleEnabled = item.requiredModule
-          ? moduleAccess?.[item.requiredModule] === true
+          ? moduleAccess === null || moduleAccess[item.requiredModule] === true
           : true;
         return moduleEnabled && hasCompanyAudience(item.audiences, session);
       }),
@@ -581,6 +590,10 @@ export function getAppShellProfilePath(
 ) {
   if (isPlatformAdmin(session)) {
     return "/platform/profile";
+  }
+
+  if (canAccessCompanyWorkspace(session)) {
+    return "/company/security";
   }
 
   const shellView = buildAppShellView(session, moduleAccess);

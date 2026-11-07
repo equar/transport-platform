@@ -8,6 +8,7 @@ import java.util.List;
 
 public record DispatchRideSummaryResponse(
         Long rideId,
+        Long version,
         String rideNumber,
         Long riderId,
         String riderCode,

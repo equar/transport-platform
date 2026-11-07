@@ -1,3 +1,5 @@
+import { useAuth } from "../../auth/context/AuthContext";
+import { useUrlFilters } from "../../../shared/hooks/useUrlFilters";
 import AssessmentRoundedIcon from "@mui/icons-material/AssessmentRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import FilterAltRoundedIcon from "@mui/icons-material/FilterAltRounded";
@@ -429,7 +431,8 @@ function exportCsv(report: CompanyReportResponse<Record<string, unknown>>) {
         headers
           .map((header) => {
             const value = row[header];
-            const serialized = value == null ? "" : String(value);
+            const raw = value == null ? "" : String(value);
+            const serialized = /^[=+@-]/.test(raw.trimStart()) ? `'${raw}` : raw;
             return `"${serialized.replaceAll('"', '""')}"`;
           })
           .join(","),
@@ -447,6 +450,9 @@ function exportCsv(report: CompanyReportResponse<Record<string, unknown>>) {
 }
 
 export function CompanyReportsPage() {
+  const { session } = useAuth();
+  const exportKey = `report-export:${session?.identity.tenantId}:${session?.identity.id}`;
+  const [exportError, setExportError] = useState<string | null>(null);
   const { showError, showSuccess } = useToast();
   const [definitions, setDefinitions] = useState<ReportDefinitionRecord[]>([]);
   const [selectedReportType, setSelectedReportType] =
@@ -460,11 +466,21 @@ export function CompanyReportsPage() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<ReportFilters>({
+  const [filters, setFilters] = useUrlFilters<ReportFilters>({
     keyword: "",
     fromDate: "",
     toDate: "",
   });
+
+  const [exportJob, setExportJob] = useState<Awaited<ReturnType<typeof reportsApi.startExport>> | null>(() => {
+    try { const saved = JSON.parse(sessionStorage.getItem(exportKey) ?? 'null'); return saved?.id && Date.parse(saved.expiresAt) > Date.now() ? saved : null; } catch { return null; }
+  });
+  useEffect(() => { try { if (exportJob) sessionStorage.setItem(exportKey, JSON.stringify(exportJob)); else sessionStorage.removeItem(exportKey); } catch { /* job still works in this session */ } }, [exportJob, exportKey]);
+  useEffect(() => {
+    if (!exportJob || !['PENDING', 'RUNNING'].includes(exportJob.status)) return;
+    const timer = window.setInterval(() => { void reportsApi.exportStatus(exportJob.id).then(job => { setExportJob(job); setExportError(null); }).catch(() => setExportError('Export status unavailable. Checking again when connected.')); }, 3000);
+    return () => window.clearInterval(timer);
+  }, [exportJob?.id, exportJob?.status]);
 
   const selectedDefinition = useMemo(
     () =>
@@ -566,6 +582,16 @@ export function CompanyReportsPage() {
           Run Report
         </Button>
       </SectionHeader>
+      <Stack spacing={1}>
+                    <Button disabled={exportJob?.status === 'PENDING' || exportJob?.status === 'RUNNING'} onClick={() => {
+                      void reportsApi.startExport(selectedReportType, filters).then(setExportJob).catch(error => showError(error, 'Choose a date range before exporting.'));
+                    }}>Prepare full date-range CSV</Button>
+                    {exportError ? <Alert severity="warning">{exportError}</Alert> : null}
+                    {exportJob ? <Typography role="status">Export: {exportJob.status} • {exportJob.progress}% {exportJob.error}</Typography> : null}
+                    {exportJob && ['PENDING', 'RUNNING'].includes(exportJob.status) ? <Button onClick={() => void reportsApi.cancelExport(exportJob.id).then(() => reportsApi.exportStatus(exportJob.id)).then(setExportJob).catch(error => showError(error, 'Unable to cancel export.'))}>Cancel export</Button> : null}
+                    {exportJob?.status === 'COMPLETED' ? <Button onClick={() => void reportsApi.downloadExport(exportJob.id).catch(error => showError(error, 'Download unavailable. The export may have expired.'))}>Download CSV (expires in 24 hours)</Button> : null}
+
+      </Stack>
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
         <MetricCard
@@ -1036,6 +1062,7 @@ export function CompanyReportsPage() {
                       {report.rowCount} rows
                     </Typography>
                   </Stack>
+                  <Stack spacing={1}>
                   <Button
                     variant="outlined"
                     startIcon={<DownloadRoundedIcon />}
@@ -1046,8 +1073,9 @@ export function CompanyReportsPage() {
                       );
                     }}
                   >
-                    Export CSV
+                    Export displayed rows
                   </Button>
+                  </Stack>
                 </Stack>
                 <Table>
                   <TableHead>

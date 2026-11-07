@@ -65,8 +65,12 @@ public class CompanySettingsService {
         tenant.setCountry(request.country().trim());
 
         settings.setTenantId(tenant.getId());
+        try { java.time.ZoneId.of(request.timezone().trim()); }
+        catch (java.time.DateTimeException ex) { throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Choose a valid IANA timezone."); }
         settings.setTimezone(request.timezone().trim());
-        settings.setCurrency(request.currency().trim().toUpperCase());
+        try { java.util.Currency.getInstance(request.currency().trim().toUpperCase(java.util.Locale.ROOT)); }
+        catch (IllegalArgumentException ex) { throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Choose a valid ISO currency code."); }
+        settings.setCurrency(request.currency().trim().toUpperCase(java.util.Locale.ROOT));
         settings.setDateFormat(request.dateFormat().trim());
         settings.setDefaultRideLeadTimeMinutes(request.defaultRideLeadTimeMinutes());
         settings.setAllowManualRideCreation(request.allowManualRideCreation());

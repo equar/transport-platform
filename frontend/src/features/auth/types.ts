@@ -5,19 +5,19 @@ export interface AuthIdentity {
   lastName: string | null;
   tenantId: string | null;
   status: string;
+  mustChangePassword: boolean;
   roles: string[];
 }
 
 export interface AuthSession {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string | null;
   tokenType: string;
   expiresInSeconds: number;
   identity: AuthIdentity;
 }
 
 export interface LoginPayload {
-  tenantId?: string | null;
   email: string;
   password: string;
 }

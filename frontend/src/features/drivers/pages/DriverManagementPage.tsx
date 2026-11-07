@@ -34,6 +34,7 @@ import { StatusChip } from "../../../shared/components/StatusChip";
 import { TableActionButton } from "../../../shared/components/TableActionButton";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
+import { normalizeBusinessError } from "../../../shared/api/businessError";
 import {
   driversApi,
   type DriverPayload,
@@ -126,8 +127,13 @@ export function DriverManagementPage() {
       setDialogOpen(false);
       setSelectedDriver(null);
       await loadDrivers();
-    } catch {
-      showError("Driver changes could not be saved.");
+    } catch (saveError) {
+      showError(
+        normalizeBusinessError(
+          saveError,
+          "Driver changes could not be saved.",
+        ).message,
+      );
     } finally {
       setSaving(false);
     }

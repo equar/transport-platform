@@ -8,15 +8,17 @@ import com.transportplatform.tms.common.security.CurrentAuthenticatedUserService
 import com.transportplatform.tms.features.audit.application.AuditLogCommand;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
 import com.transportplatform.tms.features.compliance.domain.ComplianceEntityType;
-import com.transportplatform.tms.features.compliance.domain.ComplianceIssue;
 import com.transportplatform.tms.features.compliance.domain.ComplianceIssueRepository;
 import com.transportplatform.tms.features.compliance.domain.ComplianceIssueStatus;
+import com.transportplatform.tms.features.compliance.application.ComplianceIssueSyncService;
 import com.transportplatform.tms.features.driver.domain.Driver;
 import com.transportplatform.tms.features.driver.domain.DriverDocument;
 import com.transportplatform.tms.features.driver.domain.DriverDocumentRepository;
 import com.transportplatform.tms.features.driver.domain.DriverDocumentStatus;
 import com.transportplatform.tms.features.driver.domain.DriverDocumentVerificationStatus;
+import com.transportplatform.tms.features.driver.domain.DriverDocumentType;
 import com.transportplatform.tms.features.driver.domain.DriverRepository;
+import com.transportplatform.tms.features.driver.application.DriverDocumentStorageService;
 import com.transportplatform.tms.features.driverportal.api.request.DriverPortalProfileUpdateRequest;
 import com.transportplatform.tms.features.driverportal.api.response.DriverPortalComplianceIssueResponse;
 import com.transportplatform.tms.features.driverportal.api.response.DriverPortalComplianceSummaryResponse;
@@ -43,14 +45,14 @@ import com.transportplatform.tms.features.route.application.RouteSpecifications;
 import com.transportplatform.tms.features.route.domain.Route;
 import com.transportplatform.tms.features.route.domain.RouteRepository;
 import com.transportplatform.tms.features.route.domain.RouteStatus;
+import com.transportplatform.tms.features.route.domain.RouteStop;
 import com.transportplatform.tms.features.route.domain.RouteStopRepository;
+import com.transportplatform.tms.features.route.domain.RouteStopStatus;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +61,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class DriverPortalService {
@@ -66,17 +69,6 @@ public class DriverPortalService {
     private static final Set<ComplianceIssueStatus> UNRESOLVED_COMPLIANCE_STATUSES = Set.of(
             ComplianceIssueStatus.OPEN,
             ComplianceIssueStatus.ACKNOWLEDGED);
-
-    private static final Set<RideStatus> TODAY_RIDE_STATUSES = Set.of(
-            RideStatus.ASSIGNED,
-            RideStatus.DRIVER_EN_ROUTE,
-            RideStatus.ARRIVED,
-            RideStatus.PICKED_UP,
-            RideStatus.DROPPED_OFF,
-            RideStatus.COMPLETED,
-            RideStatus.RIDER_NO_SHOW,
-            RideStatus.MISSED,
-            RideStatus.FAILED);
 
     private static final Set<RideStatus> ACTIVE_ASSIGNED_RIDE_STATUSES = Set.of(
             RideStatus.ASSIGNED,
@@ -103,6 +95,8 @@ public class DriverPortalService {
     private final DriverPortalMapper driverPortalMapper;
     private final AuditLogService auditLogService;
     private final NotificationEventService notificationEventService;
+    private final DriverDocumentStorageService driverDocumentStorageService;
+    private final ComplianceIssueSyncService complianceIssueSyncService;
     private final Clock clock;
 
     public DriverPortalService(DriverPortalAccessService driverPortalAccessService,
@@ -118,6 +112,8 @@ public class DriverPortalService {
             DriverPortalMapper driverPortalMapper,
             AuditLogService auditLogService,
             NotificationEventService notificationEventService,
+            DriverDocumentStorageService driverDocumentStorageService,
+            ComplianceIssueSyncService complianceIssueSyncService,
             Clock clock) {
         this.driverPortalAccessService = driverPortalAccessService;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
@@ -132,12 +128,15 @@ public class DriverPortalService {
         this.driverPortalMapper = driverPortalMapper;
         this.auditLogService = auditLogService;
         this.notificationEventService = notificationEventService;
+        this.driverDocumentStorageService = driverDocumentStorageService;
+        this.complianceIssueSyncService = complianceIssueSyncService;
         this.clock = clock;
     }
 
     @Transactional
     public DriverPortalDashboardResponse getDashboard() {
         Driver driver = driverPortalAccessService.resolveCurrentDriver();
+        complianceIssueSyncService.synchronizeTenantIssues(driver.getTenantId());
         AuthenticatedUser user = currentAuthenticatedUserService.requireCurrentUser();
         LocalDate today = LocalDate.now(clock);
         LocalDateTime from = today.atStartOfDay();
@@ -196,6 +195,7 @@ public class DriverPortalService {
     @Transactional
     public DriverPortalComplianceSummaryResponse getComplianceSummary() {
         Driver driver = driverPortalAccessService.resolveCurrentDriver();
+        complianceIssueSyncService.synchronizeTenantIssues(driver.getTenantId());
         List<DriverPortalDocumentResponse> documents = loadDriverDocuments(driver).stream()
                 .map(driverPortalMapper::toDocumentResponse)
                 .toList();
@@ -205,11 +205,10 @@ public class DriverPortalService {
                         ComplianceEntityType.DRIVER,
                         driver.getId())
                 .stream()
+                .filter(issue -> UNRESOLVED_COMPLIANCE_STATUSES.contains(issue.getIssueStatus()))
                 .map(driverPortalMapper::toComplianceIssueResponse)
                 .toList();
-        long unresolvedComplianceIssues = issues.stream()
-                .filter(issue -> UNRESOLVED_COMPLIANCE_STATUSES.contains(issue.issueStatus()))
-                .count();
+        long unresolvedComplianceIssues = issues.size();
         long expiringDocumentsSoon = documents.stream()
                 .filter(document -> isExpiringSoon(document.expiryDate(), document.status(),
                         document.verificationStatus()))
@@ -219,6 +218,50 @@ public class DriverPortalService {
                 expiringDocumentsSoon,
                 issues,
                 documents);
+    }
+
+    @Transactional
+    public DriverPortalDocumentResponse uploadDocument(DriverDocumentType documentType,
+            String documentNumber,
+            String issuingAuthority,
+            LocalDate issueDate,
+            LocalDate expiryDate,
+            String notes,
+            MultipartFile file) {
+        Driver driver = driverPortalAccessService.resolveCurrentDriver();
+        if (issueDate != null && expiryDate != null && expiryDate.isBefore(issueDate)) {
+            throw validationFailure("Document expiry date cannot be earlier than the issue date.");
+        }
+        String storagePath = driverDocumentStorageService.store(driver.getTenantId(), driver.getId(), file);
+        String originalName = file.getOriginalFilename() == null ? "document" :
+                java.nio.file.Path.of(file.getOriginalFilename()).getFileName().toString();
+        DriverDocument document = new DriverDocument();
+        document.setTenantId(driver.getTenantId());
+        document.setDriver(driver);
+        document.setDocumentType(documentType);
+        document.setFileName(java.nio.file.Path.of(storagePath).getFileName().toString());
+        document.setOriginalFileName(originalName.substring(0, Math.min(originalName.length(), 255)));
+        document.setContentType(file.getContentType());
+        document.setStoragePath(storagePath);
+        document.setDocumentNumber(trimToNull(documentNumber));
+        document.setIssuingAuthority(trimToNull(issuingAuthority));
+        document.setIssueDate(issueDate);
+        document.setExpiryDate(expiryDate);
+        document.setNotes(trimToNull(notes));
+        document.setStatus(DriverDocumentStatus.ACTIVE);
+        document.setVerificationStatus(expiryDate != null && expiryDate.isBefore(LocalDate.now(clock))
+                ? DriverDocumentVerificationStatus.EXPIRED
+                : DriverDocumentVerificationStatus.PENDING);
+        document.setUploadedBy(currentAuthenticatedUserService.requireCurrentUser().username());
+        document.setUploadedAt(java.time.Instant.now(clock));
+        DriverDocument saved = driverDocumentRepository.save(document);
+        auditLogService.record(new AuditLogCommand(null, saved.getTenantId(), "DRIVER_PORTAL",
+                "DOCUMENT_SUBMITTED", "DRIVER_DOCUMENT", saved.getId().toString(),
+                "Driver submitted " + saved.getDocumentType().name() + " for company review.", null,
+                Map.of("driverId", driver.getId(), "documentType", saved.getDocumentType().name(),
+                        "fileName", saved.getOriginalFileName())));
+        complianceIssueSyncService.synchronizeTenantIssues(saved.getTenantId());
+        return driverPortalMapper.toDocumentResponse(saved);
     }
 
     @Transactional
@@ -402,10 +445,27 @@ public class DriverPortalService {
             ride.setCancelledBy(null);
         }
         Ride saved = rideRepository.save(ride);
+        syncRouteStopStatus(saved);
         persistRideEvent(saved, eventType, previousStatus, targetStatus, summary);
         recordRideAudit(saved, auditAction, summary, oldSnapshot, snapshotRide(saved));
         notificationEventService.publishRideStatusChanged(saved, previousStatus, targetStatus);
         return saved;
+    }
+
+    private void syncRouteStopStatus(Ride ride) {
+        List<RouteStop> routeStops = routeStopRepository.findAllByTenantIdAndRide_Id(ride.getTenantId(), ride.getId());
+        routeStops.forEach(stop -> stop.setStatus(resolveRouteStopStatus(ride.getStatus())));
+        if (!routeStops.isEmpty()) {
+            routeStopRepository.saveAll(routeStops);
+        }
+    }
+
+    private RouteStopStatus resolveRouteStopStatus(RideStatus rideStatus) {
+        return switch (rideStatus) {
+            case ASSIGNED, DRIVER_EN_ROUTE, ARRIVED, PICKED_UP, DROPPED_OFF -> RouteStopStatus.ACTIVE;
+            case COMPLETED, RIDER_NO_SHOW, MISSED, FAILED, CANCELLED -> RouteStopStatus.COMPLETED;
+            default -> RouteStopStatus.PLANNED;
+        };
     }
 
     private void persistRideEvent(Ride ride,

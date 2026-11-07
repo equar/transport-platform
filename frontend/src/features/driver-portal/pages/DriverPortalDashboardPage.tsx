@@ -4,7 +4,7 @@ import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import RouteRoundedIcon from "@mui/icons-material/RouteRounded";
 import TwoWheelerRoundedIcon from "@mui/icons-material/TwoWheelerRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import { Alert, Box, Button, Stack, Typography } from "@mui/material";
+import { Box, Button, LinearProgress, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import {
@@ -14,12 +14,15 @@ import {
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
+import { PageHero } from "../../../shared/components/PageHero";
+import { BusinessErrorState } from "../../../shared/components/BusinessErrorState";
+import { normalizeBusinessError, type BusinessError } from "../../../shared/api/businessError";
 
 export function DriverPortalDashboardPage() {
   const [dashboard, setDashboard] =
     useState<DriverPortalDashboardRecord | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<BusinessError | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,9 +34,9 @@ export function DriverPortalDashboardPage() {
         if (!cancelled) {
           setDashboard(response);
         }
-      } catch {
+      } catch (loadError) {
         if (!cancelled) {
-          setError("Driver dashboard could not be loaded.");
+          setError(normalizeBusinessError(loadError, "Driver dashboard could not be loaded."));
         }
       } finally {
         if (!cancelled) {
@@ -53,21 +56,11 @@ export function DriverPortalDashboardPage() {
 
   return (
     <Stack spacing={2.5}>
-      <PageCard>
-        <Stack spacing={1.5}>
-          <Typography variant="overline" color="secondary.main">
-            Driver workspace
-          </Typography>
-          <Typography variant="h3">
-            Stay on top of today’s assignments.
-          </Typography>
-          <Typography color="text.secondary">
-            Your portal keeps rides, routes, compliance, and notifications in
-            one focused mobile-friendly workspace.
-          </Typography>
-        </Stack>
-      </PageCard>
-      {error ? <Alert severity="error">{error}</Alert> : null}
+      <PageHero eyebrow="Driver workspace" title="Your day, ready at a glance." description="Review assignments, confirm route readiness, and resolve compliance items before service starts.">
+        <Button component={RouterLink} to="/portal/driver/rides" variant="contained" endIcon={<ArrowForwardRoundedIcon />}>Start with my rides</Button>
+        <Button component={RouterLink} to="/portal/driver/routes" variant="outlined">View today’s route</Button>
+      </PageHero>
+      {error ? <BusinessErrorState error={error} /> : null}
       {dashboard ? (
         <Box
           sx={{
@@ -170,21 +163,16 @@ export function DriverPortalDashboardPage() {
               Keep an eye on document expirations and unread alerts before
               starting a route.
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Assigned rides: {dashboard?.assignedRides ?? 0}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Active route:{" "}
-              {(dashboard?.activeRoutesToday ?? 0) > 0
-                ? "Available"
-                : "No active route yet"}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Compliance issues: {dashboard?.unresolvedComplianceIssues ?? 0}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Unread notifications: {dashboard?.unreadNotifications ?? 0}
-            </Typography>
+            {[
+              ["Ride assignment", Math.min((dashboard?.assignedRides ?? 0) * 20, 100), `${dashboard?.assignedRides ?? 0} assigned`],
+              ["Route readiness", (dashboard?.activeRoutesToday ?? 0) > 0 ? 100 : 15, (dashboard?.activeRoutesToday ?? 0) > 0 ? "Route available" : "Awaiting route"],
+              ["Compliance readiness", Math.max(100 - (dashboard?.unresolvedComplianceIssues ?? 0) * 20, 10), `${dashboard?.unresolvedComplianceIssues ?? 0} issues`],
+            ].map(([label, value, detail]) => (
+              <Stack key={String(label)} spacing={0.75}>
+                <Stack direction="row" justifyContent="space-between"><Typography variant="body2" fontWeight={700}>{label}</Typography><Typography variant="caption" color="text.secondary">{detail}</Typography></Stack>
+                <LinearProgress variant="determinate" value={Number(value)} sx={{ height: 8, borderRadius: 99 }} />
+              </Stack>
+            ))}
           </Stack>
         </PageCard>
       </Box>

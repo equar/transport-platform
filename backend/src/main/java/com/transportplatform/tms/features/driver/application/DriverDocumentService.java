@@ -16,16 +16,20 @@ import com.transportplatform.tms.features.driver.domain.DriverDocumentStatus;
 import com.transportplatform.tms.features.driver.domain.DriverDocumentType;
 import com.transportplatform.tms.features.driver.domain.DriverDocumentVerificationStatus;
 import com.transportplatform.tms.features.notification.application.NotificationEventService;
+import com.transportplatform.tms.features.compliance.application.ComplianceIssueSyncService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class DriverDocumentService {
@@ -36,6 +40,8 @@ public class DriverDocumentService {
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final AuditLogService auditLogService;
     private final NotificationEventService notificationEventService;
+    private final DriverDocumentStorageService driverDocumentStorageService;
+    private final ComplianceIssueSyncService complianceIssueSyncService;
     private final Clock clock;
 
     public DriverDocumentService(DriverDocumentRepository driverDocumentRepository,
@@ -44,6 +50,8 @@ public class DriverDocumentService {
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
             AuditLogService auditLogService,
             NotificationEventService notificationEventService,
+            DriverDocumentStorageService driverDocumentStorageService,
+            ComplianceIssueSyncService complianceIssueSyncService,
             Clock clock) {
         this.driverDocumentRepository = driverDocumentRepository;
         this.driverAccessService = driverAccessService;
@@ -51,7 +59,17 @@ public class DriverDocumentService {
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.auditLogService = auditLogService;
         this.notificationEventService = notificationEventService;
+        this.driverDocumentStorageService = driverDocumentStorageService;
+        this.complianceIssueSyncService = complianceIssueSyncService;
         this.clock = clock;
+    }
+
+    @Transactional(readOnly = true)
+    public StoredDriverDocumentFile loadCompanyDriverDocumentFile(Long documentId) {
+        DriverDocument document = findDocument(documentId);
+        return driverDocumentStorageService.load(document.getStoragePath(),
+                document.getOriginalFileName() == null ? document.getFileName() : document.getOriginalFileName(),
+                document.getContentType());
     }
 
     @Transactional(readOnly = true)
@@ -68,6 +86,18 @@ public class DriverDocumentService {
                         verificationStatus, status),
                 pageable);
         return PageResponse.from(result.map(driverDocumentMapper::toResponse));
+    }
+
+    @Transactional(readOnly = true)
+    public List<DriverDocumentResponse> listCompanyDriverDocuments(Long driverId) {
+        Driver driver = driverAccessService.findDriverForCompanyScope(driverId);
+        return driverDocumentRepository
+                .findAllByTenantIdAndDriver_IdIn(driver.getTenantId(), List.of(driver.getId()))
+                .stream()
+                .sorted(Comparator.comparing(DriverDocument::getUpdatedAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(driverDocumentMapper::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -90,6 +120,46 @@ public class DriverDocumentService {
         DriverDocument saved = driverDocumentRepository.save(document);
         recordAudit(saved, "CREATED", "Driver document " + saved.getDocumentType().name() + " was created.", null,
                 snapshot(saved));
+        return driverDocumentMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public DriverDocumentResponse uploadCompanyDriverDocument(Long driverId,
+            DriverDocumentType documentType,
+            String documentNumber,
+            String issuingAuthority,
+            LocalDate issueDate,
+            LocalDate expiryDate,
+            String notes,
+            MultipartFile file) {
+        Driver driver = driverAccessService.findDriverForCompanyScope(driverId);
+        if (issueDate != null && expiryDate != null && expiryDate.isBefore(issueDate)) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                    "Document expiry date cannot be earlier than the issue date.");
+        }
+        String storagePath = driverDocumentStorageService.store(driver.getTenantId(), driver.getId(), file);
+        String originalFileName = resolveOriginalFileName(file);
+        DriverDocument document = new DriverDocument();
+        document.setTenantId(driver.getTenantId());
+        document.setDriver(driver);
+        document.setDocumentType(documentType);
+        document.setFileName(java.nio.file.Path.of(storagePath).getFileName().toString());
+        document.setOriginalFileName(originalFileName);
+        document.setContentType(file.getContentType());
+        document.setStoragePath(storagePath);
+        document.setDocumentNumber(trimToNull(documentNumber));
+        document.setIssuingAuthority(trimToNull(issuingAuthority));
+        document.setIssueDate(issueDate);
+        document.setExpiryDate(expiryDate);
+        document.setNotes(trimToNull(notes));
+        document.setStatus(DriverDocumentStatus.ACTIVE);
+        document.setVerificationStatus(resolveStoredVerificationStatus(expiryDate));
+        document.setUploadedBy(currentAuthenticatedUserService.requireCurrentUser().username());
+        document.setUploadedAt(Instant.now(clock));
+        DriverDocument saved = driverDocumentRepository.save(document);
+        recordAudit(saved, "UPLOADED", "Driver document " + saved.getDocumentType().name()
+                + " was uploaded for review.", null, snapshot(saved));
+        complianceIssueSyncService.synchronizeTenantIssues(saved.getTenantId());
         return driverDocumentMapper.toResponse(saved);
     }
 
@@ -119,6 +189,7 @@ public class DriverDocumentService {
         recordAudit(saved, "VERIFIED", "Driver document " + saved.getDocumentType().name() + " was verified.",
                 oldSnapshot, snapshot(saved));
         notificationEventService.publishDriverDocumentVerified(saved);
+        complianceIssueSyncService.synchronizeTenantIssues(saved.getTenantId());
         return driverDocumentMapper.toResponse(saved);
     }
 
@@ -139,6 +210,7 @@ public class DriverDocumentService {
         recordAudit(saved, "REJECTED", "Driver document " + saved.getDocumentType().name() + " was rejected.",
                 oldSnapshot, snapshot(saved));
         notificationEventService.publishDriverDocumentRejected(saved);
+        complianceIssueSyncService.synchronizeTenantIssues(saved.getTenantId());
         return driverDocumentMapper.toResponse(saved);
     }
 
@@ -193,6 +265,19 @@ public class DriverDocumentService {
             return DriverDocumentVerificationStatus.EXPIRED;
         }
         return DriverDocumentVerificationStatus.PENDING;
+    }
+
+    private String resolveOriginalFileName(MultipartFile file) {
+        String originalFileName = file.getOriginalFilename() == null ? "document" :
+                java.nio.file.Path.of(file.getOriginalFilename()).getFileName().toString().trim();
+        return originalFileName.isEmpty() ? "document" : originalFileName.substring(0, Math.min(originalFileName.length(), 255));
+    }
+
+    private String trimToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private void recordAudit(DriverDocument document, String action, String summary, Object oldValue, Object newValue) {

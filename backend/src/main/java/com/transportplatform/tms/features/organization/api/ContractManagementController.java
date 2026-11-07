@@ -31,7 +31,7 @@ public class ContractManagementController {
     }
 
     @GetMapping("/company/contracts")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<PageResponse<ContractResponse>> searchCompanyContracts(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) ContractStatus status,
@@ -53,45 +53,45 @@ public class ContractManagementController {
     }
 
     @GetMapping("/company/contracts/{contractId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<ContractResponse> getCompanyContract(@PathVariable Long contractId) {
         return ApiResponse.success(contractService.getCompanyContract(contractId));
     }
 
     @PostMapping("/company/contracts")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ContractResponse> createCompanyContract(@Valid @RequestBody ContractUpsertRequest request) {
         return ApiResponse.success(contractService.createCompanyContract(request));
     }
 
     @PutMapping("/company/contracts/{contractId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<ContractResponse> updateCompanyContract(@PathVariable Long contractId,
             @Valid @RequestBody ContractUpsertRequest request) {
         return ApiResponse.success(contractService.updateCompanyContract(contractId, request));
     }
 
     @PostMapping("/company/contracts/{contractId}/activate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<ContractResponse> activateCompanyContract(@PathVariable Long contractId) {
         return ApiResponse.success(contractService.activateCompanyContract(contractId));
     }
 
     @PostMapping("/company/contracts/{contractId}/suspend")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<ContractResponse> suspendCompanyContract(@PathVariable Long contractId) {
         return ApiResponse.success(contractService.suspendCompanyContract(contractId));
     }
 
     @PostMapping("/company/contracts/{contractId}/terminate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<ContractResponse> terminateCompanyContract(@PathVariable Long contractId) {
         return ApiResponse.success(contractService.terminateCompanyContract(contractId));
     }
 
     @PostMapping("/company/contracts/{contractId}/deactivate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<ContractResponse> deactivateCompanyContract(@PathVariable Long contractId) {
         return ApiResponse.success(contractService.deactivateCompanyContract(contractId));
     }

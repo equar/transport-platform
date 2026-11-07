@@ -2,7 +2,6 @@ package com.transportplatform.tms.features.driverportal.application;
 
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
-import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.driver.domain.Driver;
 import com.transportplatform.tms.features.driver.domain.DriverRepository;
 import com.transportplatform.tms.features.portalaccess.application.PortalAccessService;

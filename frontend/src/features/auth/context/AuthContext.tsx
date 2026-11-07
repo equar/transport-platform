@@ -3,15 +3,20 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   type PropsWithChildren,
 } from "react";
 import { authApi } from "../api/authApi";
-import { getDefaultRoute as resolveDefaultRoute } from "../access";
+import {
+  getDefaultRoute as resolveDefaultRoute,
+  hasRole as sessionHasRole,
+} from "../access";
 import type { AuthSession, LoginPayload } from "../types";
 import {
-  AUTH_SESSION_INVALIDATED_EVENT,
   AUTH_SESSION_STORAGE_KEY,
+  AUTH_SESSION_INVALIDATED_EVENT,
 } from "../../../shared/config/storage";
+import { setApiSession, SESSION_REFRESHED_EVENT } from "../../../shared/api/client";
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -25,47 +30,80 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function readStoredSession(): AuthSession | null {
-  const raw = window.localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
-  if (!raw) {
-    return null;
-  }
-
+function persistSession(session: AuthSession | null) {
   try {
-    return JSON.parse(raw) as AuthSession;
+    if (session === null) {
+      window.sessionStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+      return;
+    }
+    window.sessionStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(session));
   } catch {
-    window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
-    return null;
+    // Ignore storage errors to avoid breaking authentication flow.
   }
 }
 
+function readPersistedSession(): AuthSession | null {
+  try {
+    const raw = window.sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as Partial<AuthSession>;
+    if (
+      typeof parsed?.accessToken === "string" &&
+      parsed.accessToken.length > 0 &&
+      typeof parsed?.tokenType === "string" &&
+      typeof parsed?.expiresInSeconds === "number" &&
+      parsed.identity &&
+      typeof parsed.identity.email === "string"
+    ) {
+      return parsed as AuthSession;
+    }
+  } catch {
+    // Ignore malformed storage and continue with server-side refresh.
+  }
+  return null;
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
+  const logoutInFlight = useRef<Promise<unknown> | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setSession(readStoredSession());
-    setIsLoading(false);
+    const persistedSession = readPersistedSession();
+    if (persistedSession) {
+      setApiSession(persistedSession);
+      setSession(persistedSession);
+    }
 
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === AUTH_SESSION_STORAGE_KEY) {
-        setSession(readStoredSession());
+    authApi.restoreSession().then((restored) => {
+      setApiSession(restored);
+      setSession(restored);
+      persistSession(restored);
+    }).catch(() => {
+      if (!persistedSession) {
+        setApiSession(null);
+        setSession(null);
+        persistSession(null);
       }
-    };
+    }).finally(() => setIsLoading(false));
 
+    const handleRefreshed = (event: Event) => { const refreshed=(event as CustomEvent<AuthSession>).detail; setSession(refreshed); persistSession(refreshed); };
+    window.addEventListener(SESSION_REFRESHED_EVENT, handleRefreshed);
     const handleSessionInvalidated = () => {
-      window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+      setApiSession(null);
       setSession(null);
+      persistSession(null);
     };
 
-    window.addEventListener("storage", handleStorage);
     window.addEventListener(
       AUTH_SESSION_INVALIDATED_EVENT,
       handleSessionInvalidated,
     );
 
     return () => {
-      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(SESSION_REFRESHED_EVENT, handleRefreshed);
       window.removeEventListener(
         AUTH_SESSION_INVALIDATED_EVENT,
         handleSessionInvalidated,
@@ -78,20 +116,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
     isAuthenticated: Boolean(session?.accessToken),
     isLoading,
     async signIn(payload: LoginPayload) {
+      await logoutInFlight.current;
+      setApiSession(null);
+      setSession(null);
+      persistSession(null);
       const nextSession = await authApi.signIn(payload);
-      window.localStorage.setItem(
-        AUTH_SESSION_STORAGE_KEY,
-        JSON.stringify(nextSession),
-      );
+      setApiSession(nextSession);
       setSession(nextSession);
+      persistSession(nextSession);
       return nextSession;
     },
     signOut() {
-      window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+      logoutInFlight.current = authApi.signOut().catch(() => undefined).finally(() => { logoutInFlight.current = null; });
+      setApiSession(null);
       setSession(null);
+      persistSession(null);
     },
     hasRole(role: string) {
-      return Boolean(session?.identity.roles.includes(role));
+      return sessionHasRole(session, role);
     },
     getDefaultRoute() {
       return resolveDefaultRoute(session);

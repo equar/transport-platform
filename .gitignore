@@ -9,18 +9,61 @@ Thumbs.db
 # Backend
 backend/target/
 backend/.mvn/wrapper/maven-wrapper.jar
+*.class
 
 # Frontend
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/vite.config.js
+frontend/vite.config.d.ts
+*.tsbuildinfo
+
+# Mobile
+mobile/node_modules/
+mobile/.expo/
+mobile/web-build/
+*.apk
+*.aab
+*.ipa
+*.xcarchive/
+*.dSYM/
+
+# Test reports and tooling caches
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+.pytest_cache/
+.ruff_cache/
 
 # Logs
 *.log
+*.log.*
+*.pid
+*.pid.lock
 
 # Environment overrides
 .env
 .env.*
+*.env
+!**/.env.example
+!**/.env.*.example
+!**/*.env.example
+deployment/aws/github-actions.env
+
+# Private keys and signing material
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+deployment/**/*.pem
 
 # Local runtime
 infra/.local/
+
+# Deployment validation bytecode
+__pycache__/
+*.py[cod]

@@ -1,0 +1,139 @@
+name: Build and Deploy Transport to Lightsail
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Application to redeploy (also applies changed configuration)
+        type: choice
+        default: all
+        options: [all, backend, frontend]
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: transport-platform-production
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.base.ref == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DEPLOY_ID: ${{ github.event.pull_request.merge_commit_sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+      LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST || vars.LIGHTSAIL_HOST }}
+      LIGHTSAIL_USER: ${{ secrets.LIGHTSAIL_USER || vars.LIGHTSAIL_USER }}
+      LIGHTSAIL_SSH_KEY_B64: ${{ secrets.LIGHTSAIL_SSH_KEY_B64 }}
+      LIGHTSAIL_SSH_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+      LIGHTSAIL_KNOWN_HOSTS: ${{ secrets.LIGHTSAIL_KNOWN_HOSTS }}
+      MYSQL_HOST: ${{ vars.MYSQL_HOST }}
+      MYSQL_PORT: ${{ vars.MYSQL_PORT || '3306' }}
+      MYSQL_DATABASE: transport_platform
+      MYSQL_USER: ${{ vars.MYSQL_USER }}
+      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+      APP_SECURITY_JWT_SECRET: ${{ secrets.APP_SECURITY_JWT_SECRET }}
+      APP_PUBLIC_URL: ${{ vars.APP_PUBLIC_URL || 'https://transport.bakaroo.com' }}
+      VITE_API_BASE_URL: /api
+      VITE_GOOGLE_MAPS_API_KEY: ${{ vars.VITE_GOOGLE_MAPS_API_KEY }}
+      APP_SECURITY_ALLOWED_ORIGINS: ${{ vars.APP_SECURITY_ALLOWED_ORIGINS || 'https://transport.bakaroo.com' }}
+      APP_AUTH_PASSWORD_RESET_BASE_URL: ${{ vars.APP_AUTH_PASSWORD_RESET_BASE_URL }}
+      APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED: ${{ vars.APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED || 'false' }}
+      APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL: ${{ vars.APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL }}
+      APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD: ${{ secrets.APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD }}
+      APP_EMAIL_ENABLED: ${{ vars.APP_EMAIL_ENABLED || 'false' }}
+      APP_EMAIL_PROVIDER: ${{ vars.APP_EMAIL_PROVIDER || 'logging' }}
+      APP_EMAIL_FROM: ${{ vars.APP_EMAIL_FROM }}
+      MICROSOFT_GRAPH_CLIENT_ID: ${{ vars.MICROSOFT_GRAPH_CLIENT_ID }}
+      MICROSOFT_GRAPH_TENANT_ID: ${{ vars.MICROSOFT_GRAPH_TENANT_ID }}
+      MICROSOFT_GRAPH_CLIENT_SECRET: ${{ secrets.MICROSOFT_GRAPH_CLIENT_SECRET }}
+      APP_PUSH_ENABLED: ${{ vars.APP_PUSH_ENABLED || 'false' }}
+      APP_PUSH_PROVIDER: ${{ vars.APP_PUSH_PROVIDER || 'logging' }}
+      APP_PUSH_EXPO_URL: https://exp.host/--/api/v2/push/send
+      EXPO_ACCESS_TOKEN: ${{ secrets.EXPO_ACCESS_TOKEN }}
+      APP_LOGGING_LEVEL_ROOT: ${{ vars.APP_LOGGING_LEVEL_ROOT || 'INFO' }}
+      APP_LOGGING_LEVEL_APP: ${{ vars.APP_LOGGING_LEVEL_APP || 'INFO' }}
+      APP_LOGGING_LEVEL_WEB: ${{ vars.APP_LOGGING_LEVEL_WEB || 'WARN' }}
+      APP_LOGGING_LEVEL_SECURITY: ${{ vars.APP_LOGGING_LEVEL_SECURITY || 'INFO' }}
+      APP_LOGGING_LEVEL_SQL: ${{ vars.APP_LOGGING_LEVEL_SQL || 'WARN' }}
+      APP_LOGGING_LEVEL_SQL_BIND: ${{ vars.APP_LOGGING_LEVEL_SQL_BIND || 'OFF' }}
+    steps:
+      - name: Checkout merged release
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+          fetch-depth: 2
+      - name: Detect affected applications
+        id: changes
+        env:
+          DEPLOY_TARGET: ${{ inputs.target || 'auto' }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          arguments=(--target "$DEPLOY_TARGET")
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            gh api --paginate --slurp "repos/$GH_REPO/pulls/$PR_NUMBER/files" > "$RUNNER_TEMP/transport-pr-files.json"
+            arguments+=(--paths-json "$RUNNER_TEMP/transport-pr-files.json")
+          fi
+          python3 deployment/aws/detect-deployment-changes.py "${arguments[@]}"
+      - name: Set up Java
+        if: steps.changes.outputs.backend == 'true'
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: Set up Node
+        if: steps.changes.outputs.any == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22.22.0'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Validate deployment configuration
+        if: steps.changes.outputs.any == 'true'
+        env:
+          CONFIG_TARGET: ${{ steps.changes.outputs.backend == 'true' && 'backend' || 'frontend' }}
+        run: python3 deployment/aws/validate-config.py --target "$CONFIG_TARGET"
+      - name: Verify and package backend
+        if: steps.changes.outputs.backend == 'true'
+        working-directory: backend
+        run: mvn -B clean verify
+      - name: Check generated contracts
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          node scripts/generate-api-types.mjs backend/target/api-contracts.json
+          git diff --exit-code -- frontend/src/shared/api/generated mobile/src/api/generated
+      - name: Verify and build frontend
+        if: steps.changes.outputs.frontend == 'true'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: Configure verified SSH connection
+        if: steps.changes.outputs.any == 'true'
+        run: |
+          python3 deployment/aws/prepare-ssh.py "$RUNNER_TEMP/transport-ssh"
+          printf 'SSH_KEY=%s\nSSH_KNOWN_HOSTS_FILE=%s\n' "$RUNNER_TEMP/transport-ssh/key" "$RUNNER_TEMP/transport-ssh/known_hosts" >> "$GITHUB_ENV"
+      - name: Deploy backend
+        if: steps.changes.outputs.backend == 'true'
+        run: bash deployment/aws/deploy-backend.sh
+      - name: Deploy frontend
+        if: steps.changes.outputs.frontend == 'true'
+        run: bash deployment/aws/deploy-frontend.sh
+      - name: Remove deployment SSH material
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/transport-ssh"

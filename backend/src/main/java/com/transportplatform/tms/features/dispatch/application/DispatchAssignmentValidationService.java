@@ -15,6 +15,7 @@ import com.transportplatform.tms.features.vehicle.domain.Vehicle;
 import com.transportplatform.tms.features.vehicle.domain.VehicleComplianceStatus;
 import com.transportplatform.tms.features.vehicle.domain.VehicleRepository;
 import com.transportplatform.tms.features.vehicle.domain.VehicleStatus;
+import com.transportplatform.tms.features.compliance.application.TenantTransportComplianceService;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -24,6 +25,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class DispatchAssignmentValidationService {
+
+    @org.springframework.beans.factory.annotation.Value("${app.dispatch.turnaround-minutes:0}")
+    private long turnaroundMinutes;
 
     private static final EnumSet<RideStatus> ACTIVE_ASSIGNMENT_STATUSES = EnumSet.of(
             RideStatus.SCHEDULED,
@@ -38,20 +42,24 @@ public class DispatchAssignmentValidationService {
     private final VehicleRepository vehicleRepository;
     private final DriverComplianceSummaryService driverComplianceSummaryService;
     private final VehicleComplianceSummaryService vehicleComplianceSummaryService;
+    private final TenantTransportComplianceService tenantTransportComplianceService;
 
     public DispatchAssignmentValidationService(RideRepository rideRepository,
             DriverRepository driverRepository,
             VehicleRepository vehicleRepository,
             DriverComplianceSummaryService driverComplianceSummaryService,
-            VehicleComplianceSummaryService vehicleComplianceSummaryService) {
+            VehicleComplianceSummaryService vehicleComplianceSummaryService,
+            TenantTransportComplianceService tenantTransportComplianceService) {
         this.rideRepository = rideRepository;
         this.driverRepository = driverRepository;
         this.vehicleRepository = vehicleRepository;
         this.driverComplianceSummaryService = driverComplianceSummaryService;
         this.vehicleComplianceSummaryService = vehicleComplianceSummaryService;
+        this.tenantTransportComplianceService = tenantTransportComplianceService;
     }
 
     public Driver requireAssignableDriver(String tenantId, Ride ride, Long driverId) {
+        requireTenantDispatchApproval(tenantId);
         Driver driver = driverRepository.findByIdAndTenantId(driverId, tenantId)
                 .orElseThrow(() -> new ApiException(
                         ErrorCode.RESOURCE_NOT_FOUND,
@@ -80,6 +88,7 @@ public class DispatchAssignmentValidationService {
     }
 
     public Vehicle requireAssignableVehicle(String tenantId, Ride ride, Long vehicleId) {
+        requireTenantDispatchApproval(tenantId);
         Vehicle vehicle = vehicleRepository.findByIdAndTenantId(vehicleId, tenantId)
                 .orElseThrow(() -> new ApiException(
                         ErrorCode.RESOURCE_NOT_FOUND,
@@ -97,6 +106,16 @@ public class DispatchAssignmentValidationService {
                     ErrorCode.VALIDATION_FAILED,
                     HttpStatus.BAD_REQUEST,
                     "Vehicle compliance requirements must be satisfied before assignment.");
+        }
+        int requiredSeats = 1 + Math.max(0, ride.getCompanionCount()) + (ride.isEscortRequired() ? 1 : 0);
+        if (vehicle.getCapacity() == null || vehicle.getCapacity() < requiredSeats) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                    "Vehicle capacity is insufficient for the rider, companions, and escort.");
+        }
+        if (ride.isWheelchairRequired()
+                && (vehicle.getWheelchairCapacity() == null || vehicle.getWheelchairCapacity() < 1)) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                    "A wheelchair-capable vehicle is required for this ride.");
         }
         if (hasVehicleConflict(tenantId, ride, vehicleId)) {
             throw new ApiException(
@@ -147,6 +166,40 @@ public class DispatchAssignmentValidationService {
         return new DispatchWarnings(complianceWarning, conflictWarning, List.copyOf(warningMessages));
     }
 
+    public java.util.Map<Long, DispatchWarnings> evaluateBatch(String tenantId, java.util.Collection<Ride> rides,
+            java.util.Map<Long, Driver> drivers, java.util.Map<Long, Vehicle> vehicles) {
+        if(rides.isEmpty()) return java.util.Map.of();
+        var driverCompliance = new java.util.HashMap<Long, Boolean>();
+        var vehicleCompliance = new java.util.HashMap<Long, Boolean>();
+        var candidates = rideRepository.findAll((root, query, cb) -> cb.and(
+                cb.equal(root.get("tenantId"), tenantId), root.get("status").in(ACTIVE_ASSIGNMENT_STATUSES),
+                cb.or(root.get("driverId").in(drivers.keySet()), root.get("vehicleId").in(vehicles.keySet()))));
+        var result = new java.util.HashMap<Long, DispatchWarnings>();
+        for(Ride ride: rides) {
+            boolean compliance=false, conflict=false; var messages=new java.util.ArrayList<String>();
+            if(ride.getDriverId()!=null) {
+                Driver driver=drivers.get(ride.getDriverId());
+                boolean valid=driver!=null && driver.getStatus()==DriverStatus.ACTIVE && driverCompliance.computeIfAbsent(driver.getId(),
+                        id->driverComplianceSummaryService.getSummary(tenantId,driver).overallStatus()==DriverComplianceStatus.COMPLIANT);
+                if(!valid) {compliance=true;messages.add("Assigned driver is inactive or has outstanding compliance items.");}
+            }
+            if(ride.getVehicleId()!=null) {
+                Vehicle vehicle=vehicles.get(ride.getVehicleId());
+                boolean valid=vehicle!=null && vehicle.getStatus()==VehicleStatus.ACTIVE && vehicleCompliance.computeIfAbsent(vehicle.getId(),
+                        id->vehicleComplianceSummaryService.getSummary(tenantId,vehicle).overallStatus()==VehicleComplianceStatus.COMPLIANT);
+                if(!valid) {compliance=true;messages.add("Assigned vehicle is inactive or has outstanding compliance items.");}
+            }
+            for(Ride candidate:candidates) {
+                if(java.util.Objects.equals(candidate.getId(),ride.getId()) || (ride.getRouteId()!=null && java.util.Objects.equals(ride.getRouteId(),candidate.getRouteId()))) continue;
+                boolean shared=(ride.getDriverId()!=null && java.util.Objects.equals(ride.getDriverId(),candidate.getDriverId()))
+                        || (ride.getVehicleId()!=null && java.util.Objects.equals(ride.getVehicleId(),candidate.getVehicleId()));
+                if(shared && windowsOverlap(resolveRideWindowStart(ride),resolveRideWindowEnd(ride),resolveRideWindowStart(candidate),resolveRideWindowEnd(candidate))) {conflict=true;messages.add("Assigned resource has an overlapping ride assignment.");break;}
+            }
+            result.put(ride.getId(),new DispatchWarnings(compliance,conflict,java.util.List.copyOf(messages)));
+        }
+        return result;
+    }
+
     public boolean hasDispatchException(String tenantId, Ride ride) {
         DispatchWarnings warnings = evaluateWarnings(tenantId, ride);
         return warnings.complianceWarning() || warnings.conflictWarning();
@@ -160,6 +213,7 @@ public class DispatchAssignmentValidationService {
                 driverId,
                 ACTIVE_ASSIGNMENT_STATUSES,
                 ride.getId() == null ? -1L : ride.getId()).stream()
+                .filter(candidate -> ride.getRouteId() == null || !java.util.Objects.equals(ride.getRouteId(),candidate.getRouteId()))
                 .anyMatch(candidate -> windowsOverlap(rideStart, rideEnd,
                         resolveRideWindowStart(candidate),
                         resolveRideWindowEnd(candidate)));
@@ -173,6 +227,7 @@ public class DispatchAssignmentValidationService {
                 vehicleId,
                 ACTIVE_ASSIGNMENT_STATUSES,
                 ride.getId() == null ? -1L : ride.getId()).stream()
+                .filter(candidate -> ride.getRouteId() == null || !java.util.Objects.equals(ride.getRouteId(),candidate.getRouteId()))
                 .anyMatch(candidate -> windowsOverlap(rideStart, rideEnd,
                         resolveRideWindowStart(candidate),
                         resolveRideWindowEnd(candidate)));
@@ -196,12 +251,19 @@ public class DispatchAssignmentValidationService {
             LocalDateTime firstEnd,
             LocalDateTime secondStart,
             LocalDateTime secondEnd) {
-        return !firstEnd.isBefore(secondStart) && !secondEnd.isBefore(firstStart);
+        return !firstEnd.plusMinutes(turnaroundMinutes).isBefore(secondStart) && !secondEnd.plusMinutes(turnaroundMinutes).isBefore(firstStart);
     }
 
     public record DispatchWarnings(
             boolean complianceWarning,
             boolean conflictWarning,
             List<String> warningMessages) {
+    }
+
+    private void requireTenantDispatchApproval(String tenantId) {
+        if (!tenantTransportComplianceService.isDispatchApproved(tenantId)) {
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                    "Transport compliance must be verified by the platform before dispatch assignments can be made.");
+        }
     }
 }

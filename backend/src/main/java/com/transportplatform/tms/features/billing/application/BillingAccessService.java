@@ -46,13 +46,15 @@ public class BillingAccessService {
 
     public String requireCompanyTenantId() {
         AuthenticatedUser user = currentAuthenticatedUserService.requireCurrentUser();
-        boolean companyAdmin = user.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals(RoleName.ROLE_TENANT_ADMIN.name()));
-        if (!companyAdmin || user.tenantId() == null || user.tenantId().isBlank()) {
+        boolean billingAdministrator = user.getAuthorities().stream()
+            .map(authority -> authority.getAuthority())
+            .anyMatch(authority -> authority.equals(RoleName.ROLE_TENANT_ADMIN.name())
+                || authority.equals(RoleName.ROLE_BILLING_ADMIN.name()));
+        if (!billingAdministrator || user.tenantId() == null || user.tenantId().isBlank()) {
             throw new ApiException(
                     ErrorCode.FORBIDDEN,
                     HttpStatus.FORBIDDEN,
-                    "A company administrator account is required for billing operations.");
+                "A tenant or billing administrator account is required for billing operations.");
         }
         return user.tenantId();
     }

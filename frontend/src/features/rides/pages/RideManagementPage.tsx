@@ -1,3 +1,4 @@
+import { useUrlFilters } from "../../../shared/hooks/useUrlFilters";
 import {
   Alert,
   Button,
@@ -72,7 +73,7 @@ function defaultFilters(): RideSearchParams {
 export function RideManagementPage() {
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
-  const [filters, setFilters] = useState<RideSearchParams>(defaultFilters());
+  const [filters, setFilters] = useUrlFilters<RideSearchParams>(defaultFilters());
   const [items, setItems] = useState<RideRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -393,7 +394,7 @@ export function RideManagementPage() {
           description="Adjust the filters or create a ride to start building operational scheduling history for this tenant."
         />
       ) : (
-        <Paper variant="outlined" sx={{ borderRadius: 5, overflow: "hidden" }}>
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Table>
             <TableHead>
               <TableRow>

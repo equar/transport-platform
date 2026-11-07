@@ -29,13 +29,13 @@ public class ComplianceManagementController {
     }
 
     @GetMapping("/company/compliance/summary")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<ComplianceDashboardSummaryResponse> getCompanyComplianceSummary() {
         return ApiResponse.success(complianceService.getCompanyComplianceSummary());
     }
 
     @GetMapping("/company/compliance/issues")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<PageResponse<ComplianceIssueSummaryResponse>> searchCompanyIssues(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) ComplianceEntityType entityType,
@@ -67,25 +67,25 @@ public class ComplianceManagementController {
     }
 
     @GetMapping("/company/compliance/issues/{issueId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<ComplianceIssueDetailResponse> getCompanyIssue(@PathVariable Long issueId) {
         return ApiResponse.success(complianceService.getCompanyIssue(issueId));
     }
 
     @PostMapping("/company/compliance/issues/{issueId}/acknowledge")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<ComplianceIssueDetailResponse> acknowledgeCompanyIssue(@PathVariable Long issueId) {
         return ApiResponse.success(complianceService.acknowledgeCompanyIssue(issueId));
     }
 
     @PostMapping("/company/compliance/issues/{issueId}/resolve")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<ComplianceIssueDetailResponse> resolveCompanyIssue(@PathVariable Long issueId) {
         return ApiResponse.success(complianceService.resolveCompanyIssue(issueId));
     }
 
     @PostMapping("/company/compliance/issues/{issueId}/dismiss")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'COMPLIANCE_ADMIN')")
     public ApiResponse<ComplianceIssueDetailResponse> dismissCompanyIssue(@PathVariable Long issueId) {
         return ApiResponse.success(complianceService.dismissCompanyIssue(issueId));
     }

@@ -11,13 +11,27 @@ import com.transportplatform.tms.features.auth.domain.AppUser;
 import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
+import com.transportplatform.tms.features.auth.application.AuthSessionService;
 import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import com.transportplatform.tms.features.portalaccess.application.PortalAccessService;
 import com.transportplatform.tms.features.portalaccess.domain.PortalSubjectType;
+import com.transportplatform.tms.features.portalaccess.domain.PortalUserScopeRepository;
+import com.transportplatform.tms.features.driver.domain.DriverRepository;
+import com.transportplatform.tms.features.rider.domain.RiderRepository;
+import com.transportplatform.tms.features.rider.domain.GuardianRepository;
+import com.transportplatform.tms.features.organization.domain.OrganizationContactRepository;
+import com.transportplatform.tms.features.user.api.response.PortalSubjectOptionResponse;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
+import com.transportplatform.tms.features.user.api.request.AdminResetPasswordRequest;
 import com.transportplatform.tms.features.user.api.request.UserUpsertRequest;
 import com.transportplatform.tms.features.user.api.response.UserResponse;
+import java.time.Clock;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -37,6 +51,13 @@ public class UserManagementService {
     private final AuditLogService auditLogService;
     private final NotificationEventService notificationEventService;
     private final PortalAccessService portalAccessService;
+    private final PortalUserScopeRepository portalUserScopeRepository;
+    private final DriverRepository driverRepository;
+    private final RiderRepository riderRepository;
+    private final GuardianRepository guardianRepository;
+    private final OrganizationContactRepository organizationContactRepository;
+    private final AuthSessionService authSessionService;
+    private final Clock clock;
 
     public UserManagementService(AppUserRepository appUserRepository,
             TenantRepository tenantRepository,
@@ -44,7 +65,14 @@ public class UserManagementService {
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
             AuditLogService auditLogService,
             NotificationEventService notificationEventService,
-            PortalAccessService portalAccessService) {
+            PortalAccessService portalAccessService,
+            PortalUserScopeRepository portalUserScopeRepository,
+            DriverRepository driverRepository,
+            RiderRepository riderRepository,
+            GuardianRepository guardianRepository,
+            OrganizationContactRepository organizationContactRepository,
+            AuthSessionService authSessionService,
+            Clock clock) {
         this.appUserRepository = appUserRepository;
         this.tenantRepository = tenantRepository;
         this.passwordEncoder = passwordEncoder;
@@ -52,6 +80,70 @@ public class UserManagementService {
         this.auditLogService = auditLogService;
         this.notificationEventService = notificationEventService;
         this.portalAccessService = portalAccessService;
+        this.portalUserScopeRepository = portalUserScopeRepository;
+        this.driverRepository = driverRepository;
+        this.riderRepository = riderRepository;
+        this.guardianRepository = guardianRepository;
+        this.organizationContactRepository = organizationContactRepository;
+        this.authSessionService = authSessionService;
+        this.clock = clock;
+    }
+
+    @Transactional(readOnly = true)
+    public List<PortalSubjectOptionResponse> listCompanyPortalSubjects(PortalSubjectType type, String keyword) {
+        String tenantId = requireCompanyAdminTenantId();
+        Set<Long> linkedIds = portalUserScopeRepository.findAllByTenantIdAndPortalSubjectType(tenantId, type).stream()
+                .map(scope -> scope.getPortalSubjectId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        List<PortalSubjectOptionResponse> options = switch (type) {
+            case DRIVER -> driverRepository.findAllByTenantId(tenantId).stream()
+                    .map(subject -> new PortalSubjectOptionResponse(
+                            subject.getId(), type, displayName(subject.getFirstName(), subject.getLastName()),
+                            subject.getFirstName(), subject.getLastName(), subject.getDriverCode(), subject.getEmail(),
+                            subject.getStatus().name(), linkedIds.contains(subject.getId())))
+                    .toList();
+            case RIDER -> riderRepository.findAllByTenantId(tenantId).stream()
+                    .map(subject -> new PortalSubjectOptionResponse(
+                            subject.getId(), type, displayName(subject.getFirstName(), subject.getLastName()),
+                            subject.getFirstName(), subject.getLastName(), subject.getRiderCode(), subject.getEmail(),
+                            subject.getStatus().name(), linkedIds.contains(subject.getId())))
+                    .toList();
+            case GUARDIAN -> guardianRepository.findAllByTenantId(tenantId).stream()
+                    .map(subject -> new PortalSubjectOptionResponse(
+                            subject.getId(), type, displayName(subject.getFirstName(), subject.getLastName()),
+                            subject.getFirstName(), subject.getLastName(), null, subject.getEmail(),
+                            subject.getStatus().name(), linkedIds.contains(subject.getId())))
+                    .toList();
+            case ORGANIZATION_CONTACT -> organizationContactRepository
+                    .findAllByTenantIdOrderByLastNameAscFirstNameAsc(tenantId).stream()
+                    .map(subject -> new PortalSubjectOptionResponse(
+                            subject.getId(), type, displayName(subject.getFirstName(), subject.getLastName()),
+                            subject.getFirstName(), subject.getLastName(), subject.getOrganization().getName(),
+                            subject.getEmail(), subject.getStatus().name(), linkedIds.contains(subject.getId())))
+                    .toList();
+        };
+
+        String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
+        return options.stream()
+                .filter(option -> normalizedKeyword.isEmpty()
+                        || searchablePortalSubject(option).contains(normalizedKeyword))
+                .sorted(Comparator.comparing(PortalSubjectOptionResponse::displayName,
+                        String.CASE_INSENSITIVE_ORDER))
+                .limit(100)
+                .toList();
+    }
+
+    private String displayName(String firstName, String lastName) {
+        return (firstName + " " + lastName).trim();
+    }
+
+    private String searchablePortalSubject(PortalSubjectOptionResponse option) {
+        return String.join(" ",
+                option.displayName(),
+                option.reference() == null ? "" : option.reference(),
+                option.email() == null ? "" : option.email())
+                .toLowerCase(Locale.ROOT);
     }
 
     @Transactional(readOnly = true)
@@ -105,7 +197,7 @@ public class UserManagementService {
         AppUser user = new AppUser();
         applyUserValues(user, request, AdminScope.PLATFORM, true);
         AppUser saved = appUserRepository.save(user);
-        syncPortalScope(saved, request);
+        syncPortalScope(saved, request, true);
         recordUserCreated(saved);
         return toResponse(saved);
     }
@@ -116,7 +208,7 @@ public class UserManagementService {
         AppUser user = new AppUser();
         applyUserValues(user, request, AdminScope.COMPANY, true);
         AppUser saved = appUserRepository.save(user);
-        syncPortalScope(saved, request);
+        syncPortalScope(saved, request, true);
         recordUserCreated(saved);
         notificationEventService.publishCompanyUserCreated(saved);
         return toResponse(saved);
@@ -128,9 +220,12 @@ public class UserManagementService {
         AppUser user = findUser(userId);
         var oldSnapshot = snapshot(user);
         Set<RoleName> previousRoles = new LinkedHashSet<>(user.getRoles());
+        String previousPasswordHash = user.getPasswordHash();
+        UserStatus previousStatus = user.getStatus();
         applyUserValues(user, request, AdminScope.PLATFORM, false);
         AppUser saved = appUserRepository.save(user);
-        syncPortalScope(saved, request);
+        revokeSessionsWhenCredentialsChanged(saved, previousRoles, previousPasswordHash, previousStatus);
+        syncPortalScope(saved, request, false);
         recordUserUpdated(saved, oldSnapshot, previousRoles);
         return toResponse(saved);
     }
@@ -140,11 +235,27 @@ public class UserManagementService {
         AppUser user = findUserForCompanyScope(userId);
         var oldSnapshot = snapshot(user);
         Set<RoleName> previousRoles = new LinkedHashSet<>(user.getRoles());
+        String previousPasswordHash = user.getPasswordHash();
+        UserStatus previousStatus = user.getStatus();
         applyUserValues(user, request, AdminScope.COMPANY, false);
         AppUser saved = appUserRepository.save(user);
-        syncPortalScope(saved, request);
+        revokeSessionsWhenCredentialsChanged(saved, previousRoles, previousPasswordHash, previousStatus);
+        syncPortalScope(saved, request, false);
         recordUserUpdated(saved, oldSnapshot, previousRoles);
         return toResponse(saved);
+    }
+
+    @Transactional
+    public UserResponse resetPlatformUserPassword(Long userId, AdminResetPasswordRequest request) {
+        requireRole(RoleName.ROLE_PLATFORM_ADMIN);
+        AppUser user = findUser(userId);
+        return resetUserPassword(user, request.password());
+    }
+
+    @Transactional
+    public UserResponse resetCompanyUserPassword(Long userId, AdminResetPasswordRequest request) {
+        AppUser user = findUserForCompanyScope(userId);
+        return resetUserPassword(user, request.password());
     }
 
     @Transactional
@@ -197,6 +308,9 @@ public class UserManagementService {
         UserStatus previousStatus = user.getStatus();
         user.setStatus(status);
         AppUser saved = appUserRepository.save(user);
+        if (previousStatus != saved.getStatus() && isSessionInvalidatingStatus(saved.getStatus())) {
+            authSessionService.revokeAllForUser(saved.getId());
+        }
         auditLogService.record(new AuditLogCommand(
                 null,
                 saved.getTenantId(),
@@ -230,13 +344,13 @@ public class UserManagementService {
         }
 
         boolean emailConflict = creating
-                ? appUserRepository.existsForTenantAndEmail(tenantId, normalizedEmail)
-                : appUserRepository.existsForTenantAndEmailAndIdNot(tenantId, normalizedEmail, user.getId());
+                ? appUserRepository.existsByEmailIgnoreCase(normalizedEmail)
+                : appUserRepository.existsByEmailIgnoreCaseAndIdNot(normalizedEmail, user.getId());
         if (emailConflict) {
             throw new ApiException(
                     ErrorCode.RESOURCE_CONFLICT,
                     HttpStatus.CONFLICT,
-                    "A user with the provided email already exists in the selected tenant scope.");
+                    "A user with the provided email already exists.");
         }
 
         user.setTenantId(tenantId);
@@ -247,7 +361,47 @@ public class UserManagementService {
         user.setStatus(request.status() == null ? UserStatus.ACTIVE : request.status());
         if (request.password() != null && !request.password().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.password()));
+            user.setPasswordChangedAt(clock.instant());
+            user.setMustChangePassword(true);
         }
+    }
+
+    private UserResponse resetUserPassword(AppUser user, String password) {
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setPasswordChangedAt(clock.instant());
+        user.setMustChangePassword(true);
+        user.setPasswordResetTokenHash(null);
+        user.setPasswordResetRequestedAt(null);
+        user.setPasswordResetTokenExpiresAt(null);
+        AppUser saved = appUserRepository.save(user);
+        authSessionService.revokeAllForUser(saved.getId());
+        auditLogService.record(new AuditLogCommand(
+                null,
+                saved.getTenantId(),
+                "USER",
+                "PASSWORD_RESET_BY_ADMIN",
+                "USER",
+                resolveEntityId(saved),
+                "An administrator reset the user's password.",
+                null,
+                Map.of("userId", saved.getId(), "email", saved.getEmail(), "mustChangePassword", true)));
+        notificationEventService.publishCompanyUserCreated(saved);
+        return toResponse(saved);
+    }
+
+    private void revokeSessionsWhenCredentialsChanged(AppUser user,
+            Set<RoleName> previousRoles,
+            String previousPasswordHash,
+            UserStatus previousStatus) {
+        if (!previousRoles.equals(user.getRoles())
+                || !Objects.equals(previousPasswordHash, user.getPasswordHash())
+                || (previousStatus != user.getStatus() && isSessionInvalidatingStatus(user.getStatus()))) {
+            authSessionService.revokeAllForUser(user.getId());
+        }
+    }
+
+    private boolean isSessionInvalidatingStatus(UserStatus status) {
+        return status == UserStatus.SUSPENDED || status == UserStatus.DEACTIVATED;
     }
 
     private Set<RoleName> validateRoles(Set<RoleName> roles, AdminScope scope, String tenantId) {
@@ -282,7 +436,7 @@ public class UserManagementService {
         return roles;
     }
 
-    private void syncPortalScope(AppUser user, UserUpsertRequest request) {
+    private void syncPortalScope(AppUser user, UserUpsertRequest request, boolean creating) {
         if (user.getTenantId() == null || user.getTenantId().isBlank()) {
             portalAccessService.removeScope(user.getId());
             return;
@@ -291,9 +445,20 @@ public class UserManagementService {
             portalAccessService.removeScope(user.getId());
             return;
         }
-        if (request.portalSubjectType() == null || request.portalSubjectId() == null) {
-            portalAccessService.removeScope(user.getId());
+        if (request.portalSubjectType() == null && request.portalSubjectId() == null) {
+            if (creating || portalAccessService.findScope(user.getId()).isEmpty()) {
+                throw new ApiException(
+                        ErrorCode.VALIDATION_FAILED,
+                        HttpStatus.BAD_REQUEST,
+                        "A portal identity must be selected for driver, rider, guardian, and organization users.");
+            }
             return;
+        }
+        if (request.portalSubjectType() == null || request.portalSubjectId() == null) {
+            throw new ApiException(
+                    ErrorCode.VALIDATION_FAILED,
+                    HttpStatus.BAD_REQUEST,
+                    "Both portal subject type and portal subject ID are required.");
         }
         validatePortalScopeCompatibility(user.getRoles(), request.portalSubjectType());
         portalAccessService.upsertScope(user.getId(), user.getTenantId(), request.portalSubjectType(),
@@ -456,6 +621,7 @@ public class UserManagementService {
     }
 
     private UserResponse toResponse(AppUser user) {
+        var portalScope = user.getId() == null ? null : portalAccessService.findScope(user.getId()).orElse(null);
         return new UserResponse(
                 user.getId(),
                 user.getTenantId(),
@@ -465,6 +631,8 @@ public class UserManagementService {
                 user.getStatus().name(),
                 user.getRoles().stream().map(Enum::name)
                         .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new)),
+                portalScope == null ? null : portalScope.getPortalSubjectType(),
+                portalScope == null ? null : portalScope.getPortalSubjectId(),
                 user.getLastLoginAt(),
                 user.getCreatedAt(),
                 user.getUpdatedAt());

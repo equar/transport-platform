@@ -11,7 +11,13 @@ import com.transportplatform.tms.features.driverportal.api.response.DriverPortal
 import com.transportplatform.tms.features.driverportal.api.response.DriverPortalRideSummaryResponse;
 import com.transportplatform.tms.features.driverportal.api.response.DriverPortalRouteDetailResponse;
 import com.transportplatform.tms.features.driverportal.api.response.DriverPortalRouteSummaryResponse;
+import com.transportplatform.tms.features.driverportal.api.response.DriverPortalDocumentResponse;
+import com.transportplatform.tms.features.driver.domain.DriverDocumentType;
+import com.transportplatform.tms.features.location.api.request.DriverLocationSnapshotRequest;
+import com.transportplatform.tms.features.location.api.response.DriverLocationSnapshotResponse;
+import com.transportplatform.tms.features.location.application.DriverLocationSnapshotService;
 import com.transportplatform.tms.features.driverportal.application.DriverPortalService;
+import com.transportplatform.tms.features.driverportal.application.DriverActionIdempotencyService;
 import com.transportplatform.tms.features.ride.domain.RideStatus;
 import com.transportplatform.tms.features.route.domain.RouteStatus;
 import jakarta.validation.Valid;
@@ -25,15 +31,28 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestHeader;
+import java.util.function.Supplier;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 @RestController
 @PreAuthorize("hasRole('DRIVER')")
 public class DriverPortalController {
 
     private final DriverPortalService driverPortalService;
+    private final DriverLocationSnapshotService driverLocationSnapshotService;
+    private final DriverActionIdempotencyService idempotencyService;
 
-    public DriverPortalController(DriverPortalService driverPortalService) {
+    public DriverPortalController(DriverPortalService driverPortalService,
+            DriverLocationSnapshotService driverLocationSnapshotService,
+            DriverActionIdempotencyService idempotencyService) {
         this.driverPortalService = driverPortalService;
+        this.driverLocationSnapshotService = driverLocationSnapshotService;
+        this.idempotencyService = idempotencyService;
     }
 
     @GetMapping("/portal/driver/dashboard")
@@ -55,6 +74,20 @@ public class DriverPortalController {
     @GetMapping("/portal/driver/compliance")
     public ApiResponse<DriverPortalComplianceSummaryResponse> getComplianceSummary() {
         return ApiResponse.success(driverPortalService.getComplianceSummary());
+    }
+
+    @PostMapping(value = "/portal/driver/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<DriverPortalDocumentResponse> uploadDocument(
+            @RequestParam DriverDocumentType documentType,
+            @RequestParam(required = false) String documentNumber,
+            @RequestParam(required = false) String issuingAuthority,
+            @RequestParam(required = false) LocalDate issueDate,
+            @RequestParam(required = false) LocalDate expiryDate,
+            @RequestParam(required = false) String notes,
+            @RequestPart("file") MultipartFile file) {
+        return ApiResponse.success(driverPortalService.uploadDocument(documentType, documentNumber,
+                issuingAuthority, issueDate, expiryDate, notes, file));
     }
 
     @GetMapping("/portal/driver/rides")
@@ -84,38 +117,63 @@ public class DriverPortalController {
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/driver-en-route")
-    public ApiResponse<DriverPortalRideDetailResponse> markRideDriverEnRoute(@PathVariable Long rideId) {
-        return ApiResponse.success(driverPortalService.markRideDriverEnRoute(rideId));
+    public ApiResponse<DriverPortalRideDetailResponse> markRideDriverEnRoute(@PathVariable Long rideId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "driver-en-route", () -> driverPortalService.markRideDriverEnRoute(rideId));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/arrived")
-    public ApiResponse<DriverPortalRideDetailResponse> markRideArrived(@PathVariable Long rideId) {
-        return ApiResponse.success(driverPortalService.markRideArrived(rideId));
+    public ApiResponse<DriverPortalRideDetailResponse> markRideArrived(@PathVariable Long rideId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "arrived", () -> driverPortalService.markRideArrived(rideId));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/picked-up")
-    public ApiResponse<DriverPortalRideDetailResponse> markRidePickedUp(@PathVariable Long rideId) {
-        return ApiResponse.success(driverPortalService.markRidePickedUp(rideId));
+    public ApiResponse<DriverPortalRideDetailResponse> markRidePickedUp(@PathVariable Long rideId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "picked-up", () -> driverPortalService.markRidePickedUp(rideId));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/dropped-off")
-    public ApiResponse<DriverPortalRideDetailResponse> markRideDroppedOff(@PathVariable Long rideId) {
-        return ApiResponse.success(driverPortalService.markRideDroppedOff(rideId));
+    public ApiResponse<DriverPortalRideDetailResponse> markRideDroppedOff(@PathVariable Long rideId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "dropped-off", () -> driverPortalService.markRideDroppedOff(rideId));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/complete")
-    public ApiResponse<DriverPortalRideDetailResponse> completeRide(@PathVariable Long rideId) {
-        return ApiResponse.success(driverPortalService.completeRide(rideId));
+    public ApiResponse<DriverPortalRideDetailResponse> completeRide(@PathVariable Long rideId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "complete", () -> driverPortalService.completeRide(rideId));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/no-show")
-    public ApiResponse<DriverPortalRideDetailResponse> markRideNoShow(@PathVariable Long rideId) {
-        return ApiResponse.success(driverPortalService.markRideNoShow(rideId));
+    public ApiResponse<DriverPortalRideDetailResponse> markRideNoShow(@PathVariable Long rideId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "no-show", () -> driverPortalService.markRideNoShow(rideId));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/actions/failed")
-    public ApiResponse<DriverPortalRideDetailResponse> markRideFailed(@PathVariable Long rideId) {
-        return ApiResponse.success(driverPortalService.markRideFailed(rideId));
+    public ApiResponse<DriverPortalRideDetailResponse> markRideFailed(@PathVariable Long rideId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @RequestHeader(value = "X-Expected-Ride-Status", required = false) String expectedStatus) {
+        return action(rideId, key, expectedStatus, "failed", () -> driverPortalService.markRideFailed(rideId));
+    }
+
+    @GetMapping("/portal/driver/rides/{rideId}/location-snapshot")
+    public ApiResponse<DriverLocationSnapshotResponse> getRideLocationSnapshot(@PathVariable Long rideId) {
+        return ApiResponse.success(driverLocationSnapshotService.getLatestDriverRideSnapshot(rideId));
+    }
+
+    @PostMapping("/portal/driver/rides/{rideId}/location-snapshots")
+    public ApiResponse<DriverLocationSnapshotResponse> captureRideLocationSnapshot(@PathVariable Long rideId,
+            @Valid @RequestBody DriverLocationSnapshotRequest request) {
+        return ApiResponse.success(driverLocationSnapshotService.captureDriverRideSnapshot(rideId, request));
     }
 
     @PostMapping("/portal/driver/rides/{rideId}/notes")
@@ -149,5 +207,18 @@ public class DriverPortalController {
     @GetMapping("/portal/driver/routes/{routeId}")
     public ApiResponse<DriverPortalRouteDetailResponse> getMyRoute(@PathVariable Long routeId) {
         return ApiResponse.success(driverPortalService.getMyRoute(routeId));
+    }
+
+    private ApiResponse<DriverPortalRideDetailResponse> action(Long rideId, String key, String expectedStatus, String action,
+            Supplier<DriverPortalRideDetailResponse> operation) {
+        return ApiResponse.success(idempotencyService.execute(key, rideId, action, () -> {
+            if (expectedStatus != null && !driverPortalService.getMyRide(rideId).status().name().equals(expectedStatus)) {
+                throw new com.transportplatform.tms.common.exception.ApiException(
+                    com.transportplatform.tms.common.exception.ErrorCode.RESOURCE_CONFLICT,
+                    org.springframework.http.HttpStatus.CONFLICT, "Trip status changed. Refresh before choosing another action.");
+            }
+            return operation.get();
+        },
+                () -> driverPortalService.getMyRide(rideId)));
     }
 }

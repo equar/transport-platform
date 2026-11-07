@@ -30,7 +30,7 @@ public class ServiceAreaManagementController {
     }
 
     @GetMapping("/company/service-areas")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<PageResponse<ServiceAreaResponse>> searchCompanyServiceAreas(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) ServiceAreaStatus status,
@@ -50,13 +50,13 @@ public class ServiceAreaManagementController {
     }
 
     @GetMapping("/company/service-areas/{serviceAreaId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<ServiceAreaResponse> getCompanyServiceArea(@PathVariable Long serviceAreaId) {
         return ApiResponse.success(serviceAreaService.getCompanyServiceArea(serviceAreaId));
     }
 
     @PostMapping("/company/service-areas")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ServiceAreaResponse> createCompanyServiceArea(
             @Valid @RequestBody ServiceAreaUpsertRequest request) {
@@ -64,20 +64,20 @@ public class ServiceAreaManagementController {
     }
 
     @PutMapping("/company/service-areas/{serviceAreaId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<ServiceAreaResponse> updateCompanyServiceArea(@PathVariable Long serviceAreaId,
             @Valid @RequestBody ServiceAreaUpsertRequest request) {
         return ApiResponse.success(serviceAreaService.updateCompanyServiceArea(serviceAreaId, request));
     }
 
     @PostMapping("/company/service-areas/{serviceAreaId}/activate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<ServiceAreaResponse> activateCompanyServiceArea(@PathVariable Long serviceAreaId) {
         return ApiResponse.success(serviceAreaService.activateCompanyServiceArea(serviceAreaId));
     }
 
     @PostMapping("/company/service-areas/{serviceAreaId}/deactivate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<ServiceAreaResponse> deactivateCompanyServiceArea(@PathVariable Long serviceAreaId) {
         return ApiResponse.success(serviceAreaService.deactivateCompanyServiceArea(serviceAreaId));
     }

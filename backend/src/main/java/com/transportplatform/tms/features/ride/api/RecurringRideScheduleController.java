@@ -35,7 +35,7 @@ public class RecurringRideScheduleController {
     }
 
     @GetMapping("/company/recurring-rides")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<PageResponse<RecurringRideScheduleResponse>> searchCompanyRecurringRideSchedules(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) RideRecurrenceStatus status,
@@ -69,13 +69,13 @@ public class RecurringRideScheduleController {
     }
 
     @GetMapping("/company/recurring-rides/{recurrenceId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RecurringRideScheduleResponse> getCompanyRecurringRideSchedule(@PathVariable Long recurrenceId) {
         return ApiResponse.success(recurringRideScheduleService.getCompanyRecurringRideSchedule(recurrenceId));
     }
 
     @PostMapping("/company/recurring-rides")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RecurringRideScheduleResponse> createCompanyRecurringRideSchedule(
             @Valid @RequestBody RecurringRideScheduleUpsertRequest request) {
@@ -83,7 +83,7 @@ public class RecurringRideScheduleController {
     }
 
     @PutMapping("/company/recurring-rides/{recurrenceId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RecurringRideScheduleResponse> updateCompanyRecurringRideSchedule(
             @PathVariable Long recurrenceId,
             @Valid @RequestBody RecurringRideScheduleUpsertRequest request) {
@@ -92,28 +92,28 @@ public class RecurringRideScheduleController {
     }
 
     @PostMapping("/company/recurring-rides/{recurrenceId}/activate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RecurringRideScheduleResponse> activateCompanyRecurringRideSchedule(
             @PathVariable Long recurrenceId) {
         return ApiResponse.success(recurringRideScheduleService.activateCompanyRecurringRideSchedule(recurrenceId));
     }
 
     @PostMapping("/company/recurring-rides/{recurrenceId}/pause")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RecurringRideScheduleResponse> pauseCompanyRecurringRideSchedule(
             @PathVariable Long recurrenceId) {
         return ApiResponse.success(recurringRideScheduleService.pauseCompanyRecurringRideSchedule(recurrenceId));
     }
 
     @PostMapping("/company/recurring-rides/{recurrenceId}/deactivate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RecurringRideScheduleResponse> deactivateCompanyRecurringRideSchedule(
             @PathVariable Long recurrenceId) {
         return ApiResponse.success(recurringRideScheduleService.deactivateCompanyRecurringRideSchedule(recurrenceId));
     }
 
     @PostMapping("/company/recurring-rides/{recurrenceId}/generate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideGenerationResultResponse> generateCompanyRecurringRideInstances(
             @PathVariable Long recurrenceId,
             @Valid @RequestBody GenerateRecurringRideInstancesRequest request) {

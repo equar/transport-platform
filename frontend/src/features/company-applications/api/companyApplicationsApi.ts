@@ -79,6 +79,7 @@ export interface CompanyApplicationReviewPayload {
   subscriptionPlan?: string;
   tenantCode?: string;
   ownerEmail: string;
+  ownerPassword?: string;
 }
 
 export const companyApplicationsApi = {

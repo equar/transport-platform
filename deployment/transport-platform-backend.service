@@ -1,0 +1,30 @@
+[Unit]
+Description=Transport Platform Backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=transport
+Group=transport
+WorkingDirectory=/opt/transport-platform/runtime
+EnvironmentFile=/opt/transport-platform/.env
+ExecStart=/usr/bin/java -Xms512m -Xmx1g -XX:+UseG1GC -Djavax.net.ssl.trustStore=/etc/transport-platform/database-truststore.jks -Djavax.net.ssl.trustStorePassword=changeit -jar /opt/transport-platform/backend.jar --spring.profiles.active=prod --server.address=127.0.0.1 --server.port=8087 --server.servlet.context-path=/api --spring.jpa.hibernate.ddl-auto=validate --spring.flyway.locations=classpath:db/migration
+Restart=on-failure
+RestartSec=10
+SuccessExitStatus=143
+TimeoutStopSec=45
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=transport-platform-backend
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/transport-platform/logs /opt/transport-platform/documents
+UMask=0027
+LimitNOFILE=65535
+Environment=TZ=UTC
+
+[Install]
+WantedBy=multi-user.target

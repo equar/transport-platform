@@ -53,6 +53,10 @@ const PlatformAdminProfilePage = lazyPage(
   () => import("../../features/auth/pages/PlatformAdminProfilePage"),
   "PlatformAdminProfilePage",
 );
+const AccountSecurityPage = lazyPage(
+  () => import("../../features/auth/pages/AccountSecurityPage"),
+  "AccountSecurityPage",
+);
 const DashboardPage = lazyPage(
   () => import("../../features/dashboard/pages/DashboardPage"),
   "DashboardPage",
@@ -179,6 +183,14 @@ const NotificationTemplateManagementPage = lazyPage(
 const ComplianceDashboardPage = lazyPage(
   () => import("../../features/compliance/pages/ComplianceDashboardPage"),
   "ComplianceDashboardPage",
+);
+const TransportCompliancePage = lazyPage(
+  () => import("../../features/compliance/pages/TransportCompliancePage"),
+  "TransportCompliancePage",
+);
+const PlatformTransportCompliancePage = lazyPage(
+  () => import("../../features/compliance/pages/PlatformTransportCompliancePage"),
+  "PlatformTransportCompliancePage",
 );
 const IncidentManagementPage = lazyPage(
   () => import("../../features/incidents/pages/IncidentManagementPage"),
@@ -481,6 +493,10 @@ const router = createBrowserRouter([
         element: <TenantManagementPage />,
       },
       {
+        path: "tenants/:tenantId/transport-compliance",
+        element: <PlatformTransportCompliancePage />,
+      },
+      {
         path: "company-applications",
         element: <CompanyApplicationsPage />,
       },
@@ -534,6 +550,10 @@ const router = createBrowserRouter([
         element: <DashboardPage />,
       },
       {
+        path: "security",
+        element: <AccountSecurityPage />,
+      },
+      {
         path: "users",
         element: <UserManagementPage />,
       },
@@ -548,6 +568,10 @@ const router = createBrowserRouter([
       {
         path: "compliance",
         element: <ComplianceDashboardPage />,
+      },
+      {
+        path: "transport-compliance",
+        element: <TransportCompliancePage />,
       },
       {
         path: "incidents",

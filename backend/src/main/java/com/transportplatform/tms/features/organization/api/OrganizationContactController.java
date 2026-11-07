@@ -26,19 +26,19 @@ public class OrganizationContactController {
     }
 
     @GetMapping("/company/organizations/{organizationId}/contacts")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<List<OrganizationContactResponse>> listOrganizationContacts(@PathVariable Long organizationId) {
         return ApiResponse.success(organizationContactService.listOrganizationContacts(organizationId));
     }
 
     @GetMapping("/company/organization-contacts/{contactId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<OrganizationContactResponse> getOrganizationContact(@PathVariable Long contactId) {
         return ApiResponse.success(organizationContactService.getOrganizationContact(contactId));
     }
 
     @PostMapping("/company/organizations/{organizationId}/contacts")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<OrganizationContactResponse> createOrganizationContact(@PathVariable Long organizationId,
             @Valid @RequestBody OrganizationContactUpsertRequest request) {
@@ -46,26 +46,26 @@ public class OrganizationContactController {
     }
 
     @PutMapping("/company/organization-contacts/{contactId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<OrganizationContactResponse> updateOrganizationContact(@PathVariable Long contactId,
             @Valid @RequestBody OrganizationContactUpsertRequest request) {
         return ApiResponse.success(organizationContactService.updateOrganizationContact(contactId, request));
     }
 
     @PostMapping("/company/organization-contacts/{contactId}/activate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<OrganizationContactResponse> activateOrganizationContact(@PathVariable Long contactId) {
         return ApiResponse.success(organizationContactService.activateOrganizationContact(contactId));
     }
 
     @PostMapping("/company/organization-contacts/{contactId}/deactivate")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<OrganizationContactResponse> deactivateOrganizationContact(@PathVariable Long contactId) {
         return ApiResponse.success(organizationContactService.deactivateOrganizationContact(contactId));
     }
 
     @PostMapping("/company/organization-contacts/{contactId}/primary")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<OrganizationContactResponse> setPrimaryOrganizationContact(@PathVariable Long contactId) {
         return ApiResponse.success(organizationContactService.setPrimaryOrganizationContact(contactId));
     }

@@ -6,6 +6,7 @@ import com.transportplatform.tms.features.dispatch.api.request.AssignRideDriverR
 import com.transportplatform.tms.features.dispatch.api.request.AssignRideResourcesRequest;
 import com.transportplatform.tms.features.dispatch.api.request.AssignRideVehicleRequest;
 import com.transportplatform.tms.features.dispatch.api.response.DispatchBoardSummaryResponse;
+import com.transportplatform.tms.features.dispatch.api.response.DispatchRideMapResponse;
 import com.transportplatform.tms.features.dispatch.api.response.DispatchRideSummaryResponse;
 import com.transportplatform.tms.features.dispatch.application.DispatchRideView;
 import com.transportplatform.tms.features.dispatch.application.DispatchService;
@@ -36,7 +37,7 @@ public class DispatchManagementController {
     }
 
     @GetMapping("/company/dispatch/rides")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<PageResponse<DispatchRideSummaryResponse>> searchCompanyDispatchBoard(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "ALL") DispatchRideView view,
@@ -68,7 +69,7 @@ public class DispatchManagementController {
     }
 
     @GetMapping("/company/dispatch/summary")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<DispatchBoardSummaryResponse> getCompanyDispatchBoardSummary(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) RideStatus status,
@@ -89,8 +90,61 @@ public class DispatchManagementController {
                 toDate));
     }
 
+    @GetMapping("/company/dispatch/map")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
+    public ApiResponse<java.util.List<DispatchRideMapResponse>> getCompanyDispatchMap(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(required = false) RideStatus status,
+            @RequestParam(required = false) ServiceType serviceType,
+            @RequestParam(required = false) Long driverId,
+            @RequestParam(required = false) Long vehicleId,
+            @RequestParam(required = false) Long organizationId,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate) {
+        return ApiResponse.success(dispatchService.getCompanyDispatchMap(
+                keyword,
+                status,
+                serviceType,
+                driverId,
+                vehicleId,
+                organizationId,
+                fromDate,
+                toDate));
+    }
+
+    public record BulkItem(@jakarta.validation.constraints.NotNull Long rideId,
+        @jakarta.validation.constraints.NotNull Long expectedVersion) {}
+    public record BulkRequest(@jakarta.validation.constraints.NotEmpty @jakarta.validation.constraints.Size(max=50)
+        java.util.List<@Valid BulkItem> rides, Long driverId, Long vehicleId, boolean preview) {}
+    public record BulkResult(Long rideId, boolean success, String message) {}
+    @PostMapping("/company/dispatch/bulk-resources")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
+    public ApiResponse<java.util.List<BulkResult>> bulkResources(@Valid @RequestBody BulkRequest request) {
+        var results=new java.util.ArrayList<BulkResult>();
+        for(var item:request.rides()) {
+            try {
+                if(request.preview()) dispatchService.previewReplacement(item.rideId(),request.driverId(),request.vehicleId(),item.expectedVersion());
+                else dispatchService.replaceRideResources(item.rideId(),request.driverId(),request.vehicleId(),item.expectedVersion());
+                results.add(new BulkResult(item.rideId(),true,request.preview()?"Ready; availability is checked again when saved.":"Assignment saved."));
+            } catch(com.transportplatform.tms.common.exception.ApiException ex) {
+                results.add(new BulkResult(item.rideId(),false,ex.getMessage()));
+            } catch(org.springframework.dao.OptimisticLockingFailureException ex) {
+                results.add(new BulkResult(item.rideId(),false,"Ride changed. Refresh before assigning."));
+            }
+        }
+        return ApiResponse.success(results);
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/company/rides/{rideId}/resources")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
+    public ApiResponse<RideResponse> replaceResources(@PathVariable Long rideId,
+            @Valid @RequestBody com.transportplatform.tms.features.dispatch.api.request.ReplaceRideResourcesRequest request) {
+        dispatchService.replaceRideResources(rideId, request.driverId(), request.vehicleId(), request.expectedVersion());
+        return ApiResponse.success(rideService.getCompanyRide(rideId));
+    }
+
     @PostMapping("/company/rides/{rideId}/assign-driver")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> assignCompanyRideDriver(@PathVariable Long rideId,
             @Valid @RequestBody AssignRideDriverRequest request) {
         dispatchService.assignRideDriver(rideId, request.driverId());
@@ -98,7 +152,7 @@ public class DispatchManagementController {
     }
 
     @PostMapping("/company/rides/{rideId}/assign-vehicle")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> assignCompanyRideVehicle(@PathVariable Long rideId,
             @Valid @RequestBody AssignRideVehicleRequest request) {
         dispatchService.assignRideVehicle(rideId, request.vehicleId());
@@ -106,7 +160,7 @@ public class DispatchManagementController {
     }
 
     @PostMapping("/company/rides/{rideId}/assign-resources")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> assignCompanyRideResources(@PathVariable Long rideId,
             @Valid @RequestBody AssignRideResourcesRequest request) {
         dispatchService.assignRideResources(rideId, request.driverId(), request.vehicleId());
@@ -114,14 +168,14 @@ public class DispatchManagementController {
     }
 
     @PostMapping("/company/rides/{rideId}/unassign-driver")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> unassignCompanyRideDriver(@PathVariable Long rideId) {
         dispatchService.unassignRideDriver(rideId);
         return ApiResponse.success(rideService.getCompanyRide(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/unassign-vehicle")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> unassignCompanyRideVehicle(@PathVariable Long rideId) {
         dispatchService.unassignRideVehicle(rideId);
         return ApiResponse.success(rideService.getCompanyRide(rideId));

@@ -26,19 +26,19 @@ public class ReceivablesManagementController {
     }
 
     @GetMapping("/company/receivables/summary")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<ReceivablesSummaryResponse> getCompanyReceivablesSummary() {
         return ApiResponse.success(receivablesService.getCompanyReceivablesSummary());
     }
 
     @GetMapping("/company/invoices/{invoiceId}/collection-notes")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     public ApiResponse<List<CollectionNoteResponse>> listCompanyInvoiceCollectionNotes(@PathVariable Long invoiceId) {
         return ApiResponse.success(receivablesService.listCompanyInvoiceCollectionNotes(invoiceId));
     }
 
     @PostMapping("/company/invoices/{invoiceId}/collection-notes")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<CollectionNoteResponse> addCollectionNote(@PathVariable Long invoiceId,
             @Valid @RequestBody CollectionNoteUpsertRequest request) {

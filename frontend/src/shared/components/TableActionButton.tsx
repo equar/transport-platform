@@ -15,7 +15,7 @@ export function TableActionButton({
 }: TableActionButtonProps) {
   return (
     <Tooltip title={title}>
-      <IconButton onClick={onClick} {...buttonProps}>
+      <IconButton onClick={onClick} {...buttonProps} sx={{ border: "1px solid", borderColor: "divider", bgcolor: "background.paper", "&:hover": { borderColor: "primary.light", bgcolor: "rgba(49,91,125,.06)" }, ...buttonProps?.sx }}>
         {children}
       </IconButton>
     </Tooltip>

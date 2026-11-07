@@ -226,7 +226,7 @@ export function HomePage() {
         <PageCard
           sx={{
             background:
-              "linear-gradient(180deg, rgba(15, 76, 92, 0.08) 0%, rgba(255, 255, 255, 0.95) 100%)",
+              "linear-gradient(180deg, rgba(49, 91, 125, 0.07) 0%, rgba(255, 255, 255, 0.95) 100%)",
           }}
         >
           <Stack spacing={3}>

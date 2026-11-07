@@ -20,6 +20,7 @@ import com.transportplatform.tms.features.rider.domain.RiderStatus;
 import com.transportplatform.tms.features.rider.domain.RiderType;
 import java.lang.reflect.Field;
 import java.util.Optional;
+import java.time.Clock;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -54,7 +55,8 @@ class RideReferenceValidationServiceTest {
                 riderGuardianRepository,
                 organizationRepository,
                 contractRepository,
-                serviceAreaRepository);
+                serviceAreaRepository,
+                Clock.systemUTC());
 
         Rider rider = new Rider();
         rider.setTenantId("tenant-123");
@@ -81,7 +83,8 @@ class RideReferenceValidationServiceTest {
                 riderGuardianRepository,
                 organizationRepository,
                 contractRepository,
-                serviceAreaRepository);
+                serviceAreaRepository,
+                Clock.systemUTC());
 
         Rider rider = new Rider();
         rider.setTenantId("tenant-123");
@@ -123,7 +126,8 @@ class RideReferenceValidationServiceTest {
                 riderGuardianRepository,
                 organizationRepository,
                 contractRepository,
-                serviceAreaRepository);
+                serviceAreaRepository,
+                Clock.systemUTC());
 
         Rider rider = new Rider();
         rider.setTenantId("tenant-123");

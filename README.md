@@ -65,11 +65,11 @@ From the repository root:
 
 Services:
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:8080/api`
+- Frontend: `http://localhost:3007`
+- Backend: `http://localhost:8087/api`
 - MySQL: `localhost:3306`
-- Backend health: `http://localhost:8080/api/actuator/health`
-- Swagger UI in local or dev profiles: `http://localhost:8080/api/swagger-ui/index.html`
+- Backend health: `http://localhost:8087/api/actuator/health`
+- Swagger UI in local or dev profiles: `http://localhost:8087/api/swagger-ui/index.html`
 
 Stop both local processes with:
 
@@ -94,8 +94,8 @@ mvn -Dmaven.test.skip=true spring-boot:run
 
 Backend API docs:
 
-- Swagger UI: `http://localhost:8080/api/swagger-ui/index.html`
-- OpenAPI JSON: `http://localhost:8080/api/v3/api-docs`
+- Swagger UI: `http://localhost:8087/api/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8087/api/v3/api-docs`
 
 Frontend:
 
@@ -105,7 +105,7 @@ npm ci
 npm run dev
 ```
 
-The Vite dev server proxies `/api` requests to `http://localhost:8080`, so the default frontend configuration works for local development without Docker.
+The Vite dev server runs on port `3007` and proxies `/api` requests to `http://localhost:8087`, matching the AWS port layout while preserving same-origin browser requests.
 
 Frontend validation build:
 
@@ -151,33 +151,22 @@ Frontend:
 
 For non-Docker AWS deployment, keep `VITE_API_BASE_URL=/api` when the frontend and backend are served behind the same host, or set it to the full backend URL such as `https://api.example.com/api` when they are deployed separately.
 
-## Non-Docker AWS Deployment
+## Production Deployment
 
-Backend jar deployment:
+See [deployment/README.md](deployment/README.md) for the unified Lightsail/EC2 SSH
+release workflow, selective backend/frontend deployments, verified SSH hosts,
+MySQL TLS, HTTPS setup, configuration, and rollback procedures. The pipeline is
+adapted from `bingo-platform` while retaining Transport's `/api` context, port
+8087, schema, service and document paths.
 
-```powershell
-Set-Location backend
-mvn -B -DskipTests package
-java -jar target/transport-platform-backend-0.1.0-SNAPSHOT.jar
-```
-
-Provide production values for `APP_SECURITY_JWT_SECRET`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, and `APP_SECURITY_ALLOWED_ORIGINS` before starting the jar on the AWS server or VM.
-
-Frontend static deployment:
-
-```powershell
-Set-Location frontend
-npm ci
-npm run build
-```
-
-Deploy the generated `frontend/dist/` assets to your AWS web server or static host. If the backend is reverse-proxied under `/api` on the same host, the default API base URL is sufficient.
+Deployments run after reviewed PR merges into `main`; manual releases on `main`
+can select `all`, `backend`, or `frontend`. Local development remains unchanged.
 
 ## Troubleshooting
 
-- Swagger UI is available only in `local` and `dev` profiles at `http://localhost:8080/api/swagger-ui/index.html`.
+- Swagger UI is available only in `local` and `dev` profiles at `http://localhost:8087/api/swagger-ui/index.html`.
 - Production profile disables Swagger/OpenAPI endpoints by default.
-- Backend health checks are exposed at `http://localhost:8080/api/actuator/health`.
+- Backend health checks are exposed at `http://localhost:8087/api/actuator/health`.
 - If local backend startup is blocked by unrelated stale test compilation, use `mvn -Dmaven.test.skip=true spring-boot:run` only as a temporary local workaround.
 - Frontend production validation should be run from `frontend/` with `npm run build`.
 

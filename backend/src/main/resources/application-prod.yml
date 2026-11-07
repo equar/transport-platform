@@ -2,23 +2,33 @@ server:
   forward-headers-strategy: framework
 
 spring:
+  flyway:
+    enabled: true
   jpa:
+    hibernate:
+      ddl-auto: validate
     show-sql: false
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,notificationDelivery,metrics
 
 app:
   bootstrap:
     platform-admin:
-      enabled: false
+      enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:false}
+      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:}
+      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:}
   security:
     api-docs-enabled: false
 
 logging:
   level:
-    root: WARN
-    "[com.transportplatform.tms]": INFO
+    root: ${APP_LOGGING_LEVEL_ROOT:INFO}
+    "[com.transportplatform.tms]": ${APP_LOGGING_LEVEL_APP:INFO}
+    "[org.springframework.web]": ${APP_LOGGING_LEVEL_WEB:WARN}
+    "[org.springframework.security]": ${APP_LOGGING_LEVEL_SECURITY:INFO}
+    "[org.hibernate.SQL]": ${APP_LOGGING_LEVEL_SQL:INFO}
+    "[org.hibernate.orm.jdbc.bind]": ${APP_LOGGING_LEVEL_SQL_BIND:INFO}

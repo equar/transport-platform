@@ -12,8 +12,8 @@ import com.transportplatform.tms.features.portalaccess.domain.PortalUserScope;
 import com.transportplatform.tms.features.portalaccess.domain.PortalUserScopeRepository;
 import com.transportplatform.tms.features.rider.domain.GuardianRepository;
 import com.transportplatform.tms.features.rider.domain.RiderRepository;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -74,6 +74,15 @@ public class PortalAccessService {
             PortalSubjectType portalSubjectType,
             Long portalSubjectId) {
         validateSubjectExists(tenantId, portalSubjectType, portalSubjectId);
+        portalUserScopeRepository
+                .findByTenantIdAndPortalSubjectTypeAndPortalSubjectId(tenantId, portalSubjectType, portalSubjectId)
+                .filter(existing -> !existing.getAppUserId().equals(appUserId))
+                .ifPresent(existing -> {
+                    throw new ApiException(
+                            ErrorCode.RESOURCE_CONFLICT,
+                            HttpStatus.CONFLICT,
+                            "The selected operational record is already linked to another portal user.");
+                });
         PortalUserScope scope = portalUserScopeRepository.findByAppUserId(appUserId).orElseGet(PortalUserScope::new);
         scope.setAppUserId(appUserId);
         scope.setTenantId(tenantId);
@@ -85,6 +94,11 @@ public class PortalAccessService {
     @Transactional
     public void removeScope(Long appUserId) {
         portalUserScopeRepository.findByAppUserId(appUserId).ifPresent(portalUserScopeRepository::delete);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<PortalUserScope> findScope(Long appUserId) {
+        return portalUserScopeRepository.findByAppUserId(appUserId);
     }
 
     public static Collection<RoleName> driverRoles() {

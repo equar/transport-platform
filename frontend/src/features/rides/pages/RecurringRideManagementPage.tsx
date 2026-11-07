@@ -1,3 +1,4 @@
+import { useUrlFilters } from "../../../shared/hooks/useUrlFilters";
 import {
   Alert,
   Button,
@@ -73,7 +74,7 @@ export function RecurringRideManagementPage() {
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
   const [filters, setFilters] =
-    useState<RecurringRideSearchParams>(defaultFilters());
+    useUrlFilters<RecurringRideSearchParams>(defaultFilters());
   const [items, setItems] = useState<RecurringRideScheduleRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -387,7 +388,7 @@ export function RecurringRideManagementPage() {
           description="Create a recurring schedule to automate ride generation for repeat transportation patterns."
         />
       ) : (
-        <Paper variant="outlined" sx={{ borderRadius: 5, overflow: "hidden" }}>
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Table>
             <TableHead>
               <TableRow>

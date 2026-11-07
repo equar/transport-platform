@@ -19,6 +19,7 @@ import { SectionHeader } from "../../../shared/components/SectionHeader";
 import { useRuntimeCapabilities } from "../../runtime/context/RuntimeCapabilitiesContext";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
+import { PasswordChangeCard } from "../../auth/components/PasswordChangeCard";
 import {
   settingsApi,
   type CompanySettingsPayload,
@@ -115,9 +116,9 @@ function emptySettings(): CompanySettingsRecord {
     website: "",
     customLoginWelcomeText: "",
     customFooterText: "",
-    primaryColor: "#0055AA",
-    secondaryColor: "#16324F",
-    accentColor: "#14B8A6",
+    primaryColor: "#1266d6",
+    secondaryColor: "#084aa8",
+    accentColor: "#4d94ee",
     profileCompletenessPercent: 0,
     createdBy: null,
     createdAt: null,
@@ -672,6 +673,7 @@ export function CompanySettingsPage() {
           </PageCard>
         </>
       )}
+      <PasswordChangeCard />
     </Stack>
   );
 }

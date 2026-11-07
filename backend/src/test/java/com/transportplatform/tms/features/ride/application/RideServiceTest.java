@@ -65,12 +65,14 @@ class RideServiceTest {
                                 rideRepository,
                                 rideAccessService,
                                 rideReferenceValidationService,
-                                new RideMapper(),
+                                new RideMapper(new RideScheduleValidator(org.mockito.Mockito.mock(com.transportplatform.tms.features.settings.domain.TenantSettingsRepository.class))),
                                 rideCodeGenerator,
                                 rideEventService,
                                 auditLogService,
                                 notificationEventService,
-                                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
+                                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC),
+                                org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class),
+                                org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class));
 
                 Rider rider = buildRider();
 
@@ -96,12 +98,14 @@ class RideServiceTest {
                                 rideRepository,
                                 rideAccessService,
                                 rideReferenceValidationService,
-                                new RideMapper(),
+                                new RideMapper(new RideScheduleValidator(org.mockito.Mockito.mock(com.transportplatform.tms.features.settings.domain.TenantSettingsRepository.class))),
                                 rideCodeGenerator,
                                 rideEventService,
                                 auditLogService,
                                 notificationEventService,
-                                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
+                                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC),
+                                org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class),
+                                org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class));
 
                 Rider rider = buildRider();
 
@@ -123,12 +127,14 @@ class RideServiceTest {
                                 rideRepository,
                                 rideAccessService,
                                 rideReferenceValidationService,
-                                new RideMapper(),
+                                new RideMapper(new RideScheduleValidator(org.mockito.Mockito.mock(com.transportplatform.tms.features.settings.domain.TenantSettingsRepository.class))),
                                 rideCodeGenerator,
                                 rideEventService,
                                 auditLogService,
                                 notificationEventService,
-                                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
+                                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC),
+                                org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class),
+                                org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class));
 
                 Ride ride = new Ride();
                 ride.setTenantId("tenant-123");
@@ -159,6 +165,7 @@ class RideServiceTest {
                                 "secret",
                                 true,
                                 true,
+                                false,
                                 List.of(new SimpleGrantedAuthority("ROLE_TENANT_ADMIN"))));
                 when(rideRepository.save(any(Ride.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

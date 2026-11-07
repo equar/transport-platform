@@ -16,6 +16,7 @@ public record AuthTokensResponse(
             String lastName,
             String tenantId,
             String status,
+            boolean mustChangePassword,
             Set<String> roles) {
     }
 }

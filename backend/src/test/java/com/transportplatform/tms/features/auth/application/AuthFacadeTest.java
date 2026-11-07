@@ -1,8 +1,13 @@
 package com.transportplatform.tms.features.auth.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.security.AuthenticatedUser;
@@ -14,6 +19,10 @@ import com.transportplatform.tms.features.auth.domain.AppUser;
 import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
+import com.transportplatform.tms.features.tenant.domain.TenantRepository;
+import com.transportplatform.tms.features.tenant.domain.Tenant;
+import com.transportplatform.tms.features.tenant.domain.TenantStatus;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Set;
 import java.util.Optional;
@@ -38,17 +47,26 @@ class AuthFacadeTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private AuthSessionService authSessionService;
+
+    @Mock
+    private TenantRepository tenantRepository;
+
+    @Mock
+    private Clock clock;
+
     @InjectMocks
     private AuthFacade authFacade;
 
     @Test
     void loginRejectsNonActiveUsers() {
         AppUser user = buildUser(UserStatus.SUSPENDED);
-        when(appUserRepository.findForAuthentication(null, "ops@example.com")).thenReturn(Optional.of(user));
+        when(appUserRepository.findForAuthenticationByEmail("ops@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
 
         ApiException exception = assertThrows(ApiException.class,
-                () -> authFacade.login(new LoginRequest("platform", "ops@example.com", "secret123")));
+                () -> authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB"));
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
     }
@@ -56,12 +74,13 @@ class AuthFacadeTest {
     @Test
     void loginReturnsRicherIdentityPayload() {
         AppUser user = buildUser(UserStatus.ACTIVE);
-        when(appUserRepository.findForAuthentication(null, "ops@example.com")).thenReturn(Optional.of(user));
+        when(clock.instant()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
+        when(appUserRepository.findForAuthenticationByEmail("ops@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
         when(jwtService.generateAccessToken(org.mockito.ArgumentMatchers.any(AuthenticatedUser.class)))
                 .thenReturn("access");
-        when(jwtService.generateRefreshToken(org.mockito.ArgumentMatchers.any(AuthenticatedUser.class)))
-                .thenReturn("refresh");
+        when(authSessionService.issue(user, "WEB")).thenReturn(new AuthSessionService.IssuedRefreshToken(
+                "refresh", Instant.parse("2025-01-08T00:00:00Z"), "WEB"));
         when(jwtService.parseAccessToken("access")).thenReturn(new JwtClaims(
                 42L,
                 "ops@example.com",
@@ -69,15 +88,93 @@ class AuthFacadeTest {
                 "Morgan",
                 null,
                 Set.of(RoleName.ROLE_PLATFORM_ADMIN.name()),
+                false,
                 "ACCESS",
                 Instant.parse("2025-01-01T00:00:00Z"),
                 Instant.parse("2025-01-01T00:15:00Z")));
 
-        AuthTokensResponse response = authFacade.login(new LoginRequest("platform", "ops@example.com", "secret123"));
+        AuthTokensResponse response = authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB");
 
         assertEquals(42L, response.user().id());
         assertEquals("Alex", response.user().firstName());
         assertEquals(UserStatus.ACTIVE.name(), response.user().status());
+    }
+
+    @Test
+    void loginResolvesTenantAccountByGloballyUniqueEmail() {
+        AppUser user = buildUser(UserStatus.ACTIVE);
+        user.setTenantId("tenant-uuid");
+        user.setRoles(Set.of(RoleName.ROLE_TENANT_ADMIN));
+        Tenant tenant = new Tenant();
+        tenant.setId("tenant-uuid");
+        tenant.setStatus(TenantStatus.ACTIVE);
+        when(appUserRepository.findForAuthenticationByEmail("owner@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrong-password", "hashed-password")).thenReturn(false);
+
+        assertThrows(ApiException.class,
+                () -> authFacade.login(new LoginRequest("owner@example.com", "wrong-password"), "WEB"));
+
+        verify(appUserRepository).findForAuthenticationByEmail("owner@example.com");
+    }
+
+    @Test
+    void loginRejectsUserWhenTenantIsNotActive() {
+        Tenant tenant = new Tenant();
+        tenant.setId("tenant-uuid");
+        tenant.setStatus(TenantStatus.PENDING);
+        AppUser user = buildUser(UserStatus.ACTIVE);
+        user.setTenantId("tenant-uuid");
+        user.setRoles(Set.of(RoleName.ROLE_TENANT_ADMIN));
+        when(tenantRepository.findById("tenant-uuid")).thenReturn(Optional.of(tenant));
+        when(appUserRepository.findForAuthenticationByEmail("ops@example.com"))
+                .thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
+
+        ApiException exception = assertThrows(ApiException.class,
+                () -> authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB"));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+    }
+
+    @Test
+    void loginRejectsUnknownEmailBeforeCheckingPassword() {
+        when(appUserRepository.findForAuthenticationByEmail("ops@example.com"))
+                .thenReturn(Optional.empty());
+
+        ApiException exception = assertThrows(ApiException.class,
+                () -> authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB"));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
+        verify(passwordEncoder, org.mockito.Mockito.never()).matches(
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void refreshRejectsUsersWithoutRolesAndRevokesSessions() {
+        AppUser user = buildUser(UserStatus.ACTIVE);
+        user.setRoles(Set.of());
+        AuthSessionService.IssuedRefreshToken replacement = new AuthSessionService.IssuedRefreshToken(
+                "replacement-refresh", Instant.parse("2025-01-08T00:00:00Z"), "WEB");
+        when(authSessionService.rotate("old-refresh", "WEB"))
+                .thenReturn(new AuthSessionService.RotatedRefreshToken(user, replacement));
+
+        ApiException exception = assertThrows(ApiException.class,
+                () -> authFacade.refresh("old-refresh", "WEB"));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(authSessionService).revokeAllForUser(42L);
+        verify(jwtService, never()).generateAccessToken(any());
+    }
+
+    @Test
+        void toPrincipalUsesLockedFieldForAccountNonLocked() {
+        AppUser user = buildUser(UserStatus.ACTIVE);
+                ReflectionTestUtils.setField(user, "locked", true);
+
+                AuthenticatedUser principal = ReflectionTestUtils.invokeMethod(authFacade, "toPrincipal", user);
+
+                assertTrue(principal.isEnabled());
+                assertFalse(principal.isAccountNonLocked());
     }
 
     private AppUser buildUser(UserStatus status) {

@@ -2,7 +2,6 @@ package com.transportplatform.tms.features.billing.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.transportplatform.tms.common.exception.ApiException;
@@ -24,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -48,7 +48,8 @@ class BillingCalculationServiceTest {
         PricingRule specificRule = pricingRule("RULE-STUDENT", BigDecimal.valueOf(15), 10);
         specificRule.setRiderType(RiderType.STUDENT);
 
-        when(pricingRuleRepository.findAll(any(Specification.class))).thenReturn(List.of(genericRule, specificRule));
+        when(pricingRuleRepository.findAll(Mockito.<Specification<PricingRule>>any()))
+            .thenReturn(List.of(genericRule, specificRule));
 
         PricingRule selectedRule = billingCalculationService.selectApplicableRule(
                 "tenant-123",
@@ -89,7 +90,8 @@ class BillingCalculationServiceTest {
 
     @Test
     void selectApplicableRuleThrowsWhenNoRuleMatches() {
-        when(pricingRuleRepository.findAll(any(Specification.class))).thenReturn(List.of());
+        when(pricingRuleRepository.findAll(Mockito.<Specification<PricingRule>>any()))
+            .thenReturn(List.of());
 
         ApiException exception = assertThrows(ApiException.class,
                 () -> billingCalculationService.selectApplicableRule(
