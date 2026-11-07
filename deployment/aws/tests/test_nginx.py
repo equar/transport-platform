@@ -25,6 +25,10 @@ class NginxTemplateTest(unittest.TestCase):
             self.assertIn('proxy_pass http://127.0.0.1:8087', rendered)
             self.assertNotIn('listen 3007', rendered)
             self.assertIn('location ^~ /api/actuator/ { return 404; }', rendered)
-            (root/'nginx.conf').write_text(f'pid {root}/nginx.pid;\nerror_log stderr;\nevents {{}}\nhttp {{\n{rendered}\n}}\n')
+            # Distribution builds can default to /var/log/nginx/access.log,
+            # which an unprivileged CI runner cannot open even with -p set.
+            (root/'nginx.conf').write_text(
+                f'pid {root}/nginx.pid;\nerror_log stderr;\nevents {{}}\n'
+                f'http {{\naccess_log {root}/logs/access.log;\n{rendered}\n}}\n')
             result = subprocess.run(['nginx', '-e', 'stderr', '-t', '-p', str(root)+'/', '-c', str(root/'nginx.conf')], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
