@@ -54,6 +54,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.failure(error));
     }
 
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnsupportedMediaType(
+            org.springframework.web.HttpMediaTypeNotSupportedException exception) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(ApiResponse.failure(
+                ApiErrorResponse.of(ErrorCode.VALIDATION_FAILED.name(),
+                        "The request format is not supported. Refresh the page and try again.", Map.of())));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingPart(
+            org.springframework.web.multipart.support.MissingServletRequestPartException exception) {
+        return ResponseEntity.badRequest().body(ApiResponse.failure(ApiErrorResponse.of(
+                ErrorCode.VALIDATION_FAILED.name(), "A required upload field is missing.", Map.of())));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUploadTooLarge(
+            org.springframework.web.multipart.MaxUploadSizeExceededException exception) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(ApiResponse.failure(
+                ApiErrorResponse.of(ErrorCode.VALIDATION_FAILED.name(),
+                        "Document files must be 10 MB or smaller.", Map.of())));
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnreadableRequest(HttpMessageNotReadableException exception) {
         LOGGER.debug("Request body could not be parsed", exception);

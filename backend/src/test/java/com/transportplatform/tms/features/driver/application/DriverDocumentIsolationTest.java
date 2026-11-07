@@ -6,6 +6,14 @@ import java.nio.file.*;
 import static org.junit.jupiter.api.Assertions.*;
 class DriverDocumentIsolationTest {
     @TempDir Path root;
+    @Test void validPdfCanBeStoredAndReadWithinItsDriverScope() throws Exception {
+        byte[] bytes = "%PDF-1.4\nSynthetic upload check".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        var file = new org.springframework.mock.web.MockMultipartFile("file", "test.pdf", "application/pdf", bytes);
+        var storage = new DriverDocumentStorageService(root.toString());
+        String path = storage.store("tenant-a", 10L, file);
+        assertTrue(path.startsWith("tenant-a/10/"));
+        assertArrayEquals(bytes, storage.load("tenant-a", 10L, path, "test.pdf", "application/pdf").resource().getInputStream().readAllBytes());
+    }
     @Test void cannotReadAnotherTenantsFileOrTraverseAwayFromOwner() throws Exception {
         Path file = root.resolve("tenant-b/4/private.pdf"); Files.createDirectories(file.getParent()); Files.writeString(file, "%PDF-private");
         var storage = new DriverDocumentStorageService(root.toString());

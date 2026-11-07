@@ -55,9 +55,6 @@ async function refreshAccessToken() {
 export const apiClient = axios.create({
   baseURL: env.apiBaseUrl,
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
   withCredentials: true,
 });
 
@@ -82,6 +79,10 @@ async function delay(ms: number) {
 }
 
 apiClient.interceptors.request.use((config) => {
+  // Let the browser supply the multipart boundary instead of serializing files as JSON.
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    config.headers.delete('Content-Type');
+  }
   const request = config as typeof config & { _sessionGeneration?: number };
   request._sessionGeneration ??= sessionGeneration;
   if (request._sessionGeneration !== sessionGeneration) throw new axios.CanceledError('The account changed.');
