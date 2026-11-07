@@ -65,6 +65,41 @@ class UserManagementServiceTest {
     private UserManagementService userManagementService;
 
     @Test
+    void companyAdminCannotProbeOrModifyAnotherTenantUser() {
+        when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
+        when(appUserRepository.findByIdAndTenantId(99L, "tenant-123")).thenReturn(java.util.Optional.empty());
+        ApiException error = assertThrows(ApiException.class, () -> userManagementService.getCompanyUser(99L));
+        assertEquals("RESOURCE_NOT_FOUND", error.getErrorCode().name());
+        org.mockito.Mockito.verify(appUserRepository, org.mockito.Mockito.never()).findById(org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void cannotSuspendTheLastActiveTenantAdministrator() {
+        AppUser user = activeUser(); user.setRoles(Set.of(RoleName.ROLE_TENANT_ADMIN));
+        when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
+        when(appUserRepository.findByIdAndTenantId(user.getId(), user.getTenantId())).thenReturn(java.util.Optional.of(user));
+        when(appUserRepository.lockActiveAdministrators(user.getTenantId(), RoleName.ROLE_TENANT_ADMIN, UserStatus.ACTIVE)).thenReturn(List.of(user));
+        ApiException error = assertThrows(ApiException.class, () -> userManagementService.suspendCompanyUser(user.getId()));
+        assertEquals("RESOURCE_CONFLICT", error.getErrorCode().name());
+        org.mockito.Mockito.verify(appUserRepository, org.mockito.Mockito.never()).save(user);
+    }
+
+    @Test
+    void evenPlatformAdministratorsCannotReparentAnExistingAccount() {
+        AppUser user = activeUser();
+        when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(new AuthenticatedUser(7L, null,
+                "platform@example.test", "Platform", "Admin", "", true, true, false,
+                List.of(new SimpleGrantedAuthority(RoleName.ROLE_PLATFORM_ADMIN.name()))));
+        when(appUserRepository.findById(user.getId())).thenReturn(java.util.Optional.of(user));
+        when(tenantRepository.existsById("tenant-b")).thenReturn(true);
+        ApiException error = assertThrows(ApiException.class, () -> userManagementService.updatePlatformUser(user.getId(),
+                new UserUpsertRequest("tenant-b", "Taylor", "User", user.getEmail(), null, UserStatus.ACTIVE,
+                        Set.of(RoleName.ROLE_TENANT_ADMIN), null, null)));
+        assertEquals("RESOURCE_CONFLICT", error.getErrorCode().name());
+        org.mockito.Mockito.verify(appUserRepository, org.mockito.Mockito.never()).save(user);
+    }
+
+    @Test
     void companyAdminCannotAssignPlatformRole() {
         when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
 
@@ -137,7 +172,7 @@ class UserManagementServiceTest {
         void administratorPasswordResetRevokesAllRefreshSessions() {
                 AppUser user = activeUser();
                 when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
-                when(appUserRepository.findById(user.getId())).thenReturn(java.util.Optional.of(user));
+                when(appUserRepository.findByIdAndTenantId(user.getId(), user.getTenantId())).thenReturn(java.util.Optional.of(user));
                 when(passwordEncoder.encode("new-password")).thenReturn("new-password-hash");
                 when(clock.instant()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
                 when(appUserRepository.save(user)).thenReturn(user);
@@ -152,7 +187,7 @@ class UserManagementServiceTest {
         void suspensionRevokesAllRefreshSessions() {
                 AppUser user = activeUser();
                 when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
-                when(appUserRepository.findById(user.getId())).thenReturn(java.util.Optional.of(user));
+                when(appUserRepository.findByIdAndTenantId(user.getId(), user.getTenantId())).thenReturn(java.util.Optional.of(user));
                 when(appUserRepository.save(user)).thenReturn(user);
 
                 userManagementService.suspendCompanyUser(user.getId());
@@ -165,7 +200,7 @@ class UserManagementServiceTest {
                 AppUser user = activeUser();
                 user.setRoles(Set.of(RoleName.ROLE_DISPATCHER));
                 when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
-                when(appUserRepository.findById(user.getId())).thenReturn(java.util.Optional.of(user));
+                when(appUserRepository.findByIdAndTenantId(user.getId(), user.getTenantId())).thenReturn(java.util.Optional.of(user));
                 when(appUserRepository.existsByEmailIgnoreCaseAndIdNot(user.getEmail(), user.getId())).thenReturn(false);
                 when(appUserRepository.save(user)).thenReturn(user);
 

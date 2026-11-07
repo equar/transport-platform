@@ -110,6 +110,7 @@ export function usePushNotifications() {
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
 
   useEffect(() => {
+    let active = true;
     const portalUser =
       session?.identity.roles.includes('ROLE_DRIVER') ||
       session?.identity.roles.includes('ROLE_RIDER') ||
@@ -117,6 +118,7 @@ export function usePushNotifications() {
 
     if (portalUser) {
       registerForPushNotifications().then(async (token) => {
+        if (!active) return;
         if (!token) {
           logClientEvent('info', 'push.registration.skipped', {
             reason: 'no-token-or-permission',
@@ -128,7 +130,7 @@ export function usePushNotifications() {
             ? Platform.OS
             : 'web';
         await pushNotificationsApi.register({ token, platform });
-        await setSessionValue(PUSH_TOKEN_KEY, token);
+        if (active) await setSessionValue(PUSH_TOKEN_KEY, token);
       }).catch(() => {
         logClientEvent('warn', 'push.registration.failed');
         // Push registration should never break app navigation.
@@ -140,8 +142,9 @@ export function usePushNotifications() {
     });
 
     const handleResponse = (response: Notifications.NotificationResponse) => {
-      if (!session || handled.current === response.notification.request.identifier) return;
+      if (!active || !session || handled.current === response.notification.request.identifier) return;
       const data = response.notification.request.content.data as Record<string, unknown>;
+      if (data?.tenantId !== session.identity.tenantId || Number(data?.recipientUserId) !== session.identity.id) return;
       const scope = resolvePortalScope(undefined, session.identity.roles);
       const deepLink = toSafeDeepLink(data?.deepLink);
       const rideId = Number(data?.rideId);
@@ -157,6 +160,7 @@ export function usePushNotifications() {
     void Notifications.getLastNotificationResponseAsync().then(response => { if (response) handleResponse(response); });
 
     return () => {
+      active = false;
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };
@@ -164,6 +168,7 @@ export function usePushNotifications() {
 }
 
 export async function unregisterCurrentPushToken() {
+  await Notifications.clearLastNotificationResponseAsync();
   const token = await getSessionValue(PUSH_TOKEN_KEY);
   if (!token) {
     return;

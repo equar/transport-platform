@@ -38,6 +38,7 @@ class AppUserTenantOwnerProvisioningServiceTest {
         assertEquals("owner@example.com", owner.getEmail());
         assertEquals("encoded", owner.getPasswordHash());
         assertEquals(UserStatus.ACTIVE, owner.getStatus());
+        org.junit.jupiter.api.Assertions.assertTrue(owner.isMustChangePassword());
         assertEquals(java.util.Set.of(RoleName.ROLE_TENANT_ADMIN), owner.getRoles());
     }
 }

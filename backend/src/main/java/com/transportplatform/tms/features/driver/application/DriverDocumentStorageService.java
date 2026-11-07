@@ -38,9 +38,9 @@ public class DriverDocumentStorageService {
         if (!destination.startsWith(root)) {
             throw invalidFile("Invalid document path.");
         }
-        try {
+        try (InputStream input = file.getInputStream()) {
             Files.createDirectories(destination.getParent());
-            Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(input, destination, StandardCopyOption.REPLACE_EXISTING);
             return relativePath;
         } catch (IOException exception) {
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR,
@@ -48,18 +48,27 @@ public class DriverDocumentStorageService {
         }
     }
 
-    public StoredDriverDocumentFile load(String storagePath, String originalName, String contentType) {
+    public StoredDriverDocumentFile load(String tenantId, Long driverId, String storagePath, String originalName, String contentType) {
         if (storagePath == null || storagePath.isBlank()) {
             throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND,
                     "No uploaded file is attached to this document.");
         }
+        String expectedPrefix = tenantId + "/" + driverId + "/";
+        if (!storagePath.startsWith(expectedPrefix)) {
+            throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "The uploaded document file was not found.");
+        }
         Path path = root.resolve(storagePath).normalize();
-        if (!path.startsWith(root) || !Files.isRegularFile(path)) {
+        Path ownerRoot = root.resolve(expectedPrefix).normalize();
+        if (!path.startsWith(ownerRoot) || !path.startsWith(root) || !Files.isRegularFile(path)) {
             throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND,
                     "The uploaded document file was not found.");
         }
         try {
-            Resource resource = new UrlResource(path.toUri());
+            Path realPath = path.toRealPath();
+            if (!realPath.startsWith(root.toRealPath()) || !realPath.startsWith(root.toRealPath().resolve(expectedPrefix).normalize())) {
+                throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "The uploaded document file was not found.");
+            }
+            Resource resource = new UrlResource(realPath.toUri());
             return new StoredDriverDocumentFile(resource, safeOriginalName(originalName), contentType);
         } catch (IOException exception) {
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR,

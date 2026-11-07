@@ -197,7 +197,7 @@ public class AuthFacade {
                 user.isEnabled(),
                 !user.isLocked(),
                 user.isMustChangePassword(),
-                user.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.name())).toList());
+                user.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.name())).toList(), user.getSecurityVersion());
     }
 
     private void ensureEligibleForTokenIssuance(AppUser user, boolean revokeSessionsOnFailure) {
@@ -216,6 +216,9 @@ public class AuthFacade {
                     HttpStatus.FORBIDDEN,
                     "This account has no assigned role. Contact an administrator.");
         }
+        boolean platform = user.getRoles().contains(com.transportplatform.tms.features.auth.domain.RoleName.ROLE_PLATFORM_ADMIN);
+        if ((platform && (user.getTenantId() != null || user.getRoles().size() != 1))
+                || (!platform && (user.getTenantId() == null || user.getTenantId().isBlank()))) throw invalidCredentials();
         ensureTenantActive(user.getTenantId());
     }
 

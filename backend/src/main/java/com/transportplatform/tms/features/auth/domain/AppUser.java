@@ -41,6 +41,11 @@ public class AppUser extends AuditableEntity {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    @Column(name = "security_version", nullable = false)
+    private long securityVersion;
+
+    public long getSecurityVersion() { return securityVersion; }
+
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword;
 

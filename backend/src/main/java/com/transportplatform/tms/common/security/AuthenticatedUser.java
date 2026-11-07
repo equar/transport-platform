@@ -14,7 +14,14 @@ public record AuthenticatedUser(
         boolean enabled,
         boolean accountNonLocked,
         boolean mustChangePassword,
-        Collection<? extends GrantedAuthority> authorities) implements UserDetails {
+        Collection<? extends GrantedAuthority> authorities, long securityVersion) implements UserDetails {
+
+    public AuthenticatedUser(Long id, String tenantId, String username, String firstName, String lastName,
+            String password, boolean enabled, boolean accountNonLocked, boolean mustChangePassword,
+            Collection<? extends GrantedAuthority> authorities) {
+        this(id, tenantId, username, firstName, lastName, password, enabled, accountNonLocked,
+                mustChangePassword, authorities, 0L);
+    }
 
     public String displayName() {
         String fullName = ((firstName == null ? "" : firstName.trim()) + " "

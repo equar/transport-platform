@@ -22,7 +22,7 @@ export function ThemedProviders({ children }: PropsWithChildren) {
 
 function AuthenticatedRuntime({ children }: PropsWithChildren) {
   const { session } = useAuth();
-  return <RuntimeCapabilitiesProvider session={session}><ThemedProviders>{children}</ThemedProviders></RuntimeCapabilitiesProvider>;
+  return <RuntimeCapabilitiesProvider key={JSON.stringify([session?.identity.tenantId, session?.identity.id, session?.identity.roles.slice().sort()])} session={session}><ThemedProviders>{children}</ThemedProviders></RuntimeCapabilitiesProvider>;
 }
 
 export function AppProviders({ children }: PropsWithChildren) {

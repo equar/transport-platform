@@ -24,19 +24,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final TenantRepository tenantRepository;
     private final AppUserRepository appUserRepository;
+    private final com.transportplatform.tms.common.tenant.TenantProperties tenantProperties;
+    private final RestAccessDeniedHandler deniedHandler;
 
     public JwtAuthenticationFilter(JwtService jwtService,
             TenantRepository tenantRepository,
-            AppUserRepository appUserRepository) {
+            AppUserRepository appUserRepository,
+            com.transportplatform.tms.common.tenant.TenantProperties tenantProperties, RestAccessDeniedHandler deniedHandler) {
         this.jwtService = jwtService;
         this.tenantRepository = tenantRepository;
         this.appUserRepository = appUserRepository;
+        this.tenantProperties = tenantProperties; this.deniedHandler = deniedHandler;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
+        TenantContext.clear();
         String authorization = request.getHeader("Authorization");
         if (!StringUtils.hasText(authorization) || !authorization.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
@@ -52,12 +57,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     || !storedUser.isActiveForLogin()
                     || !storedUser.getEmail().equalsIgnoreCase(claims.subject())
                     || !java.util.Objects.equals(storedUser.getTenantId(), claims.tenantId())
+                    || claims.securityVersion() != storedUser.getSecurityVersion()
+                    || !java.util.Objects.equals(claims.roles(), storedUser.getRoles().stream()
+                            .map(Enum::name).collect(java.util.stream.Collectors.toSet()))
                     || (storedUser.getPasswordChangedAt() != null
-                            && claims.issuedAt().isBefore(storedUser.getPasswordChangedAt()))) {
+                            && claims.issuedAt().isBefore(storedUser.getPasswordChangedAt().truncatedTo(java.time.temporal.ChronoUnit.SECONDS)))) {
                 SecurityContextHolder.clearContext();
                 TenantContext.clear();
                 filterChain.doFilter(request, response);
                 return;
+            }
+            boolean platformAccount = storedUser.getRoles().contains(com.transportplatform.tms.features.auth.domain.RoleName.ROLE_PLATFORM_ADMIN);
+            if ((platformAccount && (StringUtils.hasText(storedUser.getTenantId()) || storedUser.getRoles().size() != 1))
+                    || (!platformAccount && !StringUtils.hasText(storedUser.getTenantId()))) {
+                SecurityContextHolder.clearContext(); filterChain.doFilter(request, response); return;
             }
             if (claims.tenantId() != null && !claims.tenantId().isBlank()
                     && tenantRepository.findById(claims.tenantId())
@@ -66,6 +79,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.clearContext();
                 TenantContext.clear();
                 filterChain.doFilter(request, response);
+                return;
+            }
+            String requestedTenant = request.getHeader(tenantProperties.getHeaderName());
+            if (requestedTenant != null && !requestedTenant.isBlank()
+                    && !java.util.Objects.equals(requestedTenant.trim(), storedUser.getTenantId())) {
+                deniedHandler.handle(request, response, new org.springframework.security.access.AccessDeniedException("Tenant mismatch"));
                 return;
             }
             AuthenticatedUser user = new AuthenticatedUser(
@@ -78,17 +97,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     true,
                     true,
                     storedUser.isMustChangePassword(),
-                    storedUser.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.name())).toList());
+                    storedUser.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.name())).toList(), storedUser.getSecurityVersion());
+            String endpoint = request.getRequestURI().substring(request.getContextPath().length());
+            if (user.mustChangePassword() && !java.util.Set.of("/v1/auth/change-password", "/v1/auth/logout",
+                    "/v1/auth/refresh", "/v1/auth/status", "/runtime/tenant-branding").contains(endpoint)) {
+                deniedHandler.handle(request, response, new org.springframework.security.access.AccessDeniedException("Password change required"));
+                return;
+            }
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null,
                     List.copyOf(user.getAuthorities()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
             if (storedUser.getTenantId() != null && !storedUser.getTenantId().isBlank()) {
                 TenantContext.setTenantId(storedUser.getTenantId());
             }
-        } catch (JwtException ignored) {
+        } catch (JwtException | IllegalArgumentException ignored) {
             SecurityContextHolder.clearContext();
+            TenantContext.clear();
         }
 
-        filterChain.doFilter(request, response);
+        try { filterChain.doFilter(request, response); } finally { TenantContext.clear(); }
     }
 }

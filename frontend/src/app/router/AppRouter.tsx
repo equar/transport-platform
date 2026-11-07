@@ -1,3 +1,4 @@
+import { PasswordChangeCard } from "../../features/auth/components/PasswordChangeCard";
 import { lazy, type ComponentType } from "react";
 import {
   Navigate,
@@ -334,6 +335,7 @@ const ResetPasswordPage = lazyPage(
 );
 
 const router = createBrowserRouter([
+  { element: <ProtectedRoute><AuthLayout /></ProtectedRoute>, children: [{ path: "/account/password", element: <PasswordChangeCard /> }] },
   { path: "/", element: <Navigate to="/login" replace /> },
   {
     element: <AuthLayout />,

@@ -1,3 +1,4 @@
+import { useSafeSignOut } from "@hooks/useSafeSignOut";
 import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, ScrollView, View, Text, RefreshControl, Pressable, useWindowDimensions } from 'react-native';
@@ -14,7 +15,7 @@ import { useAuth } from '@auth/AuthContext';
 
 export default function GuardianHomePage() {
 	const router = useRouter();
-	const { signOut } = useAuth();
+	const signOut = useSafeSignOut();
 	const { width } = useWindowDimensions();
 	const isCompact = width < 380;
 	const { data, isLoading, isError, refetch, isRefetching } = useQuery({

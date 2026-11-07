@@ -250,11 +250,12 @@ export function UserUpsertDialog({
               />
             </Stack>
           </FormSection>
-          <FormSection title="Access scope" description="Control where this user belongs and whether they can sign in.">
+          <FormSection title="Access scope" description="Each account belongs to one workspace. Saving access changes signs this user out on every device.">
             <Stack spacing={2}>
               {scope === "platform" ? (
             <TextField
               label="Tenant ID"
+              disabled={Boolean(user)}
               value={form.tenantId ?? ""}
               onChange={(event) =>
                 setForm((current) => ({
@@ -262,7 +263,7 @@ export function UserUpsertDialog({
                   tenantId: event.target.value,
                 }))
               }
-              helperText="Leave blank for a platform-scope user."
+              helperText={user ? "An existing account’s workspace is fixed to protect its records and history." : "Leave blank only for a platform administrator. A tenant account cannot hold platform privileges."}
               fullWidth
             />
               ) : null}
@@ -448,7 +449,7 @@ export function UserUpsertDialog({
                     )}
                   />
                 ) : (
-                  <TextField fullWidth label="Operational record ID" type="number" value={form.portalSubjectId ?? ""} onChange={(event) => setForm((current) => ({ ...current, portalSubjectId: event.target.value ? Number(event.target.value) : null }))} inputProps={{ min: 1 }} helperText="Use the record ID from the selected tenant." />
+                  <TextField fullWidth label="Operational record ID" type="number" value={form.portalSubjectId ?? ""} onChange={(event) => setForm((current) => ({ ...current, portalSubjectId: event.target.value ? Number(event.target.value) : null }))} inputProps={{ min: 1 }} helperText="Use a record from this tenant only. Re-linking revokes existing sessions." />
                 )}
                 </Stack>
               </Stack>

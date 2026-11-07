@@ -1,3 +1,4 @@
+import { useSafeSignOut } from "@hooks/useSafeSignOut";
 import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, ScrollView, View, Text, RefreshControl, Pressable, useWindowDimensions } from 'react-native';
@@ -14,7 +15,8 @@ import { PassengerRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime, timeUntil } from '@utils/formatDate';
 
 export default function RiderDashboard() {
-  const { session, signOut } = useAuth();
+  const { session } = useAuth();
+  const signOut = useSafeSignOut();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isCompact = width < 380;

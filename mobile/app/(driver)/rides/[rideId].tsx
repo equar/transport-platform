@@ -45,11 +45,9 @@ const SECONDARY_STATUS_ACTIONS: Record<string, { action: DriverRideAction; label
 };
 
 const TRACKABLE_STATUSES = new Set([
-  'ASSIGNED',
   'DRIVER_EN_ROUTE',
   'ARRIVED',
   'PICKED_UP',
-  'DROPPED_OFF',
 ]);
 
 export default function DriverRideDetailPage() {
@@ -147,7 +145,7 @@ export default function DriverRideDetailPage() {
   const tracking = useTrackingState();
   React.useEffect(() => {
     if (!ride || !session?.identity.tenantId) return;
-    if (['DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP', 'DROPPED_OFF'].includes(ride.status)) {
+    if (['DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP'].includes(ride.status)) {
       void startTripTracking({ rideId: ride.id, tenantId: session.identity.tenantId, userId: session.identity.id })
         .catch(() => Alert.alert('Tracking unavailable', 'Check location permission in Settings.'));
     } else if (['COMPLETED', 'CANCELLED', 'FAILED', 'RIDER_NO_SHOW'].includes(ride.status)) {

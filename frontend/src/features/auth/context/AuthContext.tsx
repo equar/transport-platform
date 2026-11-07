@@ -55,7 +55,10 @@ function readPersistedSession(): AuthSession | null {
       typeof parsed?.tokenType === "string" &&
       typeof parsed?.expiresInSeconds === "number" &&
       parsed.identity &&
-      typeof parsed.identity.email === "string"
+      typeof parsed.identity.email === "string" &&
+      Number.isSafeInteger(parsed.identity.id) && parsed.identity.id! > 0 &&
+      Array.isArray(parsed.identity.roles) && parsed.identity.roles.every(role => typeof role === "string") &&
+      (parsed.identity.tenantId === null || typeof parsed.identity.tenantId === "string")
     ) {
       return parsed as AuthSession;
     }

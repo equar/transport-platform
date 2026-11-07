@@ -46,6 +46,11 @@ public class AuthRefreshSession {
     @Column(name = "client_type", nullable = false, length = 20)
     private String clientType;
 
+    @Column(name = "security_version", nullable = false)
+    private long securityVersion;
+    public long getSecurityVersion() { return securityVersion; }
+    public void setSecurityVersion(long value) { securityVersion = value; }
+
     public Long getId() { return id; }
     public AppUser getUser() { return user; }
     public void setUser(AppUser user) { this.user = user; }

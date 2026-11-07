@@ -22,7 +22,7 @@ public class TenantContextFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
         try {
-            TenantContext.setTenantId(request.getHeader(tenantProperties.getHeaderName()));
+            TenantContext.clear(); // Only verified authentication may establish a tenant.
             filterChain.doFilter(request, response);
         } finally {
             TenantContext.clear();

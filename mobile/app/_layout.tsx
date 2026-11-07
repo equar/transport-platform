@@ -1,3 +1,5 @@
+import { mobileRoleGroup } from "@auth/access";
+import { LoadingState } from "@components/LoadingState";
 import { OfflineSyncStatus } from '@components/OfflineSyncStatus';
 import { useEffect, useMemo } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
@@ -40,7 +42,7 @@ function SessionQueries({ children }: { children: React.ReactNode }) {
 function AuthGate() {
   const client = useQueryClient();
   const { isAuthenticated, isLoading, getDefaultRoute, session } = useAuth();
-  const segments = useSegments();
+  const segments: readonly string[] = useSegments();
   const router = useRouter();
   const { drain } = useOfflineQueue();
   usePushNotifications();
@@ -69,21 +71,16 @@ function AuthGate() {
     return () => { unsub(); clearInterval(timer); listener.remove(); };
   }, [drain, session?.identity.id, session?.identity.tenantId, session?.identity.roles]);
 
+  const inAuth = segments[0] === '(auth)';
+  const passwordScreen = inAuth && segments[1] === 'change-password';
+  const group = mobileRoleGroup(session);
+  const authorized = isAuthenticated
+    ? session?.identity.mustChangePassword ? passwordScreen : !!group && segments[0] === group
+    : inAuth && !passwordScreen;
   useEffect(() => {
-    if (isLoading) return;
-    const inAuth = segments[0] === '(auth)';
-    const authorizedGroup = session?.identity.roles.includes('ROLE_DRIVER') ? '(driver)'
-      : session?.identity.roles.includes('ROLE_GUARDIAN') ? '(guardian)'
-      : session?.identity.roles.includes('ROLE_RIDER') ? '(rider)'
-      : null;
-    if (!isAuthenticated && !inAuth) {
-      router.replace('/(auth)/login');
-    } else if (isAuthenticated && inAuth) {
-      router.replace(getDefaultRoute() as never);
-    } else if (isAuthenticated && (!authorizedGroup || segments[0] !== authorizedGroup)) {
-      router.replace(getDefaultRoute() as never);
-    }
-  }, [isAuthenticated, isLoading, segments, session]);
+    if (!isLoading && !authorized) router.replace(getDefaultRoute() as never);
+  }, [isLoading, authorized, session, segments]);
+  if (isLoading || !authorized) return <LoadingState message="Preparing your account…" />;
 
   return (
     <>

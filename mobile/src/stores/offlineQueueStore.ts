@@ -21,6 +21,7 @@ interface OfflineQueueState {
   drain: (owner: QueueOwner) => Promise<DrainResult>;
   retry: (id: string) => void;
   dismissConflict: (id: string) => void;
+  retainOwner: (owner: QueueOwner) => void;
   pause: () => void;
   clear: () => void;
 }
@@ -79,6 +80,7 @@ export const useOfflineQueue = create<OfflineQueueState>()(persist((set, get) =>
   },
   retry(id) { set(state => ({ queue: state.queue.map(item => item.id === id ? { ...item, failed: false, retryCount: 0, nextRetryAt: null, error: undefined } : item) })); },
   dismissConflict(id) { set(state => ({ conflicts: state.conflicts.filter(item => item.id !== id) })); },
+  retainOwner(owner) { generation++; set(state => ({ queue: state.queue.filter(item => owns(item, owner)), conflicts: state.conflicts.filter(item => owns(item, owner)) })); },
   pause() { generation++; },
   clear() { generation++; set({ queue: [], conflicts: [] }); },
 }), { name: 'offline-queue', storage: createJSONStorage(() => AsyncStorage) }));

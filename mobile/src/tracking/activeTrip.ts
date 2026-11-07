@@ -8,7 +8,7 @@ import { SESSION_KEY } from '@api/client';
 
 const TASK = 'active-trip-location';
 const KEY = 'active-trip-tracking';
-const ACTIVE = new Set(['DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP', 'DROPPED_OFF']);
+const ACTIVE = new Set(['DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP']);
 interface ActiveTrip { rideId: number; tenantId: string; userId: number }
 export const useTrackingState = create<{ lastSyncedAt: string | null; message: string; active: boolean }>(() => ({
   lastSyncedAt: null, message: 'Tracking is off', active: false,
@@ -42,7 +42,13 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ 
     const ride = await driverPortalApi.getRide(trip.rideId);
     if (!ACTIVE.has(ride.status)) { await stopTripTracking(); return; }
     await send(data.locations[data.locations.length - 1]);
-  } catch { useTrackingState.setState({ message: 'Location sync unavailable. Retrying when connected.' }); }
+  } catch (error) {
+    const status = (error as { response?: { status?: number } }).response?.status;
+    if (status && [401, 403, 404].includes(status)) {
+      await stopTripTracking();
+      useTrackingState.setState({ message: 'Location sharing stopped because trip access changed.' });
+    } else useTrackingState.setState({ message: 'Location sync unavailable. Retrying when connected.' });
+  }
 });
 export async function stopTripTracking() {
   trackingGeneration++;
@@ -53,6 +59,8 @@ export async function stopTripTracking() {
 export async function startTripTracking(trip: ActiveTrip) {
   if (Platform.OS === 'web') return;
   const epoch = trackingGeneration;
+  const ride = await driverPortalApi.getRide(trip.rideId);
+  if (epoch !== trackingGeneration || !ACTIVE.has(ride.status)) return;
   const permission = await Location.requestForegroundPermissionsAsync();
   if (permission.status !== 'granted') { useTrackingState.setState({ message: 'Location permission is required for trip tracking.' }); return; }
   const background = await Location.requestBackgroundPermissionsAsync();

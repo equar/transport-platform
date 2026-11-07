@@ -67,7 +67,7 @@ public class DriverDocumentService {
     @Transactional(readOnly = true)
     public StoredDriverDocumentFile loadCompanyDriverDocumentFile(Long documentId) {
         DriverDocument document = findDocument(documentId);
-        return driverDocumentStorageService.load(document.getStoragePath(),
+        return driverDocumentStorageService.load(document.getTenantId(), document.getDriver().getId(), document.getStoragePath(),
                 document.getOriginalFileName() == null ? document.getFileName() : document.getOriginalFileName(),
                 document.getContentType());
     }

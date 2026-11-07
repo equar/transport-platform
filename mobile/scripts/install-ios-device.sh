@@ -49,8 +49,6 @@ if [[ -z "$API_URL" ]]; then
   API_URL="$(resolve_api_base_url "$ENV_NAME" "ios-device")"
 fi
 export EXPO_PUBLIC_API_BASE_URL="$API_URL"
-export EXPO_PUBLIC_TEST_DRIVER_EMAIL="${EXPO_PUBLIC_TEST_DRIVER_EMAIL:-}"
-export EXPO_PUBLIC_TEST_DRIVER_PASSWORD="${EXPO_PUBLIC_TEST_DRIVER_PASSWORD:-}"
 export NODE_ENV="${TRANSPORT_NODE_ENV:-production}"
 
 BUILD_CONFIGURATION="Release"
