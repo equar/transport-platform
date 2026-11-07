@@ -70,6 +70,11 @@ for domain in "$APP_DOMAIN"; do
   curl --fail --silent --show-error --max-time 30 \
     --retry 12 --retry-all-errors --retry-delay 2 "https://$domain/health" >/dev/null
 done
+if [[ -s /var/www/transport-platform/index.html ]]; then
+  curl --fail --silent --show-error --max-time 30 "https://$APP_DOMAIN/" >/dev/null
+else
+  echo 'Frontend is not deployed yet; /health confirms HTTPS routing only.'
+fi
 # Existing Certbot timers perform renewal; the certificate stores its deploy hook.
 if ! systemctl is-enabled --quiet certbot.timer && ! systemctl is-enabled --quiet snap.certbot.renew.timer; then
   systemctl enable --now certbot.timer

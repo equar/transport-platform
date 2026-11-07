@@ -51,6 +51,8 @@ server {
     location @transport_previous_asset { root /var/www/transport-platform.previous; try_files $uri =404; }
     location /branding/ { try_files $uri =404; }
     location = /release.json { try_files $uri =404; }
+    # Terminate the SPA fallback if no frontend has been deployed yet.
+    location = /index.html { try_files $uri =404; }
     location / { try_files $uri $uri/ /index.html; }
     location ~ /\. { deny all; }
 }

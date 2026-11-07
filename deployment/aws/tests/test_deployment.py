@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tarfile
 import unittest
 
 AWS = Path(__file__).resolve().parents[1]
@@ -144,6 +145,37 @@ class ConfigurationTests(unittest.TestCase):
 
 
 class DeploymentScriptTests(unittest.TestCase):
+    def test_first_frontend_release_and_subsequent_switch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            incoming = root/'incoming'; incoming.mkdir()
+            binaries = root/'bin'; binaries.mkdir()
+            for name in ('nginx', 'flock', 'chown'):
+                path = binaries/name
+                path.write_text('#!/bin/sh\nexit 0\n'); path.chmod(0o755)
+            # Exercise GNU mv's atomic rename on macOS too.
+            path = binaries/'mv'
+            path.write_text(f'#!{sys.executable}\nimport os,sys\nos.replace(sys.argv[-2],sys.argv[-1])\n')
+            path.chmod(0o755)
+            script = (AWS/'activate-frontend.sh').read_text()
+            script = script.replace('[[ "$EUID" -eq 0 ]]', 'true')
+            script = script.replace('^/tmp/transport-frontend\\.[a-zA-Z0-9]+$', '^'+str(incoming)+'$')
+            script = script.replace('/var/www/', str(root)+'/')
+            script = script.replace('/var/lock/transport-platform-deploy.lock', str(root/'deploy.lock'))
+            activation = root/'activate.sh'; activation.write_text(script)
+            for release in ('first', 'second'):
+                (incoming/'index.html').write_text('<html>'+release+'</html>')
+                (incoming/'release.json').write_text(json.dumps({'release': release}))
+                with tarfile.open(incoming/'frontend.tar.gz', 'w:gz') as archive:
+                    for name in ('index.html', 'release.json'):
+                        archive.add(incoming/name, arcname=name)
+                result = subprocess.run(['bash', str(activation), str(incoming), release],
+                    env=dict(os.environ, PATH=str(binaries)+os.pathsep+os.environ['PATH']),
+                    capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual((root/'transport-platform').resolve(), root/'transport-platform-releases'/release)
+            self.assertEqual((root/'transport-platform.previous').resolve(), root/'transport-platform-releases/first')
+
     def fixture(self, directory):
         root = Path(directory); aws = root/'deployment/aws'; aws.mkdir(parents=True)
         for name in ('deploy-common.sh', 'deploy-frontend.sh', 'activate-frontend.sh', 'validate-config.py', 'production_config.py'):
