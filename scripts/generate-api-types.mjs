@@ -1,6 +1,6 @@
 // Generate matching web/mobile contracts from a running local/dev OpenAPI endpoint or a saved specification.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-const source = process.argv[2] ?? 'http://localhost:8087/api/v3/api-docs';
+const source = process.argv[2] ?? 'http://localhost:8082/api/v3/api-docs';
 const spec = /^https?:/.test(source) ? await (await fetch(source)).json() : JSON.parse(await readFile(source, 'utf8'));
 function type(s = {}) {
   if (s.$ref) return s.$ref.split('/').at(-1).replace(/[^\w$]/g, '_');

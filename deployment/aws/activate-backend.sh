@@ -24,7 +24,7 @@ install -d -o root -g root -m 755 "$app" "$app/runtime"
 install -d -o transport -g transport -m 750 "$app/logs" "$app/documents" "$app/documents/driver-documents"
 previous_healthy=false
 healthy() {
-  curl -fsS --max-time 5 http://127.0.0.1:8087/api/actuator/health 2>/dev/null |
+  curl -fsS --max-time 5 http://127.0.0.1:8082/api/actuator/health 2>/dev/null |
     python3 -c 'import json,sys;sys.exit(0 if json.load(sys.stdin).get("status")=="UP" else 1)' >/dev/null 2>&1
 }
 if systemctl is-active --quiet "$service" && healthy && [[ -f "$app/backend.jar" && -f "$app/.env" ]]; then
@@ -59,8 +59,8 @@ rollback() {
 }
 trap rollback EXIT
 systemctl stop "$service" || true
-if [[ -n "$(ss -H -ltn 'sport = :8087')" ]]; then
-  echo 'Port 8087 is still in use after stopping Transport; refusing to kill another service.' >&2
+if [[ -n "$(ss -H -ltn 'sport = :8082')" ]]; then
+  echo 'Port 8082 is still in use after stopping Transport; refusing to kill another service.' >&2
   exit 1
 fi
 install -o root -g root -m 644 "$incoming/backend.jar" "$app/backend.jar"

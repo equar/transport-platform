@@ -85,8 +85,8 @@ resolve_android_java() {
 }
 
 AWS_DEFAULT_API_BASE_URL="https://transport.bakaroo.com/api"
-LOCAL_DEFAULT_API_BASE_URL_ANDROID_EMULATOR="http://10.0.2.2:8087/api"
-LOCAL_DEFAULT_API_BASE_URL_IOS_SIMULATOR="http://127.0.0.1:8087/api"
+LOCAL_DEFAULT_API_BASE_URL_ANDROID_EMULATOR="http://10.0.2.2:8082/api"
+LOCAL_DEFAULT_API_BASE_URL_IOS_SIMULATOR="http://127.0.0.1:8082/api"
 TRANSPORT_DEFAULT_EAS_PROJECT_ID="80182d4a-8191-4f8c-9d44-7937ad4d94c2"
 
 validate_env_name() {
@@ -151,7 +151,7 @@ resolve_api_base_url() {
         android-device|ios-device)
           if [[ -z "${LOCAL_API_BASE_URL:-}" ]]; then
             echo "LOCAL_API_BASE_URL is required to reach a local backend from a physical device." >&2
-            echo "Example: LOCAL_API_BASE_URL=http://192.168.1.50:8087/api npm run <script> -- --env local" >&2
+            echo "Example: LOCAL_API_BASE_URL=http://192.168.1.50:8082/api npm run <script> -- --env local" >&2
             return 1
           fi
           case "$LOCAL_API_BASE_URL" in

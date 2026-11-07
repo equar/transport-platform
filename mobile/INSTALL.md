@@ -5,7 +5,7 @@ The native application uses Expo SDK 52 with checked-in Android and iOS projects
 ## Prerequisites
 
 - Node.js 20 or newer
-- Backend running on port 8087
+- Backend running on port 8082
 - Android: Android Studio, SDK 35, platform tools, an emulator or USB-debug-enabled device, and JDK 17 or 21
 - iOS: macOS, Xcode, CocoaPods, and an installed simulator runtime
 - Physical iOS: Apple Development signing identity, Team ID, trusted device, and Developer Mode
@@ -84,12 +84,12 @@ npm run android -- --env aws
 npm run ios -- --env aws
 
 # Physical device against your machine's LAN backend
-LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8087/api npm run android:device -- --env local
-LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8087/api npm run ios:device -- --env local
+LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8082/api npm run android:device -- --env local
+LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8082/api npm run ios:device -- --env local
 
 # Physical device via profile flags
-LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8087/api npm run android:device:dev
-LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8087/api npm run ios:device:dev
+LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8082/api npm run android:device:dev
+LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8082/api npm run ios:device:dev
 
 # Physical device against the deployed AWS backend
 npm run android:device -- --env aws
@@ -113,7 +113,7 @@ using the local backend by default. To use Expo's development client instead:
 npm run expo:android
 ```
 
-The native install flow automatically uses `http://10.0.2.2:8087/api` for
+The native install flow automatically uses `http://10.0.2.2:8082/api` for
 `--env local` or the AWS backend for `--env aws`, detects the emulator CPU
 architecture, builds a standalone APK, installs it, and launches it.
 
@@ -126,7 +126,7 @@ storage or wipe and recreate the emulator before retrying.
 The phone and computer must be on the same network. The backend must listen on a non-loopback interface and its CORS/security settings must allow the mobile client.
 
 ```bash
-LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8087/api npm run android:device -- --env local
+LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8082/api npm run android:device -- --env local
 ```
 
 Use `ANDROID_SERIAL=...` or `--serial ...` when several devices are connected.
@@ -164,7 +164,7 @@ npm run expo:ios
 ```
 
 That flow boots an available simulator when needed, builds a standalone Release
-app using `http://127.0.0.1:8087/api` for `--env local` or the AWS backend for
+app using `http://127.0.0.1:8082/api` for `--env local` or the AWS backend for
 `--env aws`, installs it, and launches it. Set `SIMULATOR_UDID` to select a
 specific simulator.
 
@@ -174,7 +174,7 @@ Connect and trust the device, enable Developer Mode, then run:
 
 ```bash
 DEVELOPMENT_TEAM=YOUR_TEAM_ID \
-LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8087/api \
+LOCAL_API_BASE_URL=http://YOUR_COMPUTER_LAN_IP:8082/api \
 npm run ios:device -- --env local
 ```
 
