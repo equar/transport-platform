@@ -29,3 +29,21 @@ it('discards a successful response that arrives after switching tenants', async 
   finish({ riders: ['tenant-a-private-data'] });
   await assertion;
 });
+it('preserves document FormData instead of serializing the file as JSON', async () => {
+  const file=new File(['%PDF-1.4 test document'],'test.pdf',{type:'application/pdf'});
+  const form=new FormData();form.append('documentType','DRIVER_LICENSE');form.append('file',file);
+  let captured!:InternalAxiosRequestConfig;
+  apiClient.defaults.adapter=(async config=>{captured=config;return {config,data:{success:true,data:{}},status:201,statusText:'Created',headers:{}};}) as AxiosAdapter;
+  await apiClient.post('/company/drivers/10/documents/upload',form,{headers:{'Content-Type':'application/json'}});
+  expect(captured.data).toBeInstanceOf(FormData);
+  expect(captured.data.get('file')).toBe(file);
+  expect(captured.data.get('documentType')).toBe('DRIVER_LICENSE');
+  expect(captured.headers.get('Content-Type')).not.toContain('application/json');
+});
+it('still serializes ordinary API object bodies as JSON', async () => {
+  let captured!:InternalAxiosRequestConfig;
+  apiClient.defaults.adapter=(async config=>{captured=config;return {config,data:{success:true,data:{}},status:200,statusText:'OK',headers:{}};}) as AxiosAdapter;
+  await apiClient.post('/company/drivers',{firstName:'Taylor'});
+  expect(captured.data).toBe(JSON.stringify({firstName:'Taylor'}));
+  expect(captured.headers.get('Content-Type')).toContain('application/json');
+});
