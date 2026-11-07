@@ -33,5 +33,9 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long>, JpaSpec
 
     List<Vehicle> findAllByTenantId(String tenantId);
 
+    @org.springframework.data.jpa.repository.Query("select v from Vehicle v where v.tenantId = :tenantId and (v.ownerDriverId = :driverId or v.assignedDriverId = :driverId) order by v.vehicleCode")
+    List<Vehicle> findAllForDriver(@org.springframework.data.repository.query.Param("tenantId") String tenantId,
+            @org.springframework.data.repository.query.Param("driverId") Long driverId);
+
     List<Vehicle> findAllByTenantIdAndIdIn(String tenantId, Collection<Long> ids);
 }

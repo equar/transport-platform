@@ -1,3 +1,4 @@
+import { DriverPicker } from './DriverPicker';
 import {
   Button,
   Dialog,
@@ -61,6 +62,7 @@ function emptyForm(): VehiclePayload {
     inspectionExpiryDate: "",
     mileage: null,
     assignedDriverId: null,
+    ownerDriverId: null,
     notes: "",
   };
 }
@@ -109,6 +111,7 @@ export function VehicleUpsertDialog({
       inspectionExpiryDate: toFormValue(vehicle.inspectionExpiryDate),
       mileage: vehicle.mileage,
       assignedDriverId: vehicle.assignedDriverId,
+      ownerDriverId: vehicle.ownerDriverId,
       notes: toFormValue(vehicle.notes),
     });
   }, [open, vehicle]);
@@ -161,6 +164,9 @@ export function VehicleUpsertDialog({
     if ((form.mileage ?? 0) < 0) {
       nextErrors.mileage = "Mileage cannot be negative.";
     }
+    if (form.ownershipType === 'DRIVER_OWNED' && (!form.ownerDriverId || form.ownerDriverId <= 0)) {
+      nextErrors.ownerDriverId = 'Select the driver who owns this vehicle.';
+    }
     if ((form.assignedDriverId ?? 0) < 0) {
       nextErrors.assignedDriverId =
         "Assigned driver reference must be positive when provided.";
@@ -197,12 +203,12 @@ export function VehicleUpsertDialog({
                 label="Ownership Type"
                 select
                 value={form.ownershipType}
-                onChange={(event) =>
-                  updateField(
-                    "ownershipType",
-                    event.target.value as VehicleOwnershipType,
-                  )
-                }
+                onChange={(event) => {
+                  const type = event.target.value as VehicleOwnershipType;
+                  updateField('ownershipType', type);
+                  if(type !== 'DRIVER_OWNED') updateField('ownerDriverId', null);
+                }}
+                helperText="Ownership is separate from the driver assigned to operate the vehicle."
                 fullWidth
               >
                 {ownershipTypes.map((value) => (
@@ -275,25 +281,11 @@ export function VehicleUpsertDialog({
                 helperText={errors.vin}
                 fullWidth
               />
-              <TextField
-                label="Assigned Driver Reference ID"
-                type="number"
-                value={form.assignedDriverId ?? ""}
-                onChange={(event) =>
-                  updateField(
-                    "assignedDriverId",
-                    event.target.value ? Number(event.target.value) : null,
-                  )
-                }
-                error={Boolean(errors.assignedDriverId)}
-                helperText={
-                  errors.assignedDriverId ??
-                  "Optional driver reference to keep assignments connected to this vehicle record."
-                }
-                fullWidth
-              />
+              <DriverPicker label="Assigned driver" value={form.assignedDriverId} onChange={id=>updateField('assignedDriverId',id)} error={errors.assignedDriverId} disabled={loading} helperText="Optional operating assignment. Changing this does not change ownership." />
             </Stack>
           </Stack>
+
+          {form.ownershipType === 'DRIVER_OWNED' && <DriverPicker label="Owning driver" required value={form.ownerDriverId} onChange={id=>updateField('ownerDriverId',id)} error={errors.ownerDriverId} disabled={loading} helperText="Select the owner from this workspace. The operating driver can be assigned separately." />}
 
           <Stack spacing={2}>
             <Typography variant="overline" color="secondary.main">

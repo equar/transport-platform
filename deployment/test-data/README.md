@@ -69,6 +69,10 @@ Production execution used a protected SSH/database session, verified database TL
 
 Audit marker: `transport-qa-20261107-v1`.
 
+Vehicle ownership follow-up: each tenant now has five company-owned vehicles (`QA-V01`–`QA-V05`) and five driver-owned vehicles (`QA-V06`–`QA-V10`). Driver-owned vehicles explicitly reference their matching driver as owner; operating assignment remains a separate field. The live update preserved user-edited records. See [vehicle ownership](../../docs/vehicle-ownership.md) for test accounts and validation.
+
+Dispatch compliance follow-up: the original dataset omitted tenant transport-compliance profiles, which correctly prevented assignment despite the drivers/vehicles being active. The generator now includes one explicitly synthetic, verified profile per QA tenant with one-year validity. The AWS repair inserted only the ten missing profiles for marked `[TEST]` QA tenants and preserved every existing profile. Authority identifiers and verification notes clearly state these are synthetic fixtures; they do not represent real regulatory approval. Production dispatch approval checks remain enforced. Expired fixtures require deliberate renewal; no automatic compliance bypass was added.
+
 ## Verified AWS result
 
 The dataset is live in the Transport AWS schema. All eight supported tenant-role login types were checked with the supplied test password; driver access to another tenant’s ride was denied. The aggregate integrity audit checked 27 relationships and found zero cross-tenant references. A repeated seed invocation skipped the complete dataset without duplicate inserts or password resets.

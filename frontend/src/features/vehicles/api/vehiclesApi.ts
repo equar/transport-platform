@@ -89,6 +89,7 @@ export interface VehicleRecord {
   inspectionExpiryDate: string | null;
   mileage: number | null;
   assignedDriverId: number | null;
+  ownerDriverId: number | null;
   notes: string | null;
   status: VehicleStatus;
   createdBy: string;
@@ -159,6 +160,7 @@ export interface VehiclePayload {
   inspectionExpiryDate?: string | null;
   mileage?: number | null;
   assignedDriverId?: number | null;
+  ownerDriverId?: number | null;
   notes?: string | null;
 }
 

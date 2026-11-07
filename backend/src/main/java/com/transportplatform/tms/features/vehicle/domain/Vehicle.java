@@ -86,6 +86,12 @@ public class Vehicle extends AuditableEntity {
     @Column(name = "mileage")
     private Long mileage;
 
+    @Column(name = "owner_driver_id")
+    private Long ownerDriverId;
+
+    public Long getOwnerDriverId() { return ownerDriverId; }
+    public void setOwnerDriverId(Long value) { ownerDriverId = value; }
+
     @Column(name = "assigned_driver_id")
     private Long assignedDriverId;
 

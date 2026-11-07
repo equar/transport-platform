@@ -33,6 +33,7 @@ export default function DriverDashboard() {
     {trips.isLoading ? <AppCard><Text style={styles.copy}>Loading your assignments…</Text></AppCard> : trips.isError ? <AppCard><Text style={styles.copy}>Assignments couldn’t be loaded.</Text><AppButton label="Retry assignments" variant="outlined" onPress={() => void trips.refetch()} /></AppCard> : upcoming.length ? upcoming.slice(0,3).map(ride => <RideCard key={ride.id} ride={ride} onPress={() => router.push(`/(driver)/rides/${ride.id}`)} />) : <AppCard><EmptyState title="No upcoming assignments" description="Your assigned trips will appear here. Pull down to refresh." /></AppCard>}
     <AppButton label="View all trips" variant="outlined" rightIcon="arrow-right" onPress={() => router.push('/(driver)/rides')} />
     <SectionHeader title="Your workspace" />
+    <ActionRow icon="car-outline" title="My vehicles" description="View your owned and assigned vehicles" onPress={() => router.push('/(driver)/vehicle')} />
     <ActionRow icon="map-marker-path" title="Route manifests" description="View your assigned routes and stops" onPress={() => router.push('/(driver)/routes')} />
     <ActionRow icon="file-document-outline" title="Documents & compliance" description="Review issues and upload required documents" onPress={() => router.push('/(driver)/compliance')} />
   </ScrollView>;

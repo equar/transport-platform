@@ -83,3 +83,5 @@ The APK uses the existing local test signing identity for direct installation. I
 SHA-256: `f761a4a3f5c8063204793e1d3f030b6e10b5e3a5a4fb84e76194c8c4fc47e508`.
 
 7 November follow-up: centered the branded logo lockup in the shared authentication frame and rebuilt/verified the Android APK.
+
+Vehicle ownership follow-up: the API now exposes tenant-scoped owned/assigned vehicles. The driver home shortcut, vehicle screen and profile vehicle tab use real records, ownership/assignment labels, capacity and document expiry dates. The updated package is [transport-platform-vehicle-ownership.apk](build/transport-platform-vehicle-ownership.apk); mobile tests (25), TypeScript checking, iOS JavaScript export and Android release packaging passed. This follow-up package was not tested on a physical device.

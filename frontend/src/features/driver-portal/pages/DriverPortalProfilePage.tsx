@@ -1,3 +1,4 @@
+import { DriverVehiclesCard } from '../components/DriverVehiclesCard';
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
@@ -336,6 +337,7 @@ export function DriverPortalProfilePage() {
           </PageCard>
         </Box>
       ) : null}
+      <DriverVehiclesCard />
       <PasswordChangeCard />
     </Stack>
   );

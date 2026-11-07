@@ -35,5 +35,6 @@ public record VehicleResponse(
         Instant createdAt,
         String updatedBy,
         Instant updatedAt,
-        VehicleComplianceSummaryResponse complianceSummary) {
+        VehicleComplianceSummaryResponse complianceSummary,
+        Long ownerDriverId) {
 }
