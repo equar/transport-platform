@@ -598,8 +598,8 @@ public class NotificationEventService {
     }
 
     private String formatAddress(String line1, String line2, String city, String state, String zipCode) {
-        return List.of(trimToNull(line1), trimToNull(line2), trimToNull(city), trimToNull(state), trimToNull(zipCode))
-                .stream()
+        return java.util.stream.Stream.of(line1, line2, city, state, zipCode)
+                .map(this::trimToNull)
                 .filter(value -> value != null && !value.isBlank())
                 .reduce((left, right) -> left + ", " + right)
                 .orElse(null);
