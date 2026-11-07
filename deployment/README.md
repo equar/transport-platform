@@ -24,8 +24,13 @@ serialize direct operator deployments.
 | Workflow or shared production configuration | Both |
 | Documentation, deployment tests, mobile-only changes | None |
 
+Only backend and frontend are deployment targets. Mobile is never packaged,
+uploaded or published by this workflow, including manual `all` releases.
+Mobile tests and generated mobile contract checks remain in CI; APK builds are
+handled separately when requested.
+
 Backend releases run Maven verification, including disposable MySQL tests, and
-check generated client contracts. Frontend releases run tests and a production
+check generated frontend contracts. Frontend releases run tests and a production
 build with `VITE_API_BASE_URL=/api`. All selected applications build before SSH
 activation. PR CI remains the review gate; require it and deployment validation
 in branch protection. The workflow does not modify branch protection.
