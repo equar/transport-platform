@@ -33,41 +33,17 @@ const sizeMap = {
 function getVariantStyles(variant: Variant) {
   switch (variant) {
     case 'primary':
-      return {
-        container: styles.primary,
-        label: styles.labelLight,
-        iconColor: Colors.white,
-      };
+      return { container: styles.primary, label: styles.labelLight, iconColor: Colors.white };
     case 'secondary':
-      return {
-        container: styles.secondary,
-        label: styles.labelLight,
-        iconColor: Colors.white,
-      };
+      return { container: styles.secondary, label: styles.labelLight, iconColor: Colors.white };
     case 'outlined':
-      return {
-        container: styles.outlined,
-        label: styles.labelDark,
-        iconColor: Colors.primary,
-      };
+      return { container: styles.outlined, label: styles.labelDark, iconColor: Colors.primary };
     case 'ghost':
-      return {
-        container: styles.ghost,
-        label: styles.labelDark,
-        iconColor: Colors.primary,
-      };
+      return { container: styles.ghost, label: styles.labelDark, iconColor: Colors.primary };
     case 'destructive':
-      return {
-        container: styles.destructive,
-        label: styles.labelLight,
-        iconColor: Colors.white,
-      };
+      return { container: styles.destructive, label: styles.labelLight, iconColor: Colors.white };
     default:
-      return {
-        container: styles.primary,
-        label: styles.labelLight,
-        iconColor: Colors.white,
-      };
+      return { container: styles.primary, label: styles.labelLight, iconColor: Colors.white };
   }
 }
 
@@ -91,7 +67,9 @@ export function AppButton({
   const variantStyles = getVariantStyles(variant);
   const tint = variant === 'primary' ? { backgroundColor: colors.primary }
     : variant === 'secondary' ? { backgroundColor: colors.secondary }
-    : variant === 'outlined' ? { borderColor: colors.primary } : {};
+    : variant === 'outlined' ? { borderColor: colors.primary, backgroundColor: colors.primarySoft }
+    : variant === 'ghost' ? { backgroundColor: colors.primarySoft }
+    : {};
   const brandedText = variant === 'outlined' || variant === 'ghost';
   const iconColor = brandedText ? colors.primary : variantStyles.iconColor;
 
@@ -166,6 +144,7 @@ const styles = StyleSheet.create({
   },
   pressed: {
     transform: [{ scale: Motion.pressScale.subtle }],
+    opacity: 0.98,
   },
   fullWidth: {
     alignSelf: 'stretch',
@@ -175,6 +154,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: Typography.fontBodyMedium,
     fontWeight: '600',
+    letterSpacing: 0.12,
   },
   labelLight: {
     color: Colors.white,
