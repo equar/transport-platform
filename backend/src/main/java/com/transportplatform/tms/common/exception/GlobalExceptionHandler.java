@@ -62,6 +62,22 @@ public class GlobalExceptionHandler {
                         "The request format is not supported. Refresh the page and try again.", Map.of())));
     }
 
+    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingParameter(
+            org.springframework.web.bind.MissingServletRequestParameterException exception) {
+        return ResponseEntity.badRequest().body(ApiResponse.failure(ApiErrorResponse.of(
+                ErrorCode.VALIDATION_FAILED.name(), "A required field is missing: " + exception.getParameterName() + ".",
+                Map.of("field", exception.getParameterName()))));
+    }
+
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidParameter(
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException exception) {
+        return ResponseEntity.badRequest().body(ApiResponse.failure(ApiErrorResponse.of(
+                ErrorCode.VALIDATION_FAILED.name(), "The field contains an invalid value: " + exception.getName() + ".",
+                Map.of("field", exception.getName()))));
+    }
+
     @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException.class)
     public ResponseEntity<ApiResponse<Void>> handleMissingPart(
             org.springframework.web.multipart.support.MissingServletRequestPartException exception) {

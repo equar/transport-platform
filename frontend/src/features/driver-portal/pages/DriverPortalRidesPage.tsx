@@ -1,3 +1,4 @@
+import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import {
   Alert,
@@ -92,37 +93,29 @@ export function DriverPortalRidesPage() {
           </Typography>
         </Stack>
       </PageCard>
-      <PageCard>
-        <Box
-          sx={{
-            display: "grid",
-            gap: 2,
-            gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" },
-          }}
+      <AdminFilterBar>
+        <TextField
+          label="Search"
+          value={keyword}
+          onChange={(event) => setKeyword(event.target.value)}
+          fullWidth
+        />
+        <TextField
+          select
+          label="Status"
+          value={status}
+          onChange={(event) =>
+            setStatus(event.target.value as DriverPortalRideStatus | "")
+          }
+          sx={{ minWidth: 220 }}
         >
-          <TextField
-            label="Search"
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-            fullWidth
-          />
-          <TextField
-            select
-            label="Status"
-            value={status}
-            onChange={(event) =>
-              setStatus(event.target.value as DriverPortalRideStatus | "")
-            }
-            sx={{ minWidth: 220 }}
-          >
-            {rideStatuses.map((option) => (
-              <MenuItem key={option || "all"} value={option}>
-                {option ? formatStatusLabel(option) : "All statuses"}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Box>
-      </PageCard>
+          {rideStatuses.map((option) => (
+            <MenuItem key={option || "all"} value={option}>
+              {option ? formatStatusLabel(option) : "All statuses"}
+            </MenuItem>
+          ))}
+        </TextField>
+      </AdminFilterBar>
       {loading ? <LoadingState /> : null}
       {error ? <Alert severity="error">{error}</Alert> : null}
       {!loading ? (

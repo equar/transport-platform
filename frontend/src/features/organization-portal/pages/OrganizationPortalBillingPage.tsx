@@ -1,3 +1,4 @@
+import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import AttachMoneyRoundedIcon from "@mui/icons-material/AttachMoneyRounded";
 import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
 import {
@@ -167,36 +168,34 @@ export function OrganizationPortalBillingPage() {
           </Box>
         </Box>
       ) : null}
-      <PageCard>
-        <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-          <TextField
-            select
-            label="Invoice status"
-            value={invoiceStatus}
-            onChange={(event) => { setInvoiceStatus(event.target.value); setInvoicePage(0); }}
-            sx={{ minWidth: { md: 220 } }}
-          >
-            {invoiceStatuses.map((option) => (
-              <MenuItem key={option || "all-invoices"} value={option}>
-                {option || "All invoice statuses"}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            label="Payment status"
-            value={paymentStatus}
-            onChange={(event) => { setPaymentStatus(event.target.value); setPaymentPage(0); }}
-            sx={{ minWidth: { md: 220 } }}
-          >
-            {paymentStatuses.map((option) => (
-              <MenuItem key={option || "all-payments"} value={option}>
-                {option || "All payment statuses"}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
-      </PageCard>
+      <AdminFilterBar>
+        <TextField
+          select
+          label="Invoice status"
+          value={invoiceStatus}
+          onChange={(event) => { setInvoiceStatus(event.target.value); setInvoicePage(0); }}
+          sx={{ minWidth: { md: 220 } }}
+        >
+          {invoiceStatuses.map((option) => (
+            <MenuItem key={option || "all-invoices"} value={option}>
+              {option || "All invoice statuses"}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          label="Payment status"
+          value={paymentStatus}
+          onChange={(event) => { setPaymentStatus(event.target.value); setPaymentPage(0); }}
+          sx={{ minWidth: { md: 220 } }}
+        >
+          {paymentStatuses.map((option) => (
+            <MenuItem key={option || "all-payments"} value={option}>
+              {option || "All payment statuses"}
+            </MenuItem>
+          ))}
+        </TextField>
+      </AdminFilterBar>
       <Box
         sx={{
           display: "grid",

@@ -1,0 +1,22 @@
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { DriverDocumentUploadForm } from '../DriverDocumentUploadForm';
+jest.mock('@react-native-community/datetimepicker', () => 'DatePicker');
+jest.mock('@expo/vector-icons', () => ({ MaterialCommunityIcons: 'Icon' }));
+it('collects all details before submitting and preserves them on validation failure', async () => {
+  const submit = jest.fn().mockResolvedValue(undefined);
+  render(<DriverDocumentUploadForm fileName="license.pdf" documentType="DRIVER_LICENSE" uploading={false} onCancel={jest.fn()} onSubmit={submit} />);
+  fireEvent.press(screen.getByRole('button', { name: 'Submit for review' }));
+  expect(submit).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert')).toBeTruthy();
+  fireEvent.changeText(screen.getByLabelText('Document number'), 'DL-123');
+  fireEvent.changeText(screen.getByLabelText('Issuing authority'), 'State DMV');
+  fireEvent.changeText(screen.getByLabelText('Issue date'), '2026-11-08');
+  fireEvent.changeText(screen.getByLabelText('Expiry date'), '2025-11-08');
+  fireEvent.press(screen.getByRole('button', { name: 'Submit for review' }));
+  expect(screen.getByText('Expiry date cannot be earlier than issue date.')).toBeTruthy();
+  expect(submit).not.toHaveBeenCalled();
+  fireEvent.changeText(screen.getByLabelText('Expiry date'), '2027-11-08');
+  fireEvent.press(screen.getByRole('button', { name: 'Submit for review' }));
+  await waitFor(() => expect(submit).toHaveBeenCalledWith({ documentNumber: 'DL-123', issuingAuthority: 'State DMV', issueDate: '2026-11-08', expiryDate: '2027-11-08' }));
+});

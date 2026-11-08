@@ -50,6 +50,19 @@ class DriverDocumentServiceTest {
     private ComplianceIssueSyncService complianceIssueSyncService;
 
     @Test
+    void incompleteLegacyDocumentCannotBeApproved() {
+        var service = new DriverDocumentService(driverDocumentRepository, driverAccessService,
+                new DriverDocumentMapper(Clock.systemUTC()), currentAuthenticatedUserService, auditLogService,
+                notificationEventService, driverDocumentStorageService, complianceIssueSyncService, Clock.systemUTC());
+        DriverDocument document = new DriverDocument(); document.setTenantId("tenant-123");
+        document.setStatus(DriverDocumentStatus.ACTIVE); document.setVerificationStatus(DriverDocumentVerificationStatus.PENDING);
+        when(driverAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
+        when(driverDocumentRepository.findByIdAndTenantId(20L, "tenant-123")).thenReturn(Optional.of(document));
+        assertThrows(ApiException.class, () -> service.verifyCompanyDriverDocument(20L, new DriverDocumentReviewRequest(null)));
+        org.mockito.Mockito.verify(driverDocumentRepository, org.mockito.Mockito.never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
     void rejectRequiresNotes() {
         DriverDocumentService driverDocumentService = new DriverDocumentService(
                 driverDocumentRepository,

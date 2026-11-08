@@ -81,6 +81,8 @@ export interface DriverPortalDocumentRecord {
   id: number;
   documentType: string;
   fileName: string;
+  documentNumber: string | null;
+  issuingAuthority: string | null;
   issueDate: string | null;
   expiryDate: string | null;
   verificationStatus: string;
@@ -190,6 +192,13 @@ export const driverPortalApi = {
   async updateProfile(payload: DriverPortalProfilePayload) {
     const response = await apiClient.put(`${basePath}/profile`, payload);
     return unwrapResponse<DriverPortalProfileRecord>(response.data);
+  },
+  async uploadDocument(file: File, metadata: { documentType: string; documentNumber: string; issuingAuthority: string; issueDate: string; expiryDate: string }) {
+    const form = new FormData();
+    form.append('file', file);
+    Object.entries(metadata).forEach(([key, value]) => form.append(key, value));
+    const response = await apiClient.post(`${basePath}/documents`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return unwrapResponse<DriverPortalDocumentRecord>(response.data);
   },
   async getComplianceSummary() {
     const response = await apiClient.get(`${basePath}/compliance`);

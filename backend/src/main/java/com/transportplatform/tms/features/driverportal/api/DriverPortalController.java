@@ -80,10 +80,10 @@ public class DriverPortalController {
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<DriverPortalDocumentResponse> uploadDocument(
             @RequestParam DriverDocumentType documentType,
-            @RequestParam(required = false) String documentNumber,
-            @RequestParam(required = false) String issuingAuthority,
-            @RequestParam(required = false) LocalDate issueDate,
-            @RequestParam(required = false) LocalDate expiryDate,
+            @RequestParam String documentNumber,
+            @RequestParam String issuingAuthority,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate issueDate,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate expiryDate,
             @RequestParam(required = false) String notes,
             @RequestPart("file") MultipartFile file) {
         return ApiResponse.success(driverPortalService.uploadDocument(documentType, documentNumber,

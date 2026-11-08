@@ -70,6 +70,8 @@ public class DriverPortalMapper {
                 document.getId(),
                 document.getDocumentType(),
                 document.getOriginalFileName() == null ? document.getFileName() : document.getOriginalFileName(),
+                document.getDocumentNumber(),
+                document.getIssuingAuthority(),
                 document.getIssueDate(),
                 document.getExpiryDate(),
                 document.getVerificationStatus(),

@@ -179,6 +179,10 @@ public class DriverDocumentService {
     @Transactional
     public DriverDocumentResponse verifyCompanyDriverDocument(Long documentId, DriverDocumentReviewRequest request) {
         DriverDocument document = findDocument(documentId);
+        if (document.getDocumentType() != com.transportplatform.tms.features.driver.domain.DriverDocumentType.PROFILE_PHOTO) {
+            DriverDocumentMetadata.requireComplete(document.getDocumentNumber(), document.getIssuingAuthority(),
+                    document.getIssueDate(), document.getExpiryDate());
+        }
         DriverDocumentStatusWorkflow.ensureCanVerify(document, LocalDate.now(clock));
         Object oldSnapshot = snapshot(document);
         document.setVerificationStatus(DriverDocumentVerificationStatus.VERIFIED);
