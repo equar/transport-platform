@@ -3,7 +3,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 class TenantThemeContrastTest {
     @Test void everyPresetSupportsWhiteTextOnItsPrimaryAndNavigationColors() {
-        assertEquals(6, TenantThemePreset.ALL.size());
+        assertEquals(12, TenantThemePreset.ALL.size());
         for (var theme : TenantThemePreset.ALL) {
             assertTrue(contrastWithWhite(theme.primaryColor()) >= 4.5, theme.name() + " primary contrast");
             assertTrue(contrastWithWhite(theme.secondaryColor()) >= 4.5, theme.name() + " navigation contrast");
