@@ -1,3 +1,4 @@
+import { normalizeBusinessError } from "../../../shared/api/businessError";
 import { setServiceTimezone } from "../../../shared/utils/serviceTime";
 import {
   createContext,
@@ -53,7 +54,7 @@ export function RuntimeCapabilitiesProvider({ children, session = null }: PropsW
   const [isLoading, setIsLoading] = useState(Boolean(session && !isPlatformAdmin(session)));
   const requestVersion = useRef(0);
 
-  async function loadCapabilities() {
+  async function loadCapabilities(silent = false) {
     const version = ++requestVersion.current;
     if (!isAuthenticated || !session || isPlatformAdmin(session)) {
       setServiceTimezone(null);
@@ -63,15 +64,16 @@ export function RuntimeCapabilitiesProvider({ children, session = null }: PropsW
       return;
     }
 
-    setIsLoading(true);
+    if (!silent) setIsLoading(true);
     try {
       const nextCapabilities = await runtimeApi.getTenantCapabilities();
       if (version !== requestVersion.current) return;
       setServiceTimezone(nextCapabilities.operationalSettings.timezone);
       setCapabilities(nextCapabilities);
       setBranding(nextCapabilities.branding ?? defaultBranding);
-    } catch {
+    } catch (error) {
       if (version !== requestVersion.current) return;
+      if (silent && normalizeBusinessError(error, "Tenant settings could not be refreshed.").retryable) return;
       setServiceTimezone(null);
       setCapabilities(null);
       setBranding(defaultBranding);
@@ -85,6 +87,14 @@ export function RuntimeCapabilitiesProvider({ children, session = null }: PropsW
     void loadCapabilities();
     return () => { requestVersion.current++; };
   }, [isAuthenticated, session?.accessToken, session?.identity.tenantId]);
+
+  useEffect(() => {
+    if (!session?.identity.tenantId || isPlatformAdmin(session)) return;
+    const refresh = () => { if (document.visibilityState === "visible") void loadCapabilities(true); };
+    window.addEventListener("focus", refresh);
+    const timer = window.setInterval(refresh, 60_000);
+    return () => { window.removeEventListener("focus", refresh); window.clearInterval(timer); };
+  }, [session?.identity.tenantId, session?.identity.id, session?.accessToken]);
 
   useEffect(() => {
     const effectiveBranding = branding ?? defaultBranding;

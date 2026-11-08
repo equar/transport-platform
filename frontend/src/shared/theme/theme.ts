@@ -1,14 +1,16 @@
-import { createTheme } from '@mui/material/styles';
+import { alpha, createTheme, darken, lighten } from '@mui/material/styles';
 
 type Branding = { primaryColor?: string | null; secondaryColor?: string | null; accentColor?: string | null };
 export function createAppTheme(branding?: Branding | null, experience: 'public' | 'admin' = 'admin') {
   const publicSite = experience === 'public';
   const primary = publicSite ? '#bc4710' : branding?.primaryColor || '#214e82';
+  const secondary = publicSite ? '#12263e' : branding?.secondaryColor || '#12263e';
+  const accent = publicSite ? '#d8662a' : branding?.accentColor || '#d8662a';
   return createTheme({
     palette: {
-      primary: { main: primary, dark: publicSite ? '#92370c' : '#153959', light: publicSite ? '#f4b68c' : '#e6edf6', contrastText: '#fff' },
-      secondary: { main: '#12263e', light: '#e9eef3', contrastText: '#fff' },
-      background: { default: publicSite ? '#faf9f6' : '#f4f6f9', paper: '#fff' },
+      primary: { main: primary, dark: darken(primary, .22), light: lighten(primary, .88), contrastText: '#fff' },
+      secondary: { main: secondary, light: lighten(secondary, .90), contrastText: '#fff' },
+      background: { default: publicSite ? '#faf9f6' : lighten(primary, .96), paper: '#fff' },
       text: { primary: '#172b40', secondary: '#667384' },
       divider: '#e4e8ed',
       success: { main: '#197357' }, warning: { main: '#9e6612' },
@@ -35,8 +37,8 @@ export function createAppTheme(branding?: Branding | null, experience: 'public' 
       MuiCssBaseline: { styleOverrides: {
         body: { backgroundImage: 'none', WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' },
         '*': { boxSizing: 'border-box', scrollbarWidth: 'thin', scrollbarColor: '#bdc6d1 transparent' },
-        '::selection': { background: '#f5d9c5', color: '#172b40' },
-        'a:focus-visible, button:focus-visible': { outline: '3px solid #d06b32', outlineOffset: 4 },
+        '::selection': { background: alpha(accent, .20), color: '#172b40' },
+        'a:focus-visible, button:focus-visible': { outline: `3px solid ${accent}`, outlineOffset: 4 },
         '@media (prefers-reduced-motion: reduce)': { '*': { animation: 'none !important', transition: 'none !important', scrollBehavior: 'auto !important' } },
       } },
       MuiPaper: { defaultProps: { elevation: 0 }, styleOverrides: { root: { backgroundImage: 'none' } } },

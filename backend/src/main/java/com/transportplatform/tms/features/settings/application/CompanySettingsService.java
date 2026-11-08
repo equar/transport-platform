@@ -49,7 +49,13 @@ public class CompanySettingsService {
     @Transactional
     public CompanySettingsResponse updateCompanySettings(CompanySettingsUpdateRequest request) {
         Tenant tenant = requireCompanyTenant();
+        tenantRepository.lockForDispatch(tenant.getId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Tenant was not found."));
         TenantSettings settings = getOrCreateDefaults(tenant.getId());
+        if (!java.util.Objects.equals(trimToNull(request.primaryColor()), settings.getPrimaryColor())
+                || !java.util.Objects.equals(trimToNull(request.secondaryColor()), settings.getSecondaryColor())
+                || !java.util.Objects.equals(trimToNull(request.accentColor()), settings.getAccentColor())) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Choose a predefined theme in the tenant appearance section. Refresh settings before saving other changes.");
+        }
         Object oldSnapshot = snapshot(tenant, settings);
 
         tenant.setCompanyName(request.companyName().trim());
@@ -142,7 +148,7 @@ public class CompanySettingsService {
         return tenantSettingsRepository.findById(tenantId).orElseGet(() -> defaultSettings(tenantId));
     }
 
-    private TenantSettings defaultSettings(String tenantId) {
+    public static TenantSettings defaultSettings(String tenantId) {
         TenantSettings settings = new TenantSettings();
         settings.setTenantId(tenantId);
         settings.setTimezone("UTC");

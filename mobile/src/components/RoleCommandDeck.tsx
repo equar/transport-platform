@@ -1,3 +1,4 @@
+import { useBrandingColors } from '@theme/BrandingContext';
 import React from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -28,6 +29,8 @@ export function RoleCommandDeck({
   actionLabel,
   onActionPress,
 }: RoleCommandDeckProps) {
+  const colors = useBrandingColors();
+  if (toneColor === Colors.primary) { toneColor = colors.primary; softColor = colors.primarySoft; }
   return (
     <View style={[styles.shell, { borderColor: toneColor }]}> 
       <View style={[styles.accentStrip, { backgroundColor: toneColor }]} />

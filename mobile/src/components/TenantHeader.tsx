@@ -1,3 +1,4 @@
+import { useBrandingColors } from '@theme/BrandingContext';
 import React from 'react';
 import { View, Image, Text, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function TenantHeader({ tenantId }: Props) {
+  const colors = useBrandingColors();
   const [cached, setCached] = useState<TenantBrandingRecord | null | undefined>(undefined);
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export function TenantHeader({ tenantId }: Props) {
   if (!tenantId) {
     return (
       <View style={styles.container} accessible accessibilityRole="header" accessibilityLabel="No tenant assigned">
-        <View style={styles.fallbackLogo} />
+        <View style={[styles.fallbackLogo, { backgroundColor: colors.primary }]} />
         <Text style={styles.name}>No tenant assigned</Text>
       </View>
     );
@@ -70,7 +72,7 @@ export function TenantHeader({ tenantId }: Props) {
       {logo ? (
         <Image source={{ uri: logo }} style={styles.logo} resizeMode="contain" />
       ) : (
-        <View style={styles.fallbackLogo} />
+        <View style={[styles.fallbackLogo, { backgroundColor: colors.primary }]} />
       )}
       <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
         {name}

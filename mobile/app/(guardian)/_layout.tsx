@@ -1,14 +1,16 @@
+import { useBrandingColors } from '@theme/BrandingContext';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography } from '@theme/tokens';
 import { GuardianRoleTheme } from '@theme/roleTheme';
 
 export default function GuardianLayout() {
+  const colors = useBrandingColors();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: GuardianRoleTheme.primary,
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: Colors.textSecondary,
         tabBarStyle: {
           backgroundColor: Colors.surface,
