@@ -1,3 +1,4 @@
+import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
@@ -139,40 +140,34 @@ export function RiderGuardianPortalRidesPage() {
           </Box>
         </Box>
       ) : null}
-      <PageCard>
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={2}
-          alignItems={{ md: "center" }}
+      <AdminFilterBar>
+        <TextField
+          label="Search rides"
+          value={keyword}
+          onChange={(event) => setKeyword(event.target.value)}
+          fullWidth
+        />
+        <TextField
+          select
+          label="Status"
+          value={status}
+          onChange={(event) => setStatus(event.target.value)}
+          sx={{ minWidth: { md: 220 } }}
         >
-          <TextField
-            label="Search rides"
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-            fullWidth
-          />
-          <TextField
-            select
-            label="Status"
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-            sx={{ minWidth: { md: 220 } }}
-          >
-            {rideStatuses.map((option) => (
-              <MenuItem key={option || "all"} value={option}>
-                {option ? formatStatusLabel(option) : "All statuses"}
-              </MenuItem>
-            ))}
-          </TextField>
-          <Button
-            component={RouterLink}
-            to="/portal/rider/rides/history"
-            variant="outlined"
-          >
-            View ride history
-          </Button>
-        </Stack>
-      </PageCard>
+          {rideStatuses.map((option) => (
+            <MenuItem key={option || "all"} value={option}>
+              {option ? formatStatusLabel(option) : "All statuses"}
+            </MenuItem>
+          ))}
+        </TextField>
+        <Button
+          component={RouterLink}
+          to="/portal/rider/rides/history"
+          variant="outlined"
+        >
+          View ride history
+        </Button>
+      </AdminFilterBar>
       <PageCard>
         <Stack spacing={2}>
           <Typography variant="h5">Linked riders in scope</Typography>

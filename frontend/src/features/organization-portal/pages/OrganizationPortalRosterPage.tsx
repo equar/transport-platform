@@ -1,3 +1,4 @@
+import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
 import AccessibilityNewRoundedIcon from "@mui/icons-material/AccessibilityNewRounded";
 import {
@@ -115,7 +116,7 @@ export function OrganizationPortalRosterPage() {
           </Box>
         </Box>
       ) : null}
-      <PageCard>
+      <AdminFilterBar>
         <TextField
           select
           label="Rider status"
@@ -129,7 +130,7 @@ export function OrganizationPortalRosterPage() {
             </MenuItem>
           ))}
         </TextField>
-      </PageCard>
+      </AdminFilterBar>
       <Stack spacing={2}>
         {!error && riders.length === 0 ? (
           <PageCard>

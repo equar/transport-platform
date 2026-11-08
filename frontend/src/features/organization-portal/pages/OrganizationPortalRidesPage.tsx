@@ -1,3 +1,4 @@
+import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import {
@@ -121,7 +122,7 @@ export function OrganizationPortalRidesPage() {
           </Box>
         </Box>
       ) : null}
-      <PageCard>
+      <AdminFilterBar>
         <TextField
           select
           label="Ride status"
@@ -135,7 +136,7 @@ export function OrganizationPortalRidesPage() {
             </MenuItem>
           ))}
         </TextField>
-      </PageCard>
+      </AdminFilterBar>
       <Stack spacing={2}>
         {!error && rides.length === 0 ? (
           <PageCard>

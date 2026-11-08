@@ -1,3 +1,4 @@
+import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import {
@@ -122,23 +123,21 @@ export function OrganizationPortalContractsPage() {
           </Box>
         </Box>
       ) : null}
-      <PageCard>
-        <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-          <TextField
-            select
-            label="Contract status"
-            value={contractStatus}
-            onChange={(event) => setContractStatus(event.target.value)}
-            sx={{ minWidth: { md: 220 } }}
-          >
-            {contractStatuses.map((option) => (
-              <MenuItem key={option || "all-contracts"} value={option}>
-                {option ? formatStatusLabel(option) : "All contract statuses"}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
-      </PageCard>
+      <AdminFilterBar>
+        <TextField
+          select
+          label="Contract status"
+          value={contractStatus}
+          onChange={(event) => setContractStatus(event.target.value)}
+          sx={{ minWidth: { md: 220 } }}
+        >
+          {contractStatuses.map((option) => (
+            <MenuItem key={option || "all-contracts"} value={option}>
+              {option ? formatStatusLabel(option) : "All contract statuses"}
+            </MenuItem>
+          ))}
+        </TextField>
+      </AdminFilterBar>
       <Stack spacing={2}>
         {contracts.length === 0 ? (
           <PageCard>
