@@ -17,6 +17,8 @@
     "android:device:dev": "./scripts/install-android.sh --device --dev",
     "android:device:prod": "./scripts/install-android.sh --device --prod",
     "android:release": "./scripts/install-android-release.sh",
+    "android:playstore": "./scripts/install-android-release.sh",
+    "android:apk": "./scripts/build-android-apk.sh",
     "ios": "./scripts/install-ios-simulator.sh",
     "ios:dev": "./scripts/install-ios-simulator.sh --dev",
     "ios:prod": "./scripts/install-ios-simulator.sh --prod",

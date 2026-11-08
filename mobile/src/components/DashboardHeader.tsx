@@ -7,7 +7,7 @@ import { TenantHeader } from './TenantHeader';
 export function DashboardHeader({ name, role, tenantId }: { name: string; role: 'driver' | 'rider' | 'guardian'; tenantId?: string | null }) {
   const colors = useBrandingColors();
   const router = useRouter();
-  return <View style={styles.header}>
+  return <View style={[styles.header, { backgroundColor: colors.primarySoft, borderColor: colors.primary + '22' }]}>
     <View style={styles.row}>
       <View style={styles.copy}><Text style={styles.eyebrow}>{role === 'driver' ? 'Driver workspace' : role === 'guardian' ? 'Family workspace' : 'Your transport'}</Text>
       <Text accessibilityRole="header" style={styles.title}>Hello, {name}</Text></View>
@@ -19,10 +19,10 @@ export function DashboardHeader({ name, role, tenantId }: { name: string; role: 
   </View>;
 }
 const styles = StyleSheet.create({
-  header: { gap: Spacing.sm, paddingBottom: Spacing.sm },
+  header: { gap: Spacing.sm, padding: Spacing.lg, borderRadius: Radius.xl, borderWidth: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   copy: { flex: 1, minWidth: 0, gap: Spacing.sm },
-  eyebrow: { fontFamily: Typography.fontBodyMedium, color: Colors.textSecondary, fontSize: Typography.sizeSm },
+  eyebrow: { fontFamily: Typography.fontBodyMedium, color: Colors.textSecondary, fontSize: Typography.sizeSm, letterSpacing: 0.8, textTransform: 'uppercase' },
   title: { fontFamily: Typography.fontHeading, color: Colors.textPrimary, fontSize: Typography.sizeXxxl, letterSpacing: -0.7 },
   button: { width: 48, height: 48, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center' },
 });

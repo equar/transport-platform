@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, RefreshControl } from 'react-native';
+import { ScrollView, StyleSheet, Text, RefreshControl, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { riderPortalApi } from '@api/riderPortalApi';
@@ -11,7 +11,7 @@ import { SectionHeader } from '@components/SectionHeader';
 import { ActionRow } from '@components/ActionRow';
 import { EmptyState } from '@components/EmptyState';
 import { AppButton, AppBadge, AppCard } from '@components/ui';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 import { isFinishedTrip } from '@utils/tripPresentation';
 export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }) {
@@ -23,7 +23,10 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
   if (dashboard.isError) return <RequestError onRetry={() => void dashboard.refetch()} />;
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={dashboard.isRefetching || trips.isRefetching} onRefresh={() => { void dashboard.refetch(); void trips.refetch(); }} />}>
     <DashboardHeader name={session?.identity.firstName?.trim() || (guardian ? 'Guardian' : 'Rider')} role={role} tenantId={session?.identity.tenantId} />
-    <AppButton label="Request a ride" leftIcon="plus" onPress={() => router.push(`/(${role})/schedule` as never)} />
+    <View style={styles.quickActions}>
+      <AppButton label="Request a ride" leftIcon="plus" fullWidth onPress={() => router.push(`/(${role})/schedule` as never)} />
+      <Text style={styles.helperText}>{guardian ? 'Manage family travel and trip updates in one place.' : 'Plan your next trip with fewer steps and clear trip status.'}</Text>
+    </View>
     <StatsGrid items={[
       { label: 'Upcoming rides', value: data?.upcomingRideCount ?? '—', icon: 'calendar-clock-outline' },
       { label: 'Active rides', value: data?.activeRideCount ?? '—', icon: 'car-outline' },
@@ -45,4 +48,14 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
     <ActionRow icon="receipt-text-outline" title="Billing & payments" description="Review invoices and payment records" onPress={() => router.push(`/(${role})/billing` as never)} />
   </ScrollView>;
 }
-const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: Colors.background }, content: { padding: Spacing.xl, gap: Spacing.lg, paddingBottom: Spacing.xxxl }, trip: { gap: Spacing.md }, title: { fontFamily: Typography.fontHeading, fontSize: Typography.sizeXl, color: Colors.textPrimary }, body: { fontFamily: Typography.fontBody, color: Colors.textPrimary, fontSize: Typography.sizeMd, lineHeight: 23 }, caption: { fontFamily: Typography.fontBodyMedium, fontSize: Typography.sizeXs, color: Colors.textSecondary, marginTop: Spacing.sm, letterSpacing: 1 } });
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: Colors.background },
+  content: { padding: Spacing.xl, gap: Spacing.lg, paddingBottom: Spacing.xxxl },
+  quickActions: { gap: Spacing.sm },
+  helperText: { fontFamily: Typography.fontBody, color: Colors.textSecondary, fontSize: Typography.sizeSm, marginLeft: Spacing.xs },
+  trip: { gap: Spacing.md },
+  title: { fontFamily: Typography.fontHeading, fontSize: Typography.sizeXl, color: Colors.textPrimary },
+  body: { fontFamily: Typography.fontBody, color: Colors.textPrimary, fontSize: Typography.sizeMd, lineHeight: 23 },
+  caption: { fontFamily: Typography.fontBodyMedium, fontSize: Typography.sizeXs, color: Colors.textSecondary, marginTop: Spacing.sm, letterSpacing: 1 }
+});
+
