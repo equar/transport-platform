@@ -79,6 +79,7 @@ public class AuthFacade {
             throw invalidCredentials();
         }
         ensureEligibleForTokenIssuance(user, false);
+        ensureMfaComplete(user, request.mfaCode());
 
         user.setLastLoginAt(clock.instant());
 
@@ -245,6 +246,31 @@ public class AuthFacade {
                 "A password reset was requested for your account. Use this link to continue: " + link));
     }
 
+    private void ensureMfaComplete(AppUser user, String mfaCode) {
+        if (authFlowProperties == null || !authFlowProperties.isRequireMfaForPrivilegedAccounts()) {
+            return;
+        }
+        boolean privileged = user.getRoles().stream().anyMatch(role ->
+                role == com.transportplatform.tms.features.auth.domain.RoleName.ROLE_PLATFORM_ADMIN
+                        || role == com.transportplatform.tms.features.auth.domain.RoleName.ROLE_TENANT_ADMIN);
+        if (!privileged) {
+            return;
+        }
+        if (mfaCode == null || mfaCode.isBlank()) {
+            throw new ApiException(
+                    ErrorCode.FORBIDDEN,
+                    HttpStatus.UNAUTHORIZED,
+                    "Multi-factor authentication is required to sign in with an administrative account.");
+        }
+        String expected = System.getenv().getOrDefault("APP_AUTH_ADMIN_MFA_CODE", "").trim();
+        if (expected.isBlank() || !expected.equals(mfaCode.trim())) {
+            throw new ApiException(
+                    ErrorCode.FORBIDDEN,
+                    HttpStatus.UNAUTHORIZED,
+                    "The administrative MFA code is invalid or not configured.");
+        }
+    }
+
     private void applyPassword(AppUser user, String rawPassword, boolean mustChangePassword) {
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
         user.setPasswordChangedAt(clock.instant());
@@ -260,9 +286,11 @@ public class AuthFacade {
 
     private String buildPasswordResetLink(String rawToken) {
         String baseUrl = authFlowProperties.getPasswordResetBaseUrl();
-        return baseUrl.contains("?")
-                ? baseUrl + "&token=" + rawToken
-                : baseUrl + "?token=" + rawToken;
+        String encodedToken = java.net.URLEncoder.encode(rawToken, java.nio.charset.StandardCharsets.UTF_8);
+        if (baseUrl.contains("#")) {
+            return baseUrl + "&token=" + encodedToken;
+        }
+        return baseUrl + "#token=" + encodedToken;
     }
 
     private String hashResetToken(String token) {

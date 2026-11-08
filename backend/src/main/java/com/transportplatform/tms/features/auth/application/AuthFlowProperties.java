@@ -8,6 +8,7 @@ public class AuthFlowProperties {
 
     private String passwordResetBaseUrl = "http://localhost:3007/reset-password";
     private Duration passwordResetTtl = Duration.ofHours(2);
+    private boolean requireMfaForPrivilegedAccounts = false;
 
     public String getPasswordResetBaseUrl() {
         return passwordResetBaseUrl;
@@ -23,5 +24,13 @@ public class AuthFlowProperties {
 
     public void setPasswordResetTtl(Duration passwordResetTtl) {
         this.passwordResetTtl = passwordResetTtl;
+    }
+
+    public boolean isRequireMfaForPrivilegedAccounts() {
+        return requireMfaForPrivilegedAccounts;
+    }
+
+    public void setRequireMfaForPrivilegedAccounts(boolean requireMfaForPrivilegedAccounts) {
+        this.requireMfaForPrivilegedAccounts = requireMfaForPrivilegedAccounts;
     }
 }

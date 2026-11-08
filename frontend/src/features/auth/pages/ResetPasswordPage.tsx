@@ -13,7 +13,15 @@ export function ResetPasswordPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const token = searchParams.get("token")?.trim() ?? "";
+  const hashToken =
+    typeof window !== "undefined"
+      ? (() => {
+          const hashFragment = window.location.hash || "";
+          const match = hashFragment.match(/(?:^|[?&])token=([^&]+)/i);
+          return match ? decodeURIComponent(match[1]) : "";
+        })()
+      : "";
+  const token = (searchParams.get("token")?.trim() ?? hashToken).trim();
   const reason = searchParams.get("reason");
   const tokenState = !token
     ? "missing"

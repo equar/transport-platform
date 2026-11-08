@@ -18,8 +18,16 @@ function normalizeApiBaseUrl(rawValue: string | undefined) {
   const normalized = resolved.endsWith('/') ? resolved.slice(0, -1) : resolved;
   const isDevelopmentBuild = typeof __DEV__ !== 'undefined' ? __DEV__ : false;
 
-  if (!isDevelopmentBuild && normalized.startsWith('http://')) {
-    return `https://${normalized.slice('http://'.length)}`;
+  const url = new URL(normalized);
+  if (url.protocol !== 'https:') {
+    if (!isDevelopmentBuild) {
+      throw new Error(`Production mobile builds must use HTTPS. Received: ${normalized}`);
+    }
+    return fallback;
+  }
+
+  if (!isDevelopmentBuild && (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '10.0.2.2')) {
+    throw new Error(`Production mobile builds cannot target a local API host: ${normalized}`);
   }
 
   return normalized;
