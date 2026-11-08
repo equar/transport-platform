@@ -133,11 +133,9 @@ export default function RootLayout() {
           edges={['top', 'left', 'right', 'bottom']}
         >
           <StatusBar style="dark" />
-          <ThemeProvider>
-            <AuthProvider>
-              <SessionQueries><AuthGate /></SessionQueries>
-            </AuthProvider>
-          </ThemeProvider>
+          <AuthProvider>
+            <SessionQueries><ThemeProvider><AuthGate /></ThemeProvider></SessionQueries>
+          </AuthProvider>
         </SafeAreaView>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -1,12 +1,14 @@
+import { useBrandingColors } from '@theme/BrandingContext';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
 
 export function MobileHero({ eyebrow, title, description, icon = 'navigation-variant' }: { eyebrow: string; title: string; description: string; icon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'] }) {
+  const colors = useBrandingColors();
   return (
     <View style={styles.hero}>
-      <View style={styles.icon}><MaterialCommunityIcons name={icon} size={24} color={Colors.primary} /></View>
+      <View style={[styles.icon, { backgroundColor: colors.primarySoft }]}><MaterialCommunityIcons name={icon} size={24} color={colors.primary} /></View>
       <Text style={styles.eyebrow}>{eyebrow}</Text>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.description}>{description}</Text>

@@ -1,3 +1,4 @@
+import { useBrandingColors } from '@theme/BrandingContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle, type TextInputProps } from 'react-native';
@@ -44,6 +45,7 @@ export function AppInput({
   maxLength,
   showCount = false,
 }: AppInputProps) {
+  const colors = useBrandingColors();
   const [focused, setFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -65,7 +67,7 @@ export function AppInput({
         style={[
           styles.inputContainer,
           dense && styles.inputContainerDense,
-          focused && styles.focused,
+          focused && { borderColor: colors.primary },
           !!error && styles.errored,
           !!success && !error && styles.success,
           !editable && styles.disabled,
@@ -79,7 +81,7 @@ export function AppInput({
           ]}
           accessibilityLabel={label ?? placeholder}
           accessibilityState={{ disabled: !editable }}
-          selectionColor={Colors.primary}
+          selectionColor={colors.primary}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}

@@ -1,14 +1,16 @@
+import { useBrandingColors } from '@theme/BrandingContext';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography } from '@theme/tokens';
 import { PassengerRoleTheme } from '@theme/roleTheme';
 
 export default function RiderLayout() {
+  const colors = useBrandingColors();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: PassengerRoleTheme.primary,
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: Colors.textSecondary,
         tabBarStyle: {
           backgroundColor: Colors.surface,

@@ -1,3 +1,4 @@
+import { useBrandingColors } from '@theme/BrandingContext';
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -84,9 +85,15 @@ export function AppButton({
   leftIcon,
   rightIcon,
 }: AppButtonProps) {
+  const colors = useBrandingColors();
   const dim = sizeMap[size];
   const isDisabled = disabled || loading;
   const variantStyles = getVariantStyles(variant);
+  const tint = variant === 'primary' ? { backgroundColor: colors.primary }
+    : variant === 'secondary' ? { backgroundColor: colors.secondary }
+    : variant === 'outlined' ? { borderColor: colors.primary } : {};
+  const brandedText = variant === 'outlined' || variant === 'ghost';
+  const iconColor = brandedText ? colors.primary : variantStyles.iconColor;
 
   return (
     <Pressable
@@ -96,6 +103,7 @@ export function AppButton({
         styles.base,
         { minHeight: Math.max(48, dim.height), paddingVertical: 8, paddingHorizontal: dim.px, borderRadius: Radius.md },
         variantStyles.container,
+        tint,
         fullWidth && styles.fullWidth,
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,
@@ -108,12 +116,12 @@ export function AppButton({
       accessibilityState={{ disabled: isDisabled, busy: loading }}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={variantStyles.iconColor} />
+        <ActivityIndicator size="small" color={iconColor} />
       ) : (
         <View style={styles.contentRow}>
-          {leftIcon ? <MaterialCommunityIcons name={leftIcon} size={dim.icon} color={variantStyles.iconColor} /> : null}
-          <Text style={[styles.labelBase, { fontSize: dim.fontSize }, variantStyles.label]}>{label}</Text>
-          {rightIcon ? <MaterialCommunityIcons name={rightIcon} size={dim.icon} color={variantStyles.iconColor} /> : null}
+          {leftIcon ? <MaterialCommunityIcons name={leftIcon} size={dim.icon} color={iconColor} /> : null}
+          <Text style={[styles.labelBase, { fontSize: dim.fontSize }, variantStyles.label, brandedText && { color: colors.primary }]}>{label}</Text>
+          {rightIcon ? <MaterialCommunityIcons name={rightIcon} size={dim.icon} color={iconColor} /> : null}
         </View>
       )}
     </Pressable>

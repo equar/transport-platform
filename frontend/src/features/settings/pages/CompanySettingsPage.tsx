@@ -1,3 +1,4 @@
+import { TenantThemePicker } from "../../branding/components/TenantThemePicker";
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 import RuleRoundedIcon from "@mui/icons-material/RuleRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
@@ -603,7 +604,12 @@ export function CompanySettingsPage() {
 
           <PageCard>
             <Stack spacing={2.5}>
-              <Typography variant="h5">Branding</Typography>
+              <TenantThemePicker onApplied={async () => {
+                const refreshed = await settingsApi.getCompanySettings();
+                setSettings(current => ({ ...current, primaryColor: refreshed.primaryColor, secondaryColor: refreshed.secondaryColor, accentColor: refreshed.accentColor }));
+                await reloadCapabilities();
+              }} />
+              <Typography variant="h5">Company identity</Typography>
               <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                 <TextField
                   label="Company Logo URL"
@@ -619,33 +625,6 @@ export function CompanySettingsPage() {
                   onChange={(event) =>
                     setValue("faviconUrl", event.target.value)
                   }
-                  fullWidth
-                />
-                <TextField
-                  label="Primary Color"
-                  value={settings.primaryColor ?? ""}
-                  onChange={(event) =>
-                    setValue("primaryColor", event.target.value)
-                  }
-                  placeholder="#0055AA"
-                  fullWidth
-                />
-                <TextField
-                  label="Secondary Color"
-                  value={settings.secondaryColor ?? ""}
-                  onChange={(event) =>
-                    setValue("secondaryColor", event.target.value)
-                  }
-                  placeholder="#16324F"
-                  fullWidth
-                />
-                <TextField
-                  label="Accent Color"
-                  value={settings.accentColor ?? ""}
-                  onChange={(event) =>
-                    setValue("accentColor", event.target.value)
-                  }
-                  placeholder="#14B8A6"
                   fullWidth
                 />
               </Stack>

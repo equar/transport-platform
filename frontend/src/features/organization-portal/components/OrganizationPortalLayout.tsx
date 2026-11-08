@@ -128,7 +128,7 @@ export function OrganizationPortalLayout() {
                 alignItems: "flex-start",
                 py: 1,
                 "&.Mui-selected": {
-                  bgcolor: "rgba(18, 102, 214, 0.10)",
+                  bgcolor: "primary.light",
                 },
               }}
             >
