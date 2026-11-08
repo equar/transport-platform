@@ -1,4 +1,5 @@
-import { Alert, Box, Chip, Stack, Typography } from "@mui/material";
+import { DriverDocumentUploadDialog } from "../components/DriverDocumentUploadDialog";
+import { Alert, Box, Button, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import {
   driverPortalApi,
@@ -14,13 +15,14 @@ function formatDate(value?: string | null) {
     return "-";
   }
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-    new Date(value),
+    new Date(value.length === 10 ? `${value}T12:00:00` : value),
   );
 }
 
 export function DriverPortalCompliancePage() {
   const [summary, setSummary] =
     useState<DriverPortalComplianceSummaryRecord | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +67,11 @@ export function DriverPortalCompliancePage() {
           </Typography>
         </Stack>
       </PageCard>
+      <Button variant="contained" sx={{ alignSelf: 'flex-start' }} onClick={() => setUploadOpen(true)}>Upload document</Button>
+      {uploadOpen ? <DriverDocumentUploadDialog onClose={() => setUploadOpen(false)} onUploaded={async () => {
+        try { setSummary(await driverPortalApi.getComplianceSummary()); setError(null); }
+        catch { setError('Document submitted. Refresh this page to see the latest review status.'); }
+      }} /> : null}
       {error ? <Alert severity="error">{error}</Alert> : null}
       {summary ? (
         <>
@@ -168,6 +175,9 @@ export function DriverPortalCompliancePage() {
                         <Typography variant="body2" color="text.secondary">
                           File: {document.fileName}
                         </Typography>
+                        <Typography variant="body2">Document number: {document.documentNumber || "Not supplied"}</Typography>
+                        <Typography variant="body2">Issuing authority: {document.issuingAuthority || "Not supplied"}</Typography>
+                        <Typography variant="body2">Issued: {formatDate(document.issueDate)}</Typography>
                         <Typography variant="body2" color="text.secondary">
                           Expiry: {formatDate(document.expiryDate)}
                         </Typography>

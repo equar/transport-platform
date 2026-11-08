@@ -61,7 +61,7 @@ function formatDate(value?: string | null) {
   }
 
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-    new Date(value),
+    new Date(value.length === 10 ? `${value}T12:00:00` : value),
   );
 }
 
@@ -562,6 +562,7 @@ export function DriverDetailsPage() {
                     <TableCell>Document Type</TableCell>
                     <TableCell>File</TableCell>
                     <TableCell>Document Number</TableCell>
+                    <TableCell>Issuing Authority</TableCell>
                     <TableCell>Issue Date</TableCell>
                     <TableCell>Expiry Date</TableCell>
                     <TableCell>Verification</TableCell>
@@ -588,6 +589,7 @@ export function DriverDetailsPage() {
                         </Typography>
                       </TableCell>
                       <TableCell>{document.documentNumber || "-"}</TableCell>
+                      <TableCell>{document.issuingAuthority || "-"}</TableCell>
                       <TableCell>{formatDate(document.issueDate)}</TableCell>
                       <TableCell>{formatDate(document.expiryDate)}</TableCell>
                       <TableCell>

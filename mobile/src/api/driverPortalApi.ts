@@ -100,6 +100,8 @@ export interface DriverPortalDocumentRecord {
   id: number;
   documentType: string;
   fileName: string;
+  documentNumber: string | null;
+  issuingAuthority: string | null;
   issueDate: string | null;
   expiryDate: string | null;
   verificationStatus: string;
@@ -120,6 +122,10 @@ export type DriverPortalDocumentType =
 
 export interface DriverPortalDocumentUploadPayload {
   documentType: DriverPortalDocumentType;
+  documentNumber: string;
+  issuingAuthority: string;
+  issueDate: string;
+  expiryDate: string;
   uri: string;
   name: string;
   contentType: string;
@@ -226,6 +232,10 @@ export const driverPortalApi = {
   async uploadDocument(payload: DriverPortalDocumentUploadPayload) {
     const formData = new FormData();
     formData.append('documentType', payload.documentType);
+    formData.append('documentNumber', payload.documentNumber.trim());
+    formData.append('issuingAuthority', payload.issuingAuthority.trim());
+    formData.append('issueDate', payload.issueDate);
+    formData.append('expiryDate', payload.expiryDate);
     formData.append('file', {
       uri: payload.uri,
       name: payload.name,

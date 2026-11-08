@@ -9,6 +9,8 @@ public record DriverPortalDocumentResponse(
         Long id,
         DriverDocumentType documentType,
         String fileName,
+        String documentNumber,
+        String issuingAuthority,
         LocalDate issueDate,
         LocalDate expiryDate,
         DriverDocumentVerificationStatus verificationStatus,

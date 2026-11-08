@@ -1,3 +1,4 @@
+import { DriverDocumentUploadForm, type DocumentMetadata } from '@components/DriverDocumentUploadForm';
 import { RequestError } from '@components/RequestError';
 import React, { useState } from 'react';
 import { Alert, Modal, StyleSheet, ScrollView, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
@@ -18,6 +19,7 @@ export default function DriverCompliancePage() {
   const [documentPickerOpen, setDocumentPickerOpen] = useState(false);
   const [submittedDocumentName, setSubmittedDocumentName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [draft, setDraft] = useState<{ documentType: DriverPortalDocumentType; file: DocumentPicker.DocumentPickerAsset } | null>(null);
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-compliance'],
     queryFn: () => driverPortalApi.getComplianceSummary(),
@@ -31,7 +33,7 @@ export default function DriverCompliancePage() {
       setUploading(true);
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/jpeg', 'image/png'],
-        copyToCacheDirectory: false,
+        copyToCacheDirectory: true,
         multiple: false,
       });
       if (result.canceled) return;
@@ -40,14 +42,7 @@ export default function DriverCompliancePage() {
         Alert.alert('File too large', 'Choose a PDF, JPEG, or PNG that is 10 MB or smaller.');
         return;
       }
-      await driverPortalApi.uploadDocument({
-        documentType,
-        uri: file.uri,
-        name: file.name,
-        contentType: file.mimeType ?? 'application/pdf',
-      });
-      setSubmittedDocumentName(file.name);
-      await refetch();
+      setDraft({ documentType, file });
     } catch (error) {
       const message = axios.isAxiosError(error)
         ? error.response?.data?.error?.message ?? 'The document could not be submitted. Please try again.'
@@ -56,6 +51,22 @@ export default function DriverCompliancePage() {
     } finally {
       setUploading(false);
     }
+  }
+
+  async function submitDocument(metadata: DocumentMetadata) {
+    if (!draft || uploading) return;
+    setUploading(true);
+    try {
+      await driverPortalApi.uploadDocument({ documentType: draft.documentType, ...metadata,
+        uri: draft.file.uri, name: draft.file.name, contentType: draft.file.mimeType ?? 'application/pdf' });
+      setSubmittedDocumentName(draft.file.name);
+      setDraft(null);
+      await refetch();
+    } catch (error) {
+      Alert.alert('Upload failed', axios.isAxiosError(error)
+        ? error.response?.data?.error?.message ?? 'The document could not be submitted. Please try again.'
+        : 'The document could not be submitted. Please try again.');
+    } finally { setUploading(false); }
   }
 
   function chooseDocumentType(documentType: DriverPortalDocumentType) {
@@ -128,6 +139,9 @@ export default function DriverCompliancePage() {
                 <AppBadge status={doc.verificationStatus} />
               </View>
               <Text style={styles.docName}>{doc.fileName}</Text>
+              <Text style={styles.docName}>Document number: {doc.documentNumber || 'Not supplied'}</Text>
+              <Text style={styles.docName}>Issuing authority: {doc.issuingAuthority || 'Not supplied'}</Text>
+              <Text style={styles.docName}>Issued: {formatDate(doc.issueDate)}</Text>
               {doc.expiryDate ? (
                 <Text style={styles.expiry}>Expires: {formatDate(doc.expiryDate)}</Text>
               ) : null}
@@ -135,6 +149,10 @@ export default function DriverCompliancePage() {
           ))}
         </>
       )}
+      <Modal visible={draft !== null} animationType="slide" onRequestClose={() => !uploading && setDraft(null)}>
+        {draft ? <DriverDocumentUploadForm fileName={draft.file.name} documentType={draft.documentType} uploading={uploading}
+          onCancel={() => setDraft(null)} onSubmit={submitDocument} /> : null}
+      </Modal>
       <Modal transparent visible={documentPickerOpen} animationType="fade" onRequestClose={() => !uploading && setDocumentPickerOpen(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>

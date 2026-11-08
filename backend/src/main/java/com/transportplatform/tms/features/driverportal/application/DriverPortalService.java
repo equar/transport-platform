@@ -240,6 +240,9 @@ public class DriverPortalService {
         if (issueDate != null && expiryDate != null && expiryDate.isBefore(issueDate)) {
             throw validationFailure("Document expiry date cannot be earlier than the issue date.");
         }
+        com.transportplatform.tms.features.driver.application.DriverDocumentMetadata.requireComplete(
+                documentNumber, issuingAuthority, issueDate, expiryDate);
+        if (notes != null && notes.length() > 2000) throw validationFailure("Notes must be 2000 characters or fewer.");
         String storagePath = driverDocumentStorageService.store(driver.getTenantId(), driver.getId(), file);
         String originalName = file.getOriginalFilename() == null ? "document" :
                 java.nio.file.Path.of(file.getOriginalFilename()).getFileName().toString();
@@ -267,7 +270,9 @@ public class DriverPortalService {
                 "DOCUMENT_SUBMITTED", "DRIVER_DOCUMENT", saved.getId().toString(),
                 "Driver submitted " + saved.getDocumentType().name() + " for company review.", null,
                 Map.of("driverId", driver.getId(), "documentType", saved.getDocumentType().name(),
-                        "fileName", saved.getOriginalFileName())));
+                        "fileName", saved.getOriginalFileName(), "documentNumber", saved.getDocumentNumber(),
+                        "issuingAuthority", saved.getIssuingAuthority(), "issueDate", saved.getIssueDate().toString(),
+                        "expiryDate", saved.getExpiryDate().toString())));
         complianceIssueSyncService.synchronizeTenantIssues(saved.getTenantId());
         return driverPortalMapper.toDocumentResponse(saved);
     }
