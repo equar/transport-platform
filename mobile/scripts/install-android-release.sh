@@ -26,6 +26,11 @@ require_release_signing() {
   if (( ${#missing_variables[@]} > 0 )); then
     echo "Android distribution releases require upload-key signing configuration." >&2
     printf 'Missing: %s\n' "${missing_variables[*]}" >&2
+    echo "Example:" >&2
+    echo "  export TRANSPORT_UPLOAD_STORE_FILE=~/keys/transport-upload.jks" >&2
+    echo "  export TRANSPORT_UPLOAD_STORE_PASSWORD=..." >&2
+    echo "  export TRANSPORT_UPLOAD_KEY_ALIAS=transport-upload" >&2
+    echo "  export TRANSPORT_UPLOAD_KEY_PASSWORD=..." >&2
     exit 1
   fi
   [[ -f "$TRANSPORT_UPLOAD_STORE_FILE" ]] || {
@@ -34,8 +39,7 @@ require_release_signing() {
   }
 }
 
-require_release_signing
-
+APK_ONLY=false
 ENV_NAME="aws"
 PROFILE="prod"
 ARGS=()
@@ -56,10 +60,30 @@ while [[ $# -gt 0 ]]; do
       ENV_NAME="${1:-}"
       validate_env_name "$ENV_NAME"
       ;;
+    --apk-only)
+      APK_ONLY=true
+      ;;
     *) ARGS+=("$1") ;;
   esac
   shift
 done
+
+if [[ "$APK_ONLY" == true ]]; then
+  require_release_signing
+  export EXPO_PUBLIC_API_BASE_URL="${AWS_API_BASE_URL:-$AWS_DEFAULT_API_BASE_URL}"
+  export NODE_ENV="production"
+  cd "$PROJECT_ROOT/android"
+  ./gradlew assembleRelease --no-daemon
+  echo "Release APK generated at: $PROJECT_ROOT/android/app/build/outputs/apk/release/app-release.apk"
+  exit 0
+fi
+
+require_release_signing
+
+if [[ "$ENV_NAME" == "local" ]]; then
+  echo "Release builds must use the production backend URL only; local backend deployment is not allowed for release builds." >&2
+  exit 2
+fi
 
 if [[ "$ENV_NAME" == "aws" ]]; then
   AWS_API_BASE_URL="${AWS_API_BASE_URL:-$AWS_DEFAULT_API_BASE_URL}"

@@ -41,6 +41,110 @@ This command will move the starter code to the **example** directory and create 
 - If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
 - Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
 
+## Android installation and packaging
+
+These commands are intended for the Transport Platform mobile app built with Expo and the Android native project.
+
+### Default production API URL
+
+Release builds must target the production AWS backend and not a local backend deployment.
+
+```bash
+export AWS_API_BASE_URL="https://transport.bakaroo.com/api"
+```
+
+The installation scripts default to this URL automatically, but you can set it explicitly if needed.
+
+### Install on an Android emulator
+
+```bash
+cd mobile
+npm run android -- --env aws
+```
+
+This installs the app onto a running emulator and points it at the production AWS backend.
+
+For a release-style emulator install:
+
+```bash
+cd mobile
+npm run android -- --prod --env aws
+```
+
+### Install on a physical Android device
+
+```bash
+cd mobile
+npm run android:device -- --env aws
+```
+
+For a local backend (developer-only; not for release builds):
+
+```bash
+cd mobile
+npm run android:device -- --env local
+```
+
+### Build a manual APK for distribution
+
+```bash
+cd mobile
+npm run android:apk -- --prod
+```
+
+This produces:
+
+```text
+mobile/android/app/build/outputs/apk/release/app-release.apk
+```
+
+Manual install to an attached emulator or device:
+
+```bash
+adb install -r mobile/android/app/build/outputs/apk/release/app-release.apk
+```
+
+### Release build for Play Store or signed distribution
+
+Set the signing environment variables first:
+
+```bash
+export TRANSPORT_UPLOAD_STORE_FILE="~/keys/transport-upload.jks"
+export TRANSPORT_UPLOAD_STORE_PASSWORD="<store-password>"
+export TRANSPORT_UPLOAD_KEY_ALIAS="transport-upload"
+export TRANSPORT_UPLOAD_KEY_PASSWORD="<key-password>"
+```
+
+Then run:
+
+```bash
+cd mobile
+npm run android:playstore
+```
+
+This runs the release wrapper which validates that the app is pointed at the AWS production backend and enforces the required upload keystore.
+
+### Script options
+
+```bash
+cd mobile
+npm run android -- --prod --env aws
+npm run android -- --dev --env local
+npm run android:device -- --prod --env aws
+npm run android:device -- --dev --env local
+npm run android:apk -- --prod
+npm run android:apk -- --dev
+npm run android:playstore
+```
+
+Notes:
+
+- `--prod` and `--release` are for production-aligned release builds.
+- `--dev` and `--debug` are for local developer builds.
+- `--env aws` targets the production backend.
+- `--env local` targets a local backend and is not allowed for release packaging.
+- Release builds reject local backend overrides intentionally to avoid shipping a build that points at localhost.
+
 ## Learn more
 
 To learn more about developing your project with Expo, look at the following resources:

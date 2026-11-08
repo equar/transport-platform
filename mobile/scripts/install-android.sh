@@ -51,6 +51,30 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
+if [[ -z "$PROFILE" ]]; then
+  if [[ "$ENV_NAME" == "aws" ]]; then
+    PROFILE="prod"
+    BUILD_TYPE="release"
+    apply_runtime_profile "$PROFILE"
+    ENV_NAME="$TRANSPORT_PROFILE_ENV_NAME"
+  else
+    PROFILE="dev"
+    BUILD_TYPE="debug"
+    apply_runtime_profile "$PROFILE"
+    ENV_NAME="$TRANSPORT_PROFILE_ENV_NAME"
+  fi
+fi
+
+if [[ "$BUILD_TYPE" == "release" ]]; then
+  PROFILE="prod"
+  apply_runtime_profile "$PROFILE"
+  ENV_NAME="${ENV_NAME:-$TRANSPORT_PROFILE_ENV_NAME}"
+  if [[ "$ENV_NAME" == "local" ]]; then
+    echo "Release builds must target the production backend only. Remove local env overrides or use --prod." >&2
+    exit 2
+  fi
+fi
+
 resolve_mobile_node
 require_command npm
 resolve_android_sdk
@@ -68,6 +92,7 @@ if [[ -z "$API_URL" ]]; then
   [[ "$TARGET" == "device" ]] && API_TARGET="android-device"
   API_URL="$(resolve_api_base_url "$ENV_NAME" "$API_TARGET")"
 fi
+export AWS_API_BASE_URL="${AWS_API_BASE_URL:-$AWS_DEFAULT_API_BASE_URL}"
 export EXPO_PUBLIC_API_BASE_URL="$API_URL"
 export NODE_ENV="${TRANSPORT_NODE_ENV:-$([[ "$BUILD_TYPE" == "debug" ]] && echo development || echo production)}"
 
