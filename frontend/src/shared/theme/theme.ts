@@ -1,11 +1,31 @@
 import { alpha, createTheme, darken, lighten } from '@mui/material/styles';
 
 type Branding = { primaryColor?: string | null; secondaryColor?: string | null; accentColor?: string | null };
+const DEFAULT_PRIMARY = '#214e82';
+const DEFAULT_SECONDARY = '#12263e';
+const DEFAULT_ACCENT = '#d8662a';
+
+function sanitizeColor(value: string | null | undefined, fallback: string) {
+  if (!value) return fallback;
+  const trimmed = value.trim();
+  return /^#[0-9a-fA-F]{6}$/.test(trimmed) ? trimmed.toLowerCase() : fallback;
+}
+
+function normalizeBranding(branding?: Branding | null) {
+  if (!branding) return null;
+  return {
+    primaryColor: sanitizeColor(branding.primaryColor, DEFAULT_PRIMARY),
+    secondaryColor: sanitizeColor(branding.secondaryColor, DEFAULT_SECONDARY),
+    accentColor: sanitizeColor(branding.accentColor, DEFAULT_ACCENT),
+  };
+}
+
 export function createAppTheme(branding?: Branding | null, experience: 'public' | 'admin' = 'admin') {
   const publicSite = experience === 'public';
-  const primary = publicSite ? '#bc4710' : branding?.primaryColor || '#214e82';
-  const secondary = publicSite ? '#12263e' : branding?.secondaryColor || '#12263e';
-  const accent = publicSite ? '#d8662a' : branding?.accentColor || '#d8662a';
+  const resolved = publicSite ? null : normalizeBranding(branding);
+  const primary = publicSite ? '#bc4710' : resolved?.primaryColor || DEFAULT_PRIMARY;
+  const secondary = publicSite ? '#12263e' : resolved?.secondaryColor || DEFAULT_SECONDARY;
+  const accent = publicSite ? '#d8662a' : resolved?.accentColor || DEFAULT_ACCENT;
   return createTheme({
     palette: {
       primary: { main: primary, dark: darken(primary, .22), light: lighten(primary, .88), contrastText: '#fff' },

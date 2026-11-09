@@ -9,3 +9,10 @@ it('keeps public-site branding independent and resets to the platform palette', 
   expect(createAppTheme({ primaryColor: '#276442' }, 'public').palette.primary.main).toBe('#bc4710');
   expect(createAppTheme(null).palette.primary.main).toBe('#214e82');
 });
+
+it('sanitizes invalid tenant colors and resets them to the default palette', () => {
+  const theme = createAppTheme({ primaryColor: 'invalid', secondaryColor: '#123456', accentColor: '#ff00ff' });
+  expect(theme.palette.primary.main).toBe('#214e82');
+  expect(theme.palette.secondary.main).toBe('#123456');
+  expect(theme.palette.primary.light).not.toBe('#000000');
+});
