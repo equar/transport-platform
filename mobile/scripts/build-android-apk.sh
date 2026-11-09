@@ -9,7 +9,9 @@ TARGET="device"
 BUILD_TYPE="release"
 ENV_NAME="aws"
 PROFILE="prod"
+apply_runtime_profile "$PROFILE"
 INSTALL_AFTER_BUILD=false
+API_URL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -29,6 +31,13 @@ while [[ $# -gt 0 ]]; do
       shift
       ENV_NAME="${1:-}"
       validate_env_name "$ENV_NAME"
+      PROFILE="$([[ "$ENV_NAME" == "aws" ]] && echo prod || echo dev)"
+      apply_runtime_profile "$PROFILE"
+      ;;
+    --api-url)
+      shift
+      API_URL="${1:-}"
+      [[ -n "$API_URL" ]] || { echo "--api-url requires a URL." >&2; exit 2; }
       ;;
     --emulator) TARGET="emulator" ;;
     --device) TARGET="device" ;;
@@ -74,13 +83,19 @@ export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
 require_command adb || true
 ensure_node_modules
 
-if [[ -z "${EXPO_PUBLIC_API_BASE_URL:-}" ]]; then
+if [[ -z "$API_URL" ]]; then
   API_TARGET="android-emulator"
   [[ "$TARGET" == "device" ]] && API_TARGET="android-device"
-  EXPO_PUBLIC_API_BASE_URL="$(resolve_api_base_url "$ENV_NAME" "$API_TARGET")"
+  API_URL="$(resolve_api_base_url "$ENV_NAME" "$API_TARGET")"
 fi
-export AWS_API_BASE_URL="${AWS_API_BASE_URL:-$AWS_DEFAULT_API_BASE_URL}"
-export EXPO_PUBLIC_API_BASE_URL
+
+if [[ "$ENV_NAME" == "local" ]]; then
+  export AWS_API_BASE_URL="${AWS_API_BASE_URL:-$LOCAL_DEFAULT_API_BASE_URL_ANDROID_EMULATOR}"
+else
+  export AWS_API_BASE_URL="${AWS_API_BASE_URL:-$AWS_DEFAULT_API_BASE_URL}"
+fi
+
+export EXPO_PUBLIC_API_BASE_URL="$API_URL"
 export NODE_ENV="${TRANSPORT_NODE_ENV:-$([[ "$BUILD_TYPE" == "debug" ]] && echo development || echo production)}"
 
 cd "$PROJECT_ROOT/android"

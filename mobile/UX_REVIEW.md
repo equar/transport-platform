@@ -76,7 +76,7 @@ The shared-schema security work, backend permissions and admin/public deployment
 
 ## Final package
 
-[Installable Android APK](build/transport-platform-mobile-ux.apk) — 80.1 MiB, package `com.transportplatform.mobile`, Android 7+, ARM64/ARMv7. Its APK v2 signature, non-debuggable release flag, bundled Inter/Manrope font bytes, production HTTPS URL and latest screen content were verified. Installed and launched successfully on the isolated Android emulator; final button accessibility names exclude decorative icon glyphs.
+[Installable Android APK](build/transport-platform-mobile-ux.apk) — 80.1 MiB, package `com.bakaroo.transport.app`, Android 7+, ARM64/ARMv7. Its APK v2 signature, non-debuggable release flag, bundled Inter/Manrope font bytes, production HTTPS URL and latest screen content were verified. Installed and launched successfully on the isolated Android emulator; final button accessibility names exclude decorative icon glyphs.
 
 The APK uses the existing local test signing identity for direct installation. It is not a Play Store submission. Source changes remain uncommitted. The build artifact and screenshots are excluded from Git.
 

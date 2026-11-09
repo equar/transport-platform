@@ -7,9 +7,11 @@ source "$SCRIPT_DIR/common.sh"
 
 resolve_mobile_node
 
-ENV_NAME="local"
+ENV_NAME="aws"
 API_URL=""
-PROFILE=""
+PROFILE="prod"
+apply_runtime_profile "$PROFILE"
+BUILD_CONFIGURATION="Release"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -27,6 +29,8 @@ while [[ $# -gt 0 ]]; do
       shift
       ENV_NAME="${1:-}"
       validate_env_name "$ENV_NAME"
+      PROFILE="$([[ "$ENV_NAME" == "aws" ]] && echo prod || echo dev)"
+      apply_runtime_profile "$PROFILE"
       ;;
     --api-url)
       shift
@@ -45,6 +49,10 @@ require_command xcrun
 configure_push_runtime_env
 ensure_node_modules
 
+if [[ "${TRANSPORT_RUNTIME_PROFILE:-}" == "dev" ]]; then
+  start_metro_for_debug || exit 1
+fi
+
 if [[ -z "$API_URL" ]]; then
   API_URL="$(resolve_api_base_url "$ENV_NAME" "ios-device")"
 fi
@@ -60,7 +68,7 @@ DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-}"
 DEVICE_UDID="${IOS_DEVICE_UDID:-}"
 WORKSPACE="${WORKSPACE:-TransportPlatform.xcworkspace}"
 SCHEME="${SCHEME:-TransportPlatform}"
-APP_ID="${APP_ID:-com.transportplatform.mobile}"
+APP_ID="${APP_ID:-com.bakaroo.transport.app}"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PROJECT_ROOT/.build/ios-device}"
 TARGET_DEVICE_UDIDS=()
 

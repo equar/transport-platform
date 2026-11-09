@@ -6,11 +6,12 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 TARGET="emulator"
-BUILD_TYPE="debug"
+BUILD_TYPE="release"
 SERIAL="${ANDROID_SERIAL:-}"
 API_URL=""
-ENV_NAME="local"
-PROFILE=""
+ENV_NAME="aws"
+PROFILE="prod"
+apply_runtime_profile "$PROFILE"
 MIN_AVAILABLE_STORAGE_KIB=524288
 
 while [[ $# -gt 0 ]]; do
@@ -35,6 +36,8 @@ while [[ $# -gt 0 ]]; do
       shift
       ENV_NAME="${1:-}"
       validate_env_name "$ENV_NAME"
+      PROFILE="$([[ "$ENV_NAME" == "aws" ]] && echo prod || echo dev)"
+      apply_runtime_profile "$PROFILE"
       ;;
     --api-url)
       shift
@@ -84,6 +87,10 @@ warn_if_android_push_native_config_missing
 export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
 require_command adb
 ensure_node_modules
+
+if [[ "$BUILD_TYPE" == "debug" ]]; then
+  start_metro_for_debug || exit 1
+fi
 
 # Optional local test login prefill. Keep empty unless explicitly set for local-only use.
 
@@ -172,7 +179,7 @@ for serial in "${SERIALS[@]}"; do
   fi
 
   adb -s "$serial" install -r -d "$APK_PATH"
-  adb -s "$serial" shell am force-stop com.transportplatform.mobile >/dev/null 2>&1 || true
-  adb -s "$serial" shell monkey -p com.transportplatform.mobile -c android.intent.category.LAUNCHER 1 >/dev/null
+  adb -s "$serial" shell am force-stop com.bakaroo.transport.app >/dev/null 2>&1 || true
+  adb -s "$serial" shell monkey -p com.bakaroo.transport.app -c android.intent.category.LAUNCHER 1 >/dev/null
   echo "Installed and launched Transport Platform on $serial."
 done

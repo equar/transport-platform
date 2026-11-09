@@ -8,17 +8,8 @@ export function AuthFrame({ title, description, children, footer }: { title: str
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <View style={styles.content}>
           <View style={styles.topBar}>
-            <View style={styles.brand} accessible accessibilityLabel="Bakaroo Transports">
-              <View style={styles.logoWrap}>
-                <Image source={require('../assets/icon.png')} style={styles.logo} />
-              </View>
-              <View>
-                <Text style={styles.brandName}>bakaroo<Text style={styles.dot}>.</Text></Text>
-                <Text style={styles.brandCaption}>TRANSPORTS</Text>
-              </View>
-            </View>
-            <View style={styles.statusPill}>
-              <Text style={styles.statusText}>Secure tenant access</Text>
+            <View style={styles.brand} accessible accessibilityLabel="Bakaroo Transport logo">
+              <Image source={require('../assets/bakaroo-logo.png')} style={styles.brandLogo} resizeMode="contain" />
             </View>
           </View>
 
@@ -49,28 +40,21 @@ const styles = StyleSheet.create({
   },
   content: { width: '100%', maxWidth: 480, alignSelf: 'center', gap: Spacing.xl },
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-  },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  logoWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: Radius.xl,
-    backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-    ...Shadow.card,
+    paddingHorizontal: Spacing.sm,
   },
-  logo: { width: 36, height: 36, borderRadius: Radius.lg },
-  brandName: { fontFamily: Typography.fontHeading, fontSize: 30, letterSpacing: -1, color: Colors.textPrimary, lineHeight: 36 },
-  dot: { color: Colors.accent },
-  brandCaption: { fontFamily: Typography.fontBodyMedium, fontSize: 10, letterSpacing: 2.4, color: Colors.textSecondary },
+  brand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  brandLogo: {
+    width: 520,
+    height: 180,
+    maxWidth: '100%',
+  },
   statusPill: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
