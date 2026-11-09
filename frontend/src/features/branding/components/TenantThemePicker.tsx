@@ -35,6 +35,9 @@ export function TenantThemePicker({ tenantId, onApplied }: { tenantId?: string; 
     {state && !state.eligible ? <Alert severity="info">{state.eligibilityMessage}</Alert> : null}
     {state?.selectedCode === 'CUSTOM' ? <Alert severity="info">This tenant has existing custom colors. They remain active until you apply a predefined theme.</Alert> : null}
     {saved ? <Alert severity="success">Theme applied to {state?.companyName}.</Alert> : null}
+    {state ? <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+      <Button variant="outlined" size="small" onClick={() => setSelected('DEFAULT')} disabled={saving || selected === 'DEFAULT'}>Reset to default</Button>
+    </Stack> : null}
     <RadioGroup aria-labelledby={groupId} value={selected} onChange={event => { setSelected(event.target.value); setSaved(false); }}>
       <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' } }}>
         {state?.themes.map(theme => <Paper key={theme.code} component="label" variant="outlined" sx={{ p: 2, minWidth: 0, cursor: saving ? 'default' : 'pointer', borderWidth: 2,
