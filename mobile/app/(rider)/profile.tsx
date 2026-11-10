@@ -8,7 +8,6 @@ import { SectionHeader } from '@components/SectionHeader';
 import { EmptyState } from '@components/EmptyState';
 import { AppCard } from '@components/ui';
 import { Colors, Spacing, Typography } from '@theme/tokens';
-import { PassengerRoleTheme } from '@theme/roleTheme';
 
 export default function RiderProfilePage() {
   const { width } = useWindowDimensions();
@@ -104,7 +103,7 @@ const styles = StyleSheet.create({
   hero: {
     backgroundColor: Colors.surface,
     borderWidth: 1, borderColor: Colors.border,
-    borderRadius: 10,
+    borderRadius: 16,
     padding: Spacing.lg,
     gap: Spacing.xs,
   },

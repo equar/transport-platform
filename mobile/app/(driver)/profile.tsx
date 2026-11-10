@@ -18,7 +18,6 @@ import { SectionHeader } from '@components/SectionHeader';
 import { EmptyState } from '@components/EmptyState';
 import { AppButton, AppCard } from '@components/ui';
 import { Colors, Spacing, Typography } from '@theme/tokens';
-import { DriverRoleTheme } from '@theme/roleTheme';
 
 type ProfileTab = 'driver' | 'vehicle';
 
@@ -178,7 +177,7 @@ const styles = StyleSheet.create({
   hero: {
     backgroundColor: Colors.surface,
     borderWidth: 1, borderColor: Colors.border,
-    borderRadius: 10,
+    borderRadius: 16,
     padding: Spacing.lg,
     gap: Spacing.xs,
   },
@@ -204,7 +203,7 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
-    borderRadius: 6,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.border,
     minHeight: 48, justifyContent: 'center',
@@ -212,8 +211,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   tabButtonActive: {
-    backgroundColor: DriverRoleTheme.primary,
-    borderColor: DriverRoleTheme.primary,
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
   },
   tabLabel: {
     textAlign: 'center',

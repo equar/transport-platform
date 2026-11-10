@@ -20,5 +20,5 @@ it('switches palettes with the account and resets to default on sign out', () =>
   mockTenant = 'tenant-b'; view.rerender(<ThemeProvider><Probe /></ThemeProvider>);
   expect(screen.getByText('#5341a1')).toBeTruthy(); expect(screen.queryByText('#276442')).toBeNull();
   mockTenant = null; view.rerender(<ThemeProvider><Probe /></ThemeProvider>);
-  expect(screen.getByText('#214e82')).toBeTruthy();
+  expect(screen.getByText('#004787')).toBeTruthy();
 });

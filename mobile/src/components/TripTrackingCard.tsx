@@ -121,7 +121,7 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  section: { borderWidth: 1, borderColor: Colors.border, borderRadius: 10, overflow: 'hidden', backgroundColor: Colors.surface },
+  section: { borderWidth: 1, borderColor: Colors.border, borderRadius: 16, overflow: 'hidden', backgroundColor: Colors.surface },
   sectionTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: 220,
-    borderRadius: 8,
+    borderRadius: 14,
     backgroundColor: Colors.canvas,
   },
   row: { flexDirection: 'row', gap: Spacing.sm },

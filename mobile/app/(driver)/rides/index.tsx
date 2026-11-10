@@ -9,7 +9,6 @@ import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
 import { AppBadge, AppButton } from '@components/ui';
 import { Colors, Shadow, Spacing, Typography } from '@theme/tokens';
-import { DriverRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime } from '@utils/formatDate';
 
 const PAGE_SIZE = 20;
@@ -137,7 +136,7 @@ const styles = StyleSheet.create({
   headerShell: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.sm },
   header: {
     padding: Spacing.xl,
-    borderRadius: 8,
+    borderRadius: 14,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -151,15 +150,15 @@ const styles = StyleSheet.create({
   segmentButton: {
     flex: 1,
     minHeight: 48, justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: Colors.border,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.surface,
   },
   segmentButtonSelected: {
-    backgroundColor: DriverRoleTheme.primary,
-    borderColor: DriverRoleTheme.primary,
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
   },
   segmentLabel: {
     textAlign: 'center',
@@ -179,7 +178,7 @@ const styles = StyleSheet.create({
   dispatchCard: {
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 8,
+    borderRadius: 14,
     backgroundColor: Colors.surface,
     padding: Spacing.md,
     gap: Spacing.sm,

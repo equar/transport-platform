@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, RefreshControl, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { riderPortalApi } from '@api/riderPortalApi';
@@ -11,7 +11,7 @@ import { SectionHeader } from '@components/SectionHeader';
 import { ActionRow } from '@components/ActionRow';
 import { EmptyState } from '@components/EmptyState';
 import { AppButton, AppBadge, AppCard } from '@components/ui';
-import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
+import { Colors, Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 import { isFinishedTrip } from '@utils/tripPresentation';
 export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }) {
@@ -23,10 +23,6 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
   if (dashboard.isError) return <RequestError onRetry={() => void dashboard.refetch()} />;
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={dashboard.isRefetching || trips.isRefetching} onRefresh={() => { void dashboard.refetch(); void trips.refetch(); }} />}>
     <DashboardHeader name={session?.identity.firstName?.trim() || (guardian ? 'Guardian' : 'Rider')} role={role} tenantId={session?.identity.tenantId} />
-    <View style={styles.quickActions}>
-      <AppButton label="Request a ride" leftIcon="plus" fullWidth onPress={() => router.push(`/(${role})/schedule` as never)} />
-      <Text style={styles.helperText}>{guardian ? 'Manage family travel and trip updates in one place.' : 'Plan your next trip with fewer steps and clear trip status.'}</Text>
-    </View>
     <StatsGrid items={[
       { label: 'Upcoming rides', value: data?.upcomingRideCount ?? '—', icon: 'calendar-clock-outline' },
       { label: 'Active rides', value: data?.activeRideCount ?? '—', icon: 'car-outline' },
@@ -41,7 +37,7 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
         <Text style={styles.caption}>PICKUP</Text><Text style={styles.body}>{next.pickupAddress || 'To be confirmed'}</Text>
         <Text style={styles.caption}>DROP-OFF</Text><Text style={styles.body}>{next.dropoffAddress || 'To be confirmed'}</Text>
         <AppButton label="View trip details" rightIcon="arrow-right" onPress={() => router.push(`/(${role})/rides/${next.id}` as never)} />
-      </> : <EmptyState title="No upcoming trips" description="Request a ride or check your trip history below." />}
+      </> : <EmptyState title="No upcoming trips" description="Trips assigned by your transport provider will appear here." />}
     </AppCard>
     <ActionRow icon="car-outline" title="All rides" description="Upcoming trips, status updates and history" onPress={() => router.push(`/(${role})/rides` as never)} />
     {guardian && <ActionRow icon="account-group-outline" title="Linked riders" description="View the riders you’re authorized to support" onPress={() => router.push('/(guardian)/riders')} />}
@@ -50,7 +46,7 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.xl, gap: Spacing.lg, paddingBottom: Spacing.xxxl },
+  content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing.xxxl },
   quickActions: { gap: Spacing.sm },
   helperText: { fontFamily: Typography.fontBody, color: Colors.textSecondary, fontSize: Typography.sizeSm, marginLeft: Spacing.xs },
   trip: { gap: Spacing.md },

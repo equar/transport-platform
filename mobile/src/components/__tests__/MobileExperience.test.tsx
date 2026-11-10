@@ -55,9 +55,10 @@ it('shows actual driver summary fields instead of estimated miles or completion 
   expect(screen.queryByText(/miles|completed trips/i)).toBeNull();
   expect(screen.getByText('No upcoming assignments')).toBeTruthy();
 });
-it('gives guardians direct booking and linked rider actions with accurate labels', () => {
+it('keeps guardian travel assignment-based and preserves linked rider access', () => {
   render(<PassengerHomeScreen guardian />);
-  fireEvent.press(screen.getByRole('button', { name: 'Request a ride' })); expect(mockPush).toHaveBeenCalledWith('/(guardian)/schedule');
+  expect(screen.queryByRole('button', { name: 'Request a ride' })).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'All rides' })); expect(mockPush).toHaveBeenCalledWith('/(guardian)/rides');
   fireEvent.press(screen.getByRole('button', { name: 'Linked riders' })); expect(mockPush).toHaveBeenCalledWith('/(guardian)/riders');
   expect(screen.queryByText('Check In')).toBeNull();
 });
@@ -71,4 +72,14 @@ it('keeps delayed active rides separate from history and exposes explicit pagina
   expect(screen.queryByText('ACTIVE-TRIP')).toBeNull();
   fireEvent.press(screen.getByRole('button', { name: 'Load more trips' }));
   expect(mockFetchNextPage).toHaveBeenCalled();
+});
+
+it('shows assigned travel and existing billing actions without a service catalog for riders', () => {
+  render(<PassengerHomeScreen />);
+  expect(screen.queryByRole('button', { name: 'Request a ride' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Student' })).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'All rides' }));
+  expect(mockPush).toHaveBeenCalledWith('/(rider)/rides');
+  fireEvent.press(screen.getByRole('button', { name: 'Billing & payments' }));
+  expect(mockPush).toHaveBeenCalledWith('/(rider)/billing');
 });

@@ -10,7 +10,6 @@ import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
 import { Colors, Spacing, Typography } from '@theme/tokens';
-import { PassengerRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime } from '@utils/formatDate';
 
 type RideSegment = 'upcoming' | 'post';
@@ -115,13 +114,13 @@ const styles = StyleSheet.create({
     minHeight: 48, justifyContent: 'center',
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 6,
+    borderRadius: 10,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.surface,
   },
   segmentSelected: {
-    backgroundColor: PassengerRoleTheme.primary,
-    borderColor: PassengerRoleTheme.primary,
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
   },
   segmentLabel: {
     textAlign: 'center',
@@ -138,7 +137,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 8,
+    borderRadius: 14,
     backgroundColor: Colors.surface,
   },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },

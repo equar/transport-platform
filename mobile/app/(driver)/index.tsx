@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View, RefreshControl } from 'react-native';
+import { ScrollView, StyleSheet, Text, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { driverPortalApi } from '@api/driverPortalApi';
@@ -38,4 +38,4 @@ export default function DriverDashboard() {
     <ActionRow icon="file-document-outline" title="Documents & compliance" description="Review issues and upload required documents" onPress={() => router.push('/(driver)/compliance')} />
   </ScrollView>;
 }
-const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: Colors.background }, content: { padding: Spacing.xl, gap: Spacing.lg, paddingBottom: Spacing.xxxl }, copy: { fontFamily: Typography.fontBody, color: Colors.textSecondary, lineHeight: 23 } });
+const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: Colors.background }, content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing.xxxl }, copy: { fontFamily: Typography.fontBody, color: Colors.textSecondary, lineHeight: 23 } });

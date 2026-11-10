@@ -65,10 +65,10 @@ export function AppButton({
   const dim = sizeMap[size];
   const isDisabled = disabled || loading;
   const variantStyles = getVariantStyles(variant);
-  const tint = variant === 'primary' ? { backgroundColor: colors.primary }
+  const tint = variant === 'primary' ? { backgroundColor: colors.accent }
     : variant === 'secondary' ? { backgroundColor: colors.secondary }
-    : variant === 'outlined' ? { borderColor: colors.primary, backgroundColor: colors.primarySoft }
-    : variant === 'ghost' ? { backgroundColor: colors.primarySoft }
+    : variant === 'outlined' ? { borderColor: colors.primary, backgroundColor: colors.surface }
+    : variant === 'ghost' ? { backgroundColor: 'transparent' }
     : {};
   const brandedText = variant === 'outlined' || variant === 'ghost';
   const iconColor = brandedText ? colors.primary : variantStyles.iconColor;
@@ -98,7 +98,7 @@ export function AppButton({
       ) : (
         <View style={styles.contentRow}>
           {leftIcon ? <MaterialCommunityIcons name={leftIcon} size={dim.icon} color={iconColor} /> : null}
-          <Text style={[styles.labelBase, { fontSize: dim.fontSize }, variantStyles.label, brandedText && { color: colors.primary }]}>{label}</Text>
+          <Text style={[styles.labelBase, { fontSize: variant === 'primary' ? Math.max(18, dim.fontSize) : dim.fontSize }, variantStyles.label, brandedText && { color: colors.primary }]}>{label}</Text>
           {rightIcon ? <MaterialCommunityIcons name={rightIcon} size={dim.icon} color={iconColor} /> : null}
         </View>
       )}

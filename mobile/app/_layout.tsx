@@ -28,6 +28,7 @@ import { refreshTripTracking } from '../src/tracking/activeTrip';
 import { useOfflineQueue } from '@stores/offlineQueueStore';
 import { usePushNotifications } from '@hooks/usePushNotifications';
 import { Colors } from '@theme/tokens';
+import { useBrandingColors } from '@theme/BrandingContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -128,16 +129,20 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
       <SafeAreaProvider>
-        <SafeAreaView
-          style={{ flex: 1, width: '100%', maxWidth: 840, alignSelf: 'center', backgroundColor: Colors.background }}
-          edges={['top', 'left', 'right', 'bottom']}
-        >
-          <StatusBar style="dark" />
-          <AuthProvider>
-            <SessionQueries><ThemeProvider><AuthGate /></ThemeProvider></SessionQueries>
-          </AuthProvider>
-        </SafeAreaView>
+        <AuthProvider>
+          <SessionQueries><ThemeProvider><AppViewport><AuthGate /></AppViewport></ThemeProvider></SessionQueries>
+        </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+function AppViewport({ children }: { children: React.ReactNode }) {
+  const segments = useSegments() as readonly string[];
+  const colors = useBrandingColors();
+  const auth = segments[0] === '(auth)';
+  return <SafeAreaView style={{ flex: 1, width: '100%', maxWidth: 1000, alignSelf: 'center', backgroundColor: auth ? Colors.surface : colors.secondaryDark }} edges={['top', 'left', 'right', 'bottom']}>
+    <StatusBar style={auth ? 'dark' : 'light'} />
+    {children}
+  </SafeAreaView>;
 }
