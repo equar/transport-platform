@@ -40,10 +40,10 @@ it('shows the tenant business name while keeping the mobile palette fixed throug
   expect(screen.queryByText('Forest Transit')).toBeNull();
   expect(screen.getByText(palette)).toBeTruthy();
 });
-it('retains tenant identity above the page title on signed-in subpages', () => {
+it('shows the current page title on signed-in subpages', () => {
   mockPage = 'rides'; render(<App />);
-  expect(screen.getByRole('header', { name: 'Blue Harbor Mobility, Trips' })).toBeTruthy();
-  expect(screen.getByText('Trips')).toBeTruthy();
+  expect(screen.getByRole('header', { name: 'My Trips' })).toBeTruthy();
+  expect(screen.getByText('My Trips')).toBeTruthy();
 });
 it('keeps the Bakaroo logo on the authentication frame', () => {
   render(<ThemeProvider><AuthFrame title="Welcome back" description="Sign in"><Text>Login fields</Text></AuthFrame></ThemeProvider>);

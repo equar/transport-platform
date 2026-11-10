@@ -93,7 +93,7 @@ public class RiderGuardianPortalController {
     }
 
     @PostMapping("/portal/rider/rides")
-    @PreAuthorize("hasAnyRole('RIDER','GUARDIAN')")
+    @PreAuthorize("denyAll()")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RiderGuardianPortalRideDetailResponse> createRide(
             @Valid @RequestBody RiderGuardianPortalRideCreateRequest request,

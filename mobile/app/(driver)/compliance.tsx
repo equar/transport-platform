@@ -1,3 +1,4 @@
+import { documentContentType } from '@utils/documentContentType';
 import { DriverDocumentUploadForm, type DocumentMetadata } from '@components/DriverDocumentUploadForm';
 import { RequestError } from '@components/RequestError';
 import React, { useState } from 'react';
@@ -58,7 +59,7 @@ export default function DriverCompliancePage() {
     setUploading(true);
     try {
       await driverPortalApi.uploadDocument({ documentType: draft.documentType, ...metadata,
-        uri: draft.file.uri, name: draft.file.name, contentType: draft.file.mimeType ?? 'application/pdf' });
+        uri: draft.file.uri, name: draft.file.name, contentType: documentContentType(draft.file.name, draft.file.mimeType) });
       setSubmittedDocumentName(draft.file.name);
       setDraft(null);
       await refetch();

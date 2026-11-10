@@ -1,0 +1,21 @@
+import { act, renderHook } from '@testing-library/react-native';
+import { AppState } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
+import { focusManager, onlineManager } from '@tanstack/react-query';
+import { useQueryConnectivity } from './useQueryConnectivity';
+jest.mock('@react-native-community/netinfo', () => ({ __esModule: true, default: { addEventListener: jest.fn() } }));
+jest.mock('@tanstack/react-query', () => ({ focusManager: { setFocused: jest.fn() }, onlineManager: { setOnline: jest.fn() } }));
+it('pauses native background and offline polling and cleans up native listeners', () => {
+  let onApp!: (state: string) => void;
+  let onNetwork!: (state: { isConnected: boolean; isInternetReachable: boolean }) => void;
+  const removeApp = jest.fn(), removeNetwork = jest.fn();
+  jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, callback) => { onApp = callback as typeof onApp; return { remove: removeApp }; });
+  jest.mocked(NetInfo.addEventListener).mockImplementation(callback => { onNetwork = callback as typeof onNetwork; return removeNetwork; });
+  const view = renderHook(useQueryConnectivity);
+  act(() => onApp('background')); expect(focusManager.setFocused).toHaveBeenLastCalledWith(false);
+  act(() => onApp('active')); expect(focusManager.setFocused).toHaveBeenLastCalledWith(true);
+  act(() => onNetwork({ isConnected: true, isInternetReachable: false })); expect(onlineManager.setOnline).toHaveBeenLastCalledWith(false);
+  act(() => onNetwork({ isConnected: true, isInternetReachable: true })); expect(onlineManager.setOnline).toHaveBeenLastCalledWith(true);
+  view.unmount(); expect(removeApp).toHaveBeenCalled(); expect(removeNetwork).toHaveBeenCalled();
+  jest.restoreAllMocks();
+});

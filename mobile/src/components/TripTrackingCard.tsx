@@ -16,6 +16,7 @@ interface TripTrackingCardProps {
   dropoffAddress?: string | null;
   onRefresh?: () => void;
   refreshing?: boolean;
+  error?: boolean;
 }
 
 function buildStaticMapUrl(
@@ -45,6 +46,7 @@ export function TripTrackingCard({
   dropoffAddress,
   onRefresh,
   refreshing = false,
+  error = false,
 }: TripTrackingCardProps) {
   const [mapFailed, setMapFailed] = useState(false);
   const [details, setDetails] = useState(false);
@@ -55,6 +57,7 @@ export function TripTrackingCard({
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <View style={styles.body}>
+        {error ? <Text accessibilityRole="alert" style={styles.emptyText}>Location updates could not be loaded. Check your connection and refresh tracking.</Text> : null}
         {snapshot ? (
           <>
             {mapUrl && !mapFailed ? (

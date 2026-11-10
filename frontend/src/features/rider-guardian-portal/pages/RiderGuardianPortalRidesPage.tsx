@@ -3,6 +3,7 @@ import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import {
+  Pagination,
   Alert,
   Box,
   Button,
@@ -40,6 +41,9 @@ const rideStatuses = [
   "DROPPED_OFF",
   "COMPLETED",
   "CANCELLED",
+  "MISSED",
+  "FAILED",
+  "RIDER_NO_SHOW",
 ] as const;
 
 export function RiderGuardianPortalRidesPage() {
@@ -48,6 +52,8 @@ export function RiderGuardianPortalRidesPage() {
   const [linkedRiders, setLinkedRiders] = useState<
     RiderGuardianPortalLinkedRiderRecord[]
   >([]);
+  const [page, setPage] = useState(0);
+  const [pages, setPages] = useState(0);
   const [rides, setRides] = useState<RiderGuardianPortalRideRecord[]>([]);
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("");
@@ -65,6 +71,7 @@ export function RiderGuardianPortalRidesPage() {
             riderGuardianPortalApi.getDashboard(),
             riderGuardianPortalApi.getLinkedRiders(),
             riderGuardianPortalApi.searchRides({
+              page,
               keyword,
               status: status || undefined,
               size: 25,
@@ -76,6 +83,7 @@ export function RiderGuardianPortalRidesPage() {
           setDashboard(dashboardResponse);
           setLinkedRiders(linkedRidersResponse);
           setRides(ridesResponse.items);
+          setPages(ridesResponse.totalPages);
         }
       } catch {
         if (!cancelled) {
@@ -91,7 +99,7 @@ export function RiderGuardianPortalRidesPage() {
     return () => {
       cancelled = true;
     };
-  }, [keyword, status]);
+  }, [keyword, status, page]);
 
   if (loading) {
     return <LoadingState />;
@@ -144,14 +152,14 @@ export function RiderGuardianPortalRidesPage() {
         <TextField
           label="Search rides"
           value={keyword}
-          onChange={(event) => setKeyword(event.target.value)}
+          onChange={(event) => { setKeyword(event.target.value); setPage(0); }}
           fullWidth
         />
         <TextField
           select
           label="Status"
           value={status}
-          onChange={(event) => setStatus(event.target.value)}
+          onChange={(event) => { setStatus(event.target.value); setPage(0); }}
           sx={{ minWidth: { md: 220 } }}
         >
           {rideStatuses.map((option) => (
@@ -231,6 +239,7 @@ export function RiderGuardianPortalRidesPage() {
           ))
         )}
       </Stack>
+      {pages > 1 ? <Pagination aria-label="Trip pages" count={pages} page={page + 1} onChange={(_, value) => setPage(value - 1)} /> : null}
     </Stack>
   );
 }

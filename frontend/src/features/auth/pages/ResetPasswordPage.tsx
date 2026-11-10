@@ -1,3 +1,4 @@
+import { passwordValidationError } from "../../../shared/utils/passwordPolicy";
 import { useState, type FormEvent } from "react";
 import { Button, Link, Stack, TextField, Typography } from "@mui/material";
 import { Link as RouterLink, useSearchParams } from "react-router-dom";
@@ -43,8 +44,9 @@ export function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Use a password with at least 8 characters.");
+    const passwordProblem = passwordValidationError(password);
+    if (passwordProblem) {
+      setError(passwordProblem);
       return;
     }
 

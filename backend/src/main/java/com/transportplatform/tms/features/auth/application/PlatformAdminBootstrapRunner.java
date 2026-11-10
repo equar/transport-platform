@@ -55,7 +55,7 @@ public class PlatformAdminBootstrapRunner implements ApplicationRunner {
             user.setFirstName("Platform");
             user.setLastName("Administrator");
             user.setMustChangePassword(true);
-            user.setPasswordHash(passwordEncoder.encode(properties.getPassword()));
+            user.setPasswordHash(com.transportplatform.tms.common.security.PasswordEncoding.encode(passwordEncoder, properties.getPassword()));
             user.setStatus(UserStatus.ACTIVE);
             user.setRoles(Set.of(RoleName.ROLE_PLATFORM_ADMIN));
             appUserRepository.save(user);

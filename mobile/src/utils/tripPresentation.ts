@@ -4,3 +4,5 @@ export function tripStatusLabel(status: string) {
   const labels: Record<string, string> = { DRIVER_EN_ROUTE: 'Driver on the way', PICKED_UP: 'On board', DROPPED_OFF: 'Dropped off', RIDER_NO_SHOW: 'No-show', PENDING_REVIEW: 'Under review' };
   return labels[status] ?? status.toLowerCase().replace(/_/g, ' ').replace(/^\w/, letter => letter.toUpperCase());
 }
+
+export function isTrackableTrip(status: string) { return ['DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP'].includes(status); }

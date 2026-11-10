@@ -45,7 +45,7 @@ public class AppUserTenantOwnerProvisioningService implements TenantOwnerProvisi
                     "A temporary password is required for the tenant owner account.");
         }
         user.setMustChangePassword(true);
-        user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
+        user.setPasswordHash(com.transportplatform.tms.common.security.PasswordEncoding.encode(passwordEncoder, temporaryPassword));
         user.setStatus(UserStatus.ACTIVE);
         user.setRoles(Set.of(RoleName.ROLE_TENANT_ADMIN));
         return appUserRepository.save(user).getId();

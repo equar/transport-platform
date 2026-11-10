@@ -12,7 +12,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import {
   driverPortalApi,
@@ -33,67 +33,84 @@ export function DriverPortalRideDetailsPage() {
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const actionInFlight = useRef(false);
+  const previousRideId = useRef<number | null>(null);
+  const activeRideId = useRef(resolvedRideId);
+  activeRideId.current = resolvedRideId;
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    async function load() {
-      setLoading(true);
-      setError(null);
+    let pending = false;
+    let finished = false;
+    setRide(null);
+    setError(null);
+    if (previousRideId.current !== resolvedRideId) { setNote(''); setActionLoading(false); actionInFlight.current = false; previousRideId.current = resolvedRideId; }
+    if (!Number.isSafeInteger(resolvedRideId) || resolvedRideId <= 0) {
+      setLoading(false); setError('Choose a valid trip from your trip list.'); return;
+    }
+    async function load(background = false) {
+      if (pending || cancelled) return;
+      pending = true;
+      if (!background) setLoading(true);
       try {
         const response = await driverPortalApi.getRide(resolvedRideId);
         if (!cancelled) {
-          setRide(response);
+          if (activeRideId.current !== resolvedRideId) return;
+          setRide(response); setError(null);
+          finished = ['COMPLETED', 'CANCELLED', 'MISSED', 'FAILED', 'RIDER_NO_SHOW'].includes(response.status);
         }
       } catch {
-        if (!cancelled) {
-          setError("Ride detail could not be loaded.");
-        }
+        if (!cancelled) { setRide(null); setError('Ride detail could not be loaded. Check your access and connection, then retry.'); }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        pending = false;
+        if (!cancelled) setLoading(false);
       }
     }
-    if (Number.isFinite(resolvedRideId)) {
-      void load();
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [resolvedRideId]);
+    void load();
+    const timer = window.setInterval(() => { if (!finished && document.visibilityState !== 'hidden') void load(true); }, 15000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [resolvedRideId, retryCount]);
 
   if (loading) {
     return <LoadingState />;
   }
 
   async function handleAction(action: string) {
+    if (actionInFlight.current) return;
+    actionInFlight.current = true;
     setActionLoading(true);
     try {
       const response = await driverPortalApi.postRideAction(
         resolvedRideId,
         action,
+        ride?.status,
       );
+      if (activeRideId.current !== resolvedRideId) return;
       setRide(response);
       showSuccess("Ride updated.");
     } catch {
-      showError("Ride action could not be completed.");
+      if (activeRideId.current === resolvedRideId) { showError("Ride action could not be completed. Refreshing the current assignment."); setRetryCount(value => value + 1); }
     } finally {
-      setActionLoading(false);
+      if (activeRideId.current === resolvedRideId) { actionInFlight.current = false; setActionLoading(false); }
     }
   }
 
   async function handleAddNote() {
+    if (actionInFlight.current || !note.trim()) return;
+    actionInFlight.current = true;
     setActionLoading(true);
     try {
       const response = await driverPortalApi.addRideNote(resolvedRideId, note);
+      if (activeRideId.current !== resolvedRideId) return;
       setRide(response);
       setNote("");
       showSuccess("Ride note added.");
     } catch {
       showError("Ride note could not be saved.");
     } finally {
-      setActionLoading(false);
+      if (activeRideId.current === resolvedRideId) { actionInFlight.current = false; setActionLoading(false); }
     }
   }
 
@@ -118,7 +135,7 @@ export function DriverPortalRideDetailsPage() {
           </Typography>
         </Stack>
       </PageCard>
-      {error ? <Alert severity="error">{error}</Alert> : null}
+      {error ? <Alert severity="error" action={<Button onClick={() => setRetryCount(value => value + 1)}>Retry</Button>}>{error}</Alert> : null}
       {ride ? (
         <>
           <PageCard>

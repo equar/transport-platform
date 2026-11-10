@@ -19,38 +19,39 @@ export function RiderGuardianPortalRideDetailsPage() {
     null,
   );
   const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-
-    async function loadRide() {
-      setLoading(true);
-      setError(null);
+    let pending = false;
+    let finished = false;
+    setRide(null);
+    setError(null);
+    if (!Number.isSafeInteger(resolvedRideId) || resolvedRideId <= 0) {
+      setLoading(false); setError('Choose a valid trip from your trip list.'); return;
+    }
+    async function load(background = false) {
+      if (pending || cancelled) return;
+      pending = true;
+      if (!background) setLoading(true);
       try {
         const response = await riderGuardianPortalApi.getRide(resolvedRideId);
         if (!cancelled) {
-          setRide(response);
+          setRide(response); setError(null);
+          finished = ['DROPPED_OFF', 'COMPLETED', 'CANCELLED', 'MISSED', 'FAILED', 'RIDER_NO_SHOW'].includes(response.status);
         }
       } catch {
-        if (!cancelled) {
-          setError("Ride detail could not be loaded.");
-        }
+        if (!cancelled) { setRide(null); setError('Ride detail could not be loaded. Check your access and connection, then retry.'); }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        pending = false;
+        if (!cancelled) setLoading(false);
       }
     }
-
-    if (Number.isFinite(resolvedRideId)) {
-      void loadRide();
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [resolvedRideId]);
+    void load();
+    const timer = window.setInterval(() => { if (!finished && document.visibilityState !== 'hidden') void load(true); }, 15000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [resolvedRideId, retryCount]);
 
   if (loading) {
     return <LoadingState />;
@@ -66,7 +67,7 @@ export function RiderGuardianPortalRideDetailsPage() {
       >
         Back to rides
       </Button>
-      {error ? <Alert severity="error">{error}</Alert> : null}
+      {error ? <Alert severity="error" action={<Button onClick={() => setRetryCount(value => value + 1)}>Retry</Button>}>{error}</Alert> : null}
       {ride ? (
         <>
           <PageCard>

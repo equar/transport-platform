@@ -1,3 +1,4 @@
+import { passwordValidationError } from '@utils/passwordPolicy';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -14,13 +15,15 @@ export default function ResetPassword() {
   const [pending, setPending] = useState(false);
   const router = useRouter();
   async function submit() {
-    if (!token || password !== confirm || password.length < 12) { setError('Use at least 12 characters and matching passwords.'); return; }
+    if (!token || password !== confirm) { setError('Use a valid reset link and matching passwords.'); return; }
+    const problem = passwordValidationError(password);
+    if (problem) { setError(problem); return; }
     setPending(true); setError('');
     try { await authApi.resetPassword(token, password); setComplete(true); }
-    catch { setError('This link may have expired or already been used. Request another link or try again.'); }
+    catch (error) { setError(error instanceof Error ? error.message : 'This link may have expired or already been used. Request another link or try again.'); }
     finally { setPending(false); }
   }
-  return <AuthFrame title={complete ? 'Password updated' : 'Choose a new password'} description={complete ? 'Your password has been changed. Sign in with your new password to continue.' : 'Use a unique password with at least 12 characters.'}
+  return <AuthFrame title={complete ? 'Password updated' : 'Choose a new password'} description={complete ? 'Your password has been changed. Sign in with your new password to continue.' : 'Use a unique password with at least 8 characters.'}
     footer={<AppButton label="Back to sign in" variant="ghost" onPress={() => router.replace('/(auth)/login')} />}>
     {complete ? <AppButton label="Sign in" onPress={() => router.replace('/(auth)/login')} /> : !token ? <>
       <Text style={styles.body}>The reset link is missing. Request a new link to continue.</Text><AppButton label="Request reset link" onPress={() => router.replace('/(auth)/forgot-password')} />

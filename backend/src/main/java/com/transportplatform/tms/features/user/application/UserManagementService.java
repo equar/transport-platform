@@ -378,14 +378,14 @@ public class UserManagementService {
         user.setRoles(roles);
         user.setStatus(request.status() == null ? UserStatus.ACTIVE : request.status());
         if (request.password() != null && !request.password().isBlank()) {
-            user.setPasswordHash(passwordEncoder.encode(request.password()));
+            user.setPasswordHash(com.transportplatform.tms.common.security.PasswordEncoding.encode(passwordEncoder, request.password()));
             user.setPasswordChangedAt(clock.instant());
             user.setMustChangePassword(true);
         }
     }
 
     private UserResponse resetUserPassword(AppUser user, String password) {
-        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setPasswordHash(com.transportplatform.tms.common.security.PasswordEncoding.encode(passwordEncoder, password));
         user.setPasswordChangedAt(clock.instant());
         user.setMustChangePassword(true);
         user.setPasswordResetTokenHash(null);

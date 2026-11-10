@@ -75,7 +75,7 @@ public class AuthFacade {
     public AuthTokensResponse login(LoginRequest request, String clientType) {
         AppUser user = appUserRepository.findForAuthenticationByEmail(request.email())
                 .orElseThrow(this::invalidCredentials);
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        if (!com.transportplatform.tms.common.security.PasswordEncoding.matches(passwordEncoder, request.password(), user.getPasswordHash())) {
             throw invalidCredentials();
         }
         ensureEligibleForTokenIssuance(user, false);
@@ -104,14 +104,14 @@ public class AuthFacade {
         AppUser user = appUserRepository.findById(currentUser.id())
                 .orElseThrow(this::invalidCredentials);
 
-        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+        if (!com.transportplatform.tms.common.security.PasswordEncoding.matches(passwordEncoder, request.currentPassword(), user.getPasswordHash())) {
             throw new ApiException(
                     ErrorCode.INVALID_CREDENTIALS,
                     HttpStatus.BAD_REQUEST,
                     "The current password is incorrect.");
         }
 
-        if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+        if (com.transportplatform.tms.common.security.PasswordEncoding.matches(passwordEncoder, request.newPassword(), user.getPasswordHash())) {
             throw new ApiException(
                     ErrorCode.VALIDATION_FAILED,
                     HttpStatus.BAD_REQUEST,
@@ -272,7 +272,7 @@ public class AuthFacade {
     }
 
     private void applyPassword(AppUser user, String rawPassword, boolean mustChangePassword) {
-        user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        user.setPasswordHash(com.transportplatform.tms.common.security.PasswordEncoding.encode(passwordEncoder, rawPassword));
         user.setPasswordChangedAt(clock.instant());
         user.setMustChangePassword(mustChangePassword);
         user.setTemporaryPasswordExpiresAt(null);

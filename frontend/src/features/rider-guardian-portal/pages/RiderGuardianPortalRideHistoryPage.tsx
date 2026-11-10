@@ -1,5 +1,5 @@
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import { Alert, Button, Stack, Typography } from "@mui/material";
+import { Alert, Button, Pagination, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoadingState } from "../../../shared/components/LoadingState";
@@ -11,17 +11,14 @@ import {
   type RiderGuardianPortalRideRecord,
 } from "../api/riderGuardianPortalApi";
 
-function isHistoryRide(ride: RiderGuardianPortalRideRecord) {
-  const scheduledPickup = new Date(ride.scheduledPickupAt).getTime();
-  return (
-    ride.status === "COMPLETED" ||
-    ride.status === "CANCELLED" ||
-    scheduledPickup < Date.now()
-  );
+export function isHistoryRide(ride: RiderGuardianPortalRideRecord) {
+  return ['DROPPED_OFF', 'COMPLETED', 'CANCELLED', 'MISSED', 'FAILED', 'RIDER_NO_SHOW'].includes(ride.status);
 }
 
 export function RiderGuardianPortalRideHistoryPage() {
   const navigate = useNavigate();
+  const [page, setPage] = useState(0);
+  const [pages, setPages] = useState(0);
   const [rides, setRides] = useState<RiderGuardianPortalRideRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,12 +31,14 @@ export function RiderGuardianPortalRideHistoryPage() {
       setError(null);
       try {
         const response = await riderGuardianPortalApi.searchRides({
-          size: 50,
+          size: 25,
+          page,
           sortBy: "scheduledPickupAt",
           sortDirection: "DESC",
         });
         if (!cancelled) {
           setRides(response.items.filter(isHistoryRide));
+          setPages(response.totalPages);
         }
       } catch {
         if (!cancelled) {
@@ -57,7 +56,7 @@ export function RiderGuardianPortalRideHistoryPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [page]);
 
   if (loading) {
     return <LoadingState />;
@@ -78,7 +77,7 @@ export function RiderGuardianPortalRideHistoryPage() {
       {rides.length === 0 ? (
         <PageCard>
           <Typography color="text.secondary">
-            No ride history is available yet.
+            No finished trips on this page.
           </Typography>
         </PageCard>
       ) : (
@@ -118,6 +117,7 @@ export function RiderGuardianPortalRideHistoryPage() {
           </PageCard>
         ))
       )}
+      {pages > 1 ? <Pagination aria-label="Ride history pages" count={pages} page={page + 1} onChange={(_, value) => setPage(value - 1)} /> : null}
     </Stack>
   );
 }
