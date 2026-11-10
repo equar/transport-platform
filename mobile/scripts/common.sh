@@ -225,4 +225,30 @@ warn_if_android_push_native_config_missing() {
   echo "Android push token registration may be unavailable until that file is added." >&2
 }
 
+start_metro_for_debug() {
+  if [[ "${TRANSPORT_RUNTIME_PROFILE:-}" != "dev" ]]; then
+    return 0
+  fi
+
+  if curl -fsS "http://127.0.0.1:8081" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "Starting Metro bundler for local debug install on port 8081..."
+  local metro_log="/tmp/transport-platform-metro.log"
+  setsid env PATH="$PATH" bash -lc 'cd "$1" && CI=1 npx expo start --host localhost --port 8081 > /tmp/transport-platform-metro.log 2>&1' _ "$PROJECT_ROOT" >/dev/null 2>&1 &
+
+  local deadline=$((SECONDS + 30))
+  while (( SECONDS < deadline )); do
+    if curl -fsS "http://127.0.0.1:8081" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  echo "Metro bundler did not become ready on http://127.0.0.1:8081 within 30 seconds." >&2
+  echo "Run: cd mobile && CI=1 npx expo start --host localhost --port 8081" >&2
+  return 1
+}
+
 load_mobile_env

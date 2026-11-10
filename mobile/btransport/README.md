@@ -85,6 +85,31 @@ cd mobile
 npm run android:device -- --env local
 ```
 
+### Build a manual APK for local testing
+
+Local backend testing should target your running local backend instead of the AWS production API.
+
+```bash
+cd mobile
+npm run android:apk -- --dev --env local --emulator
+```
+
+For an explicit custom local backend URL:
+
+```bash
+cd mobile
+AWS_API_BASE_URL="http://10.0.2.2:8082/api" npm run android:apk -- --dev --env local --emulator
+```
+
+For a physical device using a LAN IP instead of localhost:
+
+```bash
+cd mobile
+LOCAL_API_BASE_URL="http://192.168.1.50:8082/api" npm run android:apk -- --dev --env local --device
+```
+
+This produces a debug APK linked to the local backend, which is suitable for local validation.
+
 ### Build a manual APK for distribution
 
 ```bash

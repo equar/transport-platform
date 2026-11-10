@@ -1,0 +1,34 @@
+[
+  {
+    "file": "01-driver-home.png",
+    "width": 720,
+    "height": 1280,
+    "aspectRatio": "9:16",
+    "bytes": 92474,
+    "valid": true
+  },
+  {
+    "file": "02-driver-trip-details.png",
+    "width": 720,
+    "height": 1280,
+    "aspectRatio": "9:16",
+    "bytes": 94115,
+    "valid": true
+  },
+  {
+    "file": "03-driver-route-manifest.png",
+    "width": 720,
+    "height": 1280,
+    "aspectRatio": "9:16",
+    "bytes": 77953,
+    "valid": true
+  },
+  {
+    "file": "04-driver-documents-compliance.png",
+    "width": 720,
+    "height": 1280,
+    "aspectRatio": "9:16",
+    "bytes": 99739,
+    "valid": true
+  }
+]

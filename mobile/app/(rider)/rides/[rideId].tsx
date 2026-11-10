@@ -9,7 +9,6 @@ import { TripTrackingCard } from '@components/TripTrackingCard';
 import { AppBadge, AppButton, AppInput } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { Colors, Spacing, Typography } from '@theme/tokens';
-import { PassengerRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime } from '@utils/formatDate';
 
 const CANCELLABLE = new Set(['REQUESTED', 'PENDING_REVIEW', 'SCHEDULED', 'ASSIGNED']);
@@ -143,7 +142,7 @@ const styles = StyleSheet.create({
   heroCard: {
     backgroundColor: Colors.surface,
     borderWidth: 1, borderColor: Colors.border,
-    borderRadius: 8,
+    borderRadius: 14,
     padding: Spacing.lg,
     gap: Spacing.xs,
   },
@@ -168,7 +167,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   back: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.primary },
-  section: { borderWidth: 1, borderColor: Colors.border, borderRadius: 10, overflow: 'hidden', backgroundColor: Colors.surface },
+  section: { borderWidth: 1, borderColor: Colors.border, borderRadius: 16, overflow: 'hidden', backgroundColor: Colors.surface },
   sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeXs, color: Colors.textSecondary, letterSpacing: 0.5, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.divider, backgroundColor: Colors.surfaceMuted },
   actionRow: {
     flexDirection: 'row',

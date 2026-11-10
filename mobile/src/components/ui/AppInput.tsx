@@ -6,6 +6,8 @@ import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
 
 interface AppInputProps {
   label?: string;
+  hideLabel?: boolean;
+  leftIcon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
@@ -27,6 +29,8 @@ interface AppInputProps {
 
 export function AppInput({
   label,
+  hideLabel = false,
+  leftIcon,
   value,
   onChangeText,
   placeholder,
@@ -62,7 +66,7 @@ export function AppInput({
 
   return (
     <View style={[styles.wrapper, style]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label && !hideLabel ? <Text style={styles.label}>{label}</Text> : null}
       <View
         style={[
           styles.inputContainer,
@@ -73,6 +77,7 @@ export function AppInput({
           !editable && styles.disabled,
         ]}
       >
+        {leftIcon ? <MaterialCommunityIcons name={leftIcon} size={22} color={colors.primaryDark} style={{ marginRight: Spacing.sm }} /> : null}
         <TextInput
           style={[
             styles.input,
@@ -134,7 +139,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.borderStrong,
     borderRadius: Radius.input,
     backgroundColor: Colors.surface,
     paddingHorizontal: Spacing.md,

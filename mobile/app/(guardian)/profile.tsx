@@ -8,7 +8,6 @@ import { SectionHeader } from '@components/SectionHeader';
 import { EmptyState } from '@components/EmptyState';
 import { AppCard } from '@components/ui';
 import { Colors, Spacing, Typography } from '@theme/tokens';
-import { GuardianRoleTheme } from '@theme/roleTheme';
 
 export default function GuardianProfilePage() {
 	const { width } = useWindowDimensions();
@@ -103,7 +102,7 @@ const styles = StyleSheet.create({
 	heroCard: {
 		backgroundColor: Colors.surface,
     borderWidth: 1, borderColor: Colors.border,
-		borderRadius: 10,
+		borderRadius: 16,
 		gap: Spacing.xs,
 	},
 	heroTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.textPrimary },

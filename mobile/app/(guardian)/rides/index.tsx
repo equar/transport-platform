@@ -11,7 +11,6 @@ import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
 import { Colors, Spacing, Typography } from '@theme/tokens';
-import { GuardianRoleTheme } from '@theme/roleTheme';
 import { formatShortDateTime } from '@utils/formatDate';
 
 type RideSegment = 'today' | 'history';
@@ -109,13 +108,13 @@ const styles = StyleSheet.create({
         minHeight: 48, justifyContent: 'center',
 		borderWidth: 1,
 		borderColor: Colors.border,
-		borderRadius: 6,
+		borderRadius: 10,
 		paddingVertical: Spacing.sm,
 		backgroundColor: Colors.surface,
 	},
 	segmentSelected: {
-		backgroundColor: GuardianRoleTheme.primary,
-		borderColor: GuardianRoleTheme.primary,
+		backgroundColor: Colors.accent,
+		borderColor: Colors.accent,
 	},
 	segmentLabel: {
 		textAlign: 'center',
@@ -130,7 +129,7 @@ const styles = StyleSheet.create({
 	rideNumber: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
 	meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeXs, color: Colors.textSecondary },
 	address: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary },
-	rider: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: GuardianRoleTheme.primary },
+	rider: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: Colors.primary },
 	sep: { height: Spacing.sm },
 	emptyContent: { flex: 1 },
 });

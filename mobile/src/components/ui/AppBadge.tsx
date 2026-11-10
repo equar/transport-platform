@@ -11,6 +11,7 @@ type StatusVariant =
   | 'PLANNED' | string;
 
 const colorMap: Record<string, { bg: string; text: string }> = {
+  VERIFIED: { bg: '#dcfce7', text: '#08752b' },
   ACTIVE: { bg: '#e7f4ec', text: Colors.statusActive },
   READY: { bg: '#e7f4ec', text: Colors.statusActive },
   COMPLETED: { bg: Colors.primarySoft, text: Colors.statusCompleted },

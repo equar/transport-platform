@@ -10,7 +10,6 @@ import React, {
 import { authApi, type LoginPayload } from '@api/authApi';
 import { SESSION_KEY, onSessionExpired, onSessionRefreshed, invalidateSessionRequests } from '@api/client';
 import type { AuthSession } from './types';
-import { Roles } from './types';
 import { deleteSessionValue, getSessionValue, setSessionValue } from './sessionStorage';
 import { unregisterCurrentPushToken } from '@hooks/usePushNotifications';
 import { useOfflineQueue } from '@stores/offlineQueueStore';
@@ -90,15 +89,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (logoutInFlight.current) return logoutInFlight.current;
       const currentRefreshToken = session?.refreshToken;
       invalidateSessionRequests();
-      setSession(null);
-      useOfflineQueue.getState().clear();
       logoutInFlight.current = (async () => {
-        try { await stopTripTracking(); } catch { /* credentials must still be cleared */ }
+        try { await stopTripTracking(); } catch { /* local logout must still complete */ }
         try { await unregisterCurrentPushToken(); } catch { /* token is re-scoped on next registration */ }
-        if (currentRefreshToken) {
-          try { await authApi.signOut(currentRefreshToken); } catch { /* finish local logout offline */ }
-        }
+        // Revoke device push access while authentication is still available, then
+        // clear persisted credentials before changing the navigation tree.
         await deleteSessionValue(SESSION_KEY);
+        setSession(null);
+        useOfflineQueue.getState().clear();
+        if (currentRefreshToken) {
+          try { await authApi.signOut(currentRefreshToken); } catch { /* local logout is complete offline */ }
+        }
       })().finally(() => { logoutInFlight.current = null; });
       return logoutInFlight.current;
     },

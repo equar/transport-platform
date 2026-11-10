@@ -19,8 +19,7 @@ import { TripTrackingCard } from '@components/TripTrackingCard';
 import { useOfflineQueue } from '@stores/offlineQueueStore';
 import { AppBadge, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
-import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
-import { DriverRoleTheme } from '@theme/roleTheme';
+import { Colors, Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 import { createIdempotencyKey } from '@utils/idempotencyKey';
 import { useAuth } from '@auth/AuthContext';
@@ -58,7 +57,6 @@ export default function DriverRideDetailPage() {
   const network = useNetInfo();
   const { enqueue, queue, conflicts, dismissConflict, retry } = useOfflineQueue();
   const { session } = useAuth();
-  const locationPermissionAlertShownRef = React.useRef(false);
   const actionInFlightRef = React.useRef(false);
 
   const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
@@ -333,7 +331,7 @@ const styles = StyleSheet.create({
   heroCard: {
     backgroundColor: Colors.surface,
     borderWidth: 1, borderColor: Colors.border,
-    borderRadius: 8,
+    borderRadius: 14,
     padding: Spacing.lg,
     gap: Spacing.sm,
   },
@@ -434,7 +432,7 @@ const sectionStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     gap: 0,
-    backgroundColor: Colors.surface, borderRadius: 10, overflow: 'hidden',
+    backgroundColor: Colors.surface, borderRadius: 16, overflow: 'hidden',
   },
   title: {
     fontFamily: 'Inter_700Bold',

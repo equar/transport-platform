@@ -26,10 +26,10 @@ export default function LoginPage() {
     footer={<AppButton label="Forgot your password?" variant="ghost" onPress={() => router.push('/(auth)/forgot-password')} />}>
     {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     <View style={styles.fields}>
-      <AppInput label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoComplete="email" editable={!loading} error={submitted && !/^\S+@\S+\.\S+$/.test(email.trim()) ? 'Enter a valid email address.' : undefined} />
-      <AppInput label="Password" value={password} onChangeText={setPassword} placeholder="Enter your password" secureTextEntry autoComplete="current-password" editable={!loading} error={submitted && !password ? 'Enter your password.' : undefined} />
+      <AppInput label="Email address" hideLabel leftIcon="account-outline" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoComplete="email" editable={!loading} error={submitted && !/^\S+@\S+\.\S+$/.test(email.trim()) ? 'Enter a valid email address.' : undefined} />
+      <AppInput label="Password" hideLabel leftIcon="lock-outline" value={password} onChangeText={setPassword} placeholder="Enter your password" secureTextEntry autoComplete="current-password" editable={!loading} error={submitted && !password ? 'Enter your password.' : undefined} />
     </View>
-    <AppButton label="Sign in" rightIcon="arrow-right" onPress={() => void submit()} loading={loading} fullWidth size="lg" />
+    <AppButton label="Sign in" onPress={() => void submit()} loading={loading} fullWidth size="lg" />
   </AuthFrame>;
 }
 const styles = StyleSheet.create({ fields: { gap: Spacing.lg }, error: { fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: Colors.error, lineHeight: 22 } });

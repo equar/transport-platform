@@ -3,8 +3,7 @@ import React from 'react';
 import { StyleSheet, FlatList, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { riderPortalApi } from '@api/riderPortalApi';
-import { useRouter } from 'expo-router';
-import { AppBadge, AppCard, AppButton } from '@components/ui';
+import { AppBadge, AppCard } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
@@ -12,7 +11,6 @@ import { Colors, Spacing, Typography } from '@theme/tokens';
 import { GuardianRoleTheme } from '@theme/roleTheme';
 
 export default function GuardianRidersPage() {
-  const router = useRouter();
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
@@ -30,7 +28,6 @@ export default function GuardianRidersPage() {
       <View style={styles.headerCard}>
         <SectionHeader title="Linked Riders" subtitle="Riders you're authorised to monitor" />
       </View>
-      <AppButton style={{ marginHorizontal: Spacing.lg, marginVertical: Spacing.md }} label="Request a ride" onPress={() => router.push("/(guardian)/schedule" as never)} />
       <FlatList
         data={riders}
         keyExtractor={(r) => String(r.id)}

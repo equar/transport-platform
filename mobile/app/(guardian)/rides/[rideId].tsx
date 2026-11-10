@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
 	heroCard: {
 		backgroundColor: Colors.surface,
     borderWidth: 1, borderColor: Colors.border,
-		borderRadius: 8,
+		borderRadius: 14,
 		padding: Spacing.lg,
 		gap: Spacing.xs,
 	},

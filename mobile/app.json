@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.transportplatform.mobile",
+      "bundleIdentifier": "com.bakaroo.transport.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Upload compliance documents.",
         "NSLocationWhenInUseUsageDescription": "Show your location on the route map.",
@@ -30,7 +30,7 @@
         "foregroundImage": "./src/assets/adaptive-icon.png",
         "backgroundColor": "#0f4c5c"
       },
-      "package": "com.transportplatform.mobile",
+      "package": "com.bakaroo.transport.app",
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",

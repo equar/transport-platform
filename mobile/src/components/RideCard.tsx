@@ -1,4 +1,5 @@
 import React from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { AppBadge } from './ui';
 import { Colors, Shadow, Spacing, Typography } from '@theme/tokens';
@@ -26,12 +27,12 @@ export function RideCard({ ride, onPress }: RideCardProps) {
       ) : null}
       <View style={styles.addressRow}>
         <View style={styles.addressItem}>
-          <Text style={styles.addressLabel}>FROM</Text>
+          <View style={styles.locationLabel}><MaterialCommunityIcons name="map-marker" size={18} color={Colors.primary} /><Text style={styles.addressLabel}>FROM</Text></View>
           <Text style={styles.addressText} numberOfLines={2}>{ride.pickupAddress ?? '—'}</Text>
         </View>
         <Text style={styles.arrow}>→</Text>
         <View style={styles.addressItem}>
-          <Text style={styles.addressLabel}>TO</Text>
+          <View style={styles.locationLabel}><MaterialCommunityIcons name="map-marker" size={18} color={Colors.accent} /><Text style={styles.addressLabel}>TO</Text></View>
           <Text style={styles.addressText} numberOfLines={2}>{ride.dropoffAddress ?? '—'}</Text>
         </View>
       </View>
@@ -48,8 +49,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 8,
-    padding: Spacing.xl,
+    borderRadius: 14,
+    padding: Spacing.lg,
     gap: Spacing.sm,
     ...Shadow.card,
   },
@@ -61,7 +62,7 @@ const styles = StyleSheet.create({
   headerBlock: {
     gap: 2,
   },
-  eyebrow: {
+  eyebrow: { display: 'none',
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
     color: Colors.secondaryDark,
@@ -91,6 +92,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     paddingVertical: Spacing.sm,
   },
+  locationLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   addressItem: { flex: 1, gap: 2 },
   addressLabel: {
     fontFamily: 'Inter_700Bold',

@@ -1,0 +1,29 @@
+[
+  {
+    "device": "Pixel_8",
+    "serial": "emulator-5554",
+    "installed": true,
+    "installOutput": "Serving...\nPerforming Incremental Install\nSuccess\nInstall command complete in 438 ms\nAll files should be loaded. Notifying the device.",
+    "launchOutput": "Starting: Intent { cmp=com.bakaroo.transport.app/.MainActivity }",
+    "running": true,
+    "foreground": true
+  },
+  {
+    "device": "Pixel_7",
+    "serial": "emulator-5556",
+    "installed": true,
+    "installOutput": "Serving...\nPerforming Incremental Install\nSuccess\nInstall command complete in 650 ms\nAll files should be loaded. Notifying the device.",
+    "launchOutput": "Starting: Intent { cmp=com.bakaroo.transport.app/.MainActivity }",
+    "running": true,
+    "foreground": true
+  },
+  {
+    "device": "Pixel_8_Pro",
+    "serial": "emulator-5558",
+    "installed": true,
+    "installOutput": "Serving...\nPerforming Incremental Install\nSuccess\nInstall command complete in 1383 ms\nAll files should be loaded. Notifying the device.",
+    "launchOutput": "Starting: Intent { cmp=com.bakaroo.transport.app/.MainActivity }",
+    "running": true,
+    "foreground": true
+  }
+]

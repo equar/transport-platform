@@ -1,28 +1,30 @@
+import { RoleShell } from '@components/RoleShell';
 import { useBrandingColors } from '@theme/BrandingContext';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography } from '@theme/tokens';
-import { GuardianRoleTheme } from '@theme/roleTheme';
+import { Colors } from '@theme/tokens';
 
 export default function GuardianLayout() {
   const colors = useBrandingColors();
   return (
-    <Tabs
+    <RoleShell role="guardian"><Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.secondaryDark,
         tabBarStyle: {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          height: 64,
+          height: 70,
+          borderTopLeftRadius: 18,
+          borderTopRightRadius: 18,
           paddingTop: 7,
           paddingBottom: 7,
         },
         tabBarLabelStyle: {
           fontFamily: 'Inter_600SemiBold',
-          fontSize: Typography.sizeXs,
+          fontSize: 11,
           marginTop: 1,
         },
         tabBarIconStyle: {
@@ -67,6 +69,6 @@ export default function GuardianLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
         }}
       />
-    </Tabs>
+    </Tabs></RoleShell>
   );
 }
