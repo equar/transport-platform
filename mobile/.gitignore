@@ -15,6 +15,7 @@ node_modules/
 .build/
 build/
 dist/
+artifacts/
 
 # Native projects are regenerated via `npx expo prebuild` — do not track them.
 /android/

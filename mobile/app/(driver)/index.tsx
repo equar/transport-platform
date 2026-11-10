@@ -22,7 +22,7 @@ export default function DriverDashboard() {
   if (dashboard.isLoading) return <LoadingState />;
   if (dashboard.isError) return <RequestError onRetry={() => void dashboard.refetch()} />;
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={dashboard.isRefetching || trips.isRefetching} onRefresh={() => { void dashboard.refetch(); void trips.refetch(); }} />}>
-    <DashboardHeader name={session?.identity.firstName?.trim() || 'Driver'} role="driver" tenantId={session?.identity.tenantId} />
+    <DashboardHeader name={session?.identity.firstName?.trim() || 'Driver'} role="driver" />
     <StatsGrid items={[
       { label: 'Trips today', value: data?.ridesToday ?? '—', icon: 'calendar-today' },
       { label: 'Assigned trips', value: data?.assignedRides ?? '—', icon: 'car-outline' },

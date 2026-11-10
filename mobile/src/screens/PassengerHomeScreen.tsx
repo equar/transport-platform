@@ -22,7 +22,7 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
   if (dashboard.isLoading) return <LoadingState />;
   if (dashboard.isError) return <RequestError onRetry={() => void dashboard.refetch()} />;
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={dashboard.isRefetching || trips.isRefetching} onRefresh={() => { void dashboard.refetch(); void trips.refetch(); }} />}>
-    <DashboardHeader name={session?.identity.firstName?.trim() || (guardian ? 'Guardian' : 'Rider')} role={role} tenantId={session?.identity.tenantId} />
+    <DashboardHeader name={session?.identity.firstName?.trim() || (guardian ? 'Guardian' : 'Rider')} role={role} />
     <StatsGrid items={[
       { label: 'Upcoming rides', value: data?.upcomingRideCount ?? '—', icon: 'calendar-clock-outline' },
       { label: 'Active rides', value: data?.activeRideCount ?? '—', icon: 'car-outline' },
@@ -54,4 +54,3 @@ const styles = StyleSheet.create({
   body: { fontFamily: Typography.fontBody, color: Colors.textPrimary, fontSize: Typography.sizeMd, lineHeight: 23 },
   caption: { fontFamily: Typography.fontBodyMedium, fontSize: Typography.sizeXs, color: Colors.textSecondary, marginTop: Spacing.sm, letterSpacing: 1 }
 });
-

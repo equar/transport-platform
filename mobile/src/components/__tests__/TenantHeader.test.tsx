@@ -15,3 +15,11 @@ it('uses the current tenant cached business name offline without leaking it to a
   view.rerender(<TenantHeader tenantId={null} variant="appHeader" />);
   expect(screen.getByText('No tenant assigned')).toBeTruthy();
 });
+
+it('shows the screen title instead of the tenant name outside the home screen', async () => {
+  jest.mocked(getCachedTenantBranding).mockResolvedValueOnce(JSON.stringify({ displayName: 'Cached Harbor Transit' }));
+  render(<TenantHeader tenantId="tenant-a" variant="appHeader" pageTitle="My Trips" />);
+  await waitFor(() => expect(screen.getByText('My Trips')).toBeTruthy());
+  expect(screen.queryByText('Cached Harbor Transit')).toBeNull();
+  expect(screen.getByRole('header', { name: 'My Trips' })).toBeTruthy();
+});
