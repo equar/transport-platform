@@ -1,15 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useBrandingColors } from '@theme/BrandingContext';
 import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
-import { TenantHeader } from './TenantHeader';
 
-export function DashboardHeader({ name, role, tenantId }: { name: string; role: 'driver' | 'rider' | 'guardian'; tenantId?: string | null }) {
+export function DashboardHeader({ name, role }: { name: string; role: 'driver' | 'rider' | 'guardian' }) {
   const colors = useBrandingColors();
   return <View style={[styles.header, { backgroundColor: colors.primarySoft }]}>
     <View style={styles.copy}>
       <Text accessibilityRole="header" style={styles.title}>Hello, {name}</Text>
       <Text style={styles.subtitle}>{role === 'driver' ? 'Driver workspace' : role === 'guardian' ? 'Family workspace' : 'Your transport'}</Text>
-      <TenantHeader tenantId={tenantId} />
     </View>
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.skyline}>
       {[28, 48, 38, 66, 46, 80, 58].map((height, i) => <View key={i} style={[styles.building, { height, backgroundColor: colors.primary, opacity: .06 + i * .012 }]} />)}

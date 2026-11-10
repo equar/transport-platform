@@ -19,9 +19,9 @@ export function TenantHeader({ tenantId, variant = 'inline', pageTitle }: Props)
 
   if (variant === 'appHeader') {
     const businessName = name?.trim() || (tenantId ? 'Your transport provider' : 'No tenant assigned');
-    return <View style={styles.appHeader} accessible accessibilityRole="header" accessibilityLabel={pageTitle ? `${businessName}, ${pageTitle}` : businessName}>
-      <Text style={styles.businessName} numberOfLines={2} ellipsizeMode="tail">{businessName}</Text>
-      {pageTitle ? <Text style={styles.pageTitle} numberOfLines={1}>{pageTitle}</Text> : null}
+    const headerTitle = pageTitle ?? businessName;
+    return <View style={styles.appHeader} accessible accessibilityRole="header" accessibilityLabel={headerTitle}>
+      <Text style={styles.businessName} numberOfLines={2} ellipsizeMode="tail">{headerTitle}</Text>
     </View>;
   }
 
@@ -54,7 +54,6 @@ export function TenantHeader({ tenantId, variant = 'inline', pageTitle }: Props)
 const styles = StyleSheet.create({
   appHeader: { alignItems: 'center', width: '100%', gap: 2 },
   businessName: { fontFamily: Typography.fontBodyBold, fontSize: 18, lineHeight: 23, color: Colors.white, textAlign: 'center' },
-  pageTitle: { fontFamily: Typography.fontBody, fontSize: Typography.sizeXs, color: Colors.onPrimaryMuted, textAlign: 'center' },
   container: {
     marginTop: Spacing.sm,
     flexDirection: 'row',
