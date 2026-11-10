@@ -13,6 +13,8 @@ public interface DriverLocationSnapshotRepository extends JpaRepository<DriverLo
 
     Optional<DriverLocationSnapshot> findTopByTenantIdAndRide_IdOrderByCapturedAtDescIdDesc(String tenantId, Long rideId);
 
+    Optional<DriverLocationSnapshot> findTopByTenantIdAndRide_IdAndDriver_IdOrderByCapturedAtDescIdDesc(String tenantId, Long rideId, Long driverId);
+
     List<DriverLocationSnapshot> findAllByTenantIdAndRide_IdInOrderByCapturedAtDescIdDesc(String tenantId,
             Collection<Long> rideIds);
 }

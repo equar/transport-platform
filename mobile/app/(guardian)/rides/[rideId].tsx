@@ -1,3 +1,4 @@
+import { isFinishedTrip, isTrackableTrip } from '@utils/tripPresentation';
 import { SupportContact } from '@components/SupportContact';
 import { RequestError } from '@components/RequestError';
 import React from 'react';
@@ -18,6 +19,7 @@ export default function GuardianRideDetailPage() {
 
 	const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
 		queryKey: ['guardian-ride-detail', rideId],
+    refetchInterval: query => query.state.data && !isFinishedTrip(query.state.data.status) ? 15000 : false,
 		queryFn: () => riderPortalApi.getRide(Number(rideId)),
 		enabled: Boolean(rideId),
 	});
@@ -26,11 +28,12 @@ export default function GuardianRideDetailPage() {
 		data: locationSnapshot,
 		refetch: refetchLocationSnapshot,
 		isRefetching: locationRefreshing,
+    isError: locationError,
 	} = useQuery({
 		queryKey: ['guardian-ride-location', rideId],
 		queryFn: () => riderPortalApi.getRideLocationSnapshot(Number(rideId)),
-		enabled: Boolean(rideId),
-		refetchInterval: 30000,
+		enabled: !!ride && !isError && isTrackableTrip(ride.status),
+		refetchInterval: ride && isTrackableTrip(ride.status) ? 30000 : false,
 	});
 
 	if (isLoading) return <LoadingState />;
@@ -69,7 +72,8 @@ export default function GuardianRideDetailPage() {
 
 			<TripTrackingCard
 				title="Current Position"
-				snapshot={locationSnapshot ?? null}
+				snapshot={isTrackableTrip(ride.status) ? locationSnapshot ?? null : null}
+        error={locationError && isTrackableTrip(ride.status)}
 				pickupAddress={ride.pickupAddress}
 				dropoffAddress={ride.dropoffAddress}
 				onRefresh={() => {
@@ -86,7 +90,7 @@ export default function GuardianRideDetailPage() {
 					<AppButton label="Riders" onPress={() => router.push('/(guardian)/riders')} fullWidth />
 				</View>
 			</View>
-            <Text style={styles.personText}>To change or cancel a booking, contact your transport provider.</Text>
+            <Text style={styles.personText}>To change or cancel an assigned trip, contact your transport provider.</Text>
             <SupportContact />
 		</ScrollView>
 	);

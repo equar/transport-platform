@@ -323,28 +323,8 @@ public class RiderGuardianPortalService {
 
     @Transactional
     public RiderGuardianPortalRideDetailResponse createRide(RiderGuardianPortalRideCreateRequest request) {
-        var scope = accessService.resolveCurrentScope();
-        Long riderId = resolveRequestedRiderId(scope, request.riderId());
-        Long guardianId = resolveRequestedGuardianId(scope, riderId, request.guardianId());
-        var references = rideReferenceValidationService.resolve(
-                scope.user().tenantId(),
-                riderId,
-                guardianId,
-                null,
-                null,
-                null);
-
-        Ride ride = new Ride();
-        ride.setTenantId(scope.user().tenantId());
-        ride.setRideNumber(rideCodeGenerator.generate(scope.user().tenantId()));
-        ride.setStatus(RideStatus.REQUESTED);
-        rideMapper.apply(ride, toUpsertRequest(request, riderId, guardianId), references);
-        validateRideBusinessRules(ride);
-        Ride saved = rideRepository.save(ride);
-        rideEventService.recordRideCreated(saved, "Ride created from rider portal.");
-        recordAudit(saved.getTenantId(), "RIDER_PORTAL", "RIDE_CREATED", "RIDE", saved.getId().toString(),
-                "Ride " + saved.getRideNumber() + " was created via rider portal.", null, snapshotRide(saved));
-        return toRideDetail(saved);
+        throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                "Trips are created and assigned by your transport provider.");
     }
 
     @Transactional(readOnly = true)
@@ -357,8 +337,11 @@ public class RiderGuardianPortalService {
             throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
                     "The current rider or guardian portal account cannot access this ride.");
         }
+        if (ride.getDriverId() == null || !Set.of(RideStatus.DRIVER_EN_ROUTE, RideStatus.ARRIVED, RideStatus.PICKED_UP).contains(ride.getStatus())) {
+            return null;
+        }
         return driverLocationSnapshotRepository
-                .findTopByTenantIdAndRide_IdOrderByCapturedAtDescIdDesc(ride.getTenantId(), ride.getId())
+                .findTopByTenantIdAndRide_IdAndDriver_IdOrderByCapturedAtDescIdDesc(ride.getTenantId(), ride.getId(), ride.getDriverId())
                 .map(driverLocationSnapshotMapper::toResponse)
                 .orElse(null);
     }

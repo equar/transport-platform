@@ -216,8 +216,8 @@ export const driverPortalApi = {
     const response = await apiClient.post(`${basePath}/rides/${rideId}/notes`, { note });
     return unwrapResponse<DriverPortalRideDetailRecord>(response.data);
   },
-  async postRideAction(rideId: number, action: string) {
-    const response = await apiClient.post(`${basePath}/rides/${rideId}/actions/${action}`);
+  async postRideAction(rideId: number, action: string, expectedStatus?: string) {
+    const response = await apiClient.post(`${basePath}/rides/${rideId}/actions/${action}`, undefined, { headers: expectedStatus ? { 'X-Expected-Ride-Status': expectedStatus } : undefined });
     return unwrapResponse<DriverPortalRideDetailRecord>(response.data);
   },
   async searchRoutes(params: Record<string, unknown>) {

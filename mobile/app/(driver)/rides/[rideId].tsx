@@ -1,3 +1,4 @@
+import { isTrackableTrip } from '@utils/tripPresentation';
 import { RequestError } from '@components/RequestError';
 import { SupportContact } from '@components/SupportContact';
 import React from 'react';
@@ -17,7 +18,7 @@ import { startTripTracking, stopTripTracking, useTrackingState } from '../../../
 import { driverPortalApi, type DriverRideAction } from '@api/driverPortalApi';
 import { TripTrackingCard } from '@components/TripTrackingCard';
 import { useOfflineQueue } from '@stores/offlineQueueStore';
-import { AppBadge, AppButton } from '@components/ui';
+import { AppBadge, AppButton, AppInput } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { Colors, Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
@@ -58,9 +59,11 @@ export default function DriverRideDetailPage() {
   const { enqueue, queue, conflicts, dismissConflict, retry } = useOfflineQueue();
   const { session } = useAuth();
   const actionInFlightRef = React.useRef(false);
+  const [note, setNote] = React.useState('');
 
   const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-ride', rideId],
+    refetchInterval: query => query.state.data && !['COMPLETED', 'CANCELLED', 'FAILED', 'RIDER_NO_SHOW', 'MISSED'].includes(query.state.data.status) ? 15000 : false,
     queryFn: () => driverPortalApi.getRide(Number(rideId)),
     enabled: !!rideId,
   });
@@ -69,25 +72,33 @@ export default function DriverRideDetailPage() {
     data: locationSnapshot,
     refetch: refetchLocationSnapshot,
     isRefetching: locationRefreshing,
+    isError: locationError,
   } = useQuery({
     queryKey: ['driver-ride-location', rideId],
     queryFn: () => driverPortalApi.getRideLocationSnapshot(Number(rideId)),
-    enabled: !!rideId,
+    enabled: !!ride && !isError,
     refetchInterval: ride && TRACKABLE_STATUSES.has(ride.status) ? 30000 : false,
   });
 
   const { mutate: performAction, isPending: actionPending } = useMutation({
     mutationFn: ({ action, idempotencyKey }: { action: DriverRideAction; idempotencyKey: string }) =>
-      driverPortalApi.postRideAction(Number(rideId), action, idempotencyKey),
-    onSuccess: () => {
+      driverPortalApi.postRideAction(Number(rideId), action, idempotencyKey, ride?.status),
+    onSuccess: (updatedRide) => {
+      qc.setQueryData(['driver-ride', rideId], updatedRide);
+      if (!isTrackableTrip(updatedRide.status) && session?.identity.tenantId) void stopTripTracking({ rideId: updatedRide.id, tenantId: session.identity.tenantId, userId: session.identity.id });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      qc.invalidateQueries({ queryKey: ['driver-rides'] });
-      qc.invalidateQueries({ queryKey: ['driver-ride', rideId] });
+      void qc.invalidateQueries();
     },
-    onError: (err: Error) => Alert.alert('Error', err.message),
+    onError: (err: Error) => { void qc.invalidateQueries(); Alert.alert('Error', err.message); },
     onSettled: () => {
       actionInFlightRef.current = false;
     },
+  });
+
+  const saveNote = useMutation({
+    mutationFn: () => driverPortalApi.addRideNote(Number(rideId), note.trim()),
+    onSuccess: (updatedRide) => { setNote(''); qc.setQueryData(['driver-ride', rideId], updatedRide); void qc.invalidateQueries(); },
+    onError: (err: Error) => Alert.alert('Note could not be saved', err.message),
   });
 
   async function handleAction(action: DriverRideAction, label: string) {
@@ -103,18 +114,20 @@ export default function DriverRideDetailPage() {
       Alert.alert('Connection unavailable', 'Try the trip action again when your connection is available.');
       return;
     }
-    if (!net.isConnected) {
+    if (!net.isConnected || net.isInternetReachable === false) {
       if (!session?.identity.tenantId || !ride) {
         actionInFlightRef.current = false;
         return;
       }
-      enqueue(Number(rideId), action, {
-        tenantId: session.identity.tenantId,
-        userId: session.identity.id,
-      }, ride.status);
-      actionInFlightRef.current = false;
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      Alert.alert('Offline', `Action "${label}" will sync when you're back online.`);
+      Alert.alert('Confirm offline action', `${label}? This update will sync when you reconnect.`, [
+        { text: 'Cancel', style: 'cancel', onPress: () => { actionInFlightRef.current = false; } },
+        { text: 'Confirm', onPress: () => {
+          enqueue(Number(rideId), action, { tenantId: session.identity.tenantId!, userId: session.identity.id }, ride.status);
+          actionInFlightRef.current = false;
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          Alert.alert('Offline', `Action "${label}" will sync when you're back online.`);
+        } },
+      ], { cancelable: true, onDismiss: () => { actionInFlightRef.current = false; } });
       return;
     }
     Alert.alert('Confirm', `${label}?`, [
@@ -147,8 +160,8 @@ export default function DriverRideDetailPage() {
     if (['DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP'].includes(ride.status)) {
       void startTripTracking({ rideId: ride.id, tenantId: session.identity.tenantId, userId: session.identity.id })
         .catch(() => Alert.alert('Tracking unavailable', 'Check location permission in Settings.'));
-    } else if (['COMPLETED', 'CANCELLED', 'FAILED', 'RIDER_NO_SHOW'].includes(ride.status)) {
-      void stopTripTracking();
+    } else if (['DROPPED_OFF', 'COMPLETED', 'CANCELLED', 'FAILED', 'RIDER_NO_SHOW', 'MISSED'].includes(ride.status)) {
+      void stopTripTracking({ rideId: ride.id, tenantId: session.identity.tenantId, userId: session.identity.id });
     }
   }, [ride?.status, rideId, session?.identity.id]);
 
@@ -187,7 +200,7 @@ export default function DriverRideDetailPage() {
         </View>
       </View>
 
-      <Text accessibilityRole="text" style={{ fontFamily: Typography.fontBody, color: Colors.textSecondary, lineHeight: 22 }}>{tracking.message}{tracking.lastSyncedAt ? ` • Last synced ${new Date(tracking.lastSyncedAt).toLocaleTimeString()}` : ""}</Text>
+      <Text accessibilityRole="text" style={{ fontFamily: Typography.fontBody, color: Colors.textSecondary, lineHeight: 22 }}>{tracking.rideId === ride.id ? tracking.message : 'Tracking is off for this trip'}{tracking.rideId === ride.id && tracking.lastSyncedAt ? ` • Last synced ${new Date(tracking.lastSyncedAt).toLocaleTimeString()}` : ""}</Text>
       <Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>← Dispatches</Text>
 
       {/* Action */}
@@ -201,7 +214,7 @@ export default function DriverRideDetailPage() {
                 onPress={() => {
                   const target = ['PICKED_UP', 'DROPPED_OFF'].includes(ride.status) ? ride.dropoffAddress : ride.pickupAddress;
                   if (!target) { Alert.alert('Address unavailable', 'Contact dispatch for the destination.'); return; }
-                  void Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(target)}`);
+                  void Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(target)}`).catch(() => Alert.alert('Maps unavailable', 'Open your maps app or contact dispatch for directions.'));
                 }}
                 fullWidth
               />
@@ -262,6 +275,7 @@ export default function DriverRideDetailPage() {
       <TripTrackingCard
         title="Live Route"
         snapshot={locationSnapshot ?? null}
+        error={locationError}
         pickupAddress={ride.pickupAddress}
         dropoffAddress={ride.dropoffAddress}
         onRefresh={() => {
@@ -276,6 +290,13 @@ export default function DriverRideDetailPage() {
           <Text style={styles.instructions}>{ride.specialInstructions}</Text>
         </Section>
       ) : null}
+
+      <Section title="Trip Notes">
+        {ride.operationalNotes ? <Text style={styles.instructions}>{ride.operationalNotes}</Text> : null}
+        <AppInput label="Trip note" value={note} onChangeText={setNote} multiline numberOfLines={3} maxLength={2000} showCount editable={!saveNote.isPending} />
+        <AppButton label="Save note" onPress={() => saveNote.mutate()} loading={saveNote.isPending} disabled={!note.trim() || network.isConnected === false || network.isInternetReachable === false} />
+        {network.isConnected === false || network.isInternetReachable === false ? <Text style={styles.instructions}>Connect to save a trip note.</Text> : null}
+      </Section>
 
       {queuedAction ? (
         <View style={styles.queuedActionState}>

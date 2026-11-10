@@ -8,7 +8,7 @@
     "build": "tsc -b && npm run clean:build && npm run build:public && npm run build:admin && npm run check:sites",
     "preview": "vite preview --mode public --outDir dist/public",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
     "dev:admin": "vite --mode admin",
     "build:public": "vite build --mode public --outDir dist/public",
     "build:admin": "vite build --mode admin --outDir dist/admin",

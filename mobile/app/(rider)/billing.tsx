@@ -3,7 +3,7 @@ import { Pagination } from '@components/Pagination';
 import { RequestError } from '@components/RequestError';
 import { SupportContact } from '@components/SupportContact';
 import React from 'react';
-import { StyleSheet, Modal, Share, ScrollView, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
+import { StyleSheet, Share, ScrollView, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { riderPortalApi } from '@api/riderPortalApi';
 import { AppBadge, AppCard, AppButton } from '@components/ui';

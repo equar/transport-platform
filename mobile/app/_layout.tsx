@@ -1,3 +1,4 @@
+import { useQueryConnectivity } from '@hooks/useQueryConnectivity';
 import { runtimeApi } from '@api/runtimeApi';
 import { setServiceTimezone } from '../src/utils/serviceTime';
 import { mobileRoleGroup } from "@auth/access";
@@ -112,6 +113,7 @@ function AuthGate() {
 }
 
 export default function RootLayout() {
+  useQueryConnectivity();
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_600SemiBold,

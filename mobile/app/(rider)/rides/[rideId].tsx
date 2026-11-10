@@ -1,3 +1,4 @@
+import { isFinishedTrip, isTrackableTrip } from '@utils/tripPresentation';
 import { SupportContact } from '@components/SupportContact';
 import { RequestError } from '@components/RequestError';
 import React from 'react';
@@ -12,7 +13,6 @@ import { Colors, Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 
 const CANCELLABLE = new Set(['REQUESTED', 'PENDING_REVIEW', 'SCHEDULED', 'ASSIGNED']);
-const TRACKABLE_STATUSES = new Set(['ASSIGNED', 'DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP', 'DROPPED_OFF']);
 
 export default function RiderRideDetailPage() {
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
@@ -22,6 +22,7 @@ export default function RiderRideDetailPage() {
 
   const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['rider-ride', rideId],
+    refetchInterval: query => query.state.data && !isFinishedTrip(query.state.data.status) ? 15000 : false,
     queryFn: () => riderPortalApi.getRide(Number(rideId)),
     enabled: !!rideId,
   });
@@ -30,11 +31,12 @@ export default function RiderRideDetailPage() {
     data: locationSnapshot,
     refetch: refetchLocationSnapshot,
     isRefetching: locationRefreshing,
+    isError: locationError,
   } = useQuery({
     queryKey: ['rider-ride-location', rideId],
     queryFn: () => riderPortalApi.getRideLocationSnapshot(Number(rideId)),
-    enabled: !!rideId,
-    refetchInterval: ride && TRACKABLE_STATUSES.has(ride.status) ? 30000 : false,
+    enabled: !!ride && !isError && isTrackableTrip(ride.status),
+    refetchInterval: ride && isTrackableTrip(ride.status) ? 30000 : false,
   });
 
   const { mutate: cancel, isPending } = useMutation({
@@ -91,7 +93,8 @@ export default function RiderRideDetailPage() {
 
       <TripTrackingCard
         title="Trip Tracking"
-        snapshot={locationSnapshot ?? null}
+        snapshot={isTrackableTrip(ride.status) ? locationSnapshot ?? null : null}
+        error={locationError && isTrackableTrip(ride.status)}
         pickupAddress={ride.pickupAddress}
         dropoffAddress={ride.dropoffAddress}
         onRefresh={() => {
