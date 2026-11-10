@@ -10,7 +10,7 @@ Legacy mobile ride-request links are removed. Old rider/guardian schedule URLs r
 
 ## Visual treatment
 
-The reference informs navy headers, orange action and selection colors, pale backgrounds, rounded cards, icon treatment, form fields, typography and bottom-navigation styling. The existing Bakaroo logo and tenant branding remain supported.
+The reference informs navy headers, orange action and selection colors, pale backgrounds, rounded cards, icon treatment, form fields, typography and bottom-navigation styling. The login screen retains the Bakaroo logo. Signed-in headers show the tenant business name. Tenant theme-picker colors apply only to tenant web screens; the mobile app always uses its own fixed navy/orange palette.
 
 The sign-out transition fix prevents the previous account from being restored while credentials are being cleared; it does not change permissions or trip workflows.
 

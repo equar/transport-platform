@@ -30,7 +30,7 @@ export function TenantThemePicker({ tenantId, onApplied }: { tenantId?: string; 
   if (loading) return <Stack direction="row" spacing={1} alignItems="center"><CircularProgress size={20} /><Typography>Loading tenant themes…</Typography></Stack>;
   return <Stack spacing={2}>
     <Typography variant="h5" id={groupId}>Tenant appearance</Typography>
-    <Typography color="text.secondary">Choose a coordinated look for {state?.companyName || 'this tenant'}. Classic Blue keeps the platform default. Your company name and logo stay in place.</Typography>
+    <Typography color="text.secondary">Choose a coordinated look for {state?.companyName || 'this tenant'}. Classic Blue keeps the platform default. Your company name and logo stay in place. This theme applies only to tenant web screens; the mobile app keeps its own appearance.</Typography>
     {error ? <Alert severity="error" action={!state ? <Button onClick={() => setAttempt(value => value + 1)}>Retry</Button> : undefined}>{error}</Alert> : null}
     {state && !state.eligible ? <Alert severity="info">{state.eligibilityMessage}</Alert> : null}
     {state?.selectedCode === 'CUSTOM' ? <Alert severity="info">This tenant has existing custom colors. They remain active until you apply a predefined theme.</Alert> : null}

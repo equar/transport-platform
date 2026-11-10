@@ -1,59 +1,29 @@
 import { useBrandingColors } from '@theme/BrandingContext';
 import React from 'react';
 import { View, Image, Text, StyleSheet } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
-import { runtimeApi, type TenantBrandingRecord } from '@api/runtimeApi';
-import { getCachedTenantBranding, setCachedTenantBranding } from '@auth/sessionStorage';
-import { useEffect, useState } from 'react';
+import { useTenantIdentity } from '@hooks/useTenantIdentity';
 import { Colors, Spacing, Radius, Typography } from '@theme/tokens';
 
 interface Props {
   tenantId: string | null | undefined;
+  variant?: 'inline' | 'appHeader';
+  pageTitle?: string;
 }
 
-export function TenantHeader({ tenantId }: Props) {
+export function TenantHeader({ tenantId, variant = 'inline', pageTitle }: Props) {
   const colors = useBrandingColors();
-  const [cached, setCached] = useState<TenantBrandingRecord | null | undefined>(undefined);
-
-  useEffect(() => {
-    let mounted = true;
-    if (!tenantId) {
-      setCached(null);
-      return;
-    }
-    getCachedTenantBranding(tenantId).then((raw) => {
-      if (!mounted) return;
-      if (!raw) {
-        setCached(null);
-        return;
-      }
-      try {
-        setCached(JSON.parse(raw) as TenantBrandingRecord);
-      } catch {
-        setCached(null);
-      }
-    });
-    return () => { mounted = false; };
-  }, [tenantId]);
-
-  const { data } = useQuery<TenantBrandingRecord | null>({
-    queryKey: ['tenant-branding', tenantId],
-    queryFn: () => (tenantId ? runtimeApi.getTenantBranding(tenantId) : Promise.resolve(null)),
-    enabled: Boolean(tenantId),
-    staleTime: 1000 * 60 * 60,
-  });
-
-  // persist fetched branding to session cache
-  useEffect(() => {
-    if (tenantId && data) {
-      setCachedTenantBranding(tenantId, JSON.stringify(data)).catch(() => {});
-    }
-  }, [tenantId, data]);
-
-  const effective = data ?? cached ?? null;
+  const effective = useTenantIdentity(tenantId);
 
   const name = effective?.displayName ?? null;
   const logo = effective?.logoUrl ?? null;
+
+  if (variant === 'appHeader') {
+    const businessName = name?.trim() || (tenantId ? 'Your transport provider' : 'No tenant assigned');
+    return <View style={styles.appHeader} accessible accessibilityRole="header" accessibilityLabel={pageTitle ? `${businessName}, ${pageTitle}` : businessName}>
+      <Text style={styles.businessName} numberOfLines={2} ellipsizeMode="tail">{businessName}</Text>
+      {pageTitle ? <Text style={styles.pageTitle} numberOfLines={1}>{pageTitle}</Text> : null}
+    </View>;
+  }
 
   // If tenantId is explicitly null -> show fallback text
   if (!tenantId) {
@@ -82,6 +52,9 @@ export function TenantHeader({ tenantId }: Props) {
 }
 
 const styles = StyleSheet.create({
+  appHeader: { alignItems: 'center', width: '100%', gap: 2 },
+  businessName: { fontFamily: Typography.fontBodyBold, fontSize: 18, lineHeight: 23, color: Colors.white, textAlign: 'center' },
+  pageTitle: { fontFamily: Typography.fontBody, fontSize: Typography.sizeXs, color: Colors.onPrimaryMuted, textAlign: 'center' },
   container: {
     marginTop: Spacing.sm,
     flexDirection: 'row',
