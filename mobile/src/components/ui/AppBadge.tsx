@@ -1,7 +1,8 @@
 import React from 'react';
 import { tripStatusLabel } from '@utils/tripPresentation';
-import { StyleSheet, View, Text, ViewStyle } from 'react-native';
-import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
+import { StyleSheet, View, Text, ViewStyle, type ColorValue } from 'react-native';
+import { Radius, Spacing, Typography } from '@theme/tokens';
+import { useBrandingColors } from '@theme/BrandingContext';
 
 type StatusVariant =
   | 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'SUSPENDED' | 'COMPLETED'
@@ -10,33 +11,32 @@ type StatusVariant =
   | 'FAILED' | 'TERMINATED' | 'ON_LEAVE' | 'IN_PROGRESS' | 'READY'
   | 'PLANNED' | string;
 
-const colorMap: Record<string, { bg: string; text: string }> = {
-  VERIFIED: { bg: '#dcfce7', text: '#08752b' },
-  ACTIVE: { bg: '#e7f4ec', text: Colors.statusActive },
-  READY: { bg: '#e7f4ec', text: Colors.statusActive },
-  COMPLETED: { bg: Colors.primarySoft, text: Colors.statusCompleted },
-  DROPPED_OFF: { bg: Colors.primarySoft, text: Colors.statusCompleted },
-  ASSIGNED: { bg: Colors.primarySoft, text: Colors.primaryDark },
-  DRIVER_EN_ROUTE: { bg: Colors.primarySoft, text: Colors.statusEnRoute },
-  ARRIVED: { bg: Colors.primarySoft, text: Colors.primaryDark },
-  PICKED_UP: { bg: Colors.primarySoft, text: Colors.info },
-  IN_PROGRESS: { bg: Colors.primarySoft, text: Colors.info },
-  SCHEDULED: { bg: Colors.primarySoft, text: Colors.primaryDark },
-  PLANNED: { bg: Colors.primarySoft, text: Colors.primaryDark },
-  PENDING: { bg: '#fdf0dd', text: Colors.statusPending },
-  REQUESTED: { bg: '#fdf0dd', text: Colors.statusPending },
-  SUSPENDED: { bg: '#fde9e8', text: Colors.statusSuspended },
-  FAILED: { bg: '#fde9e8', text: Colors.statusSuspended },
-  CANCELLED: { bg: '#eef1f3', text: Colors.statusCancelled },
-  INACTIVE: { bg: '#eef1f3', text: Colors.statusInactive },
-  DRAFT: { bg: '#eef1f3', text: Colors.statusInactive },
-  MISSED: { bg: '#fde9e8', text: Colors.statusSuspended },
-  TERMINATED: { bg: '#fde9e8', text: Colors.statusSuspended },
-  ON_LEAVE: { bg: '#fdf5de', text: '#a16207' },
-};
-
-function getColor(status: string) {
-  return colorMap[status] ?? { bg: '#f5f5f5', text: Colors.textSecondary };
+function getColor(status: string, colors: ReturnType<typeof useBrandingColors>): { bg: ColorValue; text: ColorValue } {
+  const colorMap: Record<string, { bg: ColorValue; text: ColorValue }> = {
+    VERIFIED: { bg: colors.successSoft, text: colors.statusActive },
+    ACTIVE: { bg: colors.successSoft, text: colors.statusActive },
+    READY: { bg: colors.successSoft, text: colors.statusActive },
+    COMPLETED: { bg: colors.primarySoft, text: colors.statusCompleted },
+    DROPPED_OFF: { bg: colors.primarySoft, text: colors.statusCompleted },
+    ASSIGNED: { bg: colors.primarySoft, text: colors.primaryDark },
+    DRIVER_EN_ROUTE: { bg: colors.primarySoft, text: colors.statusEnRoute },
+    ARRIVED: { bg: colors.primarySoft, text: colors.primaryDark },
+    PICKED_UP: { bg: colors.primarySoft, text: colors.info },
+    IN_PROGRESS: { bg: colors.primarySoft, text: colors.info },
+    SCHEDULED: { bg: colors.primarySoft, text: colors.primaryDark },
+    PLANNED: { bg: colors.primarySoft, text: colors.primaryDark },
+    PENDING: { bg: colors.warningSoft, text: colors.statusPending },
+    REQUESTED: { bg: colors.warningSoft, text: colors.statusPending },
+    SUSPENDED: { bg: colors.errorSoft, text: colors.statusSuspended },
+    FAILED: { bg: colors.errorSoft, text: colors.statusSuspended },
+    CANCELLED: { bg: colors.canvas, text: colors.statusCancelled },
+    INACTIVE: { bg: colors.canvas, text: colors.statusInactive },
+    DRAFT: { bg: colors.canvas, text: colors.statusInactive },
+    MISSED: { bg: colors.errorSoft, text: colors.statusSuspended },
+    TERMINATED: { bg: colors.errorSoft, text: colors.statusSuspended },
+    ON_LEAVE: { bg: colors.warningSoft, text: colors.statusPending },
+  };
+  return colorMap[status] ?? { bg: colors.surfaceMuted, text: colors.textSecondary };
 }
 
 function formatLabel(status: string) {
@@ -50,7 +50,8 @@ interface AppBadgeProps {
 }
 
 export function AppBadge({ status, label, style }: AppBadgeProps) {
-  const { bg, text } = getColor(status);
+  const colors = useBrandingColors();
+  const { bg, text } = getColor(status, colors);
   return (
     <View style={[styles.badge, { backgroundColor: bg, borderRadius: Radius.chip }, style]}>
       <Text style={[styles.text, { color: text }]}>{label ?? formatLabel(status)}</Text>

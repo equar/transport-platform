@@ -1,4 +1,6 @@
 import { RequestError } from '@components/RequestError';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import React from 'react';
 import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -8,10 +10,11 @@ import { AppBadge } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 import { formatDate } from '@utils/formatDate';
 
 export default function DriverRoutesPage() {
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-routes'],
@@ -58,14 +61,14 @@ export default function DriverRoutesPage() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: { padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  card: { padding: Spacing.lg, gap: Spacing.sm, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 10 },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border },
+  card: { padding: Spacing.lg, gap: Spacing.sm, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
-  code: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeMd, color: Colors.primary },
-  name: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
-  meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
+  code: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeMd, color: colors.primary },
+  name: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeLg, color: colors.textPrimary },
+  meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textSecondary },
   sep: { height: Spacing.xs },
   emptyContent: { flex: 1 },
 });

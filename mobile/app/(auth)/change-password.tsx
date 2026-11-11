@@ -1,12 +1,14 @@
 import { passwordValidationError } from '@utils/passwordPolicy';
+import { useBrandingColors } from '@theme/BrandingContext';
 import React, { useState } from 'react';
 import { Text } from 'react-native';
 import { AuthFrame } from '@components/AuthFrame';
-import { Colors, Typography } from '@theme/tokens';
+import { Typography } from '@theme/tokens';
 import { useAuth } from '@auth/AuthContext';
 import { authApi } from '@api/authApi';
 import { AppButton, AppInput } from '@components/ui';
 export default function ChangePasswordScreen() {
+  const colors = useBrandingColors();
   const { signOut } = useAuth();
   const [current, setCurrent] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +25,7 @@ export default function ChangePasswordScreen() {
     finally { setSaving(false); }
   }
   return <AuthFrame title="Make it yours" description="Choose a new password before accessing your trips. You’ll sign in again after this change.">
-    {!!error && <Text accessibilityRole="alert" style={{ color: Colors.error, fontFamily: Typography.fontBody, lineHeight: 23 }}>{error}</Text>}
+    {!!error && <Text accessibilityRole="alert" style={{ color: colors.error, fontFamily: Typography.fontBody, lineHeight: 23 }}>{error}</Text>}
     <AppInput label="Current password" value={current} onChangeText={setCurrent} secureTextEntry autoComplete="current-password" editable={!saving} />
     <AppInput label="New password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" hintText="Use at least 8 characters." editable={!saving} />
     <AppInput label="Confirm new password" value={confirmation} onChangeText={setConfirmation} secureTextEntry autoComplete="new-password" editable={!saving} />

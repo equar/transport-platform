@@ -1,12 +1,15 @@
 import { passwordValidationError } from '@utils/passwordPolicy';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AuthFrame } from '@components/AuthFrame';
 import { AppButton, AppInput } from '@components/ui';
-import { Colors, Typography } from '@theme/tokens';
+import { Typography } from '@theme/tokens';
 import { authApi } from '@api/authApi';
 export default function ResetPassword() {
+  const styles = useThemedStyles(createStyles);
   const { token } = useLocalSearchParams<{ token?: string }>();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -36,4 +39,4 @@ export default function ResetPassword() {
     </>}
   </AuthFrame>;
 }
-const styles = StyleSheet.create({ body: { fontFamily: Typography.fontBody, color: Colors.textSecondary, fontSize: Typography.sizeMd, lineHeight: 23 }, error: { fontFamily: Typography.fontBody, color: Colors.error, fontSize: Typography.sizeMd, lineHeight: 23 } });
+const createStyles = (colors: BrandColors) => StyleSheet.create({ body: { fontFamily: Typography.fontBody, color: colors.textSecondary, fontSize: Typography.sizeMd, lineHeight: 23 }, error: { fontFamily: Typography.fontBody, color: colors.error, fontSize: Typography.sizeMd, lineHeight: 23 } });

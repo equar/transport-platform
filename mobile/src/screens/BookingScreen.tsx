@@ -1,4 +1,7 @@
 import { runtimeApi } from '@api/runtimeApi';
+import { useBrandingColors } from '@theme/BrandingContext';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { createIdempotencyKey } from '@utils/idempotencyKey';
 import React from 'react';
 import { Alert, StyleSheet, ScrollView, Text, View, Switch, TouchableOpacity, useWindowDimensions } from 'react-native';
@@ -6,8 +9,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { AppButton, AppCard, AppInput } from '@components/ui';
 import { SectionHeader } from '@components/SectionHeader';
-import { Colors, Spacing, Typography } from '@theme/tokens';
-import { PassengerRoleTheme } from '@theme/roleTheme';
+import { Spacing, Typography } from '@theme/tokens';
 import { useAuth } from '@auth/AuthContext';
 import { DateTimeField } from '@components/DateTimeField';
 import { riderPortalApi } from '@api/riderPortalApi';
@@ -41,6 +43,8 @@ const SERVICE_OPTIONS: Array<{ label: string; value: ServiceType }> = [
 ];
 
 export default function RiderSchedulePage() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useBrandingColors();
   const requestKey = React.useRef(createIdempotencyKey("booking"));
   const router = useRouter();
   const { session } = useAuth();
@@ -201,8 +205,8 @@ export default function RiderSchedulePage() {
         <View style={styles.fields}>
           <DateTimeField timezone={capabilities?.operationalSettings.timezone} label="Pickup" value={form.scheduledPickupAt} onChange={v => update('scheduledPickupAt', v)} />
           {tripType === 'ROUND_TRIP' ? <><DateTimeField timezone={capabilities?.operationalSettings.timezone} label="Return pickup" value={form.returnPickupAt} onChange={v => update('returnPickupAt', v)} /><DateTimeField timezone={capabilities?.operationalSettings.timezone} label="Return drop-off" value={form.returnDropoffAt} onChange={v => update('returnDropoffAt', v)} /></> : null}
-          <View style={styles.assistanceRow}><Text style={styles.assistanceLabel}>Wheelchair required</Text><Switch trackColor={{ false: Colors.borderStrong, true: Colors.primary }} thumbColor={Colors.white} accessibilityLabel="Wheelchair required" value={wheelchairRequired} onValueChange={setWheelchairRequired} /></View>
-          <View style={styles.assistanceRow}><Text style={styles.assistanceLabel}>Escort required</Text><Switch trackColor={{ false: Colors.borderStrong, true: Colors.primary }} thumbColor={Colors.white} accessibilityLabel="Escort required" value={escortRequired} onValueChange={setEscortRequired} /></View>
+          <View style={styles.assistanceRow}><Text style={styles.assistanceLabel}>Wheelchair required</Text><Switch trackColor={{ false: colors.borderStrong, true: colors.primary }} thumbColor={colors.white} accessibilityLabel="Wheelchair required" value={wheelchairRequired} onValueChange={setWheelchairRequired} /></View>
+          <View style={styles.assistanceRow}><Text style={styles.assistanceLabel}>Escort required</Text><Switch trackColor={{ false: colors.borderStrong, true: colors.primary }} thumbColor={colors.white} accessibilityLabel="Escort required" value={escortRequired} onValueChange={setEscortRequired} /></View>
           <AppInput
             label="Companions"
             value={form.companionCount}
@@ -229,6 +233,7 @@ export default function RiderSchedulePage() {
 }
 
 function OptionPill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <TouchableOpacity
       accessibilityRole="radio" accessibilityState={{ selected: active }} accessibilityLabel={label}
@@ -285,12 +290,12 @@ function buildPayload(form: FormState, serviceType: ServiceType, tripType: TripT
   };
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.xxxl },
   hero: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.border,
     borderRadius: 8,
     padding: Spacing.lg,
     gap: Spacing.xs,
@@ -298,12 +303,12 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXl,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   heroSubtitle: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     opacity: 0.9,
   },
   optionRow: {
@@ -317,26 +322,26 @@ const styles = StyleSheet.create({
   },
   pill: {
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   pillActive: {
-    borderColor: PassengerRoleTheme.primary,
-    backgroundColor: PassengerRoleTheme.primary,
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
   },
   pillLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   pillLabelActive: {
-    color: Colors.white,
+    color: colors.white,
   },
   assistanceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md, minHeight: 52 },
-  assistanceLabel: { flex: 1, fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: Colors.textPrimary },
+  assistanceLabel: { flex: 1, fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: colors.textPrimary },
   fields: {
     gap: Spacing.sm,
   },
@@ -353,7 +358,7 @@ const styles = StyleSheet.create({
   note: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 20,
   },
 });

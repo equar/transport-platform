@@ -169,7 +169,11 @@ for serial in "${SERIALS[@]}"; do
     NODE_ENV=production ./gradlew "${GRADLE_RELEASE_ARGS[@]}"
     APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/release/app-release.apk"
   else
-    NODE_ENV=development ./gradlew assembleDebug --no-daemon -PreactNativeArchitectures="$DEVICE_ABI"
+    GRADLE_DEBUG_ARGS=(assembleDebug --no-daemon -PreactNativeArchitectures="$DEVICE_ABI")
+    if [[ "$ENV_NAME" == "aws" ]]; then
+      GRADLE_DEBUG_ARGS+=(-Ptransport.embedDebugBundle=true)
+    fi
+    NODE_ENV=development ./gradlew "${GRADLE_DEBUG_ARGS[@]}"
     APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/debug/app-debug.apk"
   fi
 

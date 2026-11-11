@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "lib": ["ES2020"],
+    "lib": [
+      "ES2020"
+    ],
     "jsx": "react-native",
     "strict": true,
     "noEmit": true,
@@ -11,16 +13,32 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "ignoreDeprecations": "6.0",
-    "types": ["jest"],
+    "types": [
+      "jest"
+    ],
     "baseUrl": ".",
     "paths": {
-      "@api/*": ["src/api/*"],
-      "@auth/*": ["src/auth/*"],
-      "@components/*": ["src/components/*"],
-      "@hooks/*": ["src/hooks/*"],
-      "@stores/*": ["src/stores/*"],
-      "@theme/*": ["src/theme/*"],
-      "@utils/*": ["src/utils/*"]
+      "@api/*": [
+        "src/api/*"
+      ],
+      "@auth/*": [
+        "src/auth/*"
+      ],
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@hooks/*": [
+        "src/hooks/*"
+      ],
+      "@stores/*": [
+        "src/stores/*"
+      ],
+      "@theme/*": [
+        "src/theme/*"
+      ],
+      "@utils/*": [
+        "src/utils/*"
+      ]
     }
   },
   "include": [
@@ -29,7 +47,11 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     ".expo/types/**/*.d.ts",
-    "expo-env.d.ts"
+    "expo-env.d.ts",
+    ".expo/types/**/*.ts"
   ],
-  "exclude": ["btransport"]
+  "exclude": [
+    "btransport"
+  ],
+  "extends": "expo/tsconfig.base"
 }

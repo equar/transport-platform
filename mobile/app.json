@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "scheme": "transport",
     "splash": {
       "image": "./src/assets/splash.png",
@@ -43,15 +43,6 @@
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
-    },
-    "androidStatusBar": {
-      "backgroundColor": "#ffffff",
-      "barStyle": "dark-content",
-      "translucent": false
-    },
-    "androidNavigationBar": {
-      "backgroundColor": "#ffffff",
-      "barStyle": "dark-content"
     },
     "web": {
       "bundler": "metro",

@@ -1,4 +1,6 @@
 import { RequestError } from '@components/RequestError';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import React from 'react';
 import { StyleSheet, FlatList, View, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -7,10 +9,10 @@ import { AppBadge, AppCard } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
-import { Colors, Spacing, Typography } from '@theme/tokens';
-import { GuardianRoleTheme } from '@theme/roleTheme';
+import { Spacing, Typography } from '@theme/tokens';
 
 export default function GuardianRidersPage() {
+  const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
@@ -65,6 +67,7 @@ export default function GuardianRidersPage() {
 }
 
 function Tag({ label }: { label: string }) {
+  const tagStyles = useThemedStyles(createTagStyles);
   return (
     <View style={tagStyles.tag}>
       <Text style={tagStyles.text}>{label}</Text>
@@ -72,27 +75,27 @@ function Tag({ label }: { label: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   headerCard: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.sm,
     borderBottomWidth: 0,
-    backgroundColor: GuardianRoleTheme.soft,
+    backgroundColor: colors.primarySoft,
   },
   listContent: { paddingTop: Spacing.md },
   card: { gap: Spacing.xs },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
-  name: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
-  code: { fontFamily: 'Manrope_500Medium', fontSize: Typography.sizeSm, color: GuardianRoleTheme.primary },
-  meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
+  name: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeLg, color: colors.textPrimary },
+  code: { fontFamily: 'Manrope_500Medium', fontSize: Typography.sizeSm, color: colors.primary },
+  meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textSecondary },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.xs },
   sep: { height: Spacing.sm },
   emptyContent: { flex: 1 },
 });
 
-const tagStyles = StyleSheet.create({
-  tag: { backgroundColor: Colors.divider, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
-  text: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeXs, color: Colors.textSecondary },
+const createTagStyles = (colors: BrandColors) => StyleSheet.create({
+  tag: { backgroundColor: colors.divider, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
+  text: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeXs, color: colors.textSecondary },
 });

@@ -1,5 +1,5 @@
 // Bakaroo mobile identity: deep navy, warm orange and soft blue surfaces.
-export const Colors = {
+export const LightColors = {
   primary: '#004787',
   primaryDark: '#002d50',
   primaryLight: '#447cb5',
@@ -28,6 +28,7 @@ export const Colors = {
   border: '#dce3f0',
   borderStrong: '#b6c2d6',
   overlay: '#e7f2ff',
+  scrim: 'rgba(0,0,0,0.38)',
   error: '#b42318',
   warning: '#9e6612',
   success: '#197357',
@@ -44,6 +45,53 @@ export const Colors = {
   statusCancelled: '#757575',
   statusEnRoute: '#004787',
 } as const;
+
+type BasePalette = { [Token in keyof typeof LightColors]: string };
+
+export const DarkColors: BasePalette = {
+  primary: '#7bbcff',
+  primaryDark: '#add6ff',
+  primaryLight: '#4f91cc',
+  primarySoft: '#183b5e',
+  onPrimaryMuted: '#d8eaff',
+  onPrimaryOverlay: 'rgba(255,255,255,0.16)',
+  onPrimaryBorder: 'rgba(255,255,255,0.38)',
+  onPrimarySubtle: 'rgba(255,255,255,0.76)',
+  secondary: '#a9d2fa',
+  secondaryDark: '#071a2d',
+  secondaryLight: '#4f91cc',
+  secondarySoft: '#183b5e',
+  background: '#0b1423',
+  surface: '#111d2e',
+  surfaceMuted: '#17263a',
+  surfaceStrong: '#071a2d',
+  accent: '#ff9a4d',
+  successSoft: '#123d32',
+  warningSoft: '#493719',
+  errorSoft: '#4b2429',
+  canvas: '#1d2b40',
+  textPrimary: '#f4f7fc',
+  textSecondary: '#bdc9dc',
+  textInverse: '#ffffff',
+  divider: '#30425b',
+  border: '#30425b',
+  borderStrong: '#526782',
+  overlay: '#183b5e',
+  scrim: 'rgba(0,0,0,0.60)',
+  error: '#ffb4ab',
+  warning: '#ffd180',
+  success: '#7fdbb7',
+  info: '#7bbcff',
+  white: '#ffffff',
+  black: '#000000',
+  statusActive: '#7fdbb7',
+  statusInactive: '#c4cad4',
+  statusPending: '#ffd180',
+  statusSuspended: '#ffb4ab',
+  statusCompleted: '#a9d2fa',
+  statusCancelled: '#c4cad4',
+  statusEnRoute: '#7bbcff',
+};
 
 export const Spacing = {
   xs: 4,
@@ -110,14 +158,14 @@ export const Shadow = {
     elevation: 0,
   },
   soft: {
-    shadowColor: '#1d3964',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 1,
   },
   card: {
-    shadowColor: '#1d3964',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.09,
     shadowRadius: 8,

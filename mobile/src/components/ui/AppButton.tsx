@@ -1,9 +1,10 @@
 import { useBrandingColors } from '@theme/BrandingContext';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text } from 'react-native-paper';
-import { Colors, Motion, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
+import { Motion, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
+import { useThemedStyles } from '@theme/ThemeProvider';
 
 type Variant = 'primary' | 'secondary' | 'outlined' | 'ghost' | 'destructive';
 type Size = 'xs' | 'sm' | 'md' | 'lg';
@@ -30,20 +31,20 @@ const sizeMap = {
   lg: { height: 48, px: Spacing.xl, fontSize: Typography.sizeLg, icon: 20 },
 };
 
-function getVariantStyles(variant: Variant) {
+function getVariantStyles(variant: Variant, styles: ReturnType<typeof createStyles>, colors: ReturnType<typeof useBrandingColors>) {
   switch (variant) {
     case 'primary':
-      return { container: styles.primary, label: styles.labelLight, iconColor: Colors.white };
+      return { container: styles.primary, label: styles.labelLight, iconColor: colors.white };
     case 'secondary':
-      return { container: styles.secondary, label: styles.labelLight, iconColor: Colors.white };
+      return { container: styles.secondary, label: styles.labelLight, iconColor: colors.white };
     case 'outlined':
-      return { container: styles.outlined, label: styles.labelDark, iconColor: Colors.primary };
+      return { container: styles.outlined, label: styles.labelDark, iconColor: colors.primary };
     case 'ghost':
-      return { container: styles.ghost, label: styles.labelDark, iconColor: Colors.primary };
+      return { container: styles.ghost, label: styles.labelDark, iconColor: colors.primary };
     case 'destructive':
-      return { container: styles.destructive, label: styles.labelLight, iconColor: Colors.white };
+      return { container: styles.destructive, label: styles.labelLight, iconColor: colors.white };
     default:
-      return { container: styles.primary, label: styles.labelLight, iconColor: Colors.white };
+      return { container: styles.primary, label: styles.labelLight, iconColor: colors.white };
   }
 }
 
@@ -62,9 +63,10 @@ export function AppButton({
   rightIcon,
 }: AppButtonProps) {
   const colors = useBrandingColors();
+  const styles = useThemedStyles(useCallback(createStyles, []));
   const dim = sizeMap[size];
   const isDisabled = disabled || loading;
-  const variantStyles = getVariantStyles(variant);
+  const variantStyles = getVariantStyles(variant, styles, colors);
   const tint = variant === 'primary' ? { backgroundColor: colors.accent }
     : variant === 'secondary' ? { backgroundColor: colors.secondary }
     : variant === 'outlined' ? { borderColor: colors.primary, backgroundColor: colors.surface }
@@ -106,7 +108,7 @@ export function AppButton({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useBrandingColors>) => StyleSheet.create({
   base: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -120,24 +122,24 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   primary: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     ...StyleSheet.flatten(Shadow.soft),
   },
   secondary: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: colors.secondary,
     ...StyleSheet.flatten(Shadow.soft),
   },
   destructive: {
-    backgroundColor: Colors.error,
+    backgroundColor: colors.error,
     ...StyleSheet.flatten(Shadow.soft),
   },
   outlined: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.borderStrong,
+    borderColor: colors.borderStrong,
   },
   ghost: {
-    backgroundColor: Colors.overlay,
+    backgroundColor: colors.overlay,
   },
   disabled: {
     opacity: 0.45,
@@ -157,9 +159,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.12,
   },
   labelLight: {
-    color: Colors.white,
+    color: colors.white,
   },
   labelDark: {
-    color: Colors.primary,
+    color: colors.primary,
   },
 });

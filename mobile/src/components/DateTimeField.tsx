@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { AppButton, AppInput } from './ui';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 function localValue(date: Date, zone: string) {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(date);
   const get = (type: string) => parts.find(part => part.type === type)!.value;
@@ -18,6 +20,7 @@ function zonedDate(value: string, zone: string) {
 }
 /** Sends the company's wall-clock schedule without converting it to UTC. */
 export function DateTimeField({ label, value, onChange, timezone = Intl.DateTimeFormat().resolvedOptions().timeZone }: { label: string; value: string; onChange: (value: string) => void; timezone?: string }) {
+  const styles = useThemedStyles(createStyles);
   const [mode, setMode] = useState<'date' | 'time' | null>(null);
   const date = zonedDate(value, timezone);
   if (Platform.OS === 'web') return <AppInput label={label} value={value} placeholder="YYYY-MM-DDTHH:mm:ss" onChangeText={onChange} />;
@@ -34,4 +37,4 @@ export function DateTimeField({ label, value, onChange, timezone = Intl.DateTime
     {mode && Platform.OS === 'ios' ? <AppButton label="Done" onPress={() => setMode(null)} /> : null}
   </View>;
 }
-const styles = StyleSheet.create({ field: { gap: Spacing.sm }, label: { fontFamily: Typography.fontBodyMedium, color: Colors.textSecondary, fontSize: Typography.sizeSm }, value: { fontFamily: Typography.fontBody, color: Colors.textPrimary, fontSize: Typography.sizeMd, lineHeight: 23 }, buttons: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }, button: { flex: 1, minWidth: 110 } });
+const createStyles = (colors: BrandColors) => StyleSheet.create({ field: { gap: Spacing.sm }, label: { fontFamily: Typography.fontBodyMedium, color: colors.textSecondary, fontSize: Typography.sizeSm }, value: { fontFamily: Typography.fontBody, color: colors.textPrimary, fontSize: Typography.sizeMd, lineHeight: 23 }, buttons: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }, button: { flex: 1, minWidth: 110 } });

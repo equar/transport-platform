@@ -1,18 +1,20 @@
 import { useBrandingColors } from '@theme/BrandingContext';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import React from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
+import { Pressable, StyleSheet, Text, View, type ColorValue } from 'react-native';
+import { Radius, Shadow, Spacing, Typography } from '@theme/tokens';
 
 interface RoleCommandDeckProps {
   label: string;
   title: string;
   subtitle: string;
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-  toneColor: string;
-  softColor: string;
+  toneColor: ColorValue;
+  softColor: ColorValue;
   statusLabel?: string;
-  statusColor?: string;
+  statusColor?: ColorValue;
   actionLabel?: string;
   onActionPress?: () => void;
 }
@@ -25,12 +27,15 @@ export function RoleCommandDeck({
   toneColor,
   softColor,
   statusLabel,
-  statusColor = Colors.success,
+  statusColor,
   actionLabel,
   onActionPress,
 }: RoleCommandDeckProps) {
+  const styles = useThemedStyles(createStyles);
   const colors = useBrandingColors();
-  if (toneColor === Colors.primary) { toneColor = colors.primary; softColor = colors.primarySoft; }
+
+  const resolvedStatusColor = statusColor ?? colors.success;
+  if (toneColor === colors.primary) { toneColor = colors.primary; softColor = colors.primarySoft; }
   return (
     <View style={[styles.shell, { borderColor: toneColor }]}> 
       <View style={[styles.accentStrip, { backgroundColor: toneColor }]} />
@@ -42,7 +47,7 @@ export function RoleCommandDeck({
         </View>
 
         {statusLabel ? (
-          <View style={[styles.statusChip, { backgroundColor: statusColor }]}>
+          <View style={[styles.statusChip, { backgroundColor: resolvedStatusColor }]}>
             <Text style={styles.statusText}>{statusLabel}</Text>
           </View>
         ) : null}
@@ -70,11 +75,11 @@ export function RoleCommandDeck({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: BrandColors) => StyleSheet.create({
   shell: {
     borderWidth: 1,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     padding: Spacing.lg,
     ...Shadow.soft,
   },
@@ -114,7 +119,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   statusText: {
-    color: Colors.white,
+    color: colors.white,
     fontFamily: Typography.fontBodyBold,
     fontSize: Typography.sizeXs,
     textTransform: 'uppercase',
@@ -123,14 +128,14 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: Typography.fontHeading,
     fontSize: Typography.sizeXl,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     lineHeight: 24,
   },
   subtitle: {
     marginTop: Spacing.xs,
     fontFamily: Typography.fontBody,
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 19,
   },
   actionRow: {
@@ -140,10 +145,10 @@ const styles = StyleSheet.create({
   actionButton: {
     borderRadius: Radius.chip,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    backgroundColor: Colors.surfaceMuted,
+    backgroundColor: colors.surfaceMuted,
   },
   actionPressed: {
     opacity: 0.7,

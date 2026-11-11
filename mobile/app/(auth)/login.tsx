@@ -1,12 +1,15 @@
 import { useState } from 'react';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { mobileDefaultRoute } from '@auth/access';
 import { useAuth } from '@auth/AuthContext';
 import { AuthFrame } from '@components/AuthFrame';
 import { AppInput, AppButton } from '@components/ui';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 export default function LoginPage() {
+  const styles = useThemedStyles(createStyles);
   const { signIn } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -32,4 +35,4 @@ export default function LoginPage() {
     <AppButton label="Sign in" onPress={() => void submit()} loading={loading} fullWidth size="lg" />
   </AuthFrame>;
 }
-const styles = StyleSheet.create({ fields: { gap: Spacing.lg }, error: { fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: Colors.error, lineHeight: 22 } });
+const createStyles = (colors: BrandColors) => StyleSheet.create({ fields: { gap: Spacing.lg }, error: { fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: colors.error, lineHeight: 22 } });

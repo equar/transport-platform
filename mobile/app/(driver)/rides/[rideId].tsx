@@ -1,4 +1,7 @@
 import { isTrackableTrip } from '@utils/tripPresentation';
+import { useBrandingColors } from '@theme/BrandingContext';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { RequestError } from '@components/RequestError';
 import { SupportContact } from '@components/SupportContact';
 import React from 'react';
@@ -20,7 +23,7 @@ import { TripTrackingCard } from '@components/TripTrackingCard';
 import { useOfflineQueue } from '@stores/offlineQueueStore';
 import { AppBadge, AppButton, AppInput } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 import { createIdempotencyKey } from '@utils/idempotencyKey';
 import { useAuth } from '@auth/AuthContext';
@@ -52,6 +55,8 @@ const TRACKABLE_STATUSES = new Set([
 ]);
 
 export default function DriverRideDetailPage() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useBrandingColors();
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
   const router = useRouter();
   const qc = useQueryClient();
@@ -191,7 +196,7 @@ export default function DriverRideDetailPage() {
       <View style={styles.heroCard}>
         <View style={styles.heroTopRow}>
           <Text style={styles.heroTitle}>Current Trip</Text>
-          <Text style={[styles.onlineBadge, { backgroundColor: network.isConnected ? Colors.success : Colors.warning }]}>{network.isConnected ? "Online" : "Offline"}</Text>
+          <Text style={[styles.onlineBadge, { backgroundColor: network.isConnected ? colors.success : colors.warning }]}>{network.isConnected ? "Online" : "Offline"}</Text>
         </View>
         <Text style={styles.rideNumberHero}>{ride.rideNumber}</Text>
         <View style={styles.heroMetaRow}>
@@ -200,7 +205,7 @@ export default function DriverRideDetailPage() {
         </View>
       </View>
 
-      <Text accessibilityRole="text" style={{ fontFamily: Typography.fontBody, color: Colors.textSecondary, lineHeight: 22 }}>{tracking.rideId === ride.id ? tracking.message : 'Tracking is off for this trip'}{tracking.rideId === ride.id && tracking.lastSyncedAt ? ` • Last synced ${new Date(tracking.lastSyncedAt).toLocaleTimeString()}` : ""}</Text>
+      <Text accessibilityRole="text" style={{ fontFamily: Typography.fontBody, color: colors.textSecondary, lineHeight: 22 }}>{tracking.rideId === ride.id ? tracking.message : 'Tracking is off for this trip'}{tracking.rideId === ride.id && tracking.lastSyncedAt ? ` • Last synced ${new Date(tracking.lastSyncedAt).toLocaleTimeString()}` : ""}</Text>
       <Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>← Dispatches</Text>
 
       {/* Action */}
@@ -329,6 +334,7 @@ export default function DriverRideDetailPage() {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const sectionStyles = useThemedStyles(createSectionStyles);
   return (
     <View style={sectionStyles.container}>
       <Text style={sectionStyles.title}>{title}</Text>
@@ -338,6 +344,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  const rowStyles = useThemedStyles(createRowStyles);
   return (
     <View style={rowStyles.row}>
       <Text style={rowStyles.label}>{label}</Text>
@@ -346,12 +353,12 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   heroCard: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.border,
     borderRadius: 14,
     padding: Spacing.lg,
     gap: Spacing.sm,
@@ -364,11 +371,11 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeMd,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   onlineBadge: {
-    backgroundColor: Colors.success,
-    color: Colors.white,
+    backgroundColor: colors.success,
+    color: colors.white,
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
     paddingHorizontal: Spacing.sm,
@@ -379,7 +386,7 @@ const styles = StyleSheet.create({
   rideNumberHero: {
     fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXxl,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   heroMetaRow: {
     flexDirection: 'row',
@@ -389,51 +396,51 @@ const styles = StyleSheet.create({
   heroSchedule: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   back: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeSm,
-    color: Colors.primary,
+    color: colors.primary,
   },
   instructions: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeMd,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   queuedActionState: {
     borderLeftWidth: 4,
-    borderLeftColor: Colors.warning,
-    backgroundColor: Colors.warningSoft,
+    borderLeftColor: colors.warning,
+    backgroundColor: colors.warningSoft,
     padding: Spacing.md,
     gap: Spacing.xs,
   },
   queuedActionTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeMd,
-    color: Colors.warning,
+    color: colors.warning,
   },
   queuedActionText: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.warning,
+    color: colors.warning,
   },
   conflictActionState: {
     borderLeftWidth: 4,
-    borderLeftColor: Colors.error,
-    backgroundColor: Colors.errorSoft,
+    borderLeftColor: colors.error,
+    backgroundColor: colors.errorSoft,
     padding: Spacing.md,
     gap: Spacing.sm,
   },
   conflictActionTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeMd,
-    color: Colors.error,
+    color: colors.error,
   },
   conflictActionText: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.error,
+    color: colors.error,
   },
   primaryActionRow: {
     flexDirection: 'row',
@@ -448,39 +455,39 @@ const styles = StyleSheet.create({
   },
 });
 
-const sectionStyles = StyleSheet.create({
+const createSectionStyles = (colors: BrandColors) => StyleSheet.create({
   container: {
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     gap: 0,
-    backgroundColor: Colors.surface, borderRadius: 16, overflow: 'hidden',
+    backgroundColor: colors.surface, borderRadius: 16, overflow: 'hidden',
   },
   title: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-    backgroundColor: Colors.surfaceMuted,
+    borderBottomColor: colors.divider,
+    backgroundColor: colors.surfaceMuted,
   },
   body: { padding: Spacing.md, gap: Spacing.sm },
 });
 
-const rowStyles = StyleSheet.create({
+const createRowStyles = (colors: BrandColors) => StyleSheet.create({
   row: { flexDirection: 'row', gap: Spacing.sm },
   label: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     width: 90,
   },
   value: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
   },
 });

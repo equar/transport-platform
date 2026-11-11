@@ -2,7 +2,6 @@ import { RoleShell } from '@components/RoleShell';
 import { useBrandingColors } from '@theme/BrandingContext';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@theme/tokens';
 
 export default function RiderLayout() {
   const colors = useBrandingColors();
@@ -11,10 +10,10 @@ export default function RiderLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.secondaryDark,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          backgroundColor: Colors.surface,
-          borderTopColor: Colors.border,
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
           height: 70,
           borderTopLeftRadius: 18,
