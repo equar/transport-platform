@@ -236,7 +236,7 @@ start_metro_for_debug() {
 
   echo "Starting Metro bundler for local debug install on port 8081..."
   local metro_log="/tmp/transport-platform-metro.log"
-  setsid env PATH="$PATH" bash -lc 'cd "$1" && CI=1 npx expo start --host localhost --port 8081 > /tmp/transport-platform-metro.log 2>&1' _ "$PROJECT_ROOT" >/dev/null 2>&1 &
+  setsid env PATH="$PATH" bash -lc 'cd "$1" && npx expo start --host localhost --port 8081 > /tmp/transport-platform-metro.log 2>&1' _ "$PROJECT_ROOT" >/dev/null 2>&1 &
 
   local deadline=$((SECONDS + 30))
   while (( SECONDS < deadline )); do
