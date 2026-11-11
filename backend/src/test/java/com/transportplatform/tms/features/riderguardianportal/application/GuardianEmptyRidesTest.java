@@ -41,6 +41,30 @@ class GuardianEmptyRidesTest {
     }
 
     @Test
+    void returnsRidesWithMissingOptionalAddressFields() {
+        var rider = mock(Rider.class);
+        when(rider.getId()).thenReturn(7L);
+        var ride = new Ride();
+        ride.setRider(rider);
+        ride.setPickupAddressLine1("123 Main St");
+        ride.setPickupAddressLine2(" ");
+        ride.setPickupCity("Springfield");
+        ride.setDropoffAddressLine1("456 Oak St");
+        when(accessService.resolveCurrentScope()).thenReturn(
+                new RiderGuardianPortalAccessService.ResolvedRiderGuardianScope(
+                        null, PortalSubjectType.GUARDIAN, null, null, List.of(), List.of(rider)));
+        when(rideRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Ride>>any(), any(Pageable.class)))
+                .thenAnswer(invocation -> new org.springframework.data.domain.PageImpl<>(
+                        List.of(ride), invocation.getArgument(1, Pageable.class), 1));
+
+        var result = service.searchRides(null, null, null, null, 0, 20, "scheduledPickupAt", Sort.Direction.DESC);
+
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().getFirst().pickupAddress()).isEqualTo("123 Main St, Springfield");
+        assertThat(result.items().getFirst().dropoffAddress()).isEqualTo("456 Oak St");
+    }
+
+    @Test
     void returnsAnEmptyPageWhenLinkedRidersHaveNoRides() {
         var rider = mock(Rider.class);
         when(rider.getId()).thenReturn(7L);

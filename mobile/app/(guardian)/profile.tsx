@@ -39,7 +39,7 @@ export default function GuardianProfilePage() {
 			refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
 		>
 			<AppCard style={styles.heroCard} noBorder>
-				<Text style={styles.heroTitle}>Account</Text>
+				<Text style={styles.heroTitle}>Guardian Profile</Text>
 				<Text style={styles.heroName}>{profile ? `${profile.firstName} ${profile.lastName}` : 'Guardian Account'}</Text>
 				<Text style={styles.heroMeta}>{profile?.email ?? profile?.phone ?? 'No email or phone on file'}</Text>
 			</AppCard>

@@ -63,7 +63,8 @@ it('shows actual driver summary fields instead of estimated miles or completion 
 it('keeps guardian travel assignment-based and preserves linked rider access', () => {
   render(<PassengerHomeScreen guardian />);
   expect(screen.queryByRole('button', { name: 'Request a ride' })).toBeNull();
-  fireEvent.press(screen.getByRole('button', { name: 'All rides' })); expect(mockPush).toHaveBeenCalledWith('/(guardian)/rides');
+  fireEvent.press(screen.getByRole('button', { name: 'Riders’ trips' })); expect(mockPush).toHaveBeenCalledWith('/(guardian)/rides');
+  expect(screen.queryByText('Your next trip')).toBeNull();
   fireEvent.press(screen.getByRole('button', { name: 'Linked riders' })); expect(mockPush).toHaveBeenCalledWith('/(guardian)/riders');
   expect(screen.queryByText('Check In')).toBeNull();
 });

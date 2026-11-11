@@ -55,7 +55,7 @@ export default function GuardianRideDetailPage() {
 			</View>
 
 			<Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>
-				← Ride Activity
+				← Riders’ Trips
 			</Text>
 
 			<AppCard style={styles.personCard}>

@@ -51,7 +51,7 @@ export default function GuardianLayout() {
       <Tabs.Screen
         name="rides"
         options={{
-          title: 'Rides',
+          title: 'Trips',
           tabBarIcon: ({ color, size }) => <Ionicons name="car-outline" size={size} color={color} />,
         }}
       />

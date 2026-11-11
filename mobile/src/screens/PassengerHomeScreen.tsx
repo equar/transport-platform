@@ -29,7 +29,7 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
       { label: guardian ? 'Linked riders' : 'Open invoices', value: guardian ? data?.linkedRiderCount ?? '—' : data?.openInvoiceCount ?? '—', icon: guardian ? 'account-group-outline' : 'receipt-text-outline' },
       { label: 'Unread alerts', value: data?.unreadNotifications ?? '—', icon: 'bell-outline' },
     ]} />
-    <SectionHeader title={guardian ? 'Next family trip' : 'Your next trip'} subtitle="Pickup details and the latest trip status." />
+    <SectionHeader title={guardian ? 'Next rider trip' : 'Your next trip'} subtitle={guardian ? 'Pickup details and trip updates for your linked riders.' : 'Pickup details and the latest trip status.'} />
     <AppCard style={styles.trip}>
       {trips.isLoading ? <Text style={styles.body}>Loading your trips…</Text> : trips.isError ? <><Text style={styles.body}>Trips couldn’t be loaded.</Text><AppButton label="Retry trips" variant="outlined" onPress={() => void trips.refetch()} /></> : next ? <>
         <AppBadge status={next.status} /><Text style={styles.title}>{formatShortDateTime(next.scheduledPickupAt)}</Text>
@@ -39,7 +39,7 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
         <AppButton label="View trip details" rightIcon="arrow-right" onPress={() => router.push(`/(${role})/rides/${next.id}` as never)} />
       </> : <EmptyState title="No upcoming trips" description="Trips assigned by your transport provider will appear here." />}
     </AppCard>
-    <ActionRow icon="car-outline" title="All rides" description="Upcoming trips, status updates and history" onPress={() => router.push(`/(${role})/rides` as never)} />
+    <ActionRow icon="car-outline" title={guardian ? 'Riders’ trips' : 'All rides'} description={guardian ? 'Upcoming trips and history for your linked riders' : 'Upcoming trips, status updates and history'} onPress={() => router.push(`/(${role})/rides` as never)} />
     {guardian && <ActionRow icon="account-group-outline" title="Linked riders" description="View the riders you’re authorized to support" onPress={() => router.push('/(guardian)/riders')} />}
     <ActionRow icon="receipt-text-outline" title="Billing & payments" description="Review invoices and payment records" onPress={() => router.push(`/(${role})/billing` as never)} />
   </ScrollView>;
