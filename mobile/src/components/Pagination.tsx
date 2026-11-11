@@ -1,7 +1,10 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { AppButton } from './ui';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 export function Pagination({ page, pages, onChange, label }: { page: number; pages: number; onChange: (page: number) => void; label: string }) {
+  const styles = useThemedStyles(createStyles);
   if (pages <= 1) return null;
   return <View style={styles.section}>
     <Text style={styles.caption}>{label} · Page {page+1} of {pages}</Text><View style={styles.row}>
@@ -10,4 +13,4 @@ export function Pagination({ page, pages, onChange, label }: { page: number; pag
     </View>
   </View>;
 }
-const styles = StyleSheet.create({ section: { gap: Spacing.sm }, row: { flexDirection: 'row', gap: Spacing.md }, button: { flex: 1 }, caption: { fontFamily: Typography.fontBody, color: Colors.textSecondary, fontSize: Typography.sizeSm } });
+const createStyles = (colors: BrandColors) => StyleSheet.create({ section: { gap: Spacing.sm }, row: { flexDirection: 'row', gap: Spacing.md }, button: { flex: 1 }, caption: { fontFamily: Typography.fontBody, color: colors.textSecondary, fontSize: Typography.sizeSm } });

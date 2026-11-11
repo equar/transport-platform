@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, useWindowDimensions } from 'react-native';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import { Spacing, Typography } from '@theme/tokens';
 
 interface SectionHeaderProps {
   title: string;
@@ -9,6 +10,11 @@ interface SectionHeaderProps {
 
 export function SectionHeader({ title, subtitle }: SectionHeaderProps) {
   const { width } = useWindowDimensions();
+  const styles = useThemedStyles(React.useCallback(colors => StyleSheet.create({
+    container: { gap: 4, marginBottom: Spacing.xs },
+    title: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeXxl, color: colors.textPrimary, letterSpacing: -0.4 },
+    subtitle: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeMd, color: colors.textSecondary, lineHeight: 22 },
+  }), []));
   const isCompact = width < 380;
 
   return (
@@ -36,19 +42,3 @@ export function SectionHeader({ title, subtitle }: SectionHeaderProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { gap: 4, marginBottom: Spacing.xs },
-  title: {
-    fontFamily: 'Manrope_700Bold',
-    fontSize: Typography.sizeXxl,
-    color: Colors.textPrimary,
-    letterSpacing: -0.4,
-  },
-  subtitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: Typography.sizeMd,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-  },
-});

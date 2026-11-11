@@ -1,4 +1,6 @@
 import { AccountActions } from '@components/AccountActions';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import React from 'react';
 import { StyleSheet, ScrollView, Text, RefreshControl, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -7,9 +9,10 @@ import { LoadingState } from '@components/LoadingState';
 import { SectionHeader } from '@components/SectionHeader';
 import { EmptyState } from '@components/EmptyState';
 import { AppCard } from '@components/ui';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 
 export default function GuardianProfilePage() {
+  const styles = useThemedStyles(createStyles);
 	const { width } = useWindowDimensions();
 	const isCompact = width < 380;
 	const {
@@ -88,6 +91,7 @@ export default function GuardianProfilePage() {
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  const rowStyles = useThemedStyles(createRowStyles);
 	return (
 		<Text style={rowStyles.line}>
 			<Text style={rowStyles.label}>{label}: </Text>
@@ -96,24 +100,24 @@ function Row({ label, value }: { label: string; value: string }) {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+	container: { flex: 1, backgroundColor: colors.background },
 	content: { padding: Spacing.lg, gap: Spacing.lg },
 	heroCard: {
-		backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.border,
+		backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.border,
 		borderRadius: 16,
 		gap: Spacing.xs,
 	},
-	heroTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.textPrimary },
-	heroName: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeXl, color: Colors.textPrimary },
-	heroMeta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary, opacity: 0.9 },
+	heroTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: colors.textPrimary },
+	heroName: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeXl, color: colors.textPrimary },
+	heroMeta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textPrimary, opacity: 0.9 },
 	section: { gap: Spacing.xs },
-	sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.textSecondary, textTransform: 'uppercase' },
+	sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: colors.textSecondary, textTransform: 'uppercase' },
 });
 
-const rowStyles = StyleSheet.create({
+const createRowStyles = (colors: BrandColors) => StyleSheet.create({
 	line: { paddingVertical: 2 },
-	label: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: Colors.textSecondary },
-	value: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary },
+	label: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: colors.textSecondary },
+	value: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textPrimary },
 });

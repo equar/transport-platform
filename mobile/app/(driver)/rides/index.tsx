@@ -1,4 +1,7 @@
 import { RequestError } from '@components/RequestError';
+import { useBrandingColors } from '@theme/BrandingContext';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import React from 'react';
 import { StyleSheet, FlatList, View, RefreshControl, Text, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -8,7 +11,7 @@ import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
 import { AppBadge, AppButton } from '@components/ui';
-import { Colors, Shadow, Spacing, Typography } from '@theme/tokens';
+import { Shadow, Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 
 const PAGE_SIZE = 20;
@@ -21,6 +24,7 @@ const STATUS_SEGMENTS: Record<DispatchSegment, string[]> = {
 };
 
 export default function DriverRidesPage() {
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
@@ -100,6 +104,7 @@ function SegmentButton({
   selected: boolean;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <TouchableOpacity
       accessibilityRole="tab" accessibilityState={{ selected }}
@@ -113,6 +118,7 @@ function SegmentButton({
 }
 
 function DispatchCard({ item, onPress }: { item: DriverPortalRideSummaryRecord; onPress: () => void }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <TouchableOpacity style={styles.dispatchCard} activeOpacity={0.88} onPress={onPress}>
       <View style={styles.dispatchTopRow}>
@@ -131,15 +137,15 @@ function DispatchCard({ item, onPress }: { item: DriverPortalRideSummaryRecord; 
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   headerShell: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.sm },
   header: {
     padding: Spacing.xl,
     borderRadius: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     ...Shadow.soft,
   },
   segmentRow: {
@@ -152,34 +158,34 @@ const styles = StyleSheet.create({
     minHeight: 48, justifyContent: 'center',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   segmentButtonSelected: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   segmentLabel: {
     textAlign: 'center',
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   segmentLabelSelected: {
-    color: Colors.white,
+    color: colors.white,
   },
   headerMeta: {
     marginTop: Spacing.sm,
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   dispatchCard: {
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     padding: Spacing.md,
     gap: Spacing.sm,
     marginHorizontal: 0,
@@ -197,12 +203,12 @@ const styles = StyleSheet.create({
   dispatchCode: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeMd,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   dispatchAddress: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   dispatchMetaBlock: {
     alignItems: 'flex-end',
@@ -211,12 +217,12 @@ const styles = StyleSheet.create({
   dispatchTime: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   dispatchRider: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   sep: { height: Spacing.md },
   listContent: { paddingTop: Spacing.sm },

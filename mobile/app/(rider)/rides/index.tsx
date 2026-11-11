@@ -1,4 +1,6 @@
 import { isFinishedTrip } from '@utils/tripPresentation';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl, useWindowDimensions } from 'react-native';
@@ -9,12 +11,13 @@ import { AppBadge, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 
 type RideSegment = 'upcoming' | 'post';
 
 export default function RiderRidesPage() {
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
@@ -97,8 +100,8 @@ export default function RiderRidesPage() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   headerCard: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
@@ -113,38 +116,38 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 48, justifyContent: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 10,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   segmentSelected: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   segmentLabel: {
     textAlign: 'center',
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   segmentLabelSelected: {
-    color: Colors.white,
+    color: colors.white,
   },
   card: {
     marginHorizontal: 0,
     padding: Spacing.md,
     gap: Spacing.xs,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
-  rideNumber: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
-  riderName: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
-  meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
-  address: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
+  rideNumber: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeMd, color: colors.textPrimary },
+  riderName: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeLg, color: colors.textPrimary },
+  meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textSecondary },
+  address: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textSecondary },
   sep: { height: Spacing.sm },
   listContent: { paddingTop: Spacing.sm },
   emptyContent: { flex: 1 },

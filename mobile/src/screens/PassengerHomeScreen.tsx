@@ -1,4 +1,6 @@
 import { ScrollView, StyleSheet, Text, RefreshControl } from 'react-native';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { riderPortalApi } from '@api/riderPortalApi';
@@ -11,10 +13,11 @@ import { SectionHeader } from '@components/SectionHeader';
 import { ActionRow } from '@components/ActionRow';
 import { EmptyState } from '@components/EmptyState';
 import { AppButton, AppBadge, AppCard } from '@components/ui';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 import { isFinishedTrip } from '@utils/tripPresentation';
 export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }) {
+  const styles = useThemedStyles(createStyles);
   const role = guardian ? 'guardian' : 'rider'; const router = useRouter(); const { session } = useAuth();
   const dashboard = useQuery({ queryKey: [`${role}-dashboard`], queryFn: riderPortalApi.getDashboard });
   const trips = useQuery({ queryKey: [`${role}-next-rides`], queryFn: () => riderPortalApi.searchRides({ page: 0, size: 20, fromDate: new Date(Date.now()-86400000).toISOString().slice(0,10), sortBy: 'scheduledPickupAt', sortDirection: 'ASC' }) });
@@ -44,13 +47,13 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
     <ActionRow icon="receipt-text-outline" title="Billing & payments" description="Review invoices and payment records" onPress={() => router.push(`/(${role})/billing` as never)} />
   </ScrollView>;
 }
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing.xxxl },
   quickActions: { gap: Spacing.sm },
-  helperText: { fontFamily: Typography.fontBody, color: Colors.textSecondary, fontSize: Typography.sizeSm, marginLeft: Spacing.xs },
+  helperText: { fontFamily: Typography.fontBody, color: colors.textSecondary, fontSize: Typography.sizeSm, marginLeft: Spacing.xs },
   trip: { gap: Spacing.md },
-  title: { fontFamily: Typography.fontHeading, fontSize: Typography.sizeXl, color: Colors.textPrimary },
-  body: { fontFamily: Typography.fontBody, color: Colors.textPrimary, fontSize: Typography.sizeMd, lineHeight: 23 },
-  caption: { fontFamily: Typography.fontBodyMedium, fontSize: Typography.sizeXs, color: Colors.textSecondary, marginTop: Spacing.sm, letterSpacing: 1 }
+  title: { fontFamily: Typography.fontHeading, fontSize: Typography.sizeXl, color: colors.textPrimary },
+  body: { fontFamily: Typography.fontBody, color: colors.textPrimary, fontSize: Typography.sizeMd, lineHeight: 23 },
+  caption: { fontFamily: Typography.fontBodyMedium, fontSize: Typography.sizeXs, color: colors.textSecondary, marginTop: Spacing.sm, letterSpacing: 1 }
 });

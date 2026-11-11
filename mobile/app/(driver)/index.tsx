@@ -1,3 +1,4 @@
+import React from 'react';
 import { ScrollView, StyleSheet, Text, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -12,9 +13,11 @@ import { EmptyState } from '@components/EmptyState';
 import { ActionRow } from '@components/ActionRow';
 import { SectionHeader } from '@components/SectionHeader';
 import { AppButton, AppCard } from '@components/ui';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
+import { useThemedStyles } from '@theme/ThemeProvider';
 export default function DriverDashboard() {
   const { session } = useAuth(); const router = useRouter();
+  const styles = useThemedStyles(React.useCallback(colors => StyleSheet.create({ screen: { flex: 1, backgroundColor: colors.background }, content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing.xxxl }, copy: { fontFamily: Typography.fontBody, color: colors.textSecondary, lineHeight: 23 } }), []));
   const dashboard = useQuery({ queryKey: ['driver-dashboard'], queryFn: driverPortalApi.getDashboard });
   const trips = useQuery({ queryKey: ['driver-rides-next-assigned'], queryFn: () => driverPortalApi.searchRides({ page: 0, size: 20, fromDate: new Date(Date.now()-86400000).toISOString().slice(0,10), sortBy: 'scheduledPickupAt', sortDirection: 'ASC' }) });
   const upcoming = (trips.data?.items ?? []).filter(ride => ['ASSIGNED','DRIVER_EN_ROUTE','ARRIVED','PICKED_UP'].includes(ride.status));
@@ -38,4 +41,3 @@ export default function DriverDashboard() {
     <ActionRow icon="file-document-outline" title="Documents & compliance" description="Review issues and upload required documents" onPress={() => router.push('/(driver)/compliance')} />
   </ScrollView>;
 }
-const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: Colors.background }, content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing.xxxl }, copy: { fontFamily: Typography.fontBody, color: Colors.textSecondary, lineHeight: 23 } });

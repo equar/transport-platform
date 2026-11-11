@@ -1,8 +1,9 @@
 import { useBrandingColors } from '@theme/BrandingContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle, type TextInputProps } from 'react-native';
-import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
+import { Radius, Spacing, Typography } from '@theme/tokens';
+import { useThemedStyles } from '@theme/ThemeProvider';
 
 interface AppInputProps {
   label?: string;
@@ -50,6 +51,7 @@ export function AppInput({
   showCount = false,
 }: AppInputProps) {
   const colors = useBrandingColors();
+  const styles = useThemedStyles(useCallback(createStyles, []));
   const [focused, setFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -62,7 +64,7 @@ export function AppInput({
       return styles.successText;
     }
     return styles.hintText;
-  }, [error, success]);
+  }, [error, success, styles]);
 
   return (
     <View style={[styles.wrapper, style]}>
@@ -90,7 +92,7 @@ export function AppInput({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={Colors.textSecondary}
+          placeholderTextColor={colors.textSecondary}
           secureTextEntry={secureTextEntry && !showPassword}
           autoCapitalize={autoCapitalize}
           autoComplete={autoComplete}
@@ -106,7 +108,7 @@ export function AppInput({
         />
         {secureTextEntry ? (
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={showPassword ? "Hide password" : "Show password"} onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
-            <MaterialCommunityIcons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={Colors.textSecondary} />
+            <MaterialCommunityIcons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.textSecondary} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -124,14 +126,14 @@ export function AppInput({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useBrandingColors>) => StyleSheet.create({
   wrapper: {
     gap: Spacing.xs,
   },
   label: {
     fontFamily: Typography.fontBodyMedium,
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: 2,
     letterSpacing: 0.2,
   },
@@ -139,9 +141,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.borderStrong,
+    borderColor: colors.borderStrong,
     borderRadius: Radius.input,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     paddingHorizontal: Spacing.md,
     minHeight: 52,
   },
@@ -149,24 +151,24 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   focused: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.surface,
+    borderColor: colors.primary,
+    backgroundColor: colors.surface,
   },
   errored: {
-    borderColor: Colors.error,
+    borderColor: colors.error,
   },
   success: {
-    borderColor: Colors.success,
+    borderColor: colors.success,
   },
   disabled: {
-    backgroundColor: Colors.canvas,
+    backgroundColor: colors.canvas,
     opacity: 0.7,
   },
   input: {
     flex: 1,
     fontFamily: Typography.fontBody,
     fontSize: Typography.sizeLg,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     paddingVertical: Spacing.md,
   },
   inputDense: {
@@ -194,17 +196,17 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizeXs,
   },
   hintText: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   successText: {
-    color: Colors.success,
+    color: colors.success,
   },
   errorText: {
-    color: Colors.error,
+    color: colors.error,
   },
   counterText: {
     fontFamily: Typography.fontBody,
     fontSize: Typography.sizeXs,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 });

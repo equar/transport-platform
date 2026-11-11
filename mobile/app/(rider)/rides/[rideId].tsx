@@ -1,4 +1,6 @@
 import { isFinishedTrip, isTrackableTrip } from '@utils/tripPresentation';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { SupportContact } from '@components/SupportContact';
 import { RequestError } from '@components/RequestError';
 import React from 'react';
@@ -9,12 +11,13 @@ import { riderPortalApi } from '@api/riderPortalApi';
 import { TripTrackingCard } from '@components/TripTrackingCard';
 import { AppBadge, AppButton, AppInput } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 
 const CANCELLABLE = new Set(['REQUESTED', 'PENDING_REVIEW', 'SCHEDULED', 'ASSIGNED']);
 
 export default function RiderRideDetailPage() {
+  const styles = useThemedStyles(createStyles);
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
   const router = useRouter();
   const qc = useQueryClient();
@@ -131,6 +134,7 @@ export default function RiderRideDetailPage() {
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  const rowStyles = useThemedStyles(createRowStyles);
   return (
     <View style={rowStyles.row}>
       <Text style={rowStyles.label}>{label}</Text>
@@ -139,12 +143,12 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   heroCard: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.border,
     borderRadius: 14,
     padding: Spacing.lg,
     gap: Spacing.xs,
@@ -152,12 +156,12 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeSm,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   heroRide: {
     fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXl,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   heroMetaRow: {
     flexDirection: 'row',
@@ -167,11 +171,11 @@ const styles = StyleSheet.create({
   heroTime: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
-  back: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.primary },
-  section: { borderWidth: 1, borderColor: Colors.border, borderRadius: 16, overflow: 'hidden', backgroundColor: Colors.surface },
-  sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeXs, color: Colors.textSecondary, letterSpacing: 0.5, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.divider, backgroundColor: Colors.surfaceMuted },
+  back: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: colors.primary },
+  section: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.surface },
+  sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeXs, color: colors.textSecondary, letterSpacing: 0.5, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider, backgroundColor: colors.surfaceMuted },
   actionRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -181,8 +185,8 @@ const styles = StyleSheet.create({
   },
 });
 
-const rowStyles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: Spacing.sm, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.divider },
-  label: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: Colors.textSecondary, width: 90 },
-  value: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary, flex: 1 },
+const createRowStyles = (colors: BrandColors) => StyleSheet.create({
+  row: { flexDirection: 'row', gap: Spacing.sm, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  label: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: colors.textSecondary, width: 90 },
+  value: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textPrimary, flex: 1 },
 });

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useBrandingColors } from '@theme/BrandingContext';
-import { Colors, Radius } from '@theme/tokens';
+import { Radius } from '@theme/tokens';
 import { TenantHeader } from './TenantHeader';
 import { useAuth } from '@auth/AuthContext';
 
@@ -23,12 +23,12 @@ export function RoleShell({ role, children }: { role: 'driver' | 'rider' | 'guar
   return <View style={[styles.shell, { backgroundColor: colors.secondaryDark }]}>
     <View style={styles.header}>
       <Pressable accessibilityRole="button" accessibilityLabel={home ? 'Open account' : 'Go back'} hitSlop={4} style={styles.iconButton} onPress={home ? () => router.push(`/(${role})/profile` as never) : back}>
-        <MaterialCommunityIcons name={home ? 'menu' : 'arrow-left'} size={25} color={Colors.white} />
+        <MaterialCommunityIcons name={home ? 'menu' : 'arrow-left'} size={25} color={colors.white} />
       </Pressable>
       <View style={styles.center}><TenantHeader tenantId={session?.identity.tenantId} variant="appHeader" pageTitle={home ? undefined : titles[page]} /></View>
-      {home ? <Pressable accessibilityRole="button" accessibilityLabel="Open notifications" style={styles.iconButton} onPress={() => router.push(`/(${role})/notifications` as never)}><MaterialCommunityIcons name="bell-outline" color={Colors.white} size={23} /></Pressable> : <View style={styles.iconButton} />}
+      {home ? <Pressable accessibilityRole="button" accessibilityLabel="Open notifications" style={styles.iconButton} onPress={() => router.push(`/(${role})/notifications` as never)}><MaterialCommunityIcons name="bell-outline" color={colors.white} size={23} /></Pressable> : <View style={styles.iconButton} />}
     </View>
-    <View style={styles.body}>{children}</View>
+    <View style={[styles.body, { backgroundColor: colors.background }]}>{children}</View>
   </View>;
 }
 const styles = StyleSheet.create({
@@ -36,5 +36,5 @@ const styles = StyleSheet.create({
   header: { minHeight: 64, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', paddingBottom: 5 },
   iconButton: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   center: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
-  body: { flex: 1, backgroundColor: Colors.background, borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, overflow: 'hidden' },
+  body: { flex: 1, borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, overflow: 'hidden' },
 });

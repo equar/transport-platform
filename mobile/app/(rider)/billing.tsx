@@ -1,4 +1,7 @@
 import { DetailSheet } from '@components/DetailSheet';
+import { useBrandingColors } from '@theme/BrandingContext';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { Pagination } from '@components/Pagination';
 import { RequestError } from '@components/RequestError';
 import { SupportContact } from '@components/SupportContact';
@@ -10,10 +13,11 @@ import { AppBadge, AppCard, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 import { formatDate } from '@utils/formatDate';
 
 export default function RiderBillingPage() {
+  const styles = useThemedStyles(createStyles);
   const [selectedInvoice, setSelectedInvoice] = React.useState<number | null>(null);
   const [selectedPayment, setSelectedPayment] = React.useState<number | null>(null);
   const detail = useQuery({ queryKey: ['invoice-detail', selectedInvoice], queryFn: () => riderPortalApi.invoiceDetail(selectedInvoice!), enabled: selectedInvoice != null });
@@ -117,21 +121,22 @@ export default function RiderBillingPage() {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) { return <View style={styles.detailRow}><Text style={styles.meta}>{label}</Text><Text style={styles.detailValue}>{value}</Text></View>; }
+function DetailRow({ label, value }: { label: string; value: string }) {
+  const styles = useThemedStyles(createStyles); return <View style={styles.detailRow}><Text style={styles.meta}>{label}</Text><Text style={styles.detailValue}>{value}</Text></View>; }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: BrandColors) => StyleSheet.create({
   detailCard: { gap: Spacing.md },
-  detailTitle: { fontFamily: Typography.fontHeading, fontSize: Typography.sizeXxl, color: Colors.textPrimary },
-  detailText: { fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: Colors.textPrimary, lineHeight: 23 },
+  detailTitle: { fontFamily: Typography.fontHeading, fontSize: Typography.sizeXxl, color: colors.textPrimary },
+  detailText: { fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: colors.textPrimary, lineHeight: 23 },
   detailRow: { flexDirection: 'row', gap: Spacing.md, justifyContent: 'space-between', alignItems: 'flex-start' },
-  detailValue: { flex: 1, textAlign: 'right', fontFamily: Typography.fontBodyMedium, color: Colors.textPrimary, fontSize: Typography.sizeMd },
-  container: { flex: 1, backgroundColor: Colors.background },
+  detailValue: { flex: 1, textAlign: 'right', fontFamily: Typography.fontBodyMedium, color: colors.textPrimary, fontSize: Typography.sizeMd },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: Spacing.lg, gap: Spacing.md },
-  groupHeading: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeLg, color: Colors.textPrimary, marginTop: Spacing.sm },
+  groupHeading: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeLg, color: colors.textPrimary, marginTop: Spacing.sm },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
   rowInfo: { flex: 1, gap: 2 },
   rowRight: { maxWidth: '45%', alignItems: 'flex-end', gap: Spacing.xs },
-  num: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
-  meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeXs, color: Colors.textSecondary },
-  amount: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
+  num: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeMd, color: colors.textPrimary },
+  meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeXs, color: colors.textSecondary },
+  amount: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeLg, color: colors.textPrimary },
 });

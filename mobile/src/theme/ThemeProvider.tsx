@@ -6,7 +6,9 @@ import type { BrandColors } from './branding';
 import { BrandingColorsContext, useBrandingColors } from './BrandingContext';
 export { useBrandingColors } from './BrandingContext';
 
-function paperTheme(colors: BrandColors, dark = false) {
+type PaperPalette = { [Key in keyof typeof LightColors]: string };
+
+function paperTheme(colors: PaperPalette, dark = false) {
   const baseTheme = dark ? MD3DarkTheme : MD3LightTheme;
   return { ...baseTheme, dark, roundness: Radius.md,
     fonts: configureFonts({ config: { fontFamily: Typography.fontBody } }),
@@ -19,13 +21,21 @@ function paperTheme(colors: BrandColors, dark = false) {
 }
 // The tenant theme picker applies to web screens only. Mobile uses its own palette.
 export const appTheme = paperTheme(LightColors);
+export const resolvePaperPalette = (scheme: ReturnType<typeof useColorScheme>): PaperPalette =>
+  scheme === 'dark' ? DarkColors : LightColors;
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const scheme = useColorScheme();
-  const colors = scheme === 'dark' ? DarkColors : LightColors;
-  const theme = React.useMemo(() => paperTheme(colors, scheme === 'dark'), [colors, scheme]);
+  const paperColors = resolvePaperPalette(scheme);
+  const theme = React.useMemo(() => paperTheme(paperColors, scheme === 'dark'), [paperColors, scheme]);
 
-  return <BrandingColorsContext.Provider value={colors}><PaperProvider theme={theme}>{children}</PaperProvider></BrandingColorsContext.Provider>;
+  return <BrandingColorsContext.Provider value={paperColors}><PaperProvider theme={theme}>{children}</PaperProvider></BrandingColorsContext.Provider>;
 }
 export function useAppThemeTokens() {
   return { colors: useBrandingColors(), spacing: Spacing, radius: Radius, typography: Typography, shadow: Shadow, density: Density, motion: Motion };
+}
+
+export function useThemedStyles<T>(createStyles: (colors: BrandColors) => T): T {
+  const colors = useBrandingColors();
+  return React.useMemo(() => createStyles(colors), [colors, createStyles]);
 }

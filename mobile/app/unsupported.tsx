@@ -1,9 +1,12 @@
 import { Text, View, StyleSheet } from 'react-native';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { useAuth } from '@auth/AuthContext';
 import { AppButton } from '@components/ui';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 
 export default function UnsupportedMobileRolePage() {
+  const styles = useThemedStyles(createStyles);
   const { signOut } = useAuth();
 
   return (
@@ -17,22 +20,22 @@ export default function UnsupportedMobileRolePage() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: BrandColors) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     gap: Spacing.lg,
     padding: Spacing.xxl,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   heading: {
     fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXxl,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   body: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeMd,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 });

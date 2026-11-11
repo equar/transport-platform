@@ -1,5 +1,3 @@
-import { DynamicColorIOS, Platform, PlatformColor, type ColorValue } from 'react-native';
-
 // Bakaroo mobile identity: deep navy, warm orange and soft blue surfaces.
 export const LightColors = {
   primary: '#004787',
@@ -30,6 +28,7 @@ export const LightColors = {
   border: '#dce3f0',
   borderStrong: '#b6c2d6',
   overlay: '#e7f2ff',
+  scrim: 'rgba(0,0,0,0.38)',
   error: '#b42318',
   warning: '#9e6612',
   success: '#197357',
@@ -78,6 +77,7 @@ export const DarkColors: BasePalette = {
   border: '#30425b',
   borderStrong: '#526782',
   overlay: '#183b5e',
+  scrim: 'rgba(0,0,0,0.60)',
   error: '#ffb4ab',
   warning: '#ffd180',
   success: '#7fdbb7',
@@ -92,30 +92,6 @@ export const DarkColors: BasePalette = {
   statusCancelled: '#c4cad4',
   statusEnRoute: '#7bbcff',
 };
-
-type ColorToken = keyof typeof LightColors;
-type DynamicColors = Record<ColorToken, ColorValue>;
-
-function platformColor(token: ColorToken): ColorValue {
-  const light = LightColors[token];
-  const dark = DarkColors[token];
-
-  if (Platform.OS === 'ios') {
-    return DynamicColorIOS({ light, dark });
-  }
-
-  if (Platform.OS === 'android') {
-    const resourceToken = token.replace(/[A-Z]/g, character => `_${character.toLowerCase()}`);
-    return PlatformColor(`@color/mobile_${resourceToken}`);
-  }
-
-  return light;
-}
-
-// Native dynamic colors keep StyleSheet-based components synchronized with device appearance.
-export const Colors: DynamicColors = Object.fromEntries(
-  (Object.keys(LightColors) as ColorToken[]).map(token => [token, platformColor(token)]),
-) as DynamicColors;
 
 export const Spacing = {
   xs: 4,
@@ -182,14 +158,14 @@ export const Shadow = {
     elevation: 0,
   },
   soft: {
-    shadowColor: '#1d3964',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 1,
   },
   card: {
-    shadowColor: '#1d3964',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.09,
     shadowRadius: 8,

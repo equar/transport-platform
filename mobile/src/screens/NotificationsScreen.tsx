@@ -1,4 +1,6 @@
 import { Alert, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@api/notificationsApi';
 import { AppBadge, AppButton, AppCard } from '@components/ui';
@@ -6,9 +8,10 @@ import { SectionHeader } from '@components/SectionHeader';
 import { EmptyState } from '@components/EmptyState';
 import { LoadingState } from '@components/LoadingState';
 import { RequestError } from '@components/RequestError';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 export default function NotificationsScreen() {
+  const styles = useThemedStyles(createStyles);
   const client = useQueryClient();
   const query = useInfiniteQuery({ queryKey: ['notifications'], initialPageParam: 0,
     queryFn: ({ pageParam }) => notificationsApi.search({ page: pageParam, size: 20 }),
@@ -38,4 +41,4 @@ export default function NotificationsScreen() {
     />
   </View>;
 }
-const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: Colors.background }, header: { padding: Spacing.xl, gap: Spacing.md }, list: { flexGrow: 1, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxl }, item: { gap: Spacing.md }, unread: { gap: Spacing.md, borderLeftWidth: 3, borderLeftColor: Colors.primary }, metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, alignItems: 'center', justifyContent: 'space-between' }, date: { fontFamily: Typography.fontBody, fontSize: Typography.sizeXs, color: Colors.textSecondary }, subject: { fontFamily: Typography.fontBodyMedium, fontSize: Typography.sizeMd, color: Colors.textPrimary }, body: { fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: Colors.textPrimary, lineHeight: 23 } });
+const createStyles = (colors: BrandColors) => StyleSheet.create({ screen: { flex: 1, backgroundColor: colors.background }, header: { padding: Spacing.xl, gap: Spacing.md }, list: { flexGrow: 1, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxl }, item: { gap: Spacing.md }, unread: { gap: Spacing.md, borderLeftWidth: 3, borderLeftColor: colors.primary }, metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, alignItems: 'center', justifyContent: 'space-between' }, date: { fontFamily: Typography.fontBody, fontSize: Typography.sizeXs, color: colors.textSecondary }, subject: { fontFamily: Typography.fontBodyMedium, fontSize: Typography.sizeMd, color: colors.textPrimary }, body: { fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: colors.textPrimary, lineHeight: 23 } });

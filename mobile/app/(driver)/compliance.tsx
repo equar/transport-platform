@@ -1,4 +1,6 @@
 import { documentContentType } from '@utils/documentContentType';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { DriverDocumentUploadForm, type DocumentMetadata } from '@components/DriverDocumentUploadForm';
 import { RequestError } from '@components/RequestError';
 import React, { useState } from 'react';
@@ -11,10 +13,11 @@ import { AppBadge, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { SectionHeader } from '@components/SectionHeader';
 import { MetricTile } from '@components/MetricTile';
-import { Colors, Radius, Spacing, Typography } from '@theme/tokens';
+import { Radius, Spacing, Typography } from '@theme/tokens';
 import { formatDate } from '@utils/formatDate';
 
 export default function DriverCompliancePage() {
+  const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
   const [documentPickerOpen, setDocumentPickerOpen] = useState(false);
@@ -182,38 +185,38 @@ export default function DriverCompliancePage() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   metricRow: { flexDirection: 'row', gap: Spacing.sm },
   metricRowCompact: { flexDirection: 'column' },
-  uploadCard: { borderRadius: 16, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface, padding: Spacing.md, gap: Spacing.sm },
-  uploadTitle: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeLg, color: Colors.textPrimary },
-  uploadText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary, lineHeight: 18 },
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(16,35,71,0.38)', padding: Spacing.md },
-  confirmationOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(16,35,71,0.38)', padding: Spacing.lg },
-  modalContent: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },
+  uploadCard: { borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Spacing.md, gap: Spacing.sm },
+  uploadTitle: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeLg, color: colors.textPrimary },
+  uploadText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textSecondary, lineHeight: 18 },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.scrim, padding: Spacing.md },
+  confirmationOverlay: { flex: 1, justifyContent: 'center', backgroundColor: colors.scrim, padding: Spacing.lg },
+  modalContent: { backgroundColor: colors.surface, borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },
   documentOptions: { gap: Spacing.sm },
-  confirmationTitle: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeXl, color: Colors.textPrimary },
-  confirmationText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeMd, color: Colors.textSecondary, lineHeight: 20 },
+  confirmationTitle: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeXl, color: colors.textPrimary },
+  confirmationText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeMd, color: colors.textSecondary, lineHeight: 20 },
   groupHeading: {
     fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeLg,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: -Spacing.xs,
   },
   issueCard: {
-    backgroundColor: Colors.surface, borderRadius: 16,
+    backgroundColor: colors.surface, borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     padding: Spacing.md,
     gap: Spacing.xs,
   },
   row: { flexDirection: 'row', gap: Spacing.sm },
-  summary: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
-  action: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
-  expiry: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.warning },
-  docCard: { backgroundColor: Colors.surface, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, padding: Spacing.md, gap: Spacing.xs },
-  docType: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.textPrimary, flex: 1 },
-  docName: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textSecondary },
+  summary: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeMd, color: colors.textPrimary },
+  action: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textSecondary },
+  expiry: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.warning },
+  docCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: Spacing.md, gap: Spacing.xs },
+  docType: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: colors.textPrimary, flex: 1 },
+  docName: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textSecondary },
 });

@@ -1,4 +1,7 @@
 import { DriverVehicles } from '@components/DriverVehicles';
+import { useBrandingColors } from '@theme/BrandingContext';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { AccountActions } from '@components/AccountActions';
 import React from 'react';
 import {
@@ -17,11 +20,12 @@ import { LoadingState } from '@components/LoadingState';
 import { SectionHeader } from '@components/SectionHeader';
 import { EmptyState } from '@components/EmptyState';
 import { AppButton, AppCard } from '@components/ui';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 
 type ProfileTab = 'driver' | 'vehicle';
 
 export default function DriverProfilePage() {
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
@@ -155,6 +159,7 @@ function TabButton({
   active: boolean;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable onPress={onPress} style={[styles.tabButton, active && styles.tabButtonActive]}>
       <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
@@ -163,6 +168,8 @@ function TabButton({
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  const rowStyles = useThemedStyles(createRowStyles);
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={rowStyles.row}>
       <Text style={rowStyles.label}>{label}</Text>
@@ -171,12 +178,12 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   hero: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.border,
     borderRadius: 16,
     padding: Spacing.lg,
     gap: Spacing.xs,
@@ -184,17 +191,17 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeSm,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   heroName: {
     fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXl,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   heroMeta: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     opacity: 0.9,
   },
   tabRow: {
@@ -205,40 +212,40 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     minHeight: 48, justifyContent: 'center',
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   tabButtonActive: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   tabLabel: {
     textAlign: 'center',
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   tabLabelActive: {
-    color: Colors.white,
+    color: colors.white,
   },
   section: { gap: Spacing.sm },
   sectionTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.7,
   },
   note: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeMd,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
 });
 
-const rowStyles = StyleSheet.create({
+const createRowStyles = (colors: BrandColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -247,13 +254,13 @@ const rowStyles = StyleSheet.create({
   label: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     width: 100,
   },
   value: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
   },
 });

@@ -1,4 +1,7 @@
 import { isFinishedTrip } from '@utils/tripPresentation';
+import { useBrandingColors } from '@theme/BrandingContext';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { RequestError } from '@components/RequestError';
 import React from 'react';
 import { StyleSheet, FlatList, View, Text, TouchableOpacity, RefreshControl, useWindowDimensions } from 'react-native';
@@ -10,12 +13,13 @@ import { AppBadge, AppCard, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
 import { SectionHeader } from '@components/SectionHeader';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 
 type RideSegment = 'today' | 'history';
 
 export default function GuardianRidesPage() {
+  const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const { width } = useWindowDimensions();
 	const isCompact = width < 380;
@@ -83,6 +87,7 @@ export default function GuardianRidesPage() {
 }
 
 function RideCard({ item, onPress }: { item: RiderPortalRideRecord; onPress: () => void }) {
+  const styles = useThemedStyles(createStyles);
 	return (
 		<TouchableOpacity onPress={onPress} activeOpacity={0.85}>
 			<AppCard style={styles.card}>
@@ -99,37 +104,37 @@ function RideCard({ item, onPress }: { item: RiderPortalRideRecord; onPress: () 
 	);
 }
 
-const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+	container: { flex: 1, backgroundColor: colors.background },
 	headerCard: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.sm, gap: Spacing.sm },
 	segmentRow: { flexDirection: 'row', gap: Spacing.sm },
 	segmentButton: {
 		flex: 1,
         minHeight: 48, justifyContent: 'center',
 		borderWidth: 1,
-		borderColor: Colors.border,
+		borderColor: colors.border,
 		borderRadius: 10,
 		paddingVertical: Spacing.sm,
-		backgroundColor: Colors.surface,
+		backgroundColor: colors.surface,
 	},
 	segmentSelected: {
-		backgroundColor: Colors.accent,
-		borderColor: Colors.accent,
+		backgroundColor: colors.accent,
+		borderColor: colors.accent,
 	},
 	segmentLabel: {
 		textAlign: 'center',
 		fontFamily: 'Inter_600SemiBold',
 		fontSize: Typography.sizeSm,
-		color: Colors.textSecondary,
+		color: colors.textSecondary,
 	},
-	segmentLabelSelected: { color: Colors.white },
+	segmentLabelSelected: { color: colors.white },
 	listContent: { paddingTop: Spacing.sm },
 	card: { gap: Spacing.xs },
 	row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
-	rideNumber: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeMd, color: Colors.textPrimary },
-	meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeXs, color: Colors.textSecondary },
-	address: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary },
-	rider: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: Colors.primary },
+	rideNumber: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeMd, color: colors.textPrimary },
+	meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeXs, color: colors.textSecondary },
+	address: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textPrimary },
+	rider: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: colors.primary },
 	sep: { height: Spacing.sm },
 	emptyContent: { flex: 1 },
 });

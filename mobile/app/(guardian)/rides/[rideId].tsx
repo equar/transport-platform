@@ -1,4 +1,6 @@
 import { isFinishedTrip, isTrackableTrip } from '@utils/tripPresentation';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { SupportContact } from '@components/SupportContact';
 import { RequestError } from '@components/RequestError';
 import React from 'react';
@@ -9,11 +11,11 @@ import { riderPortalApi } from '@api/riderPortalApi';
 import { TripTrackingCard } from '@components/TripTrackingCard';
 import { AppBadge, AppButton, AppCard } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
-import { Colors, Spacing, Typography } from '@theme/tokens';
-import { GuardianRoleTheme } from '@theme/roleTheme';
+import { Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 
 export default function GuardianRideDetailPage() {
+  const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const { rideId } = useLocalSearchParams<{ rideId: string }>();
 
@@ -96,27 +98,27 @@ export default function GuardianRideDetailPage() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+	container: { flex: 1, backgroundColor: colors.background },
 	content: { padding: Spacing.lg, gap: Spacing.lg },
 	heroCard: {
-		backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.border,
+		backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.border,
 		borderRadius: 14,
 		padding: Spacing.lg,
 		gap: Spacing.xs,
 	},
-	heroTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.textPrimary },
-	heroRide: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeXl, color: Colors.textPrimary },
+	heroTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: colors.textPrimary },
+	heroRide: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeXl, color: colors.textPrimary },
 	heroMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
-	heroTime: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: Colors.textPrimary },
-	back: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: GuardianRoleTheme.primary },
+	heroTime: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeSm, color: colors.textPrimary },
+	back: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: colors.primary },
 	personCard: { gap: Spacing.xs },
-	personTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.textSecondary, textTransform: 'uppercase' },
-	personText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary },
+	personTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: colors.textSecondary, textTransform: 'uppercase' },
+	personText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textPrimary },
 	routeCard: { gap: Spacing.xs },
-	sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: Colors.textSecondary, textTransform: 'uppercase' },
-	routeText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: Colors.textPrimary },
+	sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: colors.textSecondary, textTransform: 'uppercase' },
+	routeText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textPrimary },
 	actionRow: { flexDirection: 'row', gap: Spacing.sm },
 	actionSlot: { flex: 1 },
 });

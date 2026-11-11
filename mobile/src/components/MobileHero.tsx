@@ -1,11 +1,15 @@
 import { useBrandingColors } from '@theme/BrandingContext';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
+import { Radius, Shadow, Spacing, Typography } from '@theme/tokens';
 
 export function MobileHero({ eyebrow, title, description, icon = 'navigation-variant' }: { eyebrow: string; title: string; description: string; icon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'] }) {
+  const styles = useThemedStyles(createStyles);
   const colors = useBrandingColors();
+
 
   return (
     <View style={styles.hero}>
@@ -20,13 +24,13 @@ export function MobileHero({ eyebrow, title, description, icon = 'navigation-var
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: BrandColors) => StyleSheet.create({
   hero: {
     position: 'relative',
     overflow: 'hidden',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: Radius.lg,
     padding: Spacing.xl,
     minHeight: 148,
@@ -55,7 +59,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontFamily: Typography.fontBodyBold,
     fontSize: Typography.sizeXs,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     marginBottom: Spacing.sm,
     letterSpacing: 0.8,
@@ -64,7 +68,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontHeading,
     fontSize: Typography.sizeXxl,
     paddingRight: 60,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     lineHeight: 34,
   },
   description: {
@@ -72,7 +76,7 @@ const styles = StyleSheet.create({
     maxWidth: '86%',
     fontFamily: Typography.fontBody,
     fontSize: Typography.sizeMd,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 20,
   },
 });

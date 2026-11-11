@@ -1,9 +1,12 @@
-import type { ReactNode } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import { useBrandingColors } from '@theme/BrandingContext';
 import { BrandWordmark } from './BrandWordmark';
 
 export function AuthFrame({ title, description, titleAlign = 'left', children, footer }: { title: string; description?: string; titleAlign?: 'left' | 'center'; children: ReactNode; footer?: ReactNode }) {
+  const styles = useThemedStyles(useCallback(createStyles, []));
   return <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <View style={styles.content}>
@@ -21,16 +24,16 @@ export function AuthFrame({ title, description, titleAlign = 'left', children, f
     </View>
   </KeyboardAvoidingView>;
 }
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.surface },
+const createStyles = (colors: ReturnType<typeof useBrandingColors>) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.surface },
   scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: Spacing.xxl, paddingTop: Spacing.lg, paddingBottom: 72 },
   content: { width: '100%', maxWidth: 420, alignSelf: 'center', gap: Spacing.lg },
   form: { gap: Spacing.lg },
   heading: { gap: Spacing.xs },
-  title: { fontFamily: Typography.fontHeading, fontSize: 26, letterSpacing: -0.8, color: Colors.textPrimary },
-  description: { fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, lineHeight: 23, color: Colors.textPrimary },
-  note: { fontFamily: Typography.fontBody, fontSize: Typography.sizeSm, color: Colors.textSecondary, textAlign: 'center' },
+  title: { fontFamily: Typography.fontHeading, fontSize: 26, letterSpacing: -0.8, color: colors.textPrimary },
+  description: { fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, lineHeight: 23, color: colors.textPrimary },
+  note: { fontFamily: Typography.fontBody, fontSize: Typography.sizeSm, color: colors.textSecondary, textAlign: 'center' },
   waveArea: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 72, overflow: 'hidden' },
-  orangeWave: { position: 'absolute', height: 100, width: '150%', bottom: -65, left: '-15%', borderTopLeftRadius: 180, borderTopRightRadius: 100, backgroundColor: Colors.accent, transform: [{ rotate: '-8deg' }] },
-  navyWave: { position: 'absolute', height: 90, width: '150%', bottom: -76, left: '-15%', borderTopLeftRadius: 180, backgroundColor: Colors.secondaryDark, transform: [{ rotate: '-8deg' }] },
+  orangeWave: { position: 'absolute', height: 100, width: '150%', bottom: -65, left: '-15%', borderTopLeftRadius: 180, borderTopRightRadius: 100, backgroundColor: colors.accent, transform: [{ rotate: '-8deg' }] },
+  navyWave: { position: 'absolute', height: 90, width: '150%', bottom: -76, left: '-15%', borderTopLeftRadius: 180, backgroundColor: colors.secondaryDark, transform: [{ rotate: '-8deg' }] },
 });

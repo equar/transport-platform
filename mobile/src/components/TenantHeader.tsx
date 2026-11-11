@@ -1,8 +1,10 @@
 import { useBrandingColors } from '@theme/BrandingContext';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import React from 'react';
 import { View, Image, Text, StyleSheet } from 'react-native';
 import { useTenantIdentity } from '@hooks/useTenantIdentity';
-import { Colors, Spacing, Radius, Typography } from '@theme/tokens';
+import { Spacing, Radius, Typography } from '@theme/tokens';
 
 interface Props {
   tenantId: string | null | undefined;
@@ -11,7 +13,9 @@ interface Props {
 }
 
 export function TenantHeader({ tenantId, variant = 'inline', pageTitle }: Props) {
+  const styles = useThemedStyles(createStyles);
   const colors = useBrandingColors();
+
   const effective = useTenantIdentity(tenantId);
 
   const name = effective?.displayName ?? null;
@@ -51,9 +55,9 @@ export function TenantHeader({ tenantId, variant = 'inline', pageTitle }: Props)
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: BrandColors) => StyleSheet.create({
   appHeader: { alignItems: 'center', width: '100%', gap: 2 },
-  businessName: { fontFamily: Typography.fontBodyBold, fontSize: 18, lineHeight: 23, color: Colors.white, textAlign: 'center' },
+  businessName: { fontFamily: Typography.fontBodyBold, fontSize: 18, lineHeight: 23, color: colors.white, textAlign: 'center' },
   container: {
     marginTop: Spacing.sm,
     flexDirection: 'row',
@@ -64,18 +68,18 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: Radius.full ?? 18,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
   },
   fallbackLogo: {
     width: 18,
     height: 18,
     borderRadius: 8,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
   },
   name: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeXs,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     flexShrink: 1,
   },
 });

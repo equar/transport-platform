@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { StyleSheet, View, ViewStyle, useWindowDimensions } from 'react-native';
-import { Colors, Density, Radius, Shadow, Spacing } from '@theme/tokens';
+import { Density, Radius, Shadow, Spacing } from '@theme/tokens';
+import { useThemedStyles } from '@theme/ThemeProvider';
 
 interface AppCardProps {
   children: React.ReactNode;
@@ -11,6 +12,22 @@ interface AppCardProps {
 }
 
 export function AppCard({ children, style, noBorder, density = 'comfortable', variant = 'default' }: AppCardProps) {
+  const styles = useThemedStyles(useCallback(colors => ({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...Shadow.card,
+    },
+    subtle: {
+      backgroundColor: colors.surfaceMuted,
+      ...Shadow.soft,
+    },
+    noBorder: {
+      borderWidth: 0,
+    },
+  }), []));
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
 
@@ -38,20 +55,3 @@ export function AppCard({ children, style, noBorder, density = 'comfortable', va
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    ...Shadow.card,
-  },
-  subtle: {
-    backgroundColor: Colors.surfaceMuted,
-    ...Shadow.soft,
-  },
-  noBorder: {
-    borderWidth: 0,
-  },
-});

@@ -1,7 +1,9 @@
 import React from 'react';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { StyleSheet, View, Text } from 'react-native';
 import { AppBadge } from './ui';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 import type { DriverPortalRouteStopRecord } from '@api/driverPortalApi';
 
 interface RouteStopCardProps {
@@ -10,6 +12,7 @@ interface RouteStopCardProps {
 }
 
 export function RouteStopCard({ stop, isLast }: RouteStopCardProps) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.container}>
       <View style={styles.timeline}>
@@ -29,7 +32,7 @@ export function RouteStopCard({ stop, isLast }: RouteStopCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: BrandColors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     gap: Spacing.md,
@@ -42,13 +45,13 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     marginTop: 4,
   },
   line: {
     width: 2,
     flex: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: colors.border,
     marginTop: 4,
   },
   content: {
@@ -67,16 +70,16 @@ const styles = StyleSheet.create({
   seq: {
     fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeMd,
-    color: Colors.primary,
+    color: colors.primary,
   },
   rider: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeLg,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   address: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 });

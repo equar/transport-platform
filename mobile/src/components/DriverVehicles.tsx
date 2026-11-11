@@ -1,12 +1,15 @@
+import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { driverPortalApi } from '@api/driverPortalApi';
 import { AppBadge, AppButton, AppCard } from './ui';
 import { EmptyState } from './EmptyState';
 import { SectionHeader } from './SectionHeader';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
+import { useThemedStyles } from '@theme/ThemeProvider';
 import { formatDate } from '@utils/formatDate';
 export function DriverVehicles() {
+  const styles=useThemedStyles(React.useCallback(colors=>StyleSheet.create({section:{gap:Spacing.lg},card:{gap:Spacing.md},row:{flexDirection:'row',flexWrap:'wrap',gap:Spacing.sm},title:{fontFamily:Typography.fontHeading,fontSize:Typography.sizeXl,color:colors.textPrimary},body:{fontFamily:Typography.fontBody,fontSize:Typography.sizeMd,color:colors.textPrimary,lineHeight:23},caption:{fontFamily:Typography.fontBody,fontSize:Typography.sizeSm,color:colors.textSecondary,lineHeight:21}}),[]));
   const query=useQuery({queryKey:['driver-vehicles'],queryFn:driverPortalApi.getVehicles});
   return <View style={styles.section}>
     <SectionHeader title="My vehicles" subtitle="Vehicles you own or your provider has assigned to you." />
@@ -23,4 +26,3 @@ export function DriverVehicles() {
     {!!query.data?.length&&<AppButton label="Refresh vehicles" variant="outlined" loading={query.isRefetching} onPress={()=>void query.refetch()}/>}
   </View>;
 }
-const styles=StyleSheet.create({section:{gap:Spacing.lg},card:{gap:Spacing.md},row:{flexDirection:'row',flexWrap:'wrap',gap:Spacing.sm},title:{fontFamily:Typography.fontHeading,fontSize:Typography.sizeXl,color:Colors.textPrimary},body:{fontFamily:Typography.fontBody,fontSize:Typography.sizeMd,color:Colors.textPrimary,lineHeight:23},caption:{fontFamily:Typography.fontBody,fontSize:Typography.sizeSm,color:Colors.textSecondary,lineHeight:21}});

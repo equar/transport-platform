@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Platform, ScrollView, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { AppButton, AppInput } from './ui';
-import { Colors, Spacing } from '@theme/tokens';
+import { useBrandingColors } from '@theme/BrandingContext';
+import { Spacing } from '@theme/tokens';
 
 export interface DocumentMetadata {
   documentNumber: string;
@@ -40,6 +41,7 @@ export function DriverDocumentUploadForm({ fileName, documentType, uploading, on
   fileName: string; documentType: string; uploading: boolean; onCancel: () => void;
   onSubmit: (metadata: DocumentMetadata) => Promise<void>;
 }) {
+  const colors = useBrandingColors();
   const [metadata, setMetadata] = useState<DocumentMetadata>({ documentNumber: '', issuingAuthority: '', issueDate: '', expiryDate: '' });
   const [error, setError] = useState<string | null>(null);
   const update = (field: keyof DocumentMetadata, value: string) => { setMetadata(previous => ({ ...previous, [field]: value })); setError(null); };
@@ -49,15 +51,15 @@ export function DriverDocumentUploadForm({ fileName, documentType, uploading, on
   }
   return <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets
     contentContainerStyle={{ padding: Spacing.lg, paddingTop: 56, paddingBottom: 48, gap: Spacing.md }}
-    style={{ backgroundColor: Colors.background }}>
-    <Text accessibilityRole="header" style={{ fontSize: 22, color: Colors.textPrimary }}>Document details</Text>
-    <Text style={{ color: Colors.textPrimary }}>{documentType.replace(/_/g, ' ')} · {fileName}</Text>
-    <Text style={{ color: Colors.textSecondary }}>Enter the details shown on your document so your transport provider can check them against the uploaded file.</Text>
+    style={{ backgroundColor: colors.background }}>
+    <Text accessibilityRole="header" style={{ fontSize: 22, color: colors.textPrimary }}>Document details</Text>
+    <Text style={{ color: colors.textPrimary }}>{documentType.replace(/_/g, ' ')} · {fileName}</Text>
+    <Text style={{ color: colors.textSecondary }}>Enter the details shown on your document so your transport provider can check them against the uploaded file.</Text>
     <AppInput label="Document number" value={metadata.documentNumber} onChangeText={v => update('documentNumber', v)} maxLength={120} />
     <AppInput label="Issuing authority" value={metadata.issuingAuthority} onChangeText={v => update('issuingAuthority', v)} maxLength={150} />
     <DateField label="Issue date" value={metadata.issueDate} onChange={v => update('issueDate', v)} />
     <DateField label="Expiry date" value={metadata.expiryDate} onChange={v => update('expiryDate', v)} />
-    {error ? <Text accessibilityRole="alert" style={{ color: Colors.error }}>{error}</Text> : null}
+    {error ? <Text accessibilityRole="alert" style={{ color: colors.error }}>{error}</Text> : null}
     <AppButton label="Submit for review" onPress={() => void submit()} loading={uploading} disabled={uploading} />
     <AppButton label="Cancel" variant="outlined" onPress={onCancel} disabled={uploading} />
   </ScrollView>;

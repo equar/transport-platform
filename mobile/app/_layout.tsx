@@ -29,7 +29,6 @@ import { AppState } from 'react-native';
 import { refreshTripTracking } from '../src/tracking/activeTrip';
 import { useOfflineQueue } from '@stores/offlineQueueStore';
 import { usePushNotifications } from '@hooks/usePushNotifications';
-import { Colors } from '@theme/tokens';
 import { useBrandingColors } from '@theme/BrandingContext';
 
 SplashScreen.preventAutoHideAsync();
@@ -130,10 +129,17 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <ThemeProvider><ThemedAppRoot /></ThemeProvider>
+  );
+}
+
+function ThemedAppRoot() {
+  const colors = useBrandingColors();
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaProvider>
         <AuthProvider>
-          <SessionQueries><ThemeProvider><AppViewport><AuthGate /></AppViewport></ThemeProvider></SessionQueries>
+          <SessionQueries><AppViewport><AuthGate /></AppViewport></SessionQueries>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -145,7 +151,7 @@ function AppViewport({ children }: { children: React.ReactNode }) {
   const colors = useBrandingColors();
   const scheme = useColorScheme();
   const auth = segments[0] === '(auth)';
-  return <SafeAreaView style={{ flex: 1, width: '100%', maxWidth: 1000, alignSelf: 'center', backgroundColor: auth ? Colors.surface : colors.secondaryDark }} edges={['top', 'left', 'right', 'bottom']}>
+  return <SafeAreaView style={{ flex: 1, width: '100%', maxWidth: 1000, alignSelf: 'center', backgroundColor: auth ? colors.surface : colors.secondaryDark }} edges={['top', 'left', 'right', 'bottom']}>
     <StatusBar style={auth && scheme !== 'dark' ? 'dark' : 'light'} />
     {children}
   </SafeAreaView>;

@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import { useBrandingColors } from '@theme/BrandingContext';
+import { useThemedStyles } from '@theme/ThemeProvider';
+import type { BrandColors } from '@theme/branding';
 import { Image, Linking, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@components/ui';
-import { Colors, Spacing, Typography } from '@theme/tokens';
+import { Spacing, Typography } from '@theme/tokens';
 
 interface TripTrackingCardProps {
   title?: string;
@@ -48,6 +51,7 @@ export function TripTrackingCard({
   refreshing = false,
   error = false,
 }: TripTrackingCardProps) {
+  const styles = useThemedStyles(createStyles);
   const [mapFailed, setMapFailed] = useState(false);
   const [details, setDetails] = useState(false);
   const ageMinutes = snapshot ? Math.max(0, Math.floor((Date.now() - Date.parse(snapshot.capturedAt)) / 60000)) : null;
@@ -115,6 +119,7 @@ export function TripTrackingCard({
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{label}</Text>
@@ -123,17 +128,17 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  section: { borderWidth: 1, borderColor: Colors.border, borderRadius: 16, overflow: 'hidden', backgroundColor: Colors.surface },
+const createStyles = (colors: BrandColors) => StyleSheet.create({
+  section: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.surface },
   sectionTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     letterSpacing: 0.5,
     padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-    backgroundColor: Colors.surfaceMuted,
+    borderBottomColor: colors.divider,
+    backgroundColor: colors.surfaceMuted,
     textTransform: 'uppercase',
   },
   body: { padding: Spacing.md, gap: Spacing.sm },
@@ -141,25 +146,25 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 220,
     borderRadius: 14,
-    backgroundColor: Colors.canvas,
+    backgroundColor: colors.canvas,
   },
   row: { flexDirection: 'row', gap: Spacing.sm },
   label: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     width: 72,
   },
   value: {
     flex: 1,
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   actions: { gap: Spacing.sm, marginTop: Spacing.sm },
   emptyText: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 });
