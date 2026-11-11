@@ -58,6 +58,7 @@ public class CompanyApplicationMapper {
                 application.getReviewNotes(),
                 application.getRejectionReason(),
                 application.getStatus(),
+                application.getEmailVerifiedAt(),
                 application.getApprovedTenantId(),
                 application.getOwnerUserId(),
                 application.getCreatedBy(),

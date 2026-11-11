@@ -90,6 +90,10 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
                 || "/v1/auth/verify-email".equals(path) || "/v1/auth/resend-verification".equals(path)) {
             return config.getForgotPasswordMaxRequests();
         }
+        if ("/company-applications".equals(path) || "/v1/auth/verify-application-email".equals(path)
+                || "/v1/auth/resend-application-verification".equals(path)) {
+            return config.getForgotPasswordMaxRequests();
+        }
         return 0;
     }
 

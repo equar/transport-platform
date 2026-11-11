@@ -60,7 +60,7 @@ export function VerifyEmailPage() {
 
   return (
     <AuthFormShell eyebrow="Tenant onboarding" title={token ? "Create your password" : "Request an account setup link"}
-      description="Create a password to verify your email and finish account setup. Workspace activation remains a separate administrator step."
+      description="Your application has been approved. Create your password to finish account setup and activate your workspace."
       status={status} maxWidth={640}>
       <Stack spacing={2}>
         {!verified && token && !showRecovery && <Stack component="form" spacing={2} onSubmit={verify}>

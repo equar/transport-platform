@@ -17,8 +17,7 @@ public final class CompanyApplicationStatusWorkflow {
     }
 
     public static void ensureCanApprove(CompanyApplicationStatus currentStatus) {
-        if (currentStatus != CompanyApplicationStatus.SUBMITTED
-                && currentStatus != CompanyApplicationStatus.UNDER_REVIEW) {
+        if (currentStatus != CompanyApplicationStatus.UNDER_REVIEW) {
             throw invalidTransition(currentStatus, CompanyApplicationStatus.APPROVED);
         }
     }

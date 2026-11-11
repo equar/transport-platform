@@ -92,7 +92,8 @@ apiClient.interceptors.request.use((config) => {
   }
 
   const requestUrl = String(config.url ?? '');
-  const isPublicAuthRequest = ['/v1/auth/login', '/v1/auth/verify-email', '/v1/auth/resend-verification']
+  const isPublicAuthRequest = ['/v1/auth/login', '/v1/auth/verify-email', '/v1/auth/resend-verification',
+    '/v1/auth/verify-application-email', '/v1/auth/resend-application-verification']
     .some(path => requestUrl.includes(path));
   if (isPublicAuthRequest) {
     delete config.headers.Authorization;

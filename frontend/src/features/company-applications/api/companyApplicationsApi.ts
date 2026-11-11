@@ -3,6 +3,7 @@ import type { PageResponse } from "../../../shared/api/types";
 
 export type CompanyApplicationStatus =
   | "DRAFT"
+  | "PENDING_EMAIL_VERIFICATION"
   | "SUBMITTED"
   | "UNDER_REVIEW"
   | "APPROVED"
@@ -44,6 +45,7 @@ export interface CompanyApplication {
   reviewNotes?: string | null;
   rejectionReason?: string | null;
   status: CompanyApplicationStatus;
+  emailVerifiedAt?: string | null;
   approvedTenantId?: string | null;
   ownerUserId?: number | null;
   createdBy: string;
@@ -79,7 +81,6 @@ export interface CompanyApplicationReviewPayload {
   subscriptionPlan?: string;
   tenantCode?: string;
   ownerEmail: string;
-  ownerPassword?: string;
 }
 
 export const companyApplicationsApi = {

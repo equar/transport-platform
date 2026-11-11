@@ -37,7 +37,6 @@ export function CompanyApplicationReviewDialog({
   const [subscriptionPlan, setSubscriptionPlan] = useState("STARTER");
   const [tenantCode, setTenantCode] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
-  const [ownerPassword, setOwnerPassword] = useState("");
 
   useEffect(() => {
     if (!open || !application) {
@@ -48,7 +47,6 @@ export function CompanyApplicationReviewDialog({
     setSubscriptionPlan("STARTER");
     setTenantCode("");
     setOwnerEmail(application.email);
-    setOwnerPassword("");
   }, [application, open]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -59,7 +57,6 @@ export function CompanyApplicationReviewDialog({
       subscriptionPlan,
       tenantCode,
       ownerEmail,
-      ...(mode === "approve" ? { ownerPassword } : {}),
     });
   }
 
@@ -88,7 +85,7 @@ export function CompanyApplicationReviewDialog({
         >
           <Typography color="text.secondary">
             {mode === "approve"
-              ? "Approve this application and provision a pending tenant workspace with its owner account. The owner will receive a link to create their password and verify their email. Administrator activation remains separate after onboarding readiness is confirmed."
+              ? "Approve this reviewed application. The verified applicant will receive a link to create their own password and activate the workspace. No temporary password is needed."
               : mode === "reject"
                 ? "Reject this application with a clear reason for the applicant and audit trail."
                 : "Move this application into the review queue and capture initial review notes."}
@@ -107,18 +104,10 @@ export function CompanyApplicationReviewDialog({
                 type="email"
                 autoComplete="off"
                 value={ownerEmail}
+                inputProps={{ readOnly: mode === "approve" }}
                 onChange={(event) => setOwnerEmail(event.target.value)}
                 required
-              />
-              <TextField
-                label="Temporary Owner Password"
-                type="password"
-                autoComplete="new-password"
-                value={ownerPassword}
-                onChange={(event) => setOwnerPassword(event.target.value)}
-                required
-                inputProps={{ minLength: 8, maxLength: 100 }}
-                helperText="Initial provisioning password. The owner creates their own password using the emailed account setup link."
+                helperText="Password setup is sent to the verified application email."
               />
               <TextField
                 label="Tenant Code Override"

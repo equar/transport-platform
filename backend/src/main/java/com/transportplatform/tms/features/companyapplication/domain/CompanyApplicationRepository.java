@@ -11,6 +11,12 @@ public interface CompanyApplicationRepository
 
     long countByStatus(CompanyApplicationStatus status);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<CompanyApplication> findByVerificationTokenHash(String tokenHash);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<CompanyApplication> findByApplicationNumber(String applicationNumber);
+
     Optional<CompanyApplication> findFirstByApprovedTenantIdAndOwnerUserIdAndStatus(
             String tenantId, Long ownerUserId, CompanyApplicationStatus status);
 

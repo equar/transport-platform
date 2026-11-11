@@ -17,6 +17,7 @@ import {
   type CompanyApplicationSubmissionPayload,
 } from "../api/companyApplicationsApi";
 import { useToast } from "../../../shared/providers/ToastProvider";
+import { env } from "../../../shared/config/env";
 
 const businessTypes = [
   "Carrier",
@@ -67,14 +68,19 @@ const processSteps = [
       "Share your company profile, service footprint, and operational requirements through the onboarding form.",
   },
   {
+    title: "Verify email",
+    description:
+      "Confirm your email using the link we send before the application is ready for review.",
+  },
+  {
     title: "Review",
     description:
       "A platform administrator reviews your submission, requested service types, and rollout fit.",
   },
   {
-    title: "Launch planning",
+    title: "Create password",
     description:
-      "Qualified teams move into onboarding, implementation, and workspace activation planning.",
+      "After approval, use the separate emailed link to create your password and activate your workspace.",
   },
 ];
 
@@ -102,8 +108,9 @@ export function PublicCompanyApplicationPage() {
       setSubmittedNumber(response.applicationNumber);
       setForm(initialForm);
       showSuccess("Application submitted successfully.");
-    } catch {
+    } catch (error) {
       showError(
+        error,
         "The application could not be submitted. Please review the form and try again.",
       );
     } finally {
@@ -182,8 +189,11 @@ export function PublicCompanyApplicationPage() {
           {submittedNumber ? (
             <Alert severity="success">
               Application submitted successfully. Reference number:{" "}
-              {submittedNumber}. Your team can expect follow-up for onboarding
+              {submittedNumber}. Check your email and verify it before administrator review. After approval, a separate email will let you create your password. Your team can expect follow-up for onboarding
               and rollout planning.
+              <Button href={`${env.adminSiteUrl}/verify-application-email`}>
+                Request a replacement verification link
+              </Button>
             </Alert>
           ) : null}
 

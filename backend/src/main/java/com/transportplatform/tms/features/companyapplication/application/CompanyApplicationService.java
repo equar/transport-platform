@@ -37,32 +37,34 @@ public class CompanyApplicationService {
     private final CompanyApplicationNotificationPort notificationPort;
     private final CompanyApplicationApprovalService approvalService;
     private final AuditLogService auditLogService;
+    private final ApplicationEmailVerificationService emailVerification;
 
     public CompanyApplicationService(CompanyApplicationRepository companyApplicationRepository,
             CompanyApplicationReviewEventRepository reviewEventRepository,
             CompanyApplicationMapper companyApplicationMapper,
             CompanyApplicationNotificationPort notificationPort,
             CompanyApplicationApprovalService approvalService,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService, ApplicationEmailVerificationService emailVerification) {
         this.companyApplicationRepository = companyApplicationRepository;
         this.reviewEventRepository = reviewEventRepository;
         this.companyApplicationMapper = companyApplicationMapper;
         this.notificationPort = notificationPort;
         this.approvalService = approvalService;
         this.auditLogService = auditLogService;
+        this.emailVerification = emailVerification;
     }
 
     @Transactional
     public CompanyApplicationResponse submit(CompanyApplicationSubmissionRequest request) {
         CompanyApplication application = new CompanyApplication();
         companyApplicationMapper.apply(application, request);
-        application.setStatus(CompanyApplicationStatus.SUBMITTED);
+        application.setStatus(CompanyApplicationStatus.PENDING_EMAIL_VERIFICATION);
         application.setApplicationNumber("PENDING");
         CompanyApplication saved = companyApplicationRepository.saveAndFlush(application);
         saved.setApplicationNumber(generateApplicationNumber(saved.getId()));
         saved = companyApplicationRepository.save(saved);
         reviewEventRepository.save(
-                buildEvent(saved, CompanyApplicationReviewAction.SUBMITTED, null, CompanyApplicationStatus.SUBMITTED,
+                buildEvent(saved, CompanyApplicationReviewAction.SUBMITTED, null, CompanyApplicationStatus.PENDING_EMAIL_VERIFICATION,
                         "Application submitted through the public intake form."));
         auditLogService.record(new AuditLogCommand(
                 new AuditLogActor(null, "public",
@@ -75,7 +77,7 @@ public class CompanyApplicationService {
                 "Company application " + saved.getApplicationNumber() + " was submitted.",
                 null,
                 snapshot(saved)));
-        notificationPort.applicationSubmitted(saved);
+        emailVerification.sendVerification(saved);
         return companyApplicationMapper.toResponse(saved,
                 reviewEventRepository.findByCompanyApplicationIdOrderByCreatedAtAsc(saved.getId()));
     }
@@ -112,6 +114,7 @@ public class CompanyApplicationService {
             backoff = @Backoff(delay = 200, multiplier = 2.0))
     public CompanyApplicationResponse moveToUnderReview(Long applicationId, CompanyApplicationReviewRequest request) {
         CompanyApplication application = findApplicationForUpdate(applicationId);
+        requireVerifiedEmail(application);
         CompanyApplicationStatusWorkflow.ensureCanMoveToUnderReview(application.getStatus());
         CompanyApplicationStatus previousStatus = application.getStatus();
         var oldSnapshot = snapshot(application);
@@ -147,6 +150,7 @@ public class CompanyApplicationService {
             backoff = @Backoff(delay = 200, multiplier = 2.0))
     public CompanyApplicationResponse approve(Long applicationId, CompanyApplicationReviewRequest request) {
         CompanyApplication application = findApplicationForUpdate(applicationId);
+        requireVerifiedEmail(application);
         CompanyApplicationStatusWorkflow.ensureCanApprove(application.getStatus());
         CompanyApplicationStatus previousStatus = application.getStatus();
         var oldSnapshot = snapshot(application);
@@ -172,6 +176,13 @@ public class CompanyApplicationService {
         notificationPort.applicationApproved(saved);
         return companyApplicationMapper.toResponse(saved,
                 reviewEventRepository.findByCompanyApplicationIdOrderByCreatedAtAsc(applicationId));
+    }
+
+    private void requireVerifiedEmail(CompanyApplication application) {
+        if (application.getEmailVerifiedAt() == null) {
+            throw new ApiException(ErrorCode.INVALID_STATUS_TRANSITION, HttpStatus.CONFLICT,
+                    "The applicant must verify their email before administrator review or approval.");
+        }
     }
 
     @Transactional

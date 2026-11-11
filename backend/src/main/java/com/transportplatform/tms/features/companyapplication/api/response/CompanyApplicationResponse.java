@@ -28,6 +28,7 @@ public record CompanyApplicationResponse(
         String reviewNotes,
         String rejectionReason,
         CompanyApplicationStatus status,
+        Instant emailVerifiedAt,
         String approvedTenantId,
         Long ownerUserId,
         String createdBy,

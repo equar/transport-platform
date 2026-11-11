@@ -11,7 +11,7 @@ class CompanyApplicationStatusWorkflowTest {
 
     @Test
     void approveAllowsSubmittedAndUnderReviewStatuses() {
-        assertDoesNotThrow(() -> CompanyApplicationStatusWorkflow.ensureCanApprove(CompanyApplicationStatus.SUBMITTED));
+        assertThrows(ApiException.class, () -> CompanyApplicationStatusWorkflow.ensureCanApprove(CompanyApplicationStatus.SUBMITTED));
         assertDoesNotThrow(
                 () -> CompanyApplicationStatusWorkflow.ensureCanApprove(CompanyApplicationStatus.UNDER_REVIEW));
     }

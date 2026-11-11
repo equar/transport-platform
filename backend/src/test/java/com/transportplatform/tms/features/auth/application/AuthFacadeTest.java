@@ -8,6 +8,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.security.AuthenticatedUser;
@@ -95,7 +97,7 @@ class AuthFacadeTest {
         user.setRoles(Set.of(role));
         Tenant tenant = new Tenant();
         tenant.setStatus(TenantStatus.ACTIVE);
-        when(tenantRepository.findById("tenant-a")).thenReturn(Optional.of(tenant));
+        lenient().when(tenantRepository.findById("tenant-a")).thenReturn(Optional.of(tenant));
         return user;
     }
 
@@ -129,8 +131,59 @@ class AuthFacadeTest {
     @Mock
     private Clock clock;
 
+    @Mock
+    private com.transportplatform.tms.features.companyapplication.application.TenantEmailVerificationService onboarding;
+
     @InjectMocks
     private AuthFacade authFacade;
+
+    @Test
+    void completedApprovedOwnerCanLoginAfterPendingWorkspaceRecovery() {
+        AppUser user = activeTenantUser(RoleName.ROLE_TENANT_ADMIN);
+        Tenant tenant = new Tenant();
+        tenant.setStatus(TenantStatus.PENDING);
+        when(tenantRepository.findById("tenant-a")).thenReturn(Optional.of(tenant));
+        when(appUserRepository.findForAuthenticationByEmail("ops@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
+        doAnswer(invocation -> { tenant.setStatus(TenantStatus.ACTIVE); return null; })
+                .when(onboarding).activateCompletedOwner(user);
+        Instant now = Instant.parse("2026-11-11T05:00:00Z");
+        when(clock.instant()).thenReturn(now);
+        when(authSessionService.issue(user, "WEB")).thenReturn(
+                new AuthSessionService.IssuedRefreshToken("refresh", now.plusSeconds(3600), "WEB"));
+        when(jwtService.generateAccessToken(any())).thenReturn("access");
+        when(jwtService.parseAccessToken("access")).thenReturn(new JwtClaims(42L, user.getEmail(), "Alex", "Morgan",
+                "tenant-a", Set.of(RoleName.ROLE_TENANT_ADMIN.name()), false, "ACCESS", now, now.plusSeconds(900)));
+        assertEquals("access", authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB").accessToken());
+        verify(onboarding).activateCompletedOwner(user);
+    }
+
+    @Test
+    void incompletePendingOwnerStillCannotLogin() {
+        AppUser user = activeTenantUser(RoleName.ROLE_TENANT_ADMIN);
+        Tenant tenant = new Tenant();
+        tenant.setStatus(TenantStatus.PENDING);
+        when(tenantRepository.findById("tenant-a")).thenReturn(Optional.of(tenant));
+        when(appUserRepository.findForAuthenticationByEmail("ops@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
+        ApiException error = assertThrows(ApiException.class,
+                () -> authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB"));
+        assertTrue(error.getMessage().contains("company account is not active"));
+        verify(authSessionService, never()).issue(any(), any());
+    }
+
+    @Test
+    void mobileOnlyWebRefreshCannotActivatePendingTenant() {
+        AppUser user = buildUser(UserStatus.ACTIVE);
+        user.setTenantId("tenant-a");
+        user.setRoles(Set.of(RoleName.ROLE_DRIVER, RoleName.ROLE_TENANT_ADMIN));
+        when(authSessionService.rotate("old-refresh", "WEB")).thenReturn(
+                new AuthSessionService.RotatedRefreshToken(user,
+                        new AuthSessionService.IssuedRefreshToken("replacement", Instant.now(), "WEB")));
+        assertThrows(ApiException.class, () -> authFacade.refresh("old-refresh", "WEB"));
+        verify(onboarding, never()).activateCompletedOwner(any());
+        verify(authSessionService).revokeWebForUser(42L);
+    }
 
     @Test
     void loginRejectsExpiredTemporaryPassword() {

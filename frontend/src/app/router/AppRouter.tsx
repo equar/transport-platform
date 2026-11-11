@@ -337,6 +337,10 @@ const VerifyEmailPage = lazyPage(
   () => import("../../features/auth/pages/VerifyEmailPage"),
   "VerifyEmailPage",
 );
+const VerifyApplicationEmailPage = lazyPage(
+  () => import("../../features/auth/pages/VerifyApplicationEmailPage"),
+  "VerifyApplicationEmailPage",
+);
 
 const router = createBrowserRouter([
   { element: <ProtectedRoute><AuthLayout /></ProtectedRoute>, children: [{ path: "/account/password", element: <PasswordChangeCard /> }] },
@@ -364,6 +368,10 @@ const router = createBrowserRouter([
       {
         path: "/verify-email",
         element: <VerifyEmailPage />,
+      },
+      {
+        path: "/verify-application-email",
+        element: <VerifyApplicationEmailPage />,
       },
       {
         path: "/unauthorized",

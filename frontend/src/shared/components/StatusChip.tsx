@@ -95,6 +95,7 @@ const STATUS_GROUPS: Record<Exclude<ChipColor, "default" | "primary">, ReadonlyS
   ]),
   warning: new Set([
     "PENDING",
+    "PENDING_EMAIL_VERIFICATION",
     "SUBMITTED",
     "UNDER_REVIEW",
     "ONBOARDING",

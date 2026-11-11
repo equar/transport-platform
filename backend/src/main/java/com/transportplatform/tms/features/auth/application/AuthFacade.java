@@ -32,6 +32,7 @@ import com.transportplatform.tms.features.auth.domain.AppUser;
 import com.transportplatform.tms.features.auth.domain.AppUserRepository;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
 import com.transportplatform.tms.features.notification.application.NotificationEmailSender;
+import com.transportplatform.tms.features.companyapplication.application.TenantEmailVerificationService;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.features.tenant.domain.TenantStatus;
 
@@ -48,6 +49,7 @@ public class AuthFacade {
     private final NotificationEmailSender notificationEmailSender;
     private final AuthFlowProperties authFlowProperties;
     private final Clock clock;
+    private final TenantEmailVerificationService onboarding;
 
     public AuthFacade(AppUserRepository appUserRepository,
             PasswordEncoder passwordEncoder,
@@ -58,7 +60,7 @@ public class AuthFacade {
             AuditLogService auditLogService,
             NotificationEmailSender notificationEmailSender,
             AuthFlowProperties authFlowProperties,
-            Clock clock) {
+            Clock clock, TenantEmailVerificationService onboarding) {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -69,6 +71,7 @@ public class AuthFacade {
         this.notificationEmailSender = notificationEmailSender;
         this.authFlowProperties = authFlowProperties;
         this.clock = clock;
+        this.onboarding = onboarding;
     }
 
     @Transactional
@@ -81,6 +84,7 @@ public class AuthFacade {
         ensureEligibleForTokenIssuance(user, false);
         ensureClientAllowed(user, clientType, false);
         ensureMfaComplete(user, request.mfaCode());
+        ensureTenantActive(user);
 
         user.setLastLoginAt(clock.instant());
 
@@ -93,6 +97,7 @@ public class AuthFacade {
         AppUser user = rotated.user();
         ensureEligibleForTokenIssuance(user, true);
         ensureClientAllowed(user, clientType, true);
+        ensureTenantActive(user);
         return issueTokens(user, rotated.token());
     }
 
@@ -236,7 +241,6 @@ public class AuthFacade {
         boolean platform = user.getRoles().contains(com.transportplatform.tms.features.auth.domain.RoleName.ROLE_PLATFORM_ADMIN);
         if ((platform && (user.getTenantId() != null || user.getRoles().size() != 1))
                 || (!platform && (user.getTenantId() == null || user.getTenantId().isBlank()))) throw invalidCredentials();
-        ensureTenantActive(user.getTenantId());
     }
 
     private void preparePasswordReset(AppUser user) {
@@ -339,9 +343,13 @@ public class AuthFacade {
                 "This reset link has expired. Request a new one to continue.");
     }
 
-    private void ensureTenantActive(String tenantId) {
+    private void ensureTenantActive(AppUser user) {
+        String tenantId = user.getTenantId();
         if (tenantId == null || tenantId.isBlank()) {
             return;
+        }
+        if (tenantRepository.findById(tenantId).map(tenant -> tenant.getStatus() == TenantStatus.PENDING).orElse(false)) {
+            onboarding.activateCompletedOwner(user);
         }
         if (tenantRepository.findById(tenantId)
                 .map(tenant -> tenant.getStatus() == TenantStatus.ACTIVE)
