@@ -41,7 +41,7 @@ export default function GuardianRidesPage() {
 	return (
 		<View style={styles.container}>
 			<View style={styles.headerCard}>
-				<SectionHeader title="Ride Activity" subtitle="Upcoming trips and completed ride history" />
+				<SectionHeader title="Riders’ Trips" subtitle="Upcoming trips and travel history for your linked riders" />
 				<View style={styles.segmentRow}>
 					<TouchableOpacity
 						style={[styles.segmentButton, segment === 'today' ? styles.segmentSelected : undefined]}
@@ -65,7 +65,7 @@ export default function GuardianRidesPage() {
 				keyExtractor={(r) => String(r.id)}
 				renderItem={({ item }) => <RideCard item={item} onPress={() => router.push(`/(guardian)/rides/${item.id}`)} />}
 				ItemSeparatorComponent={() => <View style={styles.sep} />}
-				ListEmptyComponent={<EmptyState title="No ride records" description="No trips in this view. Load more records below or pull down to refresh." />}
+				ListEmptyComponent={<EmptyState title="No ride records" description="No trips for your linked riders in this view. Pull down to refresh." />}
 				onEndReached={() => (hasNextPage ? fetchNextPage() : undefined)}
 				onEndReachedThreshold={0.3}
         ListFooterComponent={hasNextPage ? <AppButton label="Load more trips" variant="outlined" loading={isFetchingNextPage} onPress={() => void fetchNextPage()} /> : null}

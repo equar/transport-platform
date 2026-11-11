@@ -53,6 +53,19 @@ atomically together to keep shared contracts and links compatible.
 
 ## Runtime contract
 
+Application approval creates a pending tenant. Approval emails are delivered to
+the owner linked to the approved application even before tenant activation;
+ordinary notifications still require active tenant access and the notifications
+module. Suspended tenants and users cannot receive queued approval emails.
+Approval emails include a single-use email-verification link valid for 24 hours,
+at `/verify-email` on the admin site. Owners can request a replacement there
+(at most once per five minutes). The emailed link opens a create-password form
+without asking the owner to re-enter their email. Submitting a valid password
+atomically verifies the email, consumes the link, and invalidates old sessions
+and password-reset links. Simply opening the link makes no account changes.
+Verification records the confirmed email but
+tenant activation remains a separate platform-admin onboarding action.
+
 | Component | Value |
 | --- | --- |
 | Public information website | `https://transport.bakaroo.com` |

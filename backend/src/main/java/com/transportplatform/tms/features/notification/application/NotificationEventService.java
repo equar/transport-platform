@@ -36,17 +36,20 @@ public class NotificationEventService {
     private final AppUserRepository appUserRepository;
     private final PortalUserScopeRepository portalUserScopeRepository;
     private final RiderGuardianRepository riderGuardianRepository;
+    private final com.transportplatform.tms.features.companyapplication.application.TenantEmailVerificationService emailVerification;
 
     public NotificationEventService(NotificationDispatchService notificationDispatchService,
             NotificationEmailSender notificationEmailSender,
             AppUserRepository appUserRepository,
             PortalUserScopeRepository portalUserScopeRepository,
-            RiderGuardianRepository riderGuardianRepository) {
+            RiderGuardianRepository riderGuardianRepository,
+            com.transportplatform.tms.features.companyapplication.application.TenantEmailVerificationService emailVerification) {
         this.notificationDispatchService = notificationDispatchService;
         this.notificationEmailSender = notificationEmailSender;
         this.appUserRepository = appUserRepository;
         this.portalUserScopeRepository = portalUserScopeRepository;
         this.riderGuardianRepository = riderGuardianRepository;
+        this.emailVerification = emailVerification;
     }
 
     public void publishCompanyApplicationSubmitted(CompanyApplication application) {
@@ -67,17 +70,19 @@ public class NotificationEventService {
             return;
         }
         appUserRepository.findByIdAndTenantId(application.getOwnerUserId(), application.getApprovedTenantId())
-                .ifPresent(owner -> notifyUser(
-                        owner,
+                .ifPresent(owner -> {
+                    notificationDispatchService.notifyInApp(
+                        owner.getTenantId(), owner.getId(),
                         NotificationType.COMPANY_APPLICATION_APPROVED,
                         "COMPANY_APPLICATION",
-                        application.getId(),
+                        application.getId().toString(),
                         "Company application approved",
                         "Your company application " + application.getApplicationNumber() + " was approved.",
-                        "Company application approved",
                         Map.of(
                                 "applicationNumber", application.getApplicationNumber(),
-                                "companyName", application.getLegalCompanyName())));
+                                "companyName", application.getLegalCompanyName()));
+                    emailVerification.sendApprovalVerification(application, owner);
+                });
     }
 
     public void publishCompanyApplicationRejected(CompanyApplication application) {

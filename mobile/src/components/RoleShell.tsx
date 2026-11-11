@@ -15,7 +15,7 @@ export function RoleShell({ role, children }: { role: 'driver' | 'rider' | 'guar
   const page = segments[1] ?? 'index';
   const home = page === 'index';
   const detail = segments.length > 2 && segments[2] !== 'index';
-  const titles: Record<string, string> = { rides: detail ? 'Trip Details' : role === 'driver' ? 'My Trips' : 'My Rides', routes: detail ? 'Route Manifest' : 'My Routes', profile: 'Profile', notifications: 'Notifications', schedule: 'Schedule', compliance: 'Documents & Compliance', vehicle: 'My Vehicles', riders: 'Linked Riders', billing: 'Billing & Payments' };
+  const titles: Record<string, string> = { rides: detail ? 'Trip Details' : role === 'guardian' ? 'Riders’ Trips' : role === 'driver' ? 'My Trips' : 'My Rides', routes: detail ? 'Route Manifest' : 'My Routes', profile: role === 'guardian' ? 'Guardian Profile' : 'Profile', notifications: 'Notifications', schedule: 'Schedule', compliance: 'Documents & Compliance', vehicle: 'My Vehicles', riders: 'Linked Riders', billing: 'Billing & Payments' };
   const back = () => {
     if (router.canGoBack()) router.back();
     else router.replace(`/(${role})` as never);

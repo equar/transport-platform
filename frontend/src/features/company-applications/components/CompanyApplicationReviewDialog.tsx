@@ -88,7 +88,7 @@ export function CompanyApplicationReviewDialog({
         >
           <Typography color="text.secondary">
             {mode === "approve"
-              ? "Approve this application and provision a pending tenant workspace with its owner account. Activate the tenant after verifying onboarding readiness."
+              ? "Approve this application and provision a pending tenant workspace with its owner account. The owner will receive a link to create their password and verify their email. Administrator activation remains separate after onboarding readiness is confirmed."
               : mode === "reject"
                 ? "Reject this application with a clear reason for the applicant and audit trail."
                 : "Move this application into the review queue and capture initial review notes."}
@@ -116,7 +116,7 @@ export function CompanyApplicationReviewDialog({
                 onChange={(event) => setOwnerPassword(event.target.value)}
                 required
                 inputProps={{ minLength: 8, maxLength: 100 }}
-                helperText="Share this temporary password securely with the tenant owner. They can change it after signing in."
+                helperText="Initial provisioning password. The owner creates their own password using the emailed account setup link."
               />
               <TextField
                 label="Tenant Code Override"

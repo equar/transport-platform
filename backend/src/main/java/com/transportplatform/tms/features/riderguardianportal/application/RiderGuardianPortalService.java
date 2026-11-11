@@ -854,9 +854,8 @@ public class RiderGuardianPortalService {
     }
 
     private String address(String line1, String line2, String city, String state, String zipCode) {
-        return java.util.List
+        return java.util.stream.Stream
                 .of(trimToNull(line1), trimToNull(line2), trimToNull(city), trimToNull(state), trimToNull(zipCode))
-                .stream()
                 .filter(value -> value != null && !value.isBlank())
                 .reduce((left, right) -> left + ", " + right)
                 .orElse(null);

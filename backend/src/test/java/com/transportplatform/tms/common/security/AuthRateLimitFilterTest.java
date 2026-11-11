@@ -7,6 +7,8 @@ import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.lang.NonNull;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -18,6 +20,17 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import jakarta.servlet.ServletException;
 
 class AuthRateLimitFilterTest {
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/v1/auth/verify-email", "/v1/auth/resend-verification"})
+    void limitsPublicVerificationEndpoints(String path) throws ServletException, IOException {
+        var filter = new AuthRateLimitFilter(propertiesWithSmallLimit(), JsonMapper.builder().findAndAddModules().build(),
+                Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC));
+        filter.doFilter(request(path, "10.0.0.1"), new MockHttpServletResponse(), new MockFilterChain());
+        var response = new MockHttpServletResponse();
+        filter.doFilter(request(path, "10.0.0.1"), response, new MockFilterChain());
+        assertEquals(429, response.getStatus());
+    }
 
     @Test
     void blocksAfterLimitForLogin() throws ServletException, IOException {

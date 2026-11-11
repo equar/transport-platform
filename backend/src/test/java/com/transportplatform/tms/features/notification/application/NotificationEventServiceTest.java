@@ -22,7 +22,8 @@ class NotificationEventServiceTest {
         var users = mock(AppUserRepository.class);
         var scopes = mock(PortalUserScopeRepository.class);
         var service = new NotificationEventService(dispatch, mock(NotificationEmailSender.class),
-                users, scopes, mock(RiderGuardianRepository.class));
+                users, scopes, mock(RiderGuardianRepository.class),
+                mock(com.transportplatform.tms.features.companyapplication.application.TenantEmailVerificationService.class));
         var user = new AppUser();
         org.springframework.test.util.ReflectionTestUtils.setField(user, "id", 7L); user.setTenantId("tenant-a"); user.setStatus(UserStatus.ACTIVE);
         user.setEnabled(true); user.setEmail("qa@bakaroo.com");

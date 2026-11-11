@@ -98,9 +98,17 @@ public class NotificationDispatchService {
                 fallbackSubject,
                 fallbackTitle,
                 fallbackMessage);
+        String message = rendered.body();
+        if (notificationType == NotificationType.COMPANY_APPLICATION_APPROVED && context != null
+                && context.get("verificationUrl") instanceof String verificationUrl
+                && (message == null || !message.contains(verificationUrl))) {
+            String customMessage = message == null ? "" : message;
+            int available = Math.max(0, 4000 - fallbackMessage.length() - 2);
+            message = customMessage.substring(0, Math.min(customMessage.length(), available)) + "\n\n" + fallbackMessage;
+        }
         Notification notification = createBaseNotification(tenantId, recipientUserId, notificationType,
                 NotificationChannel.EMAIL,
-                relatedEntityType, relatedEntityId, rendered.title(), rendered.body(), context);
+                relatedEntityType, relatedEntityId, rendered.title(), message, context);
         notification.setEmailSubject(rendered.subject());
         notification.setDeliveryStatus(NotificationDeliveryStatus.PENDING);
         notification.setNextDeliveryAttemptAt(Instant.now(clock));

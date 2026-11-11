@@ -92,8 +92,9 @@ apiClient.interceptors.request.use((config) => {
   }
 
   const requestUrl = String(config.url ?? '');
-  const isPublicLoginRequest = requestUrl.includes('/v1/auth/login');
-  if (isPublicLoginRequest) {
+  const isPublicAuthRequest = ['/v1/auth/login', '/v1/auth/verify-email', '/v1/auth/resend-verification']
+    .some(path => requestUrl.includes(path));
+  if (isPublicAuthRequest) {
     delete config.headers.Authorization;
     delete config.headers['X-Tenant-Id'];
     return config;
