@@ -3,6 +3,7 @@ import ReportProblemRoundedIcon from "@mui/icons-material/ReportProblemRounded";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../features/auth/context/AuthContext";
 import { AuthFormShell } from "../../features/auth/components/AuthFormShell";
+import { isMobileOnlyAccount } from "../../features/auth/access";
 
 interface RouterState {
   from?: {
@@ -13,7 +14,8 @@ interface RouterState {
 
 export function UnauthorizedPage() {
   const location = useLocation();
-  const { isAuthenticated, getDefaultRoute, signOut } = useAuth();
+  const { isAuthenticated, getDefaultRoute, signOut, session } = useAuth();
+  const mobileOnly = isMobileOnlyAccount(session);
   const attemptedPath = (location.state as RouterState | null)?.from?.pathname;
   const fallbackPath =
     (location.state as RouterState | null)?.fallbackTo ?? getDefaultRoute();
@@ -21,8 +23,8 @@ export function UnauthorizedPage() {
   return (
     <AuthFormShell
       eyebrow="Access denied"
-      title="This account cannot open that area."
-      description="The page you requested is not included in your current role or workspace access."
+      title={mobileOnly ? "Use the Bakaroo Transport mobile app." : "This account cannot open that area."}
+      description={mobileOnly ? "Rider, driver and guardian accounts are mobile-only and cannot sign in to the web workspace." : "The page you requested is not included in your current role or workspace access."}
       tone="warning"
       aside={
         <Stack direction="row" spacing={1.5} alignItems="center">

@@ -17,6 +17,7 @@ import { resolvePostLoginRoute } from "../access";
 import { useAuth } from "../context/AuthContext";
 import { consumeAuthNotice } from "../utils/authNotices";
 import { useToast } from "../../../shared/providers/ToastProvider";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 interface RouterState {
   from?: {
@@ -70,9 +71,9 @@ export function LoginPage() {
       });
       showSuccess("Signed in successfully.");
       navigate(resolvePostLoginRoute(session, targetPath), { replace: true });
-    } catch {
+    } catch (error) {
       setError(
-        "Sign-in failed. Verify your email, password, and account status, then try again.",
+        getApiErrorMessage(error, "Sign-in failed. Verify your email, password, and account status, then try again."),
       );
     } finally {
       setSubmitting(false);
@@ -109,7 +110,7 @@ export function LoginPage() {
     <AuthFormShell
       eyebrow="BAKAROO WORKSPACE"
       title="Welcome back."
-      description="Sign in to manage your team and keep the day moving."
+      description="Sign in to manage your team. Riders, drivers and guardians sign in only through the Bakaroo Transport mobile app."
       status={status}
       footer={<Typography variant="body2" color="text.secondary">Need access? Contact your workspace administrator or <Link href={env.publicSiteUrl + "/contact"}>get in touch</Link>.</Typography>}
     >

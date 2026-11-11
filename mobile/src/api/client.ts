@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import type { ApiResponse } from './types';
 import type { AuthSession } from '@auth/types';
 import { deleteSessionValue, getSessionValue, setSessionValue } from '@auth/sessionStorage';
@@ -94,7 +95,7 @@ async function refreshAccessToken() {
       refreshToken: session.refreshToken,
     }, {
       timeout: 10_000,
-      headers: { 'Content-Type': 'application/json', 'X-Client-Platform': 'mobile' },
+      headers: { 'Content-Type': 'application/json', 'X-Client-Platform': Platform.OS === 'web' ? 'web' : 'mobile' },
     });
 
     if (!response.data.success || !response.data.data) {
@@ -133,7 +134,7 @@ apiClient.interceptors.request.use(async (config) => {
   if (!config.headers[correlationHeaderName]) {
     config.headers[correlationHeaderName] = buildCorrelationId();
   }
-  config.headers['X-Client-Platform'] = 'mobile';
+  config.headers['X-Client-Platform'] = Platform.OS === 'web' ? 'web' : 'mobile';
   if (['/v1/auth/login', '/v1/auth/forgot-password', '/v1/auth/reset-password'].some(path => String(config.url ?? '').includes(path))) {
     delete config.headers.Authorization; delete config.headers['X-Tenant-Id']; return config;
   }

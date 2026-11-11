@@ -65,6 +65,11 @@ public class AuthSessionService {
     }
 
     @Transactional
+    public void revokeWebForUser(Long userId) {
+        repository.revokeWebForUser(userId, clock.instant());
+    }
+
+    @Transactional
     public void revokeAllForUser(Long userId) {
         repository.revokeAllForUser(userId, clock.instant());
         repository.invalidateUserAccess(userId);

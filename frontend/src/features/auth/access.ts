@@ -95,6 +95,10 @@ export function hasAnyRole(session: AuthSession | null, roles: string[]) {
   return roles.some((role) => hasRole(session, role));
 }
 
+export function isMobileOnlyAccount(session: AuthSession | null) {
+  return hasAnyRole(session, ["ROLE_DRIVER", "ROLE_RIDER", "ROLE_GUARDIAN"]);
+}
+
 export function isPlatformAdmin(session: AuthSession | null) {
   return hasRole(session, "ROLE_PLATFORM_ADMIN");
 }
@@ -171,15 +175,15 @@ export function canAccessScope(
   session: AuthSession | null,
   scope: PrivateAppScope,
 ) {
+  if (isMobileOnlyAccount(session)) return false;
   switch (scope) {
     case "platform":
       return isPlatformAdmin(session);
     case "company":
       return canAccessCompanyWorkspace(session);
     case "driver":
-      return isDriverPortalUser(session);
     case "rider":
-      return isRiderPortalUser(session) || isGuardianPortalUser(session);
+      return false;
     case "organization":
       return isOrganizationPortalUser(session);
     default:
@@ -188,6 +192,7 @@ export function canAccessScope(
 }
 
 export function getDefaultRoute(session: AuthSession | null) {
+  if (isMobileOnlyAccount(session)) return "/unauthorized";
   if (session?.identity.mustChangePassword) return "/account/password";
   if (isPlatformAdmin(session)) {
     return "/platform";
@@ -203,12 +208,6 @@ export function getDefaultRoute(session: AuthSession | null) {
   }
   if (isComplianceAdmin(session)) {
     return "/company/compliance";
-  }
-  if (isDriverPortalUser(session)) {
-    return "/portal/driver";
-  }
-  if (isRiderPortalUser(session) || isGuardianPortalUser(session)) {
-    return "/portal/rider";
   }
   if (isOrganizationPortalUser(session)) {
     return "/portal/organization";

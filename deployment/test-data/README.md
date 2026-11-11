@@ -35,7 +35,33 @@ Tags have **no hyphens**. With the requested base address, these examples belong
 
 The password supplied for this test set is shared by the test accounts, stored as BCrypt hashes, and does not require a first-login change. The generator accepts a hash file rather than storing the plaintext password in seed SQL/source. The complete local login inventory is [output/accounts.csv](output/accounts.csv), excluded from Git.
 
-Use https://admin.transport.bakaroo.com/login for all supported web roles. The mobile app supports driver, rider and guardian accounts. A guardian sees three linked riders; a rider sees its own data; an organization contact sees its organization's records.
+Use https://admin.transport.bakaroo.com/login only for platform/tenant administrators,
+dispatchers, billing/compliance administrators and organization users. Driver,
+rider and guardian accounts are mobile-only; web login and web refresh are
+rejected, including accounts that also carry administrative roles. Existing
+web sessions cannot be renewed; mobile sessions remain available. A guardian
+sees three linked riders; a rider sees its own data; an organization contact
+sees its organization's records on the web.
+
+### Rider sign-in and provisioning
+
+Riders use the same mobile email/password sign-in screen as guardians. There is no
+separate rider registration screen. An operational rider record alone is not a
+login: a tenant administrator must create an active account in company Users,
+assign the Rider role (`ROLE_RIDER`), and select the matching Rider portal
+subject in the same tenant. The tenant must also be active. The mobile app
+automatically opens the rider workspace based on that role; the portal scope
+restricts access to that rider's own profile and trips.
+
+The original `rt01`–`rt10` accounts already exist alongside the `gt01`–`gt10`
+guardian accounts and use the original QA password. An additional sample login,
+`samuelweld2018+rt0102@gmail.com`, was created for `QA-T01` / `QA-R02`, one of
+the QA guardian's linked riders. It has only the Rider role, uses a separately
+generated password supplied privately, and does not reset any existing account.
+Live checks verified login, profile, dashboard, three scoped trips, and denial
+of access to another rider's trip. This credential is for the mobile app only.
+The verification session was signed out.
+No outbound notifications or payments were created.
 
 ## Testing guide
 
@@ -75,7 +101,7 @@ Dispatch compliance follow-up: the original dataset omitted tenant transport-com
 
 ## Verified AWS result
 
-The dataset is live in the Transport AWS schema. All eight supported tenant-role login types were checked with the supplied test password; driver access to another tenant’s ride was denied. The aggregate integrity audit checked 27 relationships and found zero cross-tenant references. A repeated seed invocation skipped the complete dataset without duplicate inserts or password resets.
+The dataset is live in the Transport AWS schema. All eight supported tenant-role login types were originally checked with the supplied test password; driver access to another tenant’s ride was denied. The aggregate integrity audit checked 27 relationships and found zero cross-tenant references. A repeated seed invocation skipped the complete dataset without duplicate inserts or password resets.
 
 Role testing exposed an internal compliance-access check that contradicted its controller permissions. The narrow fix permits tenant-scoped compliance administrators while continuing to reject unrelated roles and foreign-tenant issue lookups. All 178 backend tests passed, and release `compliance-role-1794053241` is healthy. The live compliance check used an intentionally missing issue to verify authorization without creating issues or email notifications.
 

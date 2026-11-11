@@ -39,7 +39,7 @@ def generate(schema,email_base,password_hash,today):
   insert('user_roles',dict(user_id=Raw(var),role_name='ROLE_'+role))
   if subject:insert('portal_user_scopes',dict(tenant_id=tenant_ids[-1],app_user_id=Raw(var),portal_subject_type=subject_type,portal_subject_id=Raw(subject)))
   insert('notifications',dict(tenant_id=tenant_ids[-1],notification_code=f'QA{n:02d}-{suffix}',recipient_user_id=Raw(var),title='Welcome to your test workspace',message='Synthetic QA data. Use this account to explore your role; no real passenger or payment information is represented.',notification_type='COMPANY_USER_ACTIVATED',channel='IN_APP',delivery_status='SENT',read_status='UNREAD',status='ACTIVE',sent_at=now))
-  accounts.append(dict(tenant=f'QA-T{n:02d}',company=COMPANIES[n-1][0],tenant_id=tenant_ids[-1],role=role,email=email,name=first+' '+last,driver_code=f'QA-D{index:02d}' if index else '',portal='Mobile + web' if role in ['DRIVER','RIDER','GUARDIAN'] else 'Web admin portal'))
+  accounts.append(dict(tenant=f'QA-T{n:02d}',company=COMPANIES[n-1][0],tenant_id=tenant_ids[-1],role=role,email=email,name=first+' '+last,driver_code=f'QA-D{index:02d}' if index else '',portal='Mobile only' if role in ['DRIVER','RIDER','GUARDIAN'] else 'Web admin portal'))
  insert('subscription_plans',dict(plan_code='QA-TRANSPORT-TEST',name='Transport QA sandbox',description='Synthetic functional test tenants only',tier='ENTERPRISE',monthly_price=0,annual_price=0,currency='USD',max_users=100,max_drivers=100,max_vehicles=100,max_riders=200,max_organizations=20,notes=MARKER,status='ACTIVE'),'@qa_plan')
  for n,(company,city,state,zip_code,zone) in enumerate(COMPANIES,1):
   tid=str(uuid.uuid5(uuid.NAMESPACE_URL,MARKER+f'/tenant/{n}'));tenant_ids.append(tid)

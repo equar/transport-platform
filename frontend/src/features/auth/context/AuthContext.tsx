@@ -10,6 +10,7 @@ import { authApi } from "../api/authApi";
 import {
   getDefaultRoute as resolveDefaultRoute,
   hasRole as sessionHasRole,
+  isMobileOnlyAccount,
 } from "../access";
 import type { AuthSession, LoginPayload } from "../types";
 import {
@@ -60,7 +61,8 @@ function readPersistedSession(): AuthSession | null {
       Array.isArray(parsed.identity.roles) && parsed.identity.roles.every(role => typeof role === "string") &&
       (parsed.identity.tenantId === null || typeof parsed.identity.tenantId === "string")
     ) {
-      return parsed as AuthSession;
+      const restored = parsed as AuthSession;
+      return isMobileOnlyAccount(restored) ? null : restored;
     }
   } catch {
     // Ignore malformed storage and continue with server-side refresh.
@@ -81,6 +83,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     authApi.restoreSession().then((restored) => {
+      if (isMobileOnlyAccount(restored)) {
+        throw new Error("Use the Bakaroo Transport mobile app for rider, driver and guardian accounts.");
+      }
       setApiSession(restored);
       setSession(restored);
       persistSession(restored);
@@ -92,7 +97,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     }).finally(() => setIsLoading(false));
 
-    const handleRefreshed = (event: Event) => { const refreshed=(event as CustomEvent<AuthSession>).detail; setSession(refreshed); persistSession(refreshed); };
+    const handleRefreshed = (event: Event) => {
+      const refreshed = (event as CustomEvent<AuthSession>).detail;
+      const allowed = isMobileOnlyAccount(refreshed) ? null : refreshed;
+      setApiSession(allowed);
+      setSession(allowed);
+      persistSession(allowed);
+    };
     window.addEventListener(SESSION_REFRESHED_EVENT, handleRefreshed);
     const handleSessionInvalidated = () => {
       setApiSession(null);
@@ -124,6 +135,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setSession(null);
       persistSession(null);
       const nextSession = await authApi.signIn(payload);
+      if (isMobileOnlyAccount(nextSession)) {
+        throw new Error("Use the Bakaroo Transport mobile app for rider, driver and guardian accounts.");
+      }
       setApiSession(nextSession);
       setSession(nextSession);
       persistSession(nextSession);

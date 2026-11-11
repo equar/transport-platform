@@ -35,6 +35,15 @@ build with `VITE_API_BASE_URL=/api`. All selected applications build before SSH
 activation. PR CI remains the review gate; require it and deployment validation
 in branch protection. The workflow does not modify branch protection.
 
+## Mobile-only account access
+
+Driver, rider and guardian accounts have no web login or web workspace.
+They authenticate through the mobile app using `X-Client-Platform: mobile`.
+The default web login and refresh reject these roles with a mobile-app message,
+even if an account also has a web administrative role. Use a separate account
+for administrative web access. Rejected legacy web refreshes revoke only web
+refresh sessions and do not sign out the user's mobile sessions.
+
 ## One-time split from the combined website
 
 Wait for admin DNS before cutover. Build with `cd frontend && npm run build`;

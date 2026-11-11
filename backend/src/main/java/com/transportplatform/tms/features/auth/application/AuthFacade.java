@@ -79,6 +79,7 @@ public class AuthFacade {
             throw invalidCredentials();
         }
         ensureEligibleForTokenIssuance(user, false);
+        ensureClientAllowed(user, clientType, false);
         ensureMfaComplete(user, request.mfaCode());
 
         user.setLastLoginAt(clock.instant());
@@ -91,6 +92,7 @@ public class AuthFacade {
         AuthSessionService.RotatedRefreshToken rotated = authSessionService.rotate(refreshToken, clientType);
         AppUser user = rotated.user();
         ensureEligibleForTokenIssuance(user, true);
+        ensureClientAllowed(user, clientType, true);
         return issueTokens(user, rotated.token());
     }
 
@@ -199,6 +201,20 @@ public class AuthFacade {
                 !user.isLocked(),
                 user.isMustChangePassword(),
                 user.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.name())).toList(), user.getSecurityVersion());
+    }
+
+    private void ensureClientAllowed(AppUser user, String clientType, boolean revokeSessionsOnFailure) {
+        boolean mobileOnly = user.getRoles().stream().anyMatch(role ->
+                role == com.transportplatform.tms.features.auth.domain.RoleName.ROLE_DRIVER
+                        || role == com.transportplatform.tms.features.auth.domain.RoleName.ROLE_RIDER
+                        || role == com.transportplatform.tms.features.auth.domain.RoleName.ROLE_GUARDIAN);
+        if (mobileOnly && !"MOBILE".equalsIgnoreCase(clientType)) {
+            if (revokeSessionsOnFailure) {
+                authSessionService.revokeWebForUser(user.getId());
+            }
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                    "Rider, driver and guardian accounts must sign in using the Bakaroo Transport mobile app.");
+        }
     }
 
     private void ensureEligibleForTokenIssuance(AppUser user, boolean revokeSessionsOnFailure) {
