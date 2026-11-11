@@ -5,6 +5,7 @@ import { canAccessShellPath } from "../../../app/layouts/appShellNavigation";
 import {
   getDefaultRoute,
   isPrivateAppPath,
+  isMobileOnlyAccount,
   resolveAccessFailureRedirect,
 } from "../access";
 import { useAuth } from "../context/AuthContext";
@@ -46,6 +47,10 @@ export function ProtectedRoute({
         }}
       />
     );
+  }
+
+  if (!isLoading && isAuthenticated && isMobileOnlyAccount(session)) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   if (

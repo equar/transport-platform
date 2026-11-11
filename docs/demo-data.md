@@ -2,7 +2,8 @@
 
 The `local` and `dev` Spring profiles load a repeatable, idempotent dataset for a realistic Metro Mobility operation. Production does not load this data.
 
-All demo accounts use the password `Password123`.
+All demo accounts use the password `Password123`. Driver, rider and guardian
+accounts sign in only through the mobile app, not the web workspace.
 
 | Role | Email |
 | --- | --- |
@@ -11,9 +12,9 @@ All demo accounts use the password `Password123`.
 | Dispatcher | `dispatcher@demo.test` |
 | Billing administrator | `billing@demo.test` |
 | Compliance administrator | `compliance@demo.test` |
-| Driver portal | `driver@demo.test` |
-| Rider portal | `rider@demo.test` |
-| Guardian portal | `guardian@demo.test` |
+| Driver (mobile only) | `driver@demo.test` |
+| Rider (mobile only) | `rider@demo.test` |
+| Guardian (mobile only) | `guardian@demo.test` |
 | Organization portal | `organization@demo.test` |
 | Read-only viewer | `viewer@demo.test` |
 

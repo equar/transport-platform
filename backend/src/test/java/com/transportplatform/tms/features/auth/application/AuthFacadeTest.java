@@ -27,6 +27,8 @@ import java.time.Instant;
 import java.util.Set;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -37,6 +39,77 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class AuthFacadeTest {
+
+    @ParameterizedTest
+    @EnumSource(value = RoleName.class, names = {"ROLE_DRIVER", "ROLE_RIDER", "ROLE_GUARDIAN"})
+    void mobileRolesCannotLoginOnWeb(RoleName role) {
+        AppUser user = activeTenantUser(role);
+        when(appUserRepository.findForAuthenticationByEmail("ops@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
+        ApiException error = assertThrows(ApiException.class,
+                () -> authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB"));
+        assertEquals(HttpStatus.FORBIDDEN, error.getStatus());
+        assertTrue(error.getMessage().contains("mobile app"));
+        verify(authSessionService, never()).issue(any(), any());
+        verify(jwtService, never()).generateAccessToken(any());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = RoleName.class, names = {"ROLE_DRIVER", "ROLE_RIDER", "ROLE_GUARDIAN"})
+    void legacyWebSessionsAreRevokedWithoutRevokingMobileSessions(RoleName role) {
+        AppUser user = activeTenantUser(role);
+        when(authSessionService.rotate("old-refresh", "WEB")).thenReturn(
+                new AuthSessionService.RotatedRefreshToken(user,
+                        new AuthSessionService.IssuedRefreshToken("replacement", Instant.now(), "WEB")));
+        ApiException error = assertThrows(ApiException.class, () -> authFacade.refresh("old-refresh", "WEB"));
+        assertEquals(HttpStatus.FORBIDDEN, error.getStatus());
+        verify(authSessionService).revokeWebForUser(42L);
+        verify(authSessionService, never()).revokeAllForUser(any());
+        verify(jwtService, never()).generateAccessToken(any());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = RoleName.class, names = {"ROLE_DRIVER", "ROLE_RIDER", "ROLE_GUARDIAN",
+            "ROLE_TENANT_ADMIN", "ROLE_DISPATCHER", "ROLE_BILLING_ADMIN", "ROLE_COMPLIANCE_ADMIN", "ROLE_ORGANIZATION_USER"})
+    void supportedClientsStillLoginAndRefresh(RoleName role) {
+        AppUser user = activeTenantUser(role);
+        String client = Set.of(RoleName.ROLE_DRIVER, RoleName.ROLE_RIDER, RoleName.ROLE_GUARDIAN).contains(role) ? "MOBILE" : "WEB";
+        when(clock.instant()).thenReturn(Instant.parse("2026-11-11T05:00:00Z"));
+        when(appUserRepository.findForAuthenticationByEmail("ops@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
+        var token = new AuthSessionService.IssuedRefreshToken("refresh", Instant.now(), client);
+        when(authSessionService.issue(user, client)).thenReturn(token);
+        when(authSessionService.rotate("refresh", client)).thenReturn(new AuthSessionService.RotatedRefreshToken(user, token));
+        when(jwtService.generateAccessToken(any())).thenReturn("access");
+        when(jwtService.parseAccessToken("access")).thenReturn(new JwtClaims(42L, user.getEmail(), "Alex", "Morgan",
+                "tenant-a", Set.of(role.name()), false, "ACCESS", Instant.parse("2026-11-11T05:00:00Z"),
+                Instant.parse("2026-11-11T05:15:00Z")));
+        assertEquals("access", authFacade.login(new LoginRequest("ops@example.com", "secret123"), client).accessToken());
+        assertEquals("access", authFacade.refresh("refresh", client).accessToken());
+        verify(authSessionService, never()).revokeWebForUser(any());
+    }
+
+    private AppUser activeTenantUser(RoleName role) {
+        AppUser user = buildUser(UserStatus.ACTIVE);
+        user.setTenantId("tenant-a");
+        user.setRoles(Set.of(role));
+        Tenant tenant = new Tenant();
+        tenant.setStatus(TenantStatus.ACTIVE);
+        when(tenantRepository.findById("tenant-a")).thenReturn(Optional.of(tenant));
+        return user;
+    }
+
+    @Test
+    void addingAnAdminRoleDoesNotEnableWebLoginForAMobileAccount() {
+        AppUser user = activeTenantUser(RoleName.ROLE_DRIVER);
+        user.setRoles(Set.of(RoleName.ROLE_DRIVER, RoleName.ROLE_TENANT_ADMIN));
+        when(appUserRepository.findForAuthenticationByEmail("ops@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
+        ApiException error = assertThrows(ApiException.class,
+                () -> authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB"));
+        assertEquals(HttpStatus.FORBIDDEN, error.getStatus());
+        verify(authSessionService, never()).issue(any(), any());
+    }
 
     @Mock
     private AppUserRepository appUserRepository;

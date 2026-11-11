@@ -1,10 +1,22 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig, type AxiosAdapter } from 'axios';
 import { apiClient, invalidateSessionRequests } from './client';
 import { getSessionValue } from '../auth/sessionStorage';
+import { Platform } from 'react-native';
 jest.mock('expo-constants',()=>({__esModule:true,default:{expoConfig:{extra:{apiBaseUrl:'https://example.test/api'}}}}));
 jest.mock('../auth/sessionStorage',()=>({getSessionValue:jest.fn(),setSessionValue:jest.fn(),deleteSessionValue:jest.fn()}));
 const originalAdapter=apiClient.defaults.adapter;
-afterEach(()=>{apiClient.defaults.adapter=originalAdapter;jest.restoreAllMocks();invalidateSessionRequests();});
+const originalPlatform = Platform.OS;
+afterEach(()=>{Platform.OS=originalPlatform;apiClient.defaults.adapter=originalAdapter;jest.restoreAllMocks();invalidateSessionRequests();});
+it.each(['ios', 'android', 'web'] as const)('identifies the %s runtime correctly for login', async platform => {
+  Platform.OS = platform;
+  let captured!: InternalAxiosRequestConfig;
+  apiClient.defaults.adapter = (async config => {
+    captured = config;
+    return { config, data: { success: true }, status: 200, statusText: 'OK', headers: {} };
+  }) as AxiosAdapter;
+  await apiClient.post('/v1/auth/login', { email: 'sample@example.test', password: 'sample-test-password' });
+  expect(captured.headers.get('X-Client-Platform')).toBe(platform === 'web' ? 'web' : 'mobile');
+});
 it('does not refresh or replay a previous account’s request after an account change',async()=>{
   jest.mocked(getSessionValue).mockResolvedValue(JSON.stringify({accessToken:'a',refreshToken:'a-refresh',identity:{id:1,tenantId:'a'}}));
   const refresh=jest.spyOn(axios,'post');let rejectRequest!: (error:Error)=>void;let config!:InternalAxiosRequestConfig;

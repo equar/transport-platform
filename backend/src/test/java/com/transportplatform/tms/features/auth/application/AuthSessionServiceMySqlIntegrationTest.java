@@ -75,6 +75,21 @@ class AuthSessionServiceMySqlIntegrationTest {
     }
 
     @Test
+    void revokingLegacyWebSessionsPreservesMobileSessionsAndAccessVersion() {
+        AppUser user = saveUser("mobile-only");
+        var web = authSessionService.issue(user, "WEB");
+        var mobile = authSessionService.issue(user, "MOBILE");
+        authSessionService.revokeWebForUser(user.getId());
+        entityManager.clear();
+        assertThat(authRefreshSessionRepository.findByTokenHash(hash(web.rawToken())).orElseThrow().getRevokedAt())
+                .isNotNull();
+        assertThat(authRefreshSessionRepository.findByTokenHash(hash(mobile.rawToken())).orElseThrow().getRevokedAt())
+                .isNull();
+        assertThat(appUserRepository.findById(user.getId()).orElseThrow().getSecurityVersion()).isZero();
+        assertThat(authSessionService.rotate(mobile.rawToken(), "MOBILE").user().getId()).isEqualTo(user.getId());
+    }
+
+    @Test
     void revokesOnlyTheSuspendedTenantsSessions() {
         AppUser suspendedTenantUser = saveUser("tenant-a");
         AppUser otherTenantUser = saveUser("tenant-b");

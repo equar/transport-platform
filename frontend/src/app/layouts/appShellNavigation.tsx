@@ -28,6 +28,7 @@ import {
   getDefaultRoute,
   hasRole,
   isCompanyAdmin,
+  isMobileOnlyAccount,
   isDriverPortalUser,
   isGuardianPortalUser,
   isOrganizationPortalUser,
@@ -588,6 +589,7 @@ export function getAppShellProfilePath(
   session: AuthSession | null,
   moduleAccess: RuntimeModuleAccess | null,
 ) {
+  if (isMobileOnlyAccount(session)) return null;
   if (isPlatformAdmin(session)) {
     return "/platform/profile";
   }
@@ -610,6 +612,15 @@ export function buildAppShellView(
   session: AuthSession | null,
   moduleAccess: RuntimeModuleAccess | null,
 ): AppShellView {
+  if (isMobileOnlyAccount(session)) {
+    return {
+      scope: "company",
+      scopeLabel: "Mobile only",
+      title: "Use the Bakaroo Transport mobile app",
+      description: "Rider, driver and guardian accounts have no web workspace.",
+      sections: [],
+    };
+  }
   if (isPlatformAdmin(session)) {
     return {
       scope: "platform",

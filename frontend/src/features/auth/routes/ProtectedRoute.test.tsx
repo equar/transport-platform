@@ -130,10 +130,10 @@ describe('ProtectedRoute role boundaries', () => {
 
     renderAt('/company/drivers');
 
-    expect(screen.getByTestId('location').textContent).toBe('/portal/driver');
+    expect(screen.getByTestId('location').textContent).toBe('/unauthorized');
   });
 
-  it('allows a driver into the driver portal', () => {
+  it('blocks a driver from the legacy web driver portal', () => {
     useAuth.mockReturnValue({
       isAuthenticated: true,
       isLoading: false,
@@ -143,7 +143,15 @@ describe('ProtectedRoute role boundaries', () => {
 
     renderAt('/portal/driver/profile');
 
-    expect(screen.getByTestId('location').textContent).toBe('/portal/driver/profile');
-    expect(screen.getByText('Protected workspace')).not.toBeNull();
+    expect(screen.getByTestId('location').textContent).toBe('/unauthorized');
+    expect(screen.queryByText('Protected workspace')).toBeNull();
+  });
+
+  it.each(['ROLE_RIDER', 'ROLE_GUARDIAN'])('blocks %s even with a temporary password', role => {
+    const mobile = session([role]); mobile.identity.mustChangePassword = true;
+    useAuth.mockReturnValue({isAuthenticated:true,isLoading:false,hasRole:()=>true,session:mobile});
+    renderAt('/company/users');
+    expect(screen.getByTestId('location').textContent).toBe('/unauthorized');
+    expect(screen.queryByText('Protected workspace')).toBeNull();
   });
 });
