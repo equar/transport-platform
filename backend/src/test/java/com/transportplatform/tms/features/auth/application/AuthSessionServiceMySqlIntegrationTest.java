@@ -12,6 +12,16 @@ import com.transportplatform.tms.features.auth.domain.AuthRefreshSession;
 import com.transportplatform.tms.features.auth.domain.AuthRefreshSessionRepository;
 import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.auth.domain.UserStatus;
+import com.transportplatform.tms.features.audit.application.AuditLogService;
+import com.transportplatform.tms.features.companyapplication.application.TenantEmailVerificationService;
+import com.transportplatform.tms.features.companyapplication.domain.CompanyApplication;
+import com.transportplatform.tms.features.companyapplication.domain.CompanyApplicationRepository;
+import com.transportplatform.tms.features.companyapplication.domain.CompanyApplicationStatus;
+import com.transportplatform.tms.features.notification.application.NotificationDispatchService;
+import com.transportplatform.tms.features.settings.domain.TenantSettingsRepository;
+import com.transportplatform.tms.features.tenant.application.TenantMapper;
+import com.transportplatform.tms.features.tenant.application.TenantResourceProvisioningService;
+import com.transportplatform.tms.features.tenant.application.TenantService;
 import com.transportplatform.tms.features.tenant.domain.Tenant;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.features.tenant.domain.TenantStatus;
@@ -65,6 +75,9 @@ class AuthSessionServiceMySqlIntegrationTest {
     @Autowired private AppUserRepository appUserRepository;
     @Autowired private TenantRepository tenantRepository;
     @Autowired private EntityManager entityManager;
+    @Autowired private CompanyApplicationRepository applicationRepository;
+    @Autowired private TenantSettingsRepository settingsRepository;
+    @Autowired private Clock clock;
 
     @DynamicPropertySource
     static void configureDataSource(DynamicPropertyRegistry registry) {
@@ -72,6 +85,59 @@ class AuthSessionServiceMySqlIntegrationTest {
         registry.add("spring.datasource.username", MYSQL::getUsername);
         registry.add("spring.datasource.password", MYSQL::getPassword);
         registry.add("spring.datasource.driver-class-name", MYSQL::getDriverClassName);
+    }
+
+    @Test
+    void passwordSetupPersistsWorkspaceActivationBeforeSessionRevocationClearsEntities() {
+        AppUser owner = saveUser("setup-tenant");
+        Tenant tenant = tenantRepository.findById(owner.getTenantId()).orElseThrow();
+        tenant.setStatus(TenantStatus.PENDING);
+        String token = "A".repeat(43);
+        owner.setMustChangePassword(true);
+        owner.setEmailVerificationEmail(owner.getEmail());
+        owner.setEmailVerifiedAt(clock.instant().minusSeconds(60));
+        owner.setEmailVerificationTokenHash(hash(token));
+        owner.setEmailVerificationExpiresAt(clock.instant().plusSeconds(60));
+        appUserRepository.saveAndFlush(owner);
+        CompanyApplication application = new CompanyApplication();
+        application.setApplicationNumber("APP-SETUP");
+        application.setLegalCompanyName("Setup Transit");
+        application.setContactFirstName("Test");
+        application.setContactLastName("Applicant");
+        application.setEmail(owner.getEmail());
+        application.setPhone("5550100");
+        application.setBusinessType("Transport");
+        application.setAddressLine1("1 Main");
+        application.setCity("Springfield");
+        application.setState("IL");
+        application.setZipCode("62701");
+        application.setCountry("US");
+        application.setStatus(CompanyApplicationStatus.APPROVED);
+        application.setApprovedTenantId(owner.getTenantId());
+        application.setOwnerUserId(owner.getId());
+        application.setEmailVerifiedAt(clock.instant().minusSeconds(60));
+        applicationRepository.saveAndFlush(application);
+        var audit = org.mockito.Mockito.mock(AuditLogService.class);
+        var tenantService = new TenantService(tenantRepository, new TenantMapper(), audit,
+                new TenantResourceProvisioningService(settingsRepository, appUserRepository), authSessionService);
+        var encoder = new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(4);
+        var setup = new TenantEmailVerificationService(appUserRepository, applicationRepository, tenantRepository,
+                org.mockito.Mockito.mock(NotificationDispatchService.class), new AuthFlowProperties(), clock,
+                encoder, authSessionService, audit, tenantService);
+        var oldSession = authSessionService.issue(owner, "WEB");
+        setup.verify(token, "New-setup-password");
+        entityManager.flush();
+        entityManager.clear();
+        AppUser persisted = appUserRepository.findById(owner.getId()).orElseThrow();
+        assertThat(tenantRepository.findById(owner.getTenantId()).orElseThrow().getStatus()).isEqualTo(TenantStatus.ACTIVE);
+        assertThat(settingsRepository.existsById(owner.getTenantId())).isTrue();
+        assertThat(persisted.isMustChangePassword()).isFalse();
+        assertThat(encoder.matches("New-setup-password", persisted.getPasswordHash())).isTrue();
+        assertThat(persisted.getEmailVerificationTokenHash()).isNull();
+        assertThat(persisted.getPasswordChangedAt()).isEqualTo(clock.instant());
+        assertThat(authRefreshSessionRepository.findByTokenHash(hash(oldSession.rawToken())).orElseThrow().getRevokedAt())
+                .isNotNull();
+        assertThatThrownBy(() -> setup.verify(token, "Replay-password")).isInstanceOf(ApiException.class);
     }
 
     @Test

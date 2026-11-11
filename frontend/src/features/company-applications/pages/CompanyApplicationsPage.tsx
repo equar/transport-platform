@@ -34,6 +34,7 @@ import { CompanyApplicationReviewDialog } from "../components/CompanyApplication
 const applicationStatuses = [
   "",
   "SUBMITTED",
+  "PENDING_EMAIL_VERIFICATION",
   "UNDER_REVIEW",
   "APPROVED",
   "REJECTED",
@@ -234,7 +235,7 @@ export function CompanyApplicationsPage() {
                         >
                           <VisibilityRoundedIcon />
                         </TableActionButton>
-                        {application.status === "SUBMITTED" ? (
+                        {application.status === "SUBMITTED" && application.emailVerifiedAt ? (
                           <TableActionButton
                             title="Review application"
                             buttonProps={{ disabled: applicationLoadingId === application.id }}
@@ -243,9 +244,7 @@ export function CompanyApplicationsPage() {
                             <ChecklistRoundedIcon />
                           </TableActionButton>
                         ) : null}
-                        {["SUBMITTED", "UNDER_REVIEW"].includes(
-                          application.status,
-                        ) ? (
+                        {application.status === "UNDER_REVIEW" && application.emailVerifiedAt ? (
                           <>
                             <TableActionButton
                               title="Approve application"

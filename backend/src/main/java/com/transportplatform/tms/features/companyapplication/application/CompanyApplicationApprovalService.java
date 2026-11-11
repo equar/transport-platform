@@ -27,6 +27,12 @@ public class CompanyApplicationApprovalService {
 
     @Transactional
     public ApprovalResult approve(CompanyApplication application, CompanyApplicationReviewRequest request) {
+        if (application.getEmailVerifiedAt() == null || !application.getEmail().equalsIgnoreCase(request.ownerEmail().trim())) {
+            throw new com.transportplatform.tms.common.exception.ApiException(
+                    com.transportplatform.tms.common.exception.ErrorCode.VALIDATION_FAILED,
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "The owner email must match the verified application email.");
+        }
         Tenant tenant = new Tenant();
         tenant.setId(UUID.randomUUID().toString());
         tenant.setTenantCode(tenantCodeGenerator.generate(application.getLegalCompanyName(), request.tenantCode()));
@@ -52,7 +58,7 @@ public class CompanyApplicationApprovalService {
 
         Tenant savedTenant = tenantService.createFromApplication(tenant);
         Long ownerUserId = tenantOwnerProvisioningService.provisionOwner(
-                savedTenant.getId(), request.ownerEmail(), request.ownerPassword());
+                savedTenant.getId(), application.getEmail());
         return new ApprovalResult(savedTenant.getId(), ownerUserId);
     }
 

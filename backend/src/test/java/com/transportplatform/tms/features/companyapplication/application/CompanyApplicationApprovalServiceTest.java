@@ -1,9 +1,12 @@
 package com.transportplatform.tms.features.companyapplication.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.features.companyapplication.api.request.CompanyApplicationReviewRequest;
 import com.transportplatform.tms.features.companyapplication.domain.CompanyApplication;
 import com.transportplatform.tms.features.tenant.application.TenantService;
@@ -30,11 +33,23 @@ class CompanyApplicationApprovalServiceTest {
     private CompanyApplicationApprovalService companyApplicationApprovalService;
 
     @Test
+    void approvalCannotProvisionAnUnverifiedOrDifferentOwnerEmail() {
+        CompanyApplication application = new CompanyApplication();
+        application.setEmail("verified@example.test");
+        var request = new CompanyApplicationReviewRequest(null, null, "STARTER", null, "other@example.test");
+        assertThrows(ApiException.class, () -> companyApplicationApprovalService.approve(application, request));
+        application.setEmailVerifiedAt(java.time.Instant.now());
+        assertThrows(ApiException.class, () -> companyApplicationApprovalService.approve(application, request));
+        verifyNoInteractions(tenantService, tenantCodeGenerator, tenantOwnerProvisioningService);
+    }
+
+    @Test
     void approveCreatesTenantAndOwnerProvisioning() {
         CompanyApplication application = new CompanyApplication();
         application.setLegalCompanyName("Northwind Transport");
         application.setDbaName("Northwind");
         application.setEmail("owner@northwind.example");
+        application.setEmailVerifiedAt(java.time.Instant.now());
         application.setPhone("+1-555-0123");
         application.setAddressLine1("1 Main St");
         application.setCity("Dallas");
@@ -49,8 +64,7 @@ class CompanyApplicationApprovalServiceTest {
                 null,
                 "GROWTH",
                 "NORTHWIND",
-                "owner@northwind.example",
-                "Temporary123!");
+                "owner@northwind.example");
 
         Tenant tenant = new Tenant();
         tenant.setId("tenant-1");
@@ -58,7 +72,7 @@ class CompanyApplicationApprovalServiceTest {
         when(tenantCodeGenerator.generate("Northwind Transport", "NORTHWIND")).thenReturn("NORTHWIND");
         when(tenantService.createFromApplication(any(Tenant.class))).thenReturn(tenant);
         when(tenantOwnerProvisioningService.provisionOwner(
-                "tenant-1", "owner@northwind.example", "Temporary123!")).thenReturn(10L);
+                "tenant-1", "owner@northwind.example")).thenReturn(10L);
 
         CompanyApplicationApprovalService.ApprovalResult result = companyApplicationApprovalService.approve(application,
                 request);

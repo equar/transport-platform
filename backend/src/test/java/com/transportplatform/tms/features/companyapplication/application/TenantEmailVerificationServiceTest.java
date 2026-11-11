@@ -26,6 +26,8 @@ class TenantEmailVerificationServiceTest {
     private final NotificationDispatchService dispatch = mock(NotificationDispatchService.class);
     private final AuthSessionService sessions = mock(AuthSessionService.class);
     private final AuditLogService audit = mock(AuditLogService.class);
+    private final com.transportplatform.tms.features.tenant.application.TenantService tenantService =
+            mock(com.transportplatform.tms.features.tenant.application.TenantService.class);
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(4);
     private final Instant now = Instant.parse("2026-11-11T04:00:00Z");
     private final AppUser owner = new AppUser();
@@ -36,11 +38,12 @@ class TenantEmailVerificationServiceTest {
         var properties = new AuthFlowProperties();
         properties.setPasswordResetBaseUrl("https://admin.transport.bakaroo.com/reset-password");
         service = new TenantEmailVerificationService(users, applications, tenants, dispatch, properties,
-                Clock.fixed(now, ZoneOffset.UTC), encoder, sessions, audit);
+                Clock.fixed(now, ZoneOffset.UTC), encoder, sessions, audit, tenantService);
         ReflectionTestUtils.setField(owner, "id", 7L);
         owner.setTenantId("tenant-a"); owner.setEmail("owner@example.test"); owner.setStatus(UserStatus.ACTIVE);
         tenant.setStatus(TenantStatus.PENDING);
         lenient().when(tenants.findById("tenant-a")).thenReturn(Optional.of(tenant));
+        lenient().when(tenants.lockForDispatch("tenant-a")).thenReturn(Optional.of(tenant));
         lenient().when(applications.existsByApprovedTenantIdAndOwnerUserIdAndStatus("tenant-a", 7L, CompanyApplicationStatus.APPROVED))
                 .thenReturn(true);
     }
@@ -50,7 +53,9 @@ class TenantEmailVerificationServiceTest {
         when(application.getId()).thenReturn(1L);
         when(application.getApplicationNumber()).thenReturn("APP-1");
         when(application.getLegalCompanyName()).thenReturn("Transit");
+        when(application.getEmailVerifiedAt()).thenReturn(now.minusSeconds(60));
         service.sendApprovalVerification(application, owner);
+        assertThat(owner.getEmailVerifiedAt()).isEqualTo(now.minusSeconds(60));
         assertThat(owner.getEmailVerificationTokenHash()).hasSize(64);
         assertThat(owner.getEmailVerificationExpiresAt()).isEqualTo(now.plus(Duration.ofHours(24)));
         assertThat(owner.getEmailVerificationEmail()).isEqualTo(owner.getEmail());
@@ -58,7 +63,69 @@ class TenantEmailVerificationServiceTest {
                 anyString(), anyString(), contains("https://admin.transport.bakaroo.com/verify-email#token="), anyMap());
     }
 
-    @Test void verificationConsumesTheTokenWithoutActivatingTheTenant() {
+    @Test void completedApprovedOwnerCanRecoverPendingActivation() {
+        completeSetup();
+        service.activateCompletedOwner(owner);
+        verify(tenantService).activate("tenant-a");
+    }
+
+    @Test void incompleteOrUnverifiedOwnersCannotActivate() {
+        service.activateCompletedOwner(owner);
+        completeSetup();
+        owner.setMustChangePassword(true);
+        service.activateCompletedOwner(owner);
+        owner.setMustChangePassword(false);
+        owner.setPasswordChangedAt(null);
+        service.activateCompletedOwner(owner);
+        owner.setPasswordChangedAt(now);
+        owner.setEmailVerifiedAt(null);
+        service.activateCompletedOwner(owner);
+        owner.setEmailVerifiedAt(now);
+        owner.setEmailVerificationEmail("changed@example.test");
+        service.activateCompletedOwner(owner);
+        verifyNoInteractions(tenantService);
+    }
+
+    @Test void suspendedOrUnapprovedOwnersAndActiveTenantsAreNotActivated() {
+        completeSetup();
+        owner.setStatus(UserStatus.SUSPENDED);
+        service.activateCompletedOwner(owner);
+        owner.setStatus(UserStatus.ACTIVE);
+        tenant.setStatus(TenantStatus.SUSPENDED);
+        service.activateCompletedOwner(owner);
+        tenant.setStatus(TenantStatus.ACTIVE);
+        service.activateCompletedOwner(owner);
+        tenant.setStatus(TenantStatus.PENDING);
+        when(applications.existsByApprovedTenantIdAndOwnerUserIdAndStatus("tenant-a", 7L, CompanyApplicationStatus.APPROVED))
+                .thenReturn(false);
+        service.activateCompletedOwner(owner);
+        verifyNoInteractions(tenantService);
+    }
+
+    @Test void verifiedApplicantAwaitingPasswordCanResendSetupLink() {
+        completeSetup();
+        owner.setMustChangePassword(true);
+        var application = new CompanyApplication();
+        ReflectionTestUtils.setField(application, "id", 1L);
+        application.setApplicationNumber("APP-1");
+        application.setLegalCompanyName("Transit");
+        application.setEmailVerifiedAt(now);
+        when(users.findByEmailIgnoreCase(owner.getEmail())).thenReturn(Optional.of(owner));
+        when(applications.findFirstByApprovedTenantIdAndOwnerUserIdAndStatus("tenant-a", 7L, CompanyApplicationStatus.APPROVED))
+                .thenReturn(Optional.of(application));
+        service.resend(owner.getEmail());
+        verify(dispatch).notifyEmail(anyString(), anyLong(), anyString(), any(), anyString(), anyString(),
+                anyString(), anyString(), anyString(), anyMap());
+    }
+
+    private void completeSetup() {
+        owner.setEmailVerifiedAt(now);
+        owner.setEmailVerificationEmail(owner.getEmail());
+        owner.setPasswordChangedAt(now);
+        owner.setMustChangePassword(false);
+    }
+
+    @Test void passwordSetupConsumesTheTokenAndActivatesTheApprovedTenant() {
         owner.setEmailVerificationEmail(owner.getEmail());
         owner.setEmailVerificationExpiresAt(now.plusSeconds(60));
         owner.setEmailVerificationTokenHash("stored-hash");
@@ -68,7 +135,7 @@ class TenantEmailVerificationServiceTest {
         owner.setPasswordResetTokenExpiresAt(now.plusSeconds(60));
         owner.setPasswordResetRequestedAt(now);
         when(users.findByEmailVerificationTokenHash(anyString())).thenReturn(Optional.of(owner), Optional.empty());
-        assertThat(service.verify("token", "My-new-password")).contains("verified");
+        assertThat(service.verify("token", "My-new-password")).contains("password is created");
         assertThat(encoder.matches("My-new-password", owner.getPasswordHash())).isTrue();
         assertThat(owner.getPasswordHash()).isNotEqualTo("My-new-password");
         assertThat(owner.getPasswordChangedAt()).isEqualTo(now);
@@ -79,7 +146,7 @@ class TenantEmailVerificationServiceTest {
         assertThat(owner.getPasswordResetRequestedAt()).isNull();
         assertThat(owner.getEmailVerifiedAt()).isEqualTo(now);
         assertThat(owner.getEmailVerificationTokenHash()).isNull();
-        assertThat(tenant.getStatus()).isEqualTo(TenantStatus.PENDING);
+        verify(tenantService).activate("tenant-a");
         assertThatThrownBy(() -> service.verify("token", "Other-password")).isInstanceOf(ApiException.class);
         verify(sessions).revokeAllForUser(7L);
         verify(audit).record(any());

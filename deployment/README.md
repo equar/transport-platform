@@ -62,7 +62,18 @@ atomically together to keep shared contracts and links compatible.
 
 ## Runtime contract
 
-Application approval creates a pending tenant. Approval emails are delivered to
+Tenant onboarding follows: apply, verify the applicant email, administrator
+review, approval, then create a password. Submission sends a single-use,
+24-hour link to `/verify-application-email` on the admin site. Explicit
+confirmation moves the application from `PENDING_EMAIL_VERIFICATION` to
+`SUBMITTED` (ready for review); opening the link alone does not consume it.
+Replacement links can be requested on that page using the application reference,
+at most once per five minutes. Failed initial email delivery returns an error
+and rolls back submission rather than claiming success. Review requires a
+verified email, and approval requires `UNDER_REVIEW`.
+
+Application approval creates a pending tenant with the verified applicant as
+owner; administrators do not enter a temporary password. Approval emails are delivered to
 the owner linked to the approved application even before tenant activation;
 ordinary notifications still require active tenant access and the notifications
 module. Suspended tenants and users cannot receive queued approval emails.
@@ -72,8 +83,15 @@ at `/verify-email` on the admin site. Owners can request a replacement there
 without asking the owner to re-enter their email. Submitting a valid password
 atomically verifies the email, consumes the link, and invalidates old sessions
 and password-reset links. Simply opening the link makes no account changes.
-Verification records the confirmed email but
-tenant activation remains a separate platform-admin onboarding action.
+Successful password setup activates the approved pending workspace through the
+normal tenant readiness checks. Existing approved owners who already verified
+their current email and created a password recover a still-pending workspace
+on successful login after deploying this version. Suspended tenants/users,
+unapproved owners and incomplete account setup are never auto-activated.
+
+Migration V13 moves legacy `SUBMITTED` and `UNDER_REVIEW` applications back to
+`PENDING_EMAIL_VERIFICATION`; those applicants must request a link using their
+application reference. Already-approved applications are unchanged.
 
 Approval provisioning and verification-email queuing run in one transaction.
 If approval fails, correct the application code and deploy it before retrying

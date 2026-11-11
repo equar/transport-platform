@@ -96,6 +96,24 @@ public class CompanyApplication extends AuditableEntity {
     @Column(name = "owner_user_id")
     private Long ownerUserId;
 
+    @Column(name = "email_verified_at")
+    private java.time.Instant emailVerifiedAt;
+    @Column(name = "verification_token_hash", length = 64)
+    private String verificationTokenHash;
+    @Column(name = "verification_expires_at")
+    private java.time.Instant verificationExpiresAt;
+    @Column(name = "verification_requested_at")
+    private java.time.Instant verificationRequestedAt;
+
+    public java.time.Instant getEmailVerifiedAt() { return emailVerifiedAt; }
+    public void setEmailVerifiedAt(java.time.Instant value) { emailVerifiedAt = value; }
+    public String getVerificationTokenHash() { return verificationTokenHash; }
+    public void setVerificationTokenHash(String value) { verificationTokenHash = value; }
+    public java.time.Instant getVerificationExpiresAt() { return verificationExpiresAt; }
+    public void setVerificationExpiresAt(java.time.Instant value) { verificationExpiresAt = value; }
+    public java.time.Instant getVerificationRequestedAt() { return verificationRequestedAt; }
+    public void setVerificationRequestedAt(java.time.Instant value) { verificationRequestedAt = value; }
+
     public Long getId() {
         return id;
     }

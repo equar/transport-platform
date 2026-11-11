@@ -60,6 +60,7 @@ export function CompanyApplicationDetailsDialog({
               value={`${application.contactFirstName} ${application.contactLastName}`}
             />
             <DetailRow label="Email" value={application.email} />
+            <DetailRow label="Email verification" value={application.emailVerifiedAt ? formatDateTime(application.emailVerifiedAt) : "Awaiting verification"} />
             <DetailRow label="Phone" value={application.phone} />
             <DetailRow label="Business Type" value={application.businessType} />
             <DetailRow

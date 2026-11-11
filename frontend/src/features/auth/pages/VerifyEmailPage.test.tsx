@@ -25,7 +25,7 @@ it("opens password creation without email entry and verifies only when submitted
   await waitFor(() => expect(screen.getByText("Your email address is verified.")).toBeTruthy());
   expect(authApi.verifyEmail).toHaveBeenCalledWith("test-token", "My-new-password");
   expect(screen.queryByLabelText(/^New password/)).toBeNull();
-  expect(screen.getByText(/Workspace activation remains/)).toBeTruthy();
+  expect(screen.getByText(/activate your workspace/)).toBeTruthy();
 });
 
 it("shows expired link errors and offers a replacement", async () => {

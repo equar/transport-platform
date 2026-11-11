@@ -13,8 +13,26 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/v1/auth")
 public class TenantEmailVerificationController {
     private final TenantEmailVerificationService service;
+    private final com.transportplatform.tms.features.companyapplication.application.ApplicationEmailVerificationService applicationVerification;
 
-    public TenantEmailVerificationController(TenantEmailVerificationService service) { this.service = service; }
+    public TenantEmailVerificationController(TenantEmailVerificationService service,
+            com.transportplatform.tms.features.companyapplication.application.ApplicationEmailVerificationService applicationVerification) {
+        this.service = service;
+        this.applicationVerification = applicationVerification;
+    }
+
+    public record ApplicationVerifyRequest(@NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{43}") String token) {}
+    public record ApplicationResendRequest(@NotBlank @Size(max = 50) String applicationNumber) {}
+
+    @PostMapping("/verify-application-email")
+    public ApiResponse<String> verifyApplication(@Valid @RequestBody ApplicationVerifyRequest request) {
+        return ApiResponse.success(applicationVerification.verify(request.token()));
+    }
+
+    @PostMapping("/resend-application-verification")
+    public ApiResponse<String> resendApplication(@Valid @RequestBody ApplicationResendRequest request) {
+        return ApiResponse.success(applicationVerification.resend(request.applicationNumber()));
+    }
 
     public record VerifyRequest(
             @NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{43}") String token,

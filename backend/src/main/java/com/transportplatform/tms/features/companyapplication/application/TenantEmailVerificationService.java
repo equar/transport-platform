@@ -16,6 +16,7 @@ import com.transportplatform.tms.features.notification.application.NotificationD
 import com.transportplatform.tms.features.notification.domain.NotificationType;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
 import com.transportplatform.tms.features.tenant.domain.TenantStatus;
+import com.transportplatform.tms.features.tenant.application.TenantService;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -43,11 +44,13 @@ public class TenantEmailVerificationService {
     private final PasswordEncoder passwordEncoder;
     private final AuthSessionService sessions;
     private final AuditLogService audit;
+    private final TenantService tenantService;
     private final SecureRandom random = new SecureRandom();
 
     public TenantEmailVerificationService(AppUserRepository users, CompanyApplicationRepository applications,
             TenantRepository tenants, NotificationDispatchService dispatch, AuthFlowProperties properties, Clock clock,
-            PasswordEncoder passwordEncoder, AuthSessionService sessions, AuditLogService audit) {
+            PasswordEncoder passwordEncoder, AuthSessionService sessions, AuditLogService audit,
+            TenantService tenantService) {
         this.users = users;
         this.applications = applications;
         this.tenants = tenants;
@@ -57,6 +60,7 @@ public class TenantEmailVerificationService {
         this.passwordEncoder = passwordEncoder;
         this.sessions = sessions;
         this.audit = audit;
+        this.tenantService = tenantService;
     }
 
     @Transactional
@@ -64,7 +68,7 @@ public class TenantEmailVerificationService {
         byte[] bytes = new byte[32];
         random.nextBytes(bytes);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        owner.setEmailVerifiedAt(null);
+        owner.setEmailVerifiedAt(application.getEmailVerifiedAt());
         owner.setEmailVerificationEmail(owner.getEmail());
         owner.setEmailVerificationTokenHash(hash(token));
         owner.setEmailVerificationExpiresAt(clock.instant().plus(Duration.ofHours(24)));
@@ -73,9 +77,9 @@ public class TenantEmailVerificationService {
         String url = URI.create(properties.getPasswordResetBaseUrl()).resolve("/verify-email").toString()
                 + "#token=" + token;
         String body = "Your company application " + application.getApplicationNumber() + " was approved.\n\n"
-                + "Create your password using this link to verify your email and complete your account setup:\n"
+                + "Your application was reviewed and approved. Create your password to complete your account setup:\n"
                 + url + "\n\nThis link expires in 24 hours and can be used once. "
-                + "Your workspace remains pending until a platform administrator activates it.";
+                + "Creating your password completes onboarding and activates your approved workspace.";
         dispatch.notifyEmail(owner.getTenantId(), owner.getId(), owner.getEmail(),
                 NotificationType.COMPANY_APPLICATION_APPROVED, "COMPANY_APPLICATION",
                 application.getId().toString(), "Create your password - application approved",
@@ -89,7 +93,8 @@ public class TenantEmailVerificationService {
         var owner = users.findByEmailIgnoreCase(email.trim());
         if (owner.isEmpty() || !eligible(owner.get())) return RESEND_MESSAGE;
         AppUser user = owner.get();
-        if (user.getEmailVerifiedAt() != null && user.getEmail().equalsIgnoreCase(user.getEmailVerificationEmail())) {
+        if (user.getEmailVerifiedAt() != null && !user.isMustChangePassword()
+                && user.getEmail().equalsIgnoreCase(user.getEmailVerificationEmail())) {
             return RESEND_MESSAGE;
         }
         if (user.getEmailVerificationRequestedAt() != null
@@ -125,11 +130,25 @@ public class TenantEmailVerificationService {
         owner.setEmailVerificationTokenHash(null);
         owner.setEmailVerificationExpiresAt(null);
         users.save(owner);
+        activateCompletedOwner(owner);
         sessions.revokeAllForUser(owner.getId());
         audit.record(new AuditLogCommand(null, owner.getTenantId(), "AUTH", "TENANT_OWNER_SETUP_COMPLETED",
                 "USER", owner.getId().toString(), "Tenant owner verified their email and created a password.",
                 null, Map.of("userId", owner.getId())));
-        return "Your password is created and your email address is verified. Your workspace requires separate activation by a platform administrator.";
+        return "Your password is created and your approved workspace is active. You can now sign in.";
+    }
+
+    @Transactional
+    public void activateCompletedOwner(AppUser owner) {
+        if (owner.getTenantId() == null || !owner.isActiveForLogin() || owner.isMustChangePassword()
+                || owner.getPasswordChangedAt() == null || owner.getEmailVerifiedAt() == null
+                || !owner.getEmail().equalsIgnoreCase(owner.getEmailVerificationEmail())
+                || !applications.existsByApprovedTenantIdAndOwnerUserIdAndStatus(
+                    owner.getTenantId(), owner.getId(), CompanyApplicationStatus.APPROVED)) return;
+        var tenant = tenants.lockForDispatch(owner.getTenantId()).orElseThrow(this::invalidLink);
+        if (tenant.getStatus() == TenantStatus.PENDING) {
+            tenantService.activate(owner.getTenantId());
+        }
     }
 
     private boolean eligible(AppUser owner) {

@@ -92,6 +92,14 @@ export const authApi = {
     const response = await apiClient.post("/v1/auth/verify-email", { token, password });
     return { message: unwrapResponse<string>(response.data) };
   },
+  async verifyApplicationEmail(token: string) {
+    const response = await apiClient.post("/v1/auth/verify-application-email", { token });
+    return { message: unwrapResponse<string>(response.data) };
+  },
+  async resendApplicationVerification(applicationNumber: string) {
+    const response = await apiClient.post("/v1/auth/resend-application-verification", { applicationNumber });
+    return { message: unwrapResponse<string>(response.data) };
+  },
   async resendVerification(email: string) {
     const response = await apiClient.post("/v1/auth/resend-verification", { email });
     return { message: unwrapResponse<string>(response.data) };

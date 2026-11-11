@@ -25,11 +25,11 @@ class AppUserTenantOwnerProvisioningServiceTest {
     @InjectMocks AppUserTenantOwnerProvisioningService service;
 
     @Test
-    void provisionsActiveOwnerWithProvidedTemporaryPassword() {
-        when(passwordEncoder.encode("Temporary123!")).thenReturn("encoded");
+    void provisionsOwnerWithoutAnAdminSuppliedPassword() {
+        when(passwordEncoder.encode(org.mockito.ArgumentMatchers.anyString())).thenReturn("encoded");
         when(appUserRepository.save(any(AppUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.provisionOwner("tenant-1", " Owner@Example.com ", "Temporary123!");
+        service.provisionOwner("tenant-1", " Owner@Example.com ");
 
         ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
         verify(appUserRepository).save(captor.capture());
@@ -40,5 +40,8 @@ class AppUserTenantOwnerProvisioningServiceTest {
         assertEquals(UserStatus.ACTIVE, owner.getStatus());
         org.junit.jupiter.api.Assertions.assertTrue(owner.isMustChangePassword());
         assertEquals(java.util.Set.of(RoleName.ROLE_TENANT_ADMIN), owner.getRoles());
+        ArgumentCaptor<String> password = ArgumentCaptor.forClass(String.class);
+        verify(passwordEncoder).encode(password.capture());
+        assertEquals(43, password.getValue().length());
     }
 }

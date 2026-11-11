@@ -25,7 +25,7 @@ public class AppUserTenantOwnerProvisioningService implements TenantOwnerProvisi
 
     @Override
     @Transactional
-    public Long provisionOwner(String tenantId, String ownerEmail, String temporaryPassword) {
+    public Long provisionOwner(String tenantId, String ownerEmail) {
         if (appUserRepository.existsByEmailIgnoreCase(ownerEmail)) {
             throw new ApiException(
                     ErrorCode.RESOURCE_CONFLICT,
@@ -38,14 +38,11 @@ public class AppUserTenantOwnerProvisioningService implements TenantOwnerProvisi
         user.setEmail(ownerEmail.trim().toLowerCase());
         user.setFirstName("Company");
         user.setLastName("Administrator");
-        if (temporaryPassword == null || temporaryPassword.isBlank()) {
-            throw new ApiException(
-                    ErrorCode.VALIDATION_FAILED,
-                    HttpStatus.BAD_REQUEST,
-                    "A temporary password is required for the tenant owner account.");
-        }
+        byte[] bytes = new byte[32];
+        new java.security.SecureRandom().nextBytes(bytes);
+        String inaccessiblePassword = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         user.setMustChangePassword(true);
-        user.setPasswordHash(com.transportplatform.tms.common.security.PasswordEncoding.encode(passwordEncoder, temporaryPassword));
+        user.setPasswordHash(com.transportplatform.tms.common.security.PasswordEncoding.encode(passwordEncoder, inaccessiblePassword));
         user.setStatus(UserStatus.ACTIVE);
         user.setRoles(Set.of(RoleName.ROLE_TENANT_ADMIN));
         return appUserRepository.save(user).getId();
