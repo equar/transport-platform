@@ -247,7 +247,7 @@ public class AppUser extends AuditableEntity {
     }
 
     public void setRoles(Set<RoleName> roles) {
-        this.roles = roles;
+        this.roles = new LinkedHashSet<>(roles);
     }
 
     public boolean isActiveForLogin() {

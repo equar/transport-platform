@@ -105,6 +105,7 @@ export function CompanyApplicationReviewDialog({
               <TextField
                 label="Owner Email"
                 type="email"
+                autoComplete="off"
                 value={ownerEmail}
                 onChange={(event) => setOwnerEmail(event.target.value)}
                 required
@@ -112,6 +113,7 @@ export function CompanyApplicationReviewDialog({
               <TextField
                 label="Temporary Owner Password"
                 type="password"
+                autoComplete="new-password"
                 value={ownerPassword}
                 onChange={(event) => setOwnerPassword(event.target.value)}
                 required

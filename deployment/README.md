@@ -75,6 +75,11 @@ and password-reset links. Simply opening the link makes no account changes.
 Verification records the confirmed email but
 tenant activation remains a separate platform-admin onboarding action.
 
+Approval provisioning and verification-email queuing run in one transaction.
+If approval fails, correct the application code and deploy it before retrying
+approval through the admin UI; do not manually provision an owner or change
+application status in the production database.
+
 | Component | Value |
 | --- | --- |
 | Public information website | `https://transport.bakaroo.com` |
