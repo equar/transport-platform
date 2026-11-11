@@ -281,6 +281,9 @@ public class RiderGuardianPortalService {
         LocalDateTime toDateTime = toDate == null ? null : LocalDateTime.of(toDate, LocalTime.MAX);
         Sort.Direction resolvedSortDirection = Objects.requireNonNullElse(sortDirection, Sort.Direction.ASC);
         var pageable = PageRequest.of(page, size, Sort.by(resolvedSortDirection, resolveRideSortField(sortBy)));
+        if (scope.scopeType() == PortalSubjectType.GUARDIAN && riderIds.isEmpty()) {
+            return PageResponse.from(org.springframework.data.domain.Page.<PortalRideSummaryResponse>empty(pageable));
+        }
         var result = rideRepository.findAll((root, query, builder) -> buildRideScopePredicate(
                 scope,
                 root,

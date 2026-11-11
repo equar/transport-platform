@@ -22,7 +22,7 @@ export default function LoginPage() {
     catch (err) { setError(err instanceof Error ? err.message : 'We couldn’t sign you in. Check your details and try again.'); }
     finally { setLoading(false); }
   }
-  return <AuthFrame title="Welcome back" description="Sign in to manage your trips and stay connected with your transport provider."
+  return <AuthFrame title="Welcome back" titleAlign="center"
     footer={<AppButton label="Forgot your password?" variant="ghost" onPress={() => router.push('/(auth)/forgot-password')} />}>
     {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     <View style={styles.fields}>
