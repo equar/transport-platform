@@ -1,7 +1,7 @@
 import { useBrandingColors } from '@theme/BrandingContext';
 import React from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ColorValue } from 'react-native';
 import { Colors, Radius, Shadow, Spacing, Typography } from '@theme/tokens';
 
 interface RoleCommandDeckProps {
@@ -9,10 +9,10 @@ interface RoleCommandDeckProps {
   title: string;
   subtitle: string;
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-  toneColor: string;
-  softColor: string;
+  toneColor: ColorValue;
+  softColor: ColorValue;
   statusLabel?: string;
-  statusColor?: string;
+  statusColor?: ColorValue;
   actionLabel?: string;
   onActionPress?: () => void;
 }

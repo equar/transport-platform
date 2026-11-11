@@ -1,10 +1,11 @@
 import { Colors } from './tokens';
+import type { ColorValue } from 'react-native';
 
 export type RoleTheme = {
-  primary: string;
-  primaryStrong: string;
-  soft: string;
-  textOnPrimary: string;
+  primary: ColorValue;
+  primaryStrong: ColorValue;
+  soft: ColorValue;
+  textOnPrimary: ColorValue;
 };
 
 export const DriverRoleTheme: RoleTheme = {

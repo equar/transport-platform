@@ -1,10 +1,11 @@
 import React from 'react';
 import { Text } from 'react-native';
+import * as ReactNative from 'react-native';
 import { render, screen } from '@testing-library/react-native';
 import { ThemeProvider, useBrandingColors, appTheme } from './ThemeProvider';
 import { RoleShell } from '@components/RoleShell';
 import { AuthFrame } from '@components/AuthFrame';
-import { Colors } from './tokens';
+import { DarkColors, LightColors } from './tokens';
 let mockTenant: string | null = 'tenant-a';
 let mockPage = '(driver)';
 let mockPrimary = '#276442';
@@ -19,19 +20,20 @@ jest.mock('@tanstack/react-query', () => ({ useQuery: ({ queryKey }: { queryKey:
   refetch: mockRefetch,
 }) }));
 jest.mock('react-native-paper', () => ({ PaperProvider: ({ children }: { children: React.ReactNode }) => children,
-  MD3LightTheme: { colors: {} }, configureFonts: () => ({}) }));
+  MD3LightTheme: { colors: {} }, MD3DarkTheme: { colors: {} }, configureFonts: () => ({}) }));
+const mockUseColorScheme = jest.spyOn(ReactNative, 'useColorScheme');
 function Probe() { const colors = useBrandingColors(); return <Text>{`${colors.primary}|${colors.secondaryDark}|${colors.accent}`}</Text>; }
 function App() { return <ThemeProvider><RoleShell role="driver"><Probe /></RoleShell></ThemeProvider>; }
-beforeEach(() => { mockTenant = 'tenant-a'; mockPage = '(driver)'; mockPrimary = '#276442'; });
+beforeEach(() => { mockTenant = 'tenant-a'; mockPage = '(driver)'; mockPrimary = '#276442'; mockUseColorScheme.mockReturnValue('light'); });
 it('shows the tenant business name while keeping the mobile palette fixed through theme and account changes', () => {
-  const palette = `${Colors.primary}|${Colors.secondaryDark}|${Colors.accent}`;
+  const palette = `${LightColors.primary}|${LightColors.secondaryDark}|${LightColors.accent}`;
   const view = render(<App />);
   expect(screen.getByRole('header', { name: 'Blue Harbor Mobility' })).toBeTruthy();
   expect(screen.queryByLabelText('Bakaroo Transport')).toBeNull();
   expect(screen.getByText(palette)).toBeTruthy();
   mockPrimary = '#5341a1'; view.rerender(<App />);
   expect(screen.getByText(palette)).toBeTruthy();
-  expect(appTheme.colors.primary).toBe(Colors.primary);
+  expect(appTheme.colors.primary).toBe(LightColors.primary);
   mockTenant = 'tenant-b'; view.rerender(<App />);
   expect(screen.getByText('Forest Transit')).toBeTruthy();
   expect(screen.queryByText('Blue Harbor Mobility')).toBeNull();
@@ -39,6 +41,11 @@ it('shows the tenant business name while keeping the mobile palette fixed throug
   mockTenant = null; view.rerender(<App />);
   expect(screen.queryByText('Forest Transit')).toBeNull();
   expect(screen.getByText(palette)).toBeTruthy();
+});
+it('uses the dark palette when the device is in dark mode', () => {
+  mockUseColorScheme.mockReturnValue('dark');
+  render(<ThemeProvider><Probe /></ThemeProvider>);
+  expect(screen.getByText(`${DarkColors.primary}|${DarkColors.secondaryDark}|${DarkColors.accent}`)).toBeTruthy();
 });
 it('shows the current page title on signed-in subpages', () => {
   mockPage = 'rides'; render(<App />);
