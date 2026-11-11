@@ -20,7 +20,7 @@ export default function GuardianRidesPage() {
 	const { width } = useWindowDimensions();
 	const isCompact = width < 380;
 	const [segment, setSegment] = React.useState<RideSegment>('today');
-	const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } = useInfiniteQuery({
+	const { data, isLoading, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } = useInfiniteQuery({
 		queryKey: ['guardian-rides'],
 		initialPageParam: 0,
 		queryFn: ({ pageParam }) =>
@@ -33,7 +33,7 @@ export default function GuardianRidesPage() {
 	});
 
 	if (isLoading) return <LoadingState />;
-  if (isError && !data) return <RequestError onRetry={() => void refetch()} />;
+  if (isError && !data) return <RequestError message={error?.message} onRetry={() => void refetch()} />;
 
 	const rides = data?.pages.flatMap((p) => p.items) ?? [];
 	const filtered = rides.filter(ride => segment === 'today' ? !isFinishedTrip(ride.status) : isFinishedTrip(ride.status));

@@ -25,6 +25,11 @@ jest.mock('@tanstack/react-query', () => ({ useInfiniteQuery: () => ({
   data: queryKey[0] === 'driver-dashboard' ? { ridesToday: 7, assignedRides: 3, activeRoutesToday: 2, unresolvedComplianceIssues: 1 } : queryKey[0].endsWith('-dashboard') ? { upcomingRideCount: 4, activeRideCount: 1, openInvoiceCount: 2, linkedRiderCount: 3, unreadNotifications: 0 } : { items: [] },
 }) }));
 beforeEach(() => jest.clearAllMocks());
+it('centers the login heading and omits the sign-in description', () => {
+  render(<LoginPage />);
+  expect(screen.getByText('Welcome back')).toHaveStyle({ textAlign: 'center' });
+  expect(screen.queryByText('Sign in to manage your trips and stay connected with your transport provider.')).toBeNull();
+});
 it('shows inline sign-in validation and keeps typed values after a failed sign-in', async () => {
   render(<LoginPage />);
   fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));

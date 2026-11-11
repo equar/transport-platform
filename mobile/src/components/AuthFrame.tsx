@@ -3,13 +3,13 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { Colors, Spacing, Typography } from '@theme/tokens';
 import { BrandWordmark } from './BrandWordmark';
 
-export function AuthFrame({ title, description, children, footer }: { title: string; description: string; children: ReactNode; footer?: ReactNode }) {
+export function AuthFrame({ title, description, titleAlign = 'left', children, footer }: { title: string; description?: string; titleAlign?: 'left' | 'center'; children: ReactNode; footer?: ReactNode }) {
   return <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <View style={styles.content}>
         <BrandWordmark />
         <View style={styles.form}>
-          <View style={styles.heading}><Text accessibilityRole="header" style={styles.title}>{title}</Text><Text style={styles.description}>{description}</Text></View>
+          <View style={styles.heading}><Text accessibilityRole="header" style={[styles.title, { textAlign: titleAlign }]}>{title}</Text>{description ? <Text style={styles.description}>{description}</Text> : null}</View>
           {children}
           {footer}
           <Text style={styles.note}>Your transport, connected.</Text>
