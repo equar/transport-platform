@@ -11,6 +11,12 @@ public interface CompanyApplicationRepository
 
     long countByStatus(CompanyApplicationStatus status);
 
+    Optional<CompanyApplication> findFirstByApprovedTenantIdAndOwnerUserIdAndStatus(
+            String tenantId, Long ownerUserId, CompanyApplicationStatus status);
+
+    boolean existsByApprovedTenantIdAndOwnerUserIdAndStatus(String tenantId, Long ownerUserId,
+            CompanyApplicationStatus status);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<CompanyApplication> findWithWriteLockById(Long id);
 }

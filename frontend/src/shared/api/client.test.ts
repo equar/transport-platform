@@ -3,6 +3,20 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { apiClient, setApiSession } from './client';
 const originalAdapter=apiClient.defaults.adapter;
 afterEach(()=>{apiClient.defaults.adapter=originalAdapter;setApiSession(null);vi.restoreAllMocks();});
+it.each(['/v1/auth/verify-email', '/v1/auth/resend-verification'])(
+  'sends public onboarding request %s without existing account credentials',
+  async path => {
+    setApiSession({accessToken:'old-account',identity:{id:1,tenantId:'other-tenant'}});
+    let captured!: InternalAxiosRequestConfig;
+    apiClient.defaults.adapter=(async config=>{
+      captured=config;
+      return {config,data:{success:true,data:'Accepted'},status:200,statusText:'OK',headers:{}};
+    }) as AxiosAdapter;
+    await apiClient.post(path,{}, {headers:{Authorization:'Bearer old-account','X-Tenant-Id':'other-tenant'}});
+    expect(captured.headers.get('Authorization')).toBeUndefined();
+    expect(captured.headers.get('X-Tenant-Id')).toBeUndefined();
+  },
+);
 it('never refreshes or replays an old account request using a newly signed-in account',async()=>{
   const refresh=vi.spyOn(axios,'post');let rejectRequest!: (error: Error)=>void;let config!: InternalAxiosRequestConfig;
   let started!: ()=>void;const ready=new Promise<void>(resolve=>{started=resolve;});

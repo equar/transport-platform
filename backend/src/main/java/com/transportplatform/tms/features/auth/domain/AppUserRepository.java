@@ -9,6 +9,12 @@ import org.springframework.data.repository.query.Param;
 
 public interface AppUserRepository extends JpaRepository<AppUser, Long>, JpaSpecificationExecutor<AppUser> {
 
+        @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+        Optional<AppUser> findByEmailVerificationTokenHash(String tokenHash);
+
+        @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+        Optional<AppUser> findByEmailIgnoreCase(String email);
+
         @Query("""
                         select distinct user
                         from AppUser user

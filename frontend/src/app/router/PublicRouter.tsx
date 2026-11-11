@@ -68,11 +68,12 @@ const PublicCompanyApplicationPage = lazyPage(
 );
 
 const router = createBrowserRouter([
-  ...["login", "forgot-password", "reset-password", "unauthorized", "platform/*", "company/*", "portal/*"].map(path => ({
+  ...["login", "forgot-password", "reset-password", "verify-email", "unauthorized", "platform/*", "company/*", "portal/*"].map(path => ({
     path: "/" + path,
     loader: ({ request }: { request: Request }) => {
       const url = new URL(request.url);
-      return redirectDocument(env.adminSiteUrl + url.pathname + url.search + url.hash);
+      const hash = url.pathname === "/verify-email" ? window.location.hash : url.hash;
+      return redirectDocument(env.adminSiteUrl + url.pathname + url.search + hash);
     },
   })),
   {

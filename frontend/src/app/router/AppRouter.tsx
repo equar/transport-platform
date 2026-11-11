@@ -333,6 +333,10 @@ const ResetPasswordPage = lazyPage(
   () => import("../../features/auth/pages/ResetPasswordPage"),
   "ResetPasswordPage",
 );
+const VerifyEmailPage = lazyPage(
+  () => import("../../features/auth/pages/VerifyEmailPage"),
+  "VerifyEmailPage",
+);
 
 const router = createBrowserRouter([
   { element: <ProtectedRoute><AuthLayout /></ProtectedRoute>, children: [{ path: "/account/password", element: <PasswordChangeCard /> }] },
@@ -356,6 +360,10 @@ const router = createBrowserRouter([
       {
         path: "/reset-password",
         element: <ResetPasswordPage />,
+      },
+      {
+        path: "/verify-email",
+        element: <VerifyEmailPage />,
       },
       {
         path: "/unauthorized",

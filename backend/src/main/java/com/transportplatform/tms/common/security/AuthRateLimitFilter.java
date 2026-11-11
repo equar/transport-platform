@@ -86,7 +86,8 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         if ("/v1/auth/refresh".equals(path)) {
             return config.getRefreshMaxRequests();
         }
-        if ("/demo-inquiries".equals(path) || "/v1/auth/forgot-password".equals(path) || "/v1/auth/reset-password".equals(path)) {
+        if ("/demo-inquiries".equals(path) || "/v1/auth/forgot-password".equals(path) || "/v1/auth/reset-password".equals(path)
+                || "/v1/auth/verify-email".equals(path) || "/v1/auth/resend-verification".equals(path)) {
             return config.getForgotPasswordMaxRequests();
         }
         return 0;

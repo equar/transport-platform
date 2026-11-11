@@ -88,4 +88,12 @@ export const authApi = {
       message: message || "Password reset successfully.",
     };
   },
+  async verifyEmail(token: string, password: string) {
+    const response = await apiClient.post("/v1/auth/verify-email", { token, password });
+    return { message: unwrapResponse<string>(response.data) };
+  },
+  async resendVerification(email: string) {
+    const response = await apiClient.post("/v1/auth/resend-verification", { email });
+    return { message: unwrapResponse<string>(response.data) };
+  },
 };

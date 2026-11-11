@@ -167,6 +167,11 @@ export function LoginPage() {
             Forgot password?
           </Link>
         </Typography>
+        <Typography variant="body2" color="text.secondary">
+          <Link component={RouterLink} to="/verify-email" underline="hover">
+            Verify tenant owner email
+          </Link>
+        </Typography>
       </Stack>
     </AuthFormShell>
   );

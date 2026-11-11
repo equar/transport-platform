@@ -32,6 +32,28 @@ public class AppUser extends AuditableEntity {
     @Column(name = "email", nullable = false, length = 150)
     private String email;
 
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+    @Column(name = "email_verification_email", length = 150)
+    private String emailVerificationEmail;
+    @Column(name = "email_verification_token_hash", length = 64)
+    private String emailVerificationTokenHash;
+    @Column(name = "email_verification_expires_at")
+    private Instant emailVerificationExpiresAt;
+    @Column(name = "email_verification_requested_at")
+    private Instant emailVerificationRequestedAt;
+
+    public Instant getEmailVerifiedAt() { return emailVerifiedAt; }
+    public void setEmailVerifiedAt(Instant value) { emailVerifiedAt = value; }
+    public String getEmailVerificationEmail() { return emailVerificationEmail; }
+    public void setEmailVerificationEmail(String value) { emailVerificationEmail = value; }
+    public String getEmailVerificationTokenHash() { return emailVerificationTokenHash; }
+    public void setEmailVerificationTokenHash(String value) { emailVerificationTokenHash = value; }
+    public Instant getEmailVerificationExpiresAt() { return emailVerificationExpiresAt; }
+    public void setEmailVerificationExpiresAt(Instant value) { emailVerificationExpiresAt = value; }
+    public Instant getEmailVerificationRequestedAt() { return emailVerificationRequestedAt; }
+    public void setEmailVerificationRequestedAt(Instant value) { emailVerificationRequestedAt = value; }
+
     @Column(name = "first_name", length = 100)
     private String firstName;
 
