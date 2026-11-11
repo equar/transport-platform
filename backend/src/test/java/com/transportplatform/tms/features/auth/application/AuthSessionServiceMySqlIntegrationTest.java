@@ -75,6 +75,22 @@ class AuthSessionServiceMySqlIntegrationTest {
     }
 
     @Test
+    void newlyProvisionedOwnerCanBeSavedAgainForEmailVerification() {
+        AppUser owner = saveUser("approval-owner");
+        owner.setRoles(Set.of(RoleName.ROLE_TENANT_ADMIN));
+        appUserRepository.saveAndFlush(owner);
+        owner.setEmailVerificationEmail(owner.getEmail());
+        owner.setEmailVerificationTokenHash("a".repeat(64));
+        owner.setEmailVerificationExpiresAt(Instant.parse("2025-01-02T00:00:00Z"));
+        appUserRepository.saveAndFlush(owner);
+        entityManager.clear();
+        AppUser persisted = appUserRepository.findById(owner.getId()).orElseThrow();
+        assertThat(persisted.getRoles()).containsExactly(RoleName.ROLE_TENANT_ADMIN);
+        assertThat(persisted.getEmailVerificationTokenHash()).isEqualTo("a".repeat(64));
+        assertThat(persisted.getEmailVerificationEmail()).isEqualTo(owner.getEmail());
+    }
+
+    @Test
     void revokingLegacyWebSessionsPreservesMobileSessionsAndAccessVersion() {
         AppUser user = saveUser("mobile-only");
         var web = authSessionService.issue(user, "WEB");
