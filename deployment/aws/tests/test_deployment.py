@@ -159,6 +159,11 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(runtime['APP_PUSH_ENABLED'], 'true')
         self.assertEqual(runtime['MICROSOFT_GRAPH_CLIENT_SECRET'], 'private-graph')
 
+    def test_mfa_secret_and_policy_are_forwarded_by_deployment_workflow(self):
+        workflow = (ROOT/'.github/workflows/deploy.yml').read_text()
+        self.assertIn('APP_SECURITY_MFA_ENCRYPTION_KEY: ${{ secrets.APP_SECURITY_MFA_ENCRYPTION_KEY }}', workflow)
+        self.assertIn('APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS: ${{ vars.APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS', workflow)
+
     def test_example_importer_keys_match_supported_configuration(self):
         for line in (AWS/'github-actions.env.example').read_text().splitlines():
             if line and not line.startswith('#'):

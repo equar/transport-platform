@@ -1,0 +1,48 @@
+{
+  "backend": {
+    "tests": 294,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "web": {
+    "suites": 24,
+    "tests": 69,
+    "build": "public/admin builds passed"
+  },
+  "mobile": {
+    "suites": 23,
+    "tests": 71,
+    "typecheck": "passed",
+    "lint": "passed",
+    "android": "assembleDebug passed with Java 17",
+    "ios": "unsigned Release simulator build passed after pod install",
+    "cleanInstall": "Node 22 npm ci and mandatory deepmerge patch check passed"
+  },
+  "deployment": {
+    "tests": 24,
+    "result": "passed"
+  },
+  "security": {
+    "mavenScannedPackages": 158,
+    "untriaged": 0,
+    "assessedAdvisories": [
+      "GHSA-pc63-qcmh-9cmg",
+      "GHSA-j9f9-w8pj-32f8"
+    ],
+    "mobileAudit": {
+      "low": 6,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0
+    },
+    "note": "Mobile deepmerge advisory mitigated by mandatory checked local patch; two Spring view advisories have expiring exact-version assessments and startup guard.",
+    "webAudit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0
+    }
+  }
+}
