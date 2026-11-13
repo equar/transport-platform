@@ -55,3 +55,14 @@ Existing historical round trips are not rewritten automatically. Eligible pre-de
 Deploy compatible web/mobile clients with the API changes: ride edits require If-Match and payment creation requires Idempotency-Key. Apply V14/V15 through the normal Flyway path after backup. Validate migration from a restored copy of the actual production schema; do not run dev fixtures against production. Reconcile historical invoice balances with `deployment/aws/reconcile-invoice-balances.sql` and investigate discrepancies before changing ledger data.
 
 Before release, perform the original review's observed desktop/narrow-screen/device/accessibility matrix, staging provider delivery, signed store installation, background tracking/airplane-mode/force-stop testing, load and worker recovery tests, and coordinated database/file restore. Confirm actual retention/deletion, privacy notices, external recipients, support ownership and applicable operating agreements. These require the real release environment and operating decisions; repository checks cannot substitute for that evidence.
+
+## Local verification results
+
+- Backend `mvn verify`: 294 tests, zero failures/errors/skips; deployable JAR built. Local HTTP tests used IPv6 loopback to avoid a host IPv4 loopback issue.
+- Admin: 24 suites / 69 tests, type checking, public/admin production builds and build isolation checks passed.
+- Mobile: 23 suites / 71 tests, type checking and full lint passed. Android debug native build passed using Java 17; unsigned iOS Release simulator native/JavaScript build passed after refreshing pods.
+- Deployment: 24 tests passed, including MFA secret forwarding and invalid key rejection.
+- Clean mobile installation with Node 22 (`npm ci`) and the mandatory patch check passed. Web npm audit reports zero vulnerabilities.
+- Maven scan: 158 production packages, zero untriaged advisories; two guarded Spring view advisories remain assessed. Mobile audit: six low upstream advisory-chain entries, zero moderate/high/critical, with the deepmerge patch applied and checked.
+
+The deployment workflow now forwards the MFA key secret and policy variable. A missing repository secret was provisioned once through GitHub CLI without printing its value, with a mode-600 backup in ignored `infra/.local/secrets/mfa-encryption-key`. Preserve this key in the operating secret/backup system; never generate a fresh key on each deployment.
