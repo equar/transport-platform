@@ -17,7 +17,7 @@ jest.mock('expo-haptics', () => ({ notificationAsync: jest.fn().mockResolvedValu
 jest.mock('expo-linking', () => ({ openURL: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('@react-native-community/netinfo', () => ({ __esModule: true, default: { fetch: async () => ({ isConnected: mockConnected, isInternetReachable: mockConnected }) }, useNetInfo: () => ({ isConnected: mockConnected, isInternetReachable: mockConnected }) }));
 jest.mock('../../tracking/activeTrip', () => ({ startTripTracking: jest.fn().mockResolvedValue(undefined), stopTripTracking: jest.fn().mockResolvedValue(undefined), useTrackingState: () => ({ active: false, rideId: null, message: 'Tracking is off', lastSyncedAt: null }) }));
-jest.mock('@stores/offlineQueueStore', () => ({ useOfflineQueue: () => ({ enqueue: mockEnqueue, queue: [], conflicts: [], dismissConflict: jest.fn(), retry: jest.fn() }) }));
+jest.mock('@stores/offlineQueueStore', () => ({ pendingTripStatus: (status: string) => status, useOfflineQueue: () => ({ enqueue: mockEnqueue, queue: [], conflicts: [], dismissConflict: jest.fn(), retry: jest.fn(), cancelTripActions: jest.fn() }) }));
 jest.mock('@api/driverPortalApi', () => ({ driverPortalApi: { getRide: jest.fn(), getRideActions: jest.fn(), getRideLocationSnapshot: jest.fn(), postRideAction: jest.fn(), addRideNote: jest.fn() } }));
 beforeEach(() => {
   jest.clearAllMocks(); mockConnected = true;
@@ -71,4 +71,16 @@ it('retains the draft if the note cannot be saved', async () => {
 it('stops only this trip after drop-off', async () => {
   mockRide = { ...mockRide, status: 'DROPPED_OFF' }; await openTrip();
   expect(stopTripTracking).toHaveBeenCalledWith({ rideId: 10, tenantId: 'tenant-a', userId: 7 });
+});
+
+it('stops sharing immediately after confirming an offline drop-off', async () => {
+  mockConnected = false; mockRide = { ...mockRide, status: 'PICKED_UP' };
+  await openTrip();
+  fireEvent.press(screen.getByRole('button', { name: 'Confirm Drop Off' }));
+  await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
+  const buttons = jest.mocked(Alert.alert).mock.calls[jest.mocked(Alert.alert).mock.calls.length - 1][2]!;
+  await act(async () => { buttons.find(button => button.text === 'Confirm')!.onPress!(); });
+  expect(mockEnqueue).toHaveBeenCalledWith(10, 'dropped-off', { tenantId: 'tenant-a', userId: 7 }, 'PICKED_UP');
+  expect(stopTripTracking).toHaveBeenCalledWith({ rideId: 10, tenantId: 'tenant-a', userId: 7 });
+  expect(driverPortalApi.postRideAction).not.toHaveBeenCalled();
 });

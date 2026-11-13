@@ -22,7 +22,7 @@ export function RideCard({ ride, onPress }: RideCardProps) {
       <View style={styles.row}>
         <View style={styles.headerBlock}>
           <Text style={styles.eyebrow}>Trip assignment</Text>
-          <Text style={styles.rideNumber}>{ride.rideNumber}</Text>
+          <Text style={styles.rideNumber}>{ride.rideNumber}{ride.journeyLeg ? ` • ${ride.journeyLeg === "RETURN" ? "Return" : "Outbound"}` : ""}</Text>
         </View>
         <AppBadge status={ride.status} />
       </View>

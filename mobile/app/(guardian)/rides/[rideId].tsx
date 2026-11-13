@@ -50,6 +50,7 @@ export default function GuardianRideDetailPage() {
 			<View style={styles.heroCard}>
 				<Text style={styles.heroTitle}>Trip details</Text>
 				<Text style={styles.heroRide}>{ride.rideNumber}</Text>
+        {ride.linkedRideId ? <AppButton label={`View ${ride.journeyLeg === 'RETURN' ? 'outbound' : 'return'} journey`} variant="outlined" onPress={() => router.push(`/(guardian)/rides/${ride.linkedRideId}` as never)} /> : null}
 				<View style={styles.heroMetaRow}>
 					<Text style={styles.heroTime}>{formatShortDateTime(ride.scheduledPickupAt)}</Text>
 					<AppBadge status={ride.status} />

@@ -137,6 +137,7 @@ export function DispatchBoardPage() {
   const [bulkResult, setBulkResult] = useState<{ rideId: number; success: boolean; message: string }[] | null>(null);
   const bulkPreviewPassed = selected.length > 0 && bulkResult?.length === selected.length
     && bulkResult.every(result => result.success && selected.includes(result.rideId));
+  const [showMap, setShowMap] = useState(false);
   const [items, setItems] = useState<DispatchRideRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [summary, setSummary] = useState({
@@ -147,6 +148,9 @@ export function DispatchBoardPage() {
     completedTodayCount: 0,
     noShowTodayCount: 0,
   });
+  const [driverSearch, setDriverSearch] = useState("");
+  const [vehicleSearch, setVehicleSearch] = useState("");
+  const [optionError, setOptionError] = useState<string | null>(null);
   const [driverOptions, setDriverOptions] = useState<LookupOption[]>([]);
   const [vehicleOptions, setVehicleOptions] = useState<LookupOption[]>([]);
   const [mapUnavailable, setMapUnavailable] = useState(false);
@@ -158,6 +162,19 @@ export function DispatchBoardPage() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | "">("");
   const [saving, setSaving] = useState(false);
   const [transitioningRideId, setTransitioningRideId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!dialogRide && !bulk) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      void Promise.all([dispatchApi.listDriverOptions(driverSearch), dispatchApi.listVehicleOptions(vehicleSearch)])
+        .then(([drivers, vehicles]) => { if (!active) return; setOptionError(null);
+          setDriverOptions(previous => [...previous.filter(option => option.id === selectedDriverId && !drivers.some(next => next.id === option.id)), ...drivers]);
+          setVehicleOptions(previous => [...previous.filter(option => option.id === selectedVehicleId && !vehicles.some(next => next.id === option.id)), ...vehicles]);
+        }).catch(() => { if (active) setOptionError('Resource search is unavailable. Change the search text to retry.'); });
+    }, 300);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [driverSearch, vehicleSearch, dialogRide?.rideId, bulk]);
 
   const selectedDriverOption =
     selectedDriverId === ""
@@ -209,8 +226,7 @@ export function DispatchBoardPage() {
       setSummary(summaryResponse);
       setMapUnavailable(mapResponse === null);
       if (mapResponse) setMapItems(mapResponse);
-      setDriverOptions(drivers);
-      setVehicleOptions(vehicles);
+      if (!dialogRide && !bulk) { setDriverOptions(drivers); setVehicleOptions(vehicles); }
     } catch {
       if (currentRequest === requestId.current && !activeController.signal.aborted) { resourceCache.current = null; setError("Dispatch board data could not be loaded. Showing the last available data."); }
     } finally {
@@ -353,6 +369,7 @@ export function DispatchBoardPage() {
           <Button onClick={() => { try { const saved = sessionStorage.getItem(savedKey); if (saved) setFilters({ ...defaultFilters(tenantZone), ...JSON.parse(saved) }); } catch { showError('Saved view is unavailable.'); } }}>Restore saved view</Button>
         </Stack>
       </Paper>
+      {!showMap ? <Button onClick={() => setShowMap(true)}>Show map — shares vehicle locations with the map provider</Button> : null}
       <Typography variant="caption" role="status">{loading ? "Refreshing dispatch…" : lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : "Waiting for dispatch data"}</Typography>
       <Stack
         sx={{
@@ -423,7 +440,7 @@ export function DispatchBoardPage() {
             </Typography>
           </Stack>
           {mapUnavailable ? <Alert severity="warning">The map could not refresh. Any displayed locations are from the last successful update.</Alert> : null}
-          {staticMapUrl ? (
+          {staticMapUrl && showMap ? (
             <Box
               component="img"
               src={staticMapUrl}
@@ -773,11 +790,14 @@ export function DispatchBoardPage() {
                 ? `Update dispatch assignments for ${dialogRide.rideNumber}.`
                 : ""}
             </Typography>
+            {optionError ? <Alert severity="error">{optionError}</Alert> : null}
             {bulk ? <Alert severity="info">Preview each ride before saving. Availability can change; any failed assignments will be reported individually.</Alert> : null}
             {bulkResult?.map(result => <Alert key={result.rideId} severity={result.success ? 'success' : 'error'}>Ride #{result.rideId}: {result.message}</Alert>)}
             <Autocomplete
               disabled={saving}
               options={driverOptions}
+              filterOptions={options => options}
+              onInputChange={(_, value, reason) => { if (reason === 'input') setDriverSearch(value); }}
               getOptionLabel={option => `${option.label} ${option.code ?? ''}`}
               value={driverOptions.find(option => option.id === selectedDriverId) ?? null}
               onChange={(_, option) => { setBulkResult(null); setSelectedDriverId(option?.id ?? ""); if (option?.assignedVehicleId) setSelectedVehicleId(option.assignedVehicleId); }}
@@ -786,6 +806,8 @@ export function DispatchBoardPage() {
             <Autocomplete
               disabled={saving}
               options={vehicleOptions}
+              filterOptions={options => options}
+              onInputChange={(_, value, reason) => { if (reason === 'input') setVehicleSearch(value); }}
               getOptionLabel={option => `${option.label} ${option.code ?? ''}`}
               value={vehicleOptions.find(option => option.id === selectedVehicleId) ?? null}
               onChange={(_, option) => { setBulkResult(null); setSelectedVehicleId(option?.id ?? ""); }}

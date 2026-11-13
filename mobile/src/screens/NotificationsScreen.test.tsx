@@ -3,15 +3,17 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import NotificationsScreen from './NotificationsScreen';
 import { notificationsApi } from '@api/notificationsApi';
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+jest.mock('@auth/AuthContext', () => ({ useAuth: () => ({ session: null }) }));
 jest.mock('@expo/vector-icons', () => ({ MaterialCommunityIcons: 'Icon' }));
 jest.mock('@api/notificationsApi', () => ({ notificationsApi: { search: jest.fn(), markRead: jest.fn(), markAllRead: jest.fn() } }));
 const clients: QueryClient[] = [];
 let read = false;
-const alert = { id: 4, subject: 'Pickup update', summary: 'Your pickup time has changed.', notificationType: 'RIDE_UPDATED', channel: 'IN_APP', sentAt: '2026-11-06T12:00:00Z', readStatus: 'UNREAD' };
+const alert = { id: 4, title: 'Pickup update', message: 'Your pickup time has changed.', notificationType: 'RIDE_UPDATED', channel: 'IN_APP', createdAt: '2026-11-06T12:00:00Z', relatedEntityType: null, relatedEntityId: null, sentAt: '2026-11-06T12:00:00Z', readStatus: 'UNREAD' };
 beforeEach(() => {
   jest.clearAllMocks(); read = false;
   jest.mocked(notificationsApi.search).mockImplementation(async params => ({ page: Number(params?.page ?? 0), size: 20, totalPages: 2, totalElements: 2,
-    items: params?.page === 1 ? [{ ...alert, id: 5, subject: 'Earlier alert', readStatus: 'READ' as const }] : [{ ...alert, readStatus: read ? 'READ' as const : 'UNREAD' as const }],
+    items: params?.page === 1 ? [{ ...alert, id: 5, title: 'Earlier alert', readStatus: 'READ' as const }] : [{ ...alert, readStatus: read ? 'READ' as const : 'UNREAD' as const }],
   }));
   jest.mocked(notificationsApi.markRead).mockImplementation(async () => { read = true; });
   jest.mocked(notificationsApi.markAllRead).mockImplementation(async () => { read = true; });

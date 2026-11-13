@@ -20,7 +20,7 @@ import NetInfo, { useNetInfo } from '@react-native-community/netinfo';
 import { startTripTracking, stopTripTracking, useTrackingState } from '../../../src/tracking/activeTrip';
 import { driverPortalApi, type DriverRideAction } from '@api/driverPortalApi';
 import { TripTrackingCard } from '@components/TripTrackingCard';
-import { useOfflineQueue } from '@stores/offlineQueueStore';
+import { useOfflineQueue, pendingTripStatus } from '@stores/offlineQueueStore';
 import { AppBadge, AppButton, AppInput } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { Spacing, Typography } from '@theme/tokens';
@@ -61,17 +61,23 @@ export default function DriverRideDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const network = useNetInfo();
-  const { enqueue, queue, conflicts, dismissConflict, retry } = useOfflineQueue();
+  const { enqueue, queue, conflicts, dismissConflict, retry, cancelTripActions } = useOfflineQueue();
   const { session } = useAuth();
   const actionInFlightRef = React.useRef(false);
   const [note, setNote] = React.useState('');
 
-  const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
+  const { data: serverRide, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-ride', rideId],
     refetchInterval: query => query.state.data && !['COMPLETED', 'CANCELLED', 'FAILED', 'RIDER_NO_SHOW', 'MISSED'].includes(query.state.data.status) ? 15000 : false,
     queryFn: () => driverPortalApi.getRide(Number(rideId)),
     enabled: !!rideId,
   });
+
+  const ride = serverRide && session?.identity.tenantId ? { ...serverRide,
+    status: pendingTripStatus(serverRide.status, serverRide.id, { tenantId: session.identity.tenantId, userId: session.identity.id }, queue) as typeof serverRide.status,
+  } : serverRide;
+  const pendingActions = queue.filter(item => item.rideId === Number(rideId) && item.userId === session?.identity.id && item.tenantId === session?.identity.tenantId);
+  const blockedActions = pendingActions.some(item => item.failed) || conflicts.some(item => item.rideId === Number(rideId) && item.userId === session?.identity.id && item.tenantId === session?.identity.tenantId);
 
   const {
     data: locationSnapshot,
@@ -107,7 +113,7 @@ export default function DriverRideDetailPage() {
   });
 
   async function handleAction(action: DriverRideAction, label: string) {
-    if (actionInFlightRef.current) {
+    if (actionInFlightRef.current || blockedActions) {
       return;
     }
     actionInFlightRef.current = true;
@@ -119,7 +125,7 @@ export default function DriverRideDetailPage() {
       Alert.alert('Connection unavailable', 'Try the trip action again when your connection is available.');
       return;
     }
-    if (!net.isConnected || net.isInternetReachable === false) {
+    if (!net.isConnected || net.isInternetReachable === false || pendingActions.length > 0) {
       if (!session?.identity.tenantId || !ride) {
         actionInFlightRef.current = false;
         return;
@@ -128,6 +134,9 @@ export default function DriverRideDetailPage() {
         { text: 'Cancel', style: 'cancel', onPress: () => { actionInFlightRef.current = false; } },
         { text: 'Confirm', onPress: () => {
           enqueue(Number(rideId), action, { tenantId: session.identity.tenantId!, userId: session.identity.id }, ride.status);
+          if (['dropped-off', 'failed', 'no-show', 'complete'].includes(action)) {
+            void stopTripTracking({ rideId: Number(rideId), tenantId: session.identity.tenantId!, userId: session.identity.id });
+          }
           actionInFlightRef.current = false;
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           Alert.alert('Offline', `Action "${label}" will sync when you're back online.`);
@@ -195,19 +204,21 @@ export default function DriverRideDetailPage() {
     >
       <View style={styles.heroCard}>
         <View style={styles.heroTopRow}>
-          <Text style={styles.heroTitle}>Current Trip</Text>
+          <Text style={styles.heroTitle}>{ride.journeyLeg === "RETURN" ? "Return journey" : ride.journeyLeg === "OUTBOUND" ? "Outbound journey" : "Current trip"}</Text>
           <Text style={[styles.onlineBadge, { backgroundColor: network.isConnected ? colors.success : colors.warning }]}>{network.isConnected ? "Online" : "Offline"}</Text>
         </View>
         <Text style={styles.rideNumberHero}>{ride.rideNumber}</Text>
         <View style={styles.heroMetaRow}>
           <Text style={styles.heroSchedule}>{formatShortDateTime(ride.scheduledPickupAt)}</Text>
           <AppBadge status={ride.status} />
+          {pendingActions.length > 0 ? <Text style={styles.instructions}>Pending on this device • dispatch last confirmed {serverRide?.status.replace(/_/g, " ")}</Text> : null}
         </View>
       </View>
 
       <Text accessibilityRole="text" style={{ fontFamily: Typography.fontBody, color: colors.textSecondary, lineHeight: 22 }}>{tracking.rideId === ride.id ? tracking.message : 'Tracking is off for this trip'}{tracking.rideId === ride.id && tracking.lastSyncedAt ? ` • Last synced ${new Date(tracking.lastSyncedAt).toLocaleTimeString()}` : ""}</Text>
       <Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>← Dispatches</Text>
 
+      {ride.linkedRideId ? <Text style={styles.instructions}>This is the {ride.journeyLeg?.toLowerCase()} leg. The paired journey has a separate assignment and completion status. Contact dispatch for changes.</Text> : null}
       {/* Action */}
       {(primaryAction || secondaryActions.length > 0) && (
         <Section title="Trip Actions">
@@ -230,6 +241,7 @@ export default function DriverRideDetailPage() {
                   label={primaryAction.label}
                   onPress={() => handleAction(primaryAction.action, primaryAction.label)}
                   loading={actionPending}
+                  disabled={blockedActions}
                   fullWidth
                   size="lg"
                 />
@@ -243,7 +255,7 @@ export default function DriverRideDetailPage() {
                   key={item.action}
                   label={item.label}
                   onPress={() => handleAction(item.action, item.label)}
-                  disabled={actionPending}
+                  disabled={actionPending || blockedActions}
                   variant="outlined"
                   fullWidth
                 />
@@ -310,6 +322,9 @@ export default function DriverRideDetailPage() {
             {queuedAction.failed ? queuedAction.error : `${queuedAction.action.replace(/-/g, " ")} will sync when a connection is available.`}
           </Text>
           {queuedAction.failed ? <AppButton label="Retry sync" onPress={() => retry(queuedAction.id)} /> : null}
+          <AppButton label="Discard unsent trip updates" variant="ghost" onPress={() => Alert.alert('Discard unsent updates?', 'These milestones will not reach dispatch. Contact dispatch to reconcile what happened before discarding.', [
+            { text: 'Keep updates', style: 'cancel' }, { text: 'Discard', style: 'destructive', onPress: () => { if (session?.identity.tenantId) cancelTripActions(Number(rideId), { tenantId: session.identity.tenantId, userId: session.identity.id }); void refetch(); } },
+          ])} />
         </View>
       ) : null}
 

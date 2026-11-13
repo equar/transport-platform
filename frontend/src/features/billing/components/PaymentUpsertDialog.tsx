@@ -376,7 +376,7 @@ export function PaymentUpsertDialog({
               minRows={3}
               fullWidth
             />
-            <FormControlLabel
+            {!payment ? <FormControlLabel
               control={
                 <Checkbox
                   checked={form.applyImmediately ?? true}
@@ -386,7 +386,7 @@ export function PaymentUpsertDialog({
                 />
               }
               label="Apply immediately to the invoice balance"
-            />
+            /> : null}
           </Stack>
 
           {preview ? (

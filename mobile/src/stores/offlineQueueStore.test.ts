@@ -1,5 +1,5 @@
 import { driverPortalApi } from '@api/driverPortalApi';
-import { useOfflineQueue } from './offlineQueueStore';
+import { pendingTripStatus, useOfflineQueue } from './offlineQueueStore';
 jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn() }));
 jest.mock('@api/driverPortalApi', () => ({ driverPortalApi: { getRide: jest.fn(), postRideAction: jest.fn() } }));
 const api = jest.mocked(driverPortalApi);
@@ -10,7 +10,7 @@ it('replays the original idempotency key without rejecting a previously committe
   const id = useOfflineQueue.getState().enqueue(11, 'picked-up', owner, 'ARRIVED');
   api.postRideAction.mockResolvedValueOnce({ status: 'PICKED_UP' } as never);
   expect(await useOfflineQueue.getState().drain(owner)).toEqual({ success: 1, failed: 0, conflicts: 0 });
-  expect(api.postRideAction).toHaveBeenCalledWith(11, 'picked-up', id, 'ARRIVED');
+  expect(api.postRideAction).toHaveBeenCalledWith(11, 'picked-up', id, 'ARRIVED', '2026-09-04T12:00:00.000Z');
   expect(api.getRide).not.toHaveBeenCalled();
 });
 it('retains exhausted failures and supports a manual retry', async () => {
@@ -65,4 +65,31 @@ it('keeps this driver’s unsent work on reauthentication and removes every fore
   useOfflineQueue.getState().retainOwner(owner);
   expect(useOfflineQueue.getState().queue).toHaveLength(1);
   expect(useOfflineQueue.getState().queue[0]).toMatchObject({ tenantId: owner.tenantId, userId: owner.userId, rideId: 11 });
+});
+
+it('does not replay a dependent milestone while the preceding step is waiting for retry', async () => {
+  useOfflineQueue.getState().enqueue(11, 'arrived', owner, 'DRIVER_EN_ROUTE');
+  useOfflineQueue.getState().enqueue(11, 'picked-up', owner, 'ARRIVED');
+  api.postRideAction.mockRejectedValueOnce(new Error('Offline'));
+  await useOfflineQueue.getState().drain(owner);
+  expect(api.postRideAction).toHaveBeenCalledTimes(1);
+  api.postRideAction.mockClear();
+  await useOfflineQueue.getState().drain(owner);
+  expect(api.postRideAction).not.toHaveBeenCalled();
+  jest.advanceTimersByTime(60000);
+  api.postRideAction.mockResolvedValue({} as never);
+  await useOfflineQueue.getState().drain(owner);
+  expect(useOfflineQueue.getState().queue).toHaveLength(0);
+  expect(api.postRideAction).toHaveBeenNthCalledWith(1, 11, 'arrived', expect.any(String), 'DRIVER_EN_ROUTE', expect.any(String));
+  expect(api.postRideAction).toHaveBeenNthCalledWith(2, 11, 'picked-up', expect.any(String), 'ARRIVED', expect.any(String));
+});
+
+it('projects a complete pending trip only for the same tenant, driver and journey', () => {
+  const actions = ['driver-en-route', 'arrived', 'picked-up', 'dropped-off', 'complete'] as const;
+  const states = ['ASSIGNED', 'DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP', 'DROPPED_OFF'];
+  actions.forEach((action, index) => useOfflineQueue.getState().enqueue(11, action, owner, states[index]));
+  const queue = useOfflineQueue.getState().queue;
+  expect(pendingTripStatus('ASSIGNED', 11, owner, queue)).toBe('COMPLETED');
+  expect(pendingTripStatus('ASSIGNED', 12, owner, queue)).toBe('ASSIGNED');
+  expect(pendingTripStatus('ASSIGNED', 11, { ...owner, tenantId: 'tenant-b' }, queue)).toBe('ASSIGNED');
 });

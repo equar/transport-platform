@@ -1,3 +1,6 @@
+import { useRouter } from 'expo-router';
+import { useAuth } from '@auth/AuthContext';
+import { mobileRoleGroup } from '@auth/access';
 import { Alert, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
@@ -13,6 +16,9 @@ import { formatShortDateTime } from '@utils/formatDate';
 export default function NotificationsScreen() {
   const styles = useThemedStyles(createStyles);
   const client = useQueryClient();
+  const router = useRouter();
+  const { session } = useAuth();
+  const group = mobileRoleGroup(session);
   const query = useInfiniteQuery({ queryKey: ['notifications'], initialPageParam: 0,
     queryFn: ({ pageParam }) => notificationsApi.search({ page: pageParam, size: 20 }),
     getNextPageParam: last => last.page+1 < last.totalPages ? last.page+1 : undefined });
@@ -29,9 +35,10 @@ export default function NotificationsScreen() {
     <FlatList data={items} keyExtractor={item => String(item.id)} refreshControl={<RefreshControl refreshing={query.isRefetching && !query.isFetchingNextPage} onRefresh={() => void query.refetch()} />}
       contentContainerStyle={styles.list} ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
       renderItem={({ item }) => <AppCard style={item.readStatus === 'UNREAD' ? styles.unread : styles.item}>
-        <View style={styles.metaRow}><AppBadge status={item.notificationType} /><Text style={styles.date}>{formatShortDateTime(item.sentAt)}</Text></View>
-        {!!item.subject && <Text style={styles.subject}>{item.subject}</Text>}
-        <Text style={styles.body}>{item.summary}</Text>
+        <View style={styles.metaRow}><AppBadge status={item.notificationType} /><Text style={styles.date}>{formatShortDateTime(item.sentAt ?? item.createdAt)}</Text></View>
+        {!!item.title && <Text style={styles.subject}>{item.title}</Text>}
+        <Text style={styles.body}>{item.message}</Text>
+        {group && item.relatedEntityType === 'RIDE' && Number.isSafeInteger(Number(item.relatedEntityId)) && Number(item.relatedEntityId) > 0 ? <AppButton label="View trip" variant="outlined" onPress={() => router.push(`/${group}/rides/${Number(item.relatedEntityId)}` as never)} /> : null}
         {item.readStatus === 'UNREAD' && <AppButton label="Mark as read" variant="ghost" size="sm" disabled={mark.isPending} onPress={() => mark.mutate(item.id)} />}
       </AppCard>}
       ListEmptyComponent={<EmptyState title="You’re all caught up" description="Your provider’s updates and trip alerts will appear here." />}

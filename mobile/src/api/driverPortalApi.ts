@@ -139,6 +139,8 @@ export interface DriverPortalComplianceSummaryRecord {
 }
 
 export interface DriverPortalRideSummaryRecord {
+  linkedRideId?: number | null;
+  journeyLeg?: string | null;
   id: number;
   rideNumber: string;
   status: DriverPortalRideStatus;
@@ -258,9 +260,9 @@ export const driverPortalApi = {
     const r = await apiClient.get(`${base}/rides/${rideId}/location-snapshot`);
     return unwrapResponse<DriverRideLocationSnapshotRecord | null>(r.data);
   },
-  async postRideAction(rideId: number, action: DriverRideAction, idempotencyKey?: string, expectedStatus?: string) {
+  async postRideAction(rideId: number, action: DriverRideAction, idempotencyKey?: string, expectedStatus?: string, occurredAt?: string) {
     const r = await apiClient.post(`${base}/rides/${rideId}/actions/${action}`, undefined, {
-      headers: { ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}), ...(expectedStatus ? { 'X-Expected-Ride-Status': expectedStatus } : {}) },
+      headers: { ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}), ...(expectedStatus ? { 'X-Expected-Ride-Status': expectedStatus } : {}), ...(occurredAt ? { 'X-Occurred-At': occurredAt } : {}) },
     });
     return unwrapResponse<DriverPortalRideDetailRecord>(r.data);
   },

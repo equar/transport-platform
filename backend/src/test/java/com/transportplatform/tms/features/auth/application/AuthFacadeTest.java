@@ -134,8 +134,16 @@ class AuthFacadeTest {
     @Mock
     private com.transportplatform.tms.features.companyapplication.application.TenantEmailVerificationService onboarding;
 
+    @Mock
+    private MfaService mfa;
+
     @InjectMocks
     private AuthFacade authFacade;
+
+    @org.junit.jupiter.api.BeforeEach
+    void injectMfaService() {
+        ReflectionTestUtils.setField(authFacade, "mfa", mfa);
+    }
 
     @Test
     void completedApprovedOwnerCanLoginAfterPendingWorkspaceRecovery() {

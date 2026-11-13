@@ -62,6 +62,15 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long>, JpaSpec
                         """)
         Optional<AppUser> findByPasswordResetTokenHash(@Param("tokenHash") String tokenHash);
 
+        @org.springframework.data.jpa.repository.Modifying
+        @Query("update AppUser u set u.mfaLastCounter=:counter where u.id=:id and u.mfaSecret=:secret and u.mfaLastCounter<:counter")
+        int consumeMfaCounter(@Param("id") Long id, @Param("secret") String secret, @Param("counter") long counter);
+
+        @org.springframework.data.jpa.repository.Modifying
+        @Query("update AppUser u set u.mfaRecoveryHashes=:remaining where u.id=:id and u.mfaSecret=:secret and u.mfaRecoveryHashes=:previous")
+        int consumeMfaRecovery(@Param("id") Long id, @Param("secret") String secret,
+                @Param("previous") String previous, @Param("remaining") String remaining);
+
         List<AppUser> findAllByTenantId(String tenantId);
 
         long countByStatus(UserStatus status);

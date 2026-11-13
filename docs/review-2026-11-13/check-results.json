@@ -1,0 +1,28 @@
+{
+  "commit": "ea96b44e46ba71126476e88991dfaadccac12c55",
+  "backend": {
+    "tests": 286,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "web": {
+    "suites": 22,
+    "tests": 67,
+    "build": "passed",
+    "generatedContracts": "matched"
+  },
+  "mobile": {
+    "suites": 23,
+    "tests": 67,
+    "typecheck": "passed",
+    "lint": "failed: 10 errors"
+  },
+  "deployment": {
+    "tests": 23,
+    "result": "passed"
+  },
+  "visualInspection": "blocked: browser host unavailable; native app timed out",
+  "physicalDeviceTests": "not performed",
+  "productionDeployment": "not performed"
+}

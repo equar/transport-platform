@@ -1,5 +1,5 @@
 import {
-  Alert,
+  Autocomplete,  Alert,
   Collapse,
   Button,
   Dialog,
@@ -125,6 +125,9 @@ export function RideUpsertDialog({
   const [referenceLoading, setReferenceLoading] = useState(false);
   const [riderDefaultsLoading, setRiderDefaultsLoading] = useState(false);
   const [riderDefaultsMessage, setRiderDefaultsMessage] = useState("");
+  const [riderSearch, setRiderSearch] = useState("");
+  const [contractSearch, setContractSearch] = useState("");
+  const [areaSearch, setAreaSearch] = useState("");
   const [riderOptions, setRiderOptions] = useState<LookupOption[]>([]);
   const [guardianOptions, setGuardianOptions] = useState<LookupOption[]>([]);
   const [organizationOptions, setOrganizationOptions] = useState<
@@ -147,6 +150,7 @@ export function RideUpsertDialog({
       setForm(emptyForm());
     } else {
       setForm({
+        expectedVersion: ride.version,
         riderId: ride.riderId,
         guardianId: ride.guardianId,
         organizationId: ride.organizationId,
@@ -189,11 +193,12 @@ export function RideUpsertDialog({
       ridesApi.listServiceAreaOptions(),
     ])
       .then(([riders, organizations, contracts, serviceAreas]) => {
-        setRiderOptions(riders);
+        setRiderOptions(ride && !riders.some(option => option.id === ride.riderId) ? [{ id: ride.riderId, code: ride.riderCode, label: ride.riderName }, ...riders] : riders);
         setOrganizationOptions(organizations);
-        setContractOptions(contracts);
-        setServiceAreaOptions(serviceAreas);
+        setContractOptions(ride?.contractId && !contracts.some(option => option.id === ride.contractId) ? [{ id: ride.contractId, code: ride.contractCode ?? undefined, label: ride.contractName ?? `Contract #${ride.contractId}`, relatedOrganizationId: ride.organizationId ?? undefined }, ...contracts] : contracts);
+        setServiceAreaOptions(ride?.serviceAreaId && !serviceAreas.some(option => option.id === ride.serviceAreaId) ? [{ id: ride.serviceAreaId, label: ride.serviceAreaName ?? `Area #${ride.serviceAreaId}` }, ...serviceAreas] : serviceAreas);
       })
+      .catch(() => { setRiderOptions([]); setOrganizationOptions([]); setContractOptions([]); setServiceAreaOptions([]); setRiderDefaultsMessage("Reference data could not be loaded. Close and reopen this form to retry."); })
       .finally(() => setReferenceLoading(false));
   }, [open, ride]);
 
@@ -202,10 +207,27 @@ export function RideUpsertDialog({
       setGuardianOptions([]);
       return;
     }
-    void ridesApi
-      .listGuardianOptionsForRider(form.riderId)
-      .then(setGuardianOptions);
+    let active = true;
+    setGuardianOptions([]);
+    void ridesApi.listGuardianOptionsForRider(form.riderId)
+      .then(options => { if (active) setGuardianOptions(options); })
+      .catch(() => { if (active) setRiderDefaultsMessage("Guardian choices could not be loaded. Re-select the rider to retry."); });
+    return () => { active = false; };
   }, [form.riderId, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      void Promise.all([ridesApi.listRiderOptions(riderSearch), ridesApi.listContractOptions(contractSearch), ridesApi.listServiceAreaOptions(areaSearch)])
+        .then(([riders, contracts, areas]) => { if (!active) return;
+          setRiderOptions(previous => [...previous.filter(option => option.id === form.riderId && !riders.some(next => next.id === option.id)), ...riders]);
+          setContractOptions(previous => [...previous.filter(option => option.id === form.contractId && !contracts.some(next => next.id === option.id)), ...contracts]);
+          setServiceAreaOptions(previous => [...previous.filter(option => option.id === form.serviceAreaId && !areas.some(next => next.id === option.id)), ...areas]);
+        }).catch(() => { if (active) setErrors(previous => ({ ...previous, riderId: 'Reference search unavailable. Change your search to retry.' })); });
+    }, 300);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [open, riderSearch, contractSearch, areaSearch]);
 
   const filteredContracts = form.organizationId
     ? contractOptions.filter(
@@ -405,26 +427,15 @@ export function RideUpsertDialog({
             "Select the rider and optional linked contract, guardian, and service area context.",
           )}
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-            <TextField
-              select
-              label="Rider"
-              value={form.riderId ?? ""}
-              onChange={(event) => {
-                const riderId = toNullableNumber(event.target.value);
-                void selectRider(riderId);
-              }}
-              fullWidth
-              error={Boolean(errors.riderId)}
-              helperText={errors.riderId}
-              disabled={referenceLoading || riderDefaultsLoading}
-            >
-              {riderOptions.map((option) => (
-                <MenuItem key={option.id} value={option.id}>
-                  {option.code ? `${option.code} · ` : ""}
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Autocomplete
+              options={riderOptions} value={riderOptions.find(option => option.id === form.riderId) ?? null}
+              filterOptions={options => options} getOptionLabel={option => `${option.code ?? ''} ${option.label}`.trim()}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              onInputChange={(_, value, reason) => { if (reason === 'input') setRiderSearch(value); }}
+              onChange={(_, option) => { void selectRider(option?.id ?? null); }}
+              fullWidth disabled={referenceLoading}
+              renderInput={params => <TextField {...params} label="Rider" error={Boolean(errors.riderId)} helperText={errors.riderId || 'Type a name or code to search'} />}
+            />
             <TextField
               select
               label="Guardian"
@@ -477,40 +488,24 @@ export function RideUpsertDialog({
             </Alert>
           ) : null}
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-            <TextField
-              select
-              label="Contract"
-              value={form.contractId ?? ""}
-              onChange={(event) =>
-                setField("contractId", toNullableNumber(event.target.value))
-              }
-              fullWidth
-            >
-              <MenuItem value="">No contract</MenuItem>
-              {filteredContracts.map((option) => (
-                <MenuItem key={option.id} value={option.id}>
-                  {option.code ? `${option.code} · ` : ""}
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              label="Service Area"
-              value={form.serviceAreaId ?? ""}
-              onChange={(event) =>
-                setField("serviceAreaId", toNullableNumber(event.target.value))
-              }
-              fullWidth
-            >
-              <MenuItem value="">No service area</MenuItem>
-              {serviceAreaOptions.map((option) => (
-                <MenuItem key={option.id} value={option.id}>
-                  {option.code ? `${option.code} · ` : ""}
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Autocomplete
+              options={filteredContracts} value={filteredContracts.find(option => option.id === form.contractId) ?? null}
+              filterOptions={options => options} getOptionLabel={option => `${option.code ?? ''} ${option.label}`.trim()}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              onInputChange={(_, value, reason) => { if (reason === 'input') setContractSearch(value); }}
+              onChange={(_, option) => { setField("contractId", option?.id ?? null); }}
+              fullWidth disabled={referenceLoading}
+              renderInput={params => <TextField {...params} label="Contract" error={Boolean(errors.contractId)} helperText={errors.contractId || 'Type a name or code to search'} />}
+            />
+            <Autocomplete
+              options={serviceAreaOptions} value={serviceAreaOptions.find(option => option.id === form.serviceAreaId) ?? null}
+              filterOptions={options => options} getOptionLabel={option => `${option.code ?? ''} ${option.label}`.trim()}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              onInputChange={(_, value, reason) => { if (reason === 'input') setAreaSearch(value); }}
+              onChange={(_, option) => { setField("serviceAreaId", option?.id ?? null); }}
+              fullWidth disabled={referenceLoading}
+              renderInput={params => <TextField {...params} label="Service Area" error={Boolean(errors.serviceAreaId)} helperText={errors.serviceAreaId || 'Type a name or code to search'} />}
+            />
             {!ride ? (
               <TextField
                 select

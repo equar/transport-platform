@@ -45,10 +45,10 @@ async function send(location: Location.LocationObject, trip: ActiveTrip, epoch: 
   if (epoch !== trackingGeneration || !sameTrip(await owner(), trip) || epoch !== trackingGeneration) return;
   await driverPortalApi.captureRideLocationSnapshot(trip.rideId, {
     latitude: location.coords.latitude, longitude: location.coords.longitude,
-    accuracyMeters: location.coords.accuracy, speedMps: location.coords.speed,
-    headingDegrees: location.coords.heading, capturedAt: new Date(location.timestamp).toISOString(),
+    accuracyMeters: location.coords.accuracy, speedMps: location.coords.speed != null && location.coords.speed >= 0 ? location.coords.speed : null,
+    headingDegrees: location.coords.heading != null && location.coords.heading >= 0 && location.coords.heading <= 360 ? location.coords.heading : null, capturedAt: new Date(location.timestamp).toISOString(),
   });
-  if (epoch === trackingGeneration) useTrackingState.setState({ active: true, lastSyncedAt: new Date().toISOString() });
+  if (epoch === trackingGeneration) useTrackingState.setState({ rideId: trip.rideId, active: true, message: useTrackingState.getState().message === 'Tracking is off' ? 'Active trip location sharing' : useTrackingState.getState().message, lastSyncedAt: new Date().toISOString() });
 }
 async function syncFailure(error: unknown, trip: ActiveTrip | null, epoch: number) {
   if (epoch !== trackingGeneration) return;

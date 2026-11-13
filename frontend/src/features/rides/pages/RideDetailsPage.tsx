@@ -404,6 +404,8 @@ export function RideDetailsPage() {
             Ride Summary
           </Typography>
           <Typography variant="h3">{ride.rideNumber}</Typography>
+          {ride.linkedRideId ? <Alert severity="info">{ride.journeyLeg === 'RETURN' ? 'Return' : 'Outbound'} journey. Each leg is assigned, billed, cancelled, and completed separately. <Button component={RouterLink} to={`/company/rides/${ride.linkedRideId}`}>View paired journey</Button></Alert> : null}
+          {ride.tripType === 'ROUND_TRIP' && !ride.linkedRideId ? <Button onClick={() => { void ridesApi.splitRoundTrip(ride.id).then(() => window.location.reload()).catch(error => showError(error, 'The round trip could not be split.')); }}>Split into outbound and return journeys</Button> : null}
           <Stack
             direction={{ xs: "column", md: "row" }}
             spacing={1.5}
@@ -988,7 +990,7 @@ export function RideDetailsPage() {
       <RideCancellationDialog
         open={cancelOpen}
         loading={cancelLoading}
-        rideLabel={ride.rideNumber}
+        rideLabel={ride.linkedRideId ? `${ride.rideNumber} (this leg only; the paired journey is separate)` : ride.rideNumber}
         onClose={() => setCancelOpen(false)}
         onSubmit={handleCancel}
       />

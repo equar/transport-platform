@@ -1,3 +1,4 @@
+import { withSessionCookieLock } from '../../../shared/api/sessionLock';
 import { apiClient, unwrapResponse } from '../../../shared/api/client';
 import type { AuthSession, LoginPayload } from '../types';
 
@@ -34,7 +35,7 @@ interface ChangePasswordPayload {
 
 export const authApi = {
   async signIn(payload: LoginPayload): Promise<AuthSession> {
-    const response = await apiClient.post('/v1/auth/login', payload);
+    const response = await withSessionCookieLock(() => apiClient.post('/v1/auth/login', payload));
     const tokens = unwrapResponse<AuthTokensResponse>(response.data);
 
     return {
@@ -47,7 +48,7 @@ export const authApi = {
   },
 
   async restoreSession(): Promise<AuthSession> {
-    const response = await apiClient.post('/v1/auth/refresh');
+    const response = await withSessionCookieLock(() => apiClient.post('/v1/auth/refresh'));
     const tokens = unwrapResponse<AuthTokensResponse>(response.data);
     return {
       accessToken: tokens.accessToken,
@@ -58,7 +59,7 @@ export const authApi = {
   },
 
   async signOut() {
-    await apiClient.post('/v1/auth/logout');
+    await withSessionCookieLock(() => apiClient.post('/v1/auth/logout'));
   },
 
   async changePassword(payload: ChangePasswordPayload) {

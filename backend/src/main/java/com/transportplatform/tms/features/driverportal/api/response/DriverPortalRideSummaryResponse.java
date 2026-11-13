@@ -18,5 +18,5 @@ public record DriverPortalRideSummaryResponse(
         String organizationName,
         String pickupAddress,
         String dropoffAddress,
-        Long routeId) {
+        Long routeId, Long linkedRideId, String journeyLeg) {
 }

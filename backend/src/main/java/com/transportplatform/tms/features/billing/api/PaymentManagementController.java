@@ -83,7 +83,7 @@ public class PaymentManagementController {
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<PaymentDetailResponse> createCompanyPayment(
-            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
+            @RequestHeader(name = "Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody PaymentUpsertRequest request) {
         return ApiResponse.success(paymentService.createCompanyPayment(request, idempotencyKey));
     }

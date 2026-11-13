@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { StyleSheet, View, ViewStyle, useWindowDimensions } from 'react-native';
+import { View, ViewStyle, useWindowDimensions } from 'react-native';
 import { Density, Radius, Shadow, Spacing } from '@theme/tokens';
 import { useThemedStyles } from '@theme/ThemeProvider';
 

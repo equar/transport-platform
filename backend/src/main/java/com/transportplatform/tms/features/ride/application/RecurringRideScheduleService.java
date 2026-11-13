@@ -33,6 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RecurringRideScheduleService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private RideJourneyService journeys;
 
     private final RecurringRideScheduleRepository recurringRideScheduleRepository;
     private final RideRepository rideRepository;
@@ -44,6 +46,7 @@ public class RecurringRideScheduleService {
     private final RideEventService rideEventService;
     private final AuditLogService auditLogService;
     private final Clock clock;
+    private final com.transportplatform.tms.features.settings.domain.TenantSettingsRepository operationalSettings;
 
     public RecurringRideScheduleService(RecurringRideScheduleRepository recurringRideScheduleRepository,
             RideRepository rideRepository,
@@ -54,7 +57,7 @@ public class RecurringRideScheduleService {
             RideCodeGenerator rideCodeGenerator,
             RideEventService rideEventService,
             AuditLogService auditLogService,
-            Clock clock) {
+            Clock clock, com.transportplatform.tms.features.settings.domain.TenantSettingsRepository operationalSettings) {
         this.recurringRideScheduleRepository = recurringRideScheduleRepository;
         this.rideRepository = rideRepository;
         this.rideAccessService = rideAccessService;
@@ -65,6 +68,7 @@ public class RecurringRideScheduleService {
         this.rideEventService = rideEventService;
         this.auditLogService = auditLogService;
         this.clock = clock;
+        this.operationalSettings = operationalSettings;
     }
 
     @Transactional(readOnly = true)
@@ -184,10 +188,15 @@ public class RecurringRideScheduleService {
     @Transactional
     public RideGenerationResultResponse generateCompanyRecurringRideInstances(Long recurrenceId,
             GenerateRecurringRideInstancesRequest request) {
+        if (ChronoUnit.DAYS.between(request.fromDate(), request.toDate()) > 365) {
+            throw validationFailure("Generate at most 366 days at a time.");
+        }
         if (request.toDate().isBefore(request.fromDate())) {
             throw validationFailure("Generation end date cannot be earlier than the start date.");
         }
-        RecurringRideSchedule schedule = rideAccessService.findRecurringRideScheduleForCompanyScope(recurrenceId);
+        RecurringRideSchedule schedule = recurringRideScheduleRepository.lockForGeneration(recurrenceId,
+                rideAccessService.requireCompanyTenantId()).orElseThrow(() ->
+                        new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Recurring schedule not found."));
         RideRecurrenceStatusWorkflow.ensureCanGenerate(schedule.getStatus());
 
         LocalDate start = request.fromDate().isAfter(schedule.getStartDate()) ? request.fromDate()
@@ -200,6 +209,14 @@ public class RecurringRideScheduleService {
                     "No rides were generated because the selected range does not overlap the recurrence window.");
         }
 
+        rideReferenceValidationService.resolve(schedule.getTenantId(), schedule.getRider().getId(),
+                schedule.getGuardian() == null ? null : schedule.getGuardian().getId(),
+                schedule.getOrganization() == null ? null : schedule.getOrganization().getId(),
+                schedule.getContract() == null ? null : schedule.getContract().getId(),
+                schedule.getServiceArea() == null ? null : schedule.getServiceArea().getId());
+        var zone = java.time.ZoneId.of(operationalSettings.findById(schedule.getTenantId()).map(s -> s.getTimezone()).orElse("UTC"));
+        var policy = operationalSettings.findById(schedule.getTenantId()).orElseGet(() -> com.transportplatform.tms.features.settings.application.CompanySettingsService.defaultSettings(schedule.getTenantId()));
+        if (schedule.getTripType() == RideTripType.ROUND_TRIP && !policy.isAllowRoundTripRides()) throw validationFailure("Round trips are disabled for this company.");
         int createdCount = 0;
         int duplicateCount = 0;
         int skippedCount = 0;
@@ -209,8 +226,8 @@ public class RecurringRideScheduleService {
         for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
             if (schedule.getOccurrenceLimit() != null
                     && existingCount + createdCount >= schedule.getOccurrenceLimit()) {
-                skippedCount++;
-                continue;
+                skippedCount += (int) ChronoUnit.DAYS.between(date, end) + 1;
+                break;
             }
             if (schedule.getSkipDates().contains(date) || !matches(date, schedule)) {
                 skippedCount++;
@@ -262,8 +279,14 @@ public class RecurringRideScheduleService {
             ride.setBillingType(schedule.getBillingType());
             ride.setRecurrenceSchedule(schedule);
             ride.setStatus(RideStatus.SCHEDULED);
+            for (var time : new LocalDateTime[] {ride.getScheduledPickupAt(), ride.getScheduledDropoffAt(), ride.getReturnPickupAt(), ride.getReturnDropoffAt()}) {
+                if (time != null && zone.getRules().getValidOffsets(time).size() != 1) {
+                    throw validationFailure("A generated time is ambiguous or unavailable during daylight saving. Add that date to skipped dates and arrange an explicit replacement trip.");
+                }
+            }
             validateGeneratedRide(ride);
             Ride saved = rideRepository.save(ride);
+            if (saved.getTripType() == RideTripType.ROUND_TRIP) journeys.split(saved);
             rideEventService.recordRideCreated(saved,
                     "Ride generated from recurring schedule " + schedule.getRecurrenceCode() + ".");
             recordGeneratedRideAudit(saved, schedule);

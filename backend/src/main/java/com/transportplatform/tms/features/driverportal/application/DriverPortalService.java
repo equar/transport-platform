@@ -347,6 +347,8 @@ public class DriverPortalService {
     @Transactional
     public DriverPortalRideDetailResponse markRideDriverEnRoute(Long rideId) {
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
+        if (ride.getTripType() == com.transportplatform.tms.features.ride.domain.RideTripType.ROUND_TRIP) throw new ApiException(
+                ErrorCode.RESOURCE_CONFLICT,HttpStatus.CONFLICT,"Dispatch must split this existing round trip into outbound and return journeys before departure.");
         RideStatusWorkflow.ensureCanMarkDriverEnRoute(ride.getStatus());
         if (ride.getDriverId() == null || ride.getVehicleId() == null) {
             throw validationFailure("Both driver and vehicle are required before departure. Contact dispatch.");

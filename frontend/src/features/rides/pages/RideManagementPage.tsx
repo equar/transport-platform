@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '../../../shared/api/client';
 import { useUrlFilters } from "../../../shared/hooks/useUrlFilters";
 import {
   Alert,
@@ -23,7 +24,7 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
@@ -89,22 +90,27 @@ export function RideManagementPage() {
   const [cancelRide, setCancelRide] = useState<RideRecord | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
 
+  const loadGeneration = useRef(0);
   async function loadRides() {
+    const generation = ++loadGeneration.current;
     setLoading(true);
     setError(null);
     try {
       const response = await ridesApi.search(filters);
+      if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
     } catch {
+      if (generation !== loadGeneration.current) return;
       setError("Rides could not be loaded.");
     } finally {
-      setLoading(false);
+      if (generation === loadGeneration.current) setLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadRides();
+    const timer = window.setTimeout(() => void loadRides(), 250);
+    return () => { window.clearTimeout(timer); loadGeneration.current++; };
   }, [filters]);
 
   function updateFilters<K extends keyof RideSearchParams>(
@@ -125,14 +131,14 @@ export function RideManagementPage() {
         await ridesApi.update(selectedRide.id, payload);
         showSuccess("Ride updated successfully.");
       } else {
-        await ridesApi.create(payload);
-        showSuccess("Ride created successfully.");
+        const created = await ridesApi.create(payload);
+        showSuccess(created.linkedRideId ? "Outbound and return journeys created. Assign each leg separately." : "Ride created successfully.");
       }
       setDialogOpen(false);
       setSelectedRide(null);
       await loadRides();
-    } catch {
-      showError("Ride changes could not be saved.");
+    } catch (error) {
+      showError(getApiErrorMessage(error, "Ride changes could not be saved."));
     } finally {
       setSaving(false);
     }
@@ -158,8 +164,8 @@ export function RideManagementPage() {
       showSuccess("Ride status updated successfully.");
       setActionState(null);
       await loadRides();
-    } catch {
-      showError("The ride action could not be completed.");
+    } catch (error) {
+      showError(getApiErrorMessage(error, "The ride action could not be completed."));
     } finally {
       setActionLoading(false);
     }
@@ -175,8 +181,8 @@ export function RideManagementPage() {
       showSuccess("Ride cancelled successfully.");
       setCancelRide(null);
       await loadRides();
-    } catch {
-      showError("The ride could not be cancelled.");
+    } catch (error) {
+      showError(getApiErrorMessage(error, "The ride could not be cancelled."));
     } finally {
       setCancelLoading(false);
     }

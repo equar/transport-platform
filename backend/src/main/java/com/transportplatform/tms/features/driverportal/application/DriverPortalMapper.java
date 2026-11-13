@@ -109,7 +109,7 @@ public class DriverPortalMapper {
                         ride.getPickupState(), ride.getPickupZipCode()),
                 address(ride.getDropoffAddressLine1(), ride.getDropoffAddressLine2(), ride.getDropoffCity(),
                         ride.getDropoffState(), ride.getDropoffZipCode()),
-                ride.getRouteId());
+                ride.getRouteId(), ride.getLinkedRideId(), ride.getJourneyLeg());
     }
 
     public DriverPortalRideDetailResponse toRideDetailResponse(Ride ride) {
@@ -136,7 +136,7 @@ public class DriverPortalMapper {
                 ride.getCompanionCount(),
                 ride.getSpecialInstructions(),
                 ride.getOperationalNotes(),
-                ride.getRouteId());
+                ride.getRouteId(), ride.getLinkedRideId(), ride.getJourneyLeg());
     }
 
     public DriverPortalRouteSummaryResponse toRouteSummaryResponse(Route route, long linkedRideCount) {

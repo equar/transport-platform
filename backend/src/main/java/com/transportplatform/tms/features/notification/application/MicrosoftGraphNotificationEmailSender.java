@@ -52,7 +52,7 @@ public class MicrosoftGraphNotificationEmailSender implements NotificationEmailS
     public DeliveryResult send(NotificationEmailCommand command) {
         if (!enabled) {
             LOGGER.info("Email delivery is disabled; skipping Microsoft Graph delivery.");
-            return new DeliveryResult(true, null);
+            return new DeliveryResult(false, "DELIVERY_DISABLED");
         }
         try {
             Message message = new Message();

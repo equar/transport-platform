@@ -58,6 +58,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OrganizationPortalService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.billing.application.PortalInvoiceTotals portalTotals;
 
     private static final Set<RideStatus> UPCOMING_RIDE_STATUSES = Set.of(
             RideStatus.REQUESTED,
@@ -139,14 +141,9 @@ public class OrganizationPortalService {
                 builder.equal(root.get("organization").get("id"), organization.getId()),
                 root.get("status").in(UPCOMING_RIDE_STATUSES),
                 builder.greaterThanOrEqualTo(root.get("scheduledPickupAt"), tenantTime.now(scope.user().tenantId()))));
-        var invoices = loadInvoices(scope, null, null, 0, 1000, "invoiceDate", Sort.Direction.DESC).items();
-        long openInvoiceCount = invoices.stream()
-                .filter(invoice -> invoice.status() == InvoiceStatus.ISSUED
-                        || invoice.status() == InvoiceStatus.PARTIALLY_PAID
-                        || invoice.status() == InvoiceStatus.OVERDUE)
-                .count();
-        BigDecimal outstandingBalance = invoices.stream().map(InvoiceSummaryResponse::balanceDue)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        var totals = portalTotals.calculate(scope.user().tenantId(), null, null, java.util.List.of(), organization.getId());
+        long openInvoiceCount = totals.count();
+        BigDecimal outstandingBalance = totals.singleCurrencyBalance();
         long unreadNotifications = notificationRepository.countByTenantIdAndRecipientUserIdAndReadStatusAndStatus(
                 scope.user().tenantId(),
                 scope.user().id(),
@@ -158,7 +155,8 @@ public class OrganizationPortalService {
                 upcomingRideCount,
                 openInvoiceCount,
                 outstandingBalance,
-                unreadNotifications);
+                unreadNotifications,
+                totals.balances());
     }
 
     @Transactional(readOnly = true)
@@ -493,9 +491,8 @@ public class OrganizationPortalService {
     }
 
     private String address(String line1, String line2, String city, String state, String zipCode) {
-        return java.util.List
-                .of(trimToNull(line1), trimToNull(line2), trimToNull(city), trimToNull(state), trimToNull(zipCode))
-                .stream()
+        return java.util.stream.Stream.of(line1, line2, city, state, zipCode)
+                .map(this::trimToNull)
                 .filter(value -> value != null && !value.isBlank())
                 .reduce((left, right) -> left + ", " + right)
                 .orElse(null);

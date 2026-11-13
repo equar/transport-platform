@@ -31,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RideService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private RideJourneyService journeys;
 
     private final com.transportplatform.tms.features.tenant.domain.TenantRepository dispatchTenants;
     private final com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService dispatchValidation;
@@ -126,6 +128,8 @@ public class RideService {
         if(ride.getDriverId()!=null) dispatchValidation.requireAssignableDriver(ride.getTenantId(),ride,ride.getDriverId());
         if(ride.getVehicleId()!=null) dispatchValidation.requireAssignableVehicle(ride.getTenantId(),ride,ride.getVehicleId());
         Ride saved = rideRepository.save(ride);
+        rideRepository.flush();
+        if (saved.getTripType() == RideTripType.ROUND_TRIP) journeys.split(saved);
         rideEventService.recordRideCreated(saved, "Ride created.");
         recordAudit(saved, "CREATED", "Ride " + saved.getRideNumber() + " was created.", null, snapshot(saved));
         return rideMapper.toResponse(saved);
@@ -133,8 +137,27 @@ public class RideService {
 
     @Transactional
     public RideResponse updateCompanyRide(Long rideId, RideUpsertRequest request) {
+        return updateCompanyRide(rideId, request, null);
+    }
+
+    @Transactional
+    public RideResponse updateCompanyRide(Long rideId, RideUpsertRequest request, Long expectedVersion) {
         dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        if (expectedVersion != null && ride.getVersion() != expectedVersion) {
+            throw new ApiException(ErrorCode.RESOURCE_CONFLICT, HttpStatus.CONFLICT,
+                    "This ride changed since you opened it. Refresh and review the changes before saving.");
+        }
+        if (ride.getLinkedRideId() != null && request.tripType() != RideTripType.ONE_WAY) throw validationFailure("Edit each linked one-way journey separately.");
+        if (ride.getLinkedRideId() != null) {
+            if (!java.util.Objects.equals(request.riderId(), ride.getRider().getId())) throw validationFailure("Cancel and recreate both journey legs to change the passenger.");
+            Ride paired = rideAccessService.findRideForCompanyScope(ride.getLinkedRideId());
+            var outboundEnd = "OUTBOUND".equals(ride.getJourneyLeg()) ?
+                    (request.scheduledDropoffAt() == null ? request.scheduledPickupAt() : request.scheduledDropoffAt()) :
+                    (paired.getScheduledDropoffAt() == null ? paired.getScheduledPickupAt() : paired.getScheduledDropoffAt());
+            var returnStart = "RETURN".equals(ride.getJourneyLeg()) ? request.scheduledPickupAt() : paired.getScheduledPickupAt();
+            if (returnStart.isBefore(outboundEnd)) throw validationFailure("Return pickup cannot be before the outbound journey ends. Review both linked schedules.");
+        }
         RideStatusWorkflow.ensureCanEdit(ride.getStatus());
         RideReferenceValidationService.ResolvedReferences references = rideReferenceValidationService.resolve(
                 ride.getTenantId(),
@@ -149,9 +172,20 @@ public class RideService {
         if(ride.getDriverId()!=null) dispatchValidation.requireAssignableDriver(ride.getTenantId(),ride,ride.getDriverId());
         if(ride.getVehicleId()!=null) dispatchValidation.requireAssignableVehicle(ride.getTenantId(),ride,ride.getVehicleId());
         Ride saved = rideRepository.save(ride);
+        rideRepository.flush();
+        if (saved.getTripType() == RideTripType.ROUND_TRIP) journeys.split(saved);
         recordAudit(saved, "UPDATED", "Ride " + saved.getRideNumber() + " was updated.", oldSnapshot,
                 snapshot(saved));
         return rideMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public RideResponse splitCompanyRoundTrip(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
+        Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        RideStatusWorkflow.ensureCanEdit(ride.getStatus());
+        journeys.split(ride);
+        return rideMapper.toResponse(ride);
     }
 
     @Transactional
@@ -192,6 +226,8 @@ public class RideService {
     @Transactional
     public RideResponse markCompanyRideDriverEnRoute(Long rideId) {
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
+        if (ride.getTripType() == com.transportplatform.tms.features.ride.domain.RideTripType.ROUND_TRIP) throw new ApiException(
+                ErrorCode.RESOURCE_CONFLICT,HttpStatus.CONFLICT,"Dispatch must split this existing round trip into outbound and return journeys before departure.");
         RideStatusWorkflow.ensureCanMarkDriverEnRoute(ride.getStatus());
         if (ride.getDriverId() == null || ride.getVehicleId() == null) {
             throw validationFailure("Both driver and vehicle are required before departure.");
@@ -268,6 +304,7 @@ public class RideService {
         Object oldSnapshot = snapshot(ride);
         ride.setOperationalNotes(mergeNotes(ride.getOperationalNotes(), trimmedNote));
         Ride saved = rideRepository.save(ride);
+        rideRepository.flush();
         rideEventService.recordNote(saved, trimmedNote);
         recordAudit(saved, "NOTE_ADDED", "Operational note added to ride " + saved.getRideNumber() + ".",
                 oldSnapshot, snapshot(saved));
@@ -286,6 +323,7 @@ public class RideService {
         ride.setCancelledAt(Instant.now(clock));
         ride.setCancelledBy(currentUser.displayName());
         Ride saved = rideRepository.save(ride);
+        rideRepository.flush();
         rideEventService.recordStatusChanged(saved, previousStatus, RideStatus.CANCELLED, request.reason().trim());
         recordAudit(saved, "CANCELLED", "Ride " + saved.getRideNumber() + " was cancelled.", oldSnapshot,
                 snapshot(saved));
@@ -303,6 +341,7 @@ public class RideService {
             ride.setCancelledBy(null);
         }
         Ride saved = rideRepository.save(ride);
+        rideRepository.flush();
         rideEventService.recordStatusChanged(saved, previousStatus, targetStatus, summary);
         recordAudit(saved, action, summary, oldSnapshot, snapshot(saved));
         notificationEventService.publishRideStatusChanged(saved, previousStatus, saved.getStatus());

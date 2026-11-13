@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class PricingRuleCodeGenerator {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.settings.domain.TenantSettingsRepository numberingSettings;
 
     private final PricingRuleRepository pricingRuleRepository;
 
@@ -18,7 +20,7 @@ public class PricingRuleCodeGenerator {
 
     public String generate(String tenantId) {
         for (int attempt = 0; attempt < 10; attempt++) {
-            String code = "PRC-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+            String code = numberingSettings.findById(tenantId).map(settings -> settings.getPricingRulePrefix()).orElse("PRC") + "-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
             if (!pricingRuleRepository.existsByTenantIdAndPricingRuleCodeIgnoreCase(tenantId, code)) {
                 return code;
             }

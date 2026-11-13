@@ -198,7 +198,7 @@ class AuthSessionServiceMySqlIntegrationTest {
 
     @Test
     @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
-    void concurrentRefreshAllowsOneReplacementAndRevokesTheReplayedFamily() throws Exception {
+    void concurrentRefreshAllowsOneReplacementWithoutRevokingTheWinner() throws Exception {
         AppUser user = saveUser("race-" + UUID.randomUUID().toString().substring(0, 8));
         var token = authSessionService.issue(user, "MOBILE");
         var start = new java.util.concurrent.CountDownLatch(1);
@@ -213,8 +213,19 @@ class AuthSessionServiceMySqlIntegrationTest {
             String second = two.get(30, java.util.concurrent.TimeUnit.SECONDS);
             assertThat((first == null) != (second == null)).isTrue();
             String winner = first == null ? second : first;
-            assertThatThrownBy(() -> authSessionService.rotate(winner, "MOBILE")).isInstanceOf(ApiException.class);
+            assertThat(authSessionService.rotate(winner, "MOBILE").user().getId()).isEqualTo(user.getId());
         }
+    }
+
+    @Test
+    void replayOutsideTheOverlapWindowRevokesCompromisedSessions() {
+        AppUser user = saveUser("replay-outside-window");
+        var original = authSessionService.issue(user, "WEB");
+        var replacement = authSessionService.rotate(original.rawToken(), "WEB").token();
+        var stored = authRefreshSessionRepository.findByTokenHash(hash(original.rawToken())).orElseThrow();
+        stored.setUsedAt(clock.instant().minusSeconds(6)); authRefreshSessionRepository.saveAndFlush(stored);
+        assertThatThrownBy(() -> authSessionService.rotate(original.rawToken(), "WEB")).isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> authSessionService.rotate(replacement.rawToken(), "WEB")).isInstanceOf(ApiException.class);
     }
 
     @Test

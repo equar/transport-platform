@@ -70,6 +70,8 @@ import com.transportplatform.tms.features.riderguardianportal.api.response.Rider
 
 @Service
 public class RiderGuardianPortalService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.billing.application.PortalInvoiceTotals portalTotals;
 
     private static final Set<RideStatus> UPCOMING_RIDE_STATUSES = Set.of(
             RideStatus.REQUESTED,
@@ -158,15 +160,9 @@ public class RiderGuardianPortalService {
                 .filter(java.util.Objects::nonNull)
                 .distinct()
                 .count();
-        var invoices = loadScopedInvoices(scope, null, null, 0, 1000, "invoiceDate", Sort.Direction.DESC).items();
-        long openInvoiceCount = invoices.stream()
-                .filter(invoice -> invoice.status() == InvoiceStatus.ISSUED
-                        || invoice.status() == InvoiceStatus.PARTIALLY_PAID
-                        || invoice.status() == InvoiceStatus.OVERDUE)
-                .count();
-        BigDecimal outstandingBalance = invoices.stream()
-                .map(InvoiceSummaryResponse::balanceDue)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        var totals = portalTotals.calculate(scope.user().tenantId(), scope.rider() == null ? null : scope.rider().getId(), scope.guardian() == null ? null : scope.guardian().getId(), scope.linkedRiders().stream().map(Rider::getId).toList(), null);
+        long openInvoiceCount = totals.count();
+        BigDecimal outstandingBalance = totals.singleCurrencyBalance();
         long unreadNotifications = notificationRepository.countByTenantIdAndRecipientUserIdAndReadStatusAndStatus(
                 scope.user().tenantId(),
                 scope.user().id(),
@@ -180,7 +176,8 @@ public class RiderGuardianPortalService {
                 activeRecurringScheduleCount,
                 openInvoiceCount,
                 outstandingBalance,
-                unreadNotifications);
+                unreadNotifications,
+                totals.balances());
     }
 
     @Transactional(readOnly = true)
@@ -587,7 +584,7 @@ public class RiderGuardianPortalService {
                         ride.getDropoffState(), ride.getDropoffZipCode()),
                 ride.getRouteId(),
                 ride.getRecurrenceSchedule() == null ? null : ride.getRecurrenceSchedule().getId(),
-                ride.getRecurrenceSchedule() != null);
+                ride.getRecurrenceSchedule() != null, ride.getLinkedRideId(), ride.getJourneyLeg());
     }
 
     private boolean canAccessRide(RiderGuardianPortalAccessService.ResolvedRiderGuardianScope scope, Ride ride) {

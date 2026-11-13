@@ -20,6 +20,7 @@ interface OfflineQueueState {
   enqueue: (rideId: number, action: DriverRideAction, owner: QueueOwner, expectedStatus: string) => string;
   drain: (owner: QueueOwner) => Promise<DrainResult>;
   retry: (id: string) => void;
+  cancelTripActions: (rideId: number, owner: QueueOwner) => void;
   dismissConflict: (id: string) => void;
   retainOwner: (owner: QueueOwner) => void;
   pause: () => void;
@@ -45,17 +46,20 @@ export const useOfflineQueue = create<OfflineQueueState>()(persist((set, get) =>
     const epoch = generation;
     draining = (async () => {
       const result = { success: 0, failed: 0, conflicts: 0 };
+      const blocked = new Set(get().conflicts.filter(item => owns(item, owner)).map(item => item.rideId));
       for (const item of get().queue) {
         if (epoch !== generation) break;
-        if (!owns(item, owner) || item.failed || (item.nextRetryAt && Date.parse(item.nextRetryAt) > Date.now())) continue;
+        if (!owns(item, owner) || blocked.has(item.rideId)) continue;
+        if (item.failed || (item.nextRetryAt && Date.parse(item.nextRetryAt) > Date.now())) { blocked.add(item.rideId); continue; }
         try {
           // Replay first: the server resolves a committed idempotency key before checking the transition.
-          await driverPortalApi.postRideAction(item.rideId, item.action, item.id, item.expectedStatus);
+          await driverPortalApi.postRideAction(item.rideId, item.action, item.id, item.expectedStatus, item.queuedAt);
           if (epoch !== generation) break;
           result.success++;
           set(state => ({ queue: state.queue.filter(entry => entry.id !== item.id) }));
         } catch (error) {
           if (epoch !== generation) break;
+          blocked.add(item.rideId);
           const status = (error as { response?: { status?: number } }).response?.status;
           if (status === 409) {
             let currentStatus = 'CHANGED';
@@ -78,9 +82,23 @@ export const useOfflineQueue = create<OfflineQueueState>()(persist((set, get) =>
     })().finally(() => { draining = null; });
     return draining;
   },
+  cancelTripActions(rideId, owner) { generation++; set(state => ({
+    queue: state.queue.filter(item => item.rideId !== rideId || !owns(item, owner)),
+    conflicts: state.conflicts.filter(item => item.rideId !== rideId || !owns(item, owner)),
+  })); },
   retry(id) { set(state => ({ queue: state.queue.map(item => item.id === id ? { ...item, failed: false, retryCount: 0, nextRetryAt: null, error: undefined } : item) })); },
   dismissConflict(id) { set(state => ({ conflicts: state.conflicts.filter(item => item.id !== id) })); },
   retainOwner(owner) { generation++; set(state => ({ queue: state.queue.filter(item => owns(item, owner)), conflicts: state.conflicts.filter(item => owns(item, owner)) })); },
   pause() { generation++; },
   clear() { generation++; set({ queue: [], conflicts: [] }); },
 }), { name: 'offline-queue', storage: createJSONStorage(() => AsyncStorage) }));
+
+const resultingStatus: Record<string, string> = {
+  'driver-en-route': 'DRIVER_EN_ROUTE', arrived: 'ARRIVED', 'picked-up': 'PICKED_UP',
+  'dropped-off': 'DROPPED_OFF', complete: 'COMPLETED', 'no-show': 'RIDER_NO_SHOW', failed: 'FAILED',
+};
+/** Local pending milestones are separate from the authoritative server record. */
+export function pendingTripStatus(serverStatus: string, rideId: number, owner: QueueOwner, queue: QueuedAction[]) {
+  return queue.filter(item => item.rideId === rideId && owns(item, owner))
+    .reduce((status, item) => item.expectedStatus === status ? resultingStatus[item.action] ?? status : status, serverStatus);
+}

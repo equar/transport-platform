@@ -72,6 +72,7 @@ export default function RiderRideDetailPage() {
       <View style={styles.heroCard}>
         <Text style={styles.heroTitle}>Trip Tracking</Text>
         <Text style={styles.heroRide}>{ride.rideNumber}</Text>
+        {ride.linkedRideId ? <AppButton label={`View ${ride.journeyLeg === 'RETURN' ? 'outbound' : 'return'} journey`} variant="outlined" onPress={() => router.push(`/(rider)/rides/${ride.linkedRideId}` as never)} /> : null}
         <View style={styles.heroMetaRow}>
           <Text style={styles.heroTime}>{formatShortDateTime(ride.scheduledPickupAt)}</Text>
           <AppBadge status={ride.status} />

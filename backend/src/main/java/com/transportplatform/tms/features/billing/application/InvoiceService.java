@@ -53,6 +53,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class InvoiceService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.settings.domain.TenantSettingsRepository invoiceSettings;
 
     private final InvoiceRepository invoiceRepository;
     private final InvoiceLineItemRepository invoiceLineItemRepository;
@@ -151,6 +153,7 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceDetailResponse createCompanyInvoice(InvoiceUpsertRequest request) {
+        billingAccessService.lockFinancialWrites();
         String tenantId = billingAccessService.requireCompanyTenantId();
         BillingReferenceValidationService.ResolvedBillTo billTo = billingReferenceValidationService.resolveBillTo(
                 tenantId,
@@ -172,6 +175,7 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceDetailResponse updateCompanyInvoice(Long invoiceId, InvoiceUpsertRequest request) {
+        billingAccessService.lockFinancialWrites();
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(invoiceId);
         InvoiceStatusWorkflow.ensureDraftEditable(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
         Object oldSnapshot = snapshot(invoice);
@@ -191,6 +195,7 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceLineItemResponse addLineItem(Long invoiceId, InvoiceLineItemUpsertRequest request) {
+        billingAccessService.lockFinancialWrites();
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(invoiceId);
         InvoiceStatusWorkflow.ensureDraftEditable(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
         List<InvoiceLineItem> existingItems = invoiceLineItemRepository
@@ -210,6 +215,7 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceLineItemResponse updateLineItem(Long lineItemId, InvoiceLineItemUpsertRequest request) {
+        billingAccessService.lockFinancialWrites();
         InvoiceLineItem lineItem = billingAccessService.findInvoiceLineItemForCompanyScope(lineItemId);
         Invoice invoice = lineItem.getInvoice();
         InvoiceStatusWorkflow.ensureDraftEditable(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
@@ -230,6 +236,7 @@ public class InvoiceService {
 
     @Transactional
     public void removeLineItem(Long lineItemId) {
+        billingAccessService.lockFinancialWrites();
         InvoiceLineItem lineItem = billingAccessService.findInvoiceLineItemForCompanyScope(lineItemId);
         Invoice invoice = lineItem.getInvoice();
         InvoiceStatusWorkflow.ensureDraftEditable(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
@@ -250,6 +257,7 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceDetailResponse issueCompanyInvoice(Long invoiceId) {
+        billingAccessService.lockFinancialWrites();
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(invoiceId);
         List<InvoiceLineItem> lineItems = invoiceLineItemRepository.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(
                 invoice.getId(), invoice.getTenantId());
@@ -268,6 +276,7 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceDetailResponse voidCompanyInvoice(Long invoiceId, VoidInvoiceRequest request) {
+        billingAccessService.lockFinancialWrites();
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(invoiceId);
         InvoiceStatusWorkflow.ensureCanVoid(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
         if (billingAccessService.invoiceHasActivePayments(invoice)) {
@@ -298,6 +307,7 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceDetailResponse generateManualInvoice(ManualInvoiceGenerationRequest request) {
+        billingAccessService.lockFinancialWrites();
         PreviewContext previewContext = buildPreviewContext(new BillingPreviewRequest(
                 request.billToType(),
                 request.billToId(),
@@ -518,6 +528,8 @@ public class InvoiceService {
                 && request.billingPeriodEnd().isBefore(request.billingPeriodStart())) {
             throw validationFailure("The billing period end date cannot be earlier than the start date.");
         }
+        if (request.manualOverrideAmount() != null && !invoiceSettings.findById(billingAccessService.requireCompanyTenantId())
+                .map(settings -> settings.isAllowManualInvoiceOverrides()).orElse(false)) throw validationFailure("Manual invoice overrides are disabled for this company.");
         if (request.manualOverrideAmount() != null
                 && (request.manualOverrideNote() == null || request.manualOverrideNote().isBlank())) {
             throw validationFailure("A manual override note is required when a manual override amount is supplied.");
@@ -589,6 +601,15 @@ public class InvoiceService {
     }
 
     private void recalculateTotals(Invoice invoice, List<InvoiceLineItem> lineItems) {
+        var settings = invoiceSettings.findById(invoice.getTenantId()).orElseGet(() ->
+                com.transportplatform.tms.features.settings.application.CompanySettingsService.defaultSettings(invoice.getTenantId()));
+        if (!settings.isAllowManualInvoiceOverrides()) {
+            var subtotal = lineItems.stream().map(InvoiceLineItem::getLineAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+            invoice.setTaxAmount(settings.isTaxEnabled() ? subtotal.multiply(settings.getDefaultTaxRate())
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP) : BigDecimal.ZERO);
+            if (zeroIfNull(invoice.getDiscountAmount()).signum() != 0) throw validationFailure("Manual discounts require invoice override permission in company settings.");
+        }
+
         invoiceFinancialService.recalculateTotals(invoice, lineItems, tenantTime.today(billingAccessService.requireCompanyTenantId()));
     }
 

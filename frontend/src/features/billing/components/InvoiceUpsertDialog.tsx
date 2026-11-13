@@ -1,3 +1,4 @@
+import { useRuntimeCapabilities } from '../../runtime/context/RuntimeCapabilitiesContext';
 import {
   Autocomplete,
   Button,
@@ -27,10 +28,12 @@ interface InvoiceUpsertDialogProps {
   onSubmit: (payload: InvoicePayload) => Promise<void>;
 }
 
-function defaultForm(): InvoicePayload {
-  const today = new Date();
+function defaultForm(days = 30, currency = "USD", timezone = "UTC"): InvoicePayload {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const part = (name: string) => parts.find(value => value.type === name)!.value;
+  const today = new Date(`${part("year")}-${part("month")}-${part("day")}T12:00:00Z`);
   const dueDate = new Date(today);
-  dueDate.setDate(dueDate.getDate() + 30);
+  dueDate.setDate(dueDate.getDate() + days);
 
   return {
     billToType: "RIDER",
@@ -41,7 +44,7 @@ function defaultForm(): InvoicePayload {
     dueDate: dueDate.toISOString().slice(0, 10),
     taxAmount: 0,
     discountAmount: 0,
-    currency: "USD",
+    currency,
     notes: "",
   };
 }
@@ -53,6 +56,8 @@ export function InvoiceUpsertDialog({
   onClose,
   onSubmit,
 }: InvoiceUpsertDialogProps) {
+  const { capabilities } = useRuntimeCapabilities();
+  const policy = capabilities?.operationalSettings;
   const [form, setForm] = useState<InvoicePayload>(defaultForm());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [options, setOptions] = useState<LookupOption[]>([]);
@@ -69,7 +74,7 @@ export function InvoiceUpsertDialog({
 
     setErrors({});
     if (!invoice) {
-      setForm(defaultForm());
+      setForm(defaultForm(policy?.defaultInvoiceDueDays, policy?.currency, policy?.timezone));
       setSelectedOption(null);
       setSearchText("");
       return;
@@ -315,6 +320,8 @@ export function InvoiceUpsertDialog({
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
                 label="Tax Amount"
+                disabled={!policy?.allowManualInvoiceOverrides}
+                placeholder="Calculated from line items"
                 type="number"
                 value={form.taxAmount}
                 onChange={(event) =>
@@ -326,6 +333,7 @@ export function InvoiceUpsertDialog({
               />
               <TextField
                 label="Discount Amount"
+                disabled={!policy?.allowManualInvoiceOverrides}
                 type="number"
                 value={form.discountAmount}
                 onChange={(event) =>

@@ -256,7 +256,7 @@ public class DispatchAssignmentValidationService {
         if (ride.getScheduledDropoffAt() != null) {
             return ride.getScheduledDropoffAt();
         }
-        return ride.getScheduledPickupAt().plusHours(2);
+        return LocalDateTime.of(9999, 12, 30, 0, 0);
     }
 
     private boolean windowsOverlap(LocalDateTime firstStart,

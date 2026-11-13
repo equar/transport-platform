@@ -29,6 +29,9 @@ export type RideDayOfWeek =
   | "SUNDAY";
 
 export interface RideRecord {
+  linkedRideId?: number | null;
+  journeyLeg?: string | null;
+  version: number;
   id: number;
   tenantId: string;
   rideNumber: string;
@@ -141,6 +144,7 @@ export interface RecurringRideScheduleRecord {
 }
 
 export interface RidePayload {
+  expectedVersion?: number;
   riderId: number | null;
   guardianId?: number | null;
   organizationId?: number | null;
@@ -422,8 +426,11 @@ export const ridesApi = {
     const response = await apiClient.post("/company/rides", payload);
     return unwrapResponse<RideRecord>(response.data);
   },
+  async splitRoundTrip(rideId: number) {
+    return unwrapResponse<RideRecord>((await apiClient.post(`/company/rides/${rideId}/split-round-trip`)).data);
+  },
   async update(rideId: number, payload: RidePayload) {
-    const response = await apiClient.put(`/company/rides/${rideId}`, payload);
+    const response = await apiClient.put(`/company/rides/${rideId}`, payload, { headers: { "If-Match": payload.expectedVersion } });
     return unwrapResponse<RideRecord>(response.data);
   },
   async request(rideId: number) {
@@ -555,10 +562,10 @@ export const ridesApi = {
     );
     return unwrapResponse<RideGenerationResult>(response.data);
   },
-  async listRiderOptions() {
+  async listRiderOptions(keyword = "") {
     const response = await apiClient.get("/company/riders", {
       params: {
-        keyword: "",
+        keyword,
         status: "ACTIVE",
         page: 0,
         size: 100,
@@ -600,10 +607,10 @@ export const ridesApi = {
       label: item.name,
     }));
   },
-  async listContractOptions() {
+  async listContractOptions(keyword = "") {
     const response = await apiClient.get("/company/contracts", {
       params: {
-        keyword: "",
+        keyword,
         status: "ACTIVE",
         page: 0,
         size: 100,
@@ -624,10 +631,10 @@ export const ridesApi = {
       relatedOrganizationId: item.organizationId,
     }));
   },
-  async listServiceAreaOptions() {
+  async listServiceAreaOptions(keyword = "") {
     const response = await apiClient.get("/company/service-areas", {
       params: {
-        keyword: "",
+        keyword,
         status: "ACTIVE",
         page: 0,
         size: 100,

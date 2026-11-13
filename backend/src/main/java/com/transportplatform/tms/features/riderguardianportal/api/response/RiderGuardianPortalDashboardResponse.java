@@ -10,5 +10,6 @@ public record RiderGuardianPortalDashboardResponse(
                 long activeRecurringScheduleCount,
                 long openInvoiceCount,
                 BigDecimal outstandingBalance,
-                long unreadNotifications) {
+                long unreadNotifications,
+        java.util.Map<String, BigDecimal> outstandingBalances) {
 }

@@ -41,7 +41,7 @@ public class ExpoNotificationPushSender implements NotificationPushSender {
     public DeliveryResult send(PushNotificationCommand command) {
         if (!enabled) {
             LOGGER.info("Push delivery is disabled; skipping Expo push delivery.");
-            return new DeliveryResult(true, null);
+            return new DeliveryResult(false, "DELIVERY_DISABLED");
         }
         try {
             Map<String, Object> payload = new LinkedHashMap<>();

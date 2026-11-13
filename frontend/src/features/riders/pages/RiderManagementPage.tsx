@@ -21,7 +21,7 @@ import PersonOffRoundedIcon from "@mui/icons-material/PersonOffRounded";
 import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import WheelchairPickupRoundedIcon from "@mui/icons-material/WheelchairPickupRounded";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
@@ -87,7 +87,9 @@ export function RiderManagementPage() {
   } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  const loadGeneration = useRef(0);
   async function loadRiders() {
+    const generation = ++loadGeneration.current;
     setLoading(true);
     setError(null);
     try {
@@ -102,17 +104,20 @@ export function RiderManagementPage() {
         sortBy: "updatedAt",
         sortDirection: "DESC",
       });
+      if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
     } catch {
+      if (generation !== loadGeneration.current) return;
       setError("Riders could not be loaded.");
     } finally {
-      setLoading(false);
+      if (generation === loadGeneration.current) setLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadRiders();
+    const timer = window.setTimeout(() => void loadRiders(), 250);
+    return () => { window.clearTimeout(timer); loadGeneration.current++; };
   }, [
     keyword,
     status,

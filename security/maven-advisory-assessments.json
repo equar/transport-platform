@@ -1,0 +1,16 @@
+{
+  "GHSA-pc63-qcmh-9cmg": {
+    "package": "org.springframework:spring-webmvc",
+    "version": "6.2.19",
+    "expires": "2026-12-13",
+    "reason": "Not affected: this application has no XsltView resolver or MVC view controllers. ApiOnlyMvcValidator prevents introducing either at startup. Reassess when a patched Spring 6.2 release is available.",
+    "guard": "backend/src/main/java/com/transportplatform/tms/common/security/ApiOnlyMvcValidator.java"
+  },
+  "GHSA-j9f9-w8pj-32f8": {
+    "package": "org.springframework:spring-webmvc",
+    "version": "6.2.19",
+    "expires": "2026-12-13",
+    "reason": "Not affected: this application does not render SSE view fragments. ApiOnlyMvcValidator rejects application SSE fragment handlers at startup. Reassess when a patched Spring 6.2 release is available.",
+    "guard": "backend/src/main/java/com/transportplatform/tms/common/security/ApiOnlyMvcValidator.java"
+  }
+}

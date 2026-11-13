@@ -72,7 +72,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers(publicDocumentationEndpoints).permitAll()
                         .requestMatchers(HttpMethod.POST, "/v1/auth/login", "/v1/auth/refresh", "/v1/auth/logout", "/v1/auth/forgot-password", "/v1/auth/reset-password", "/v1/auth/verify-email", "/v1/auth/resend-verification", "/v1/auth/verify-application-email", "/v1/auth/resend-application-verification").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/company-applications", "/demo-inquiries").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/company-applications", "/demo-inquiries", "/client-events").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/auth/status").permitAll()
                         .requestMatchers(HttpMethod.GET, "/runtime/tenant-branding").permitAll()
                         .requestMatchers("/platform/**").hasRole("PLATFORM_ADMIN")

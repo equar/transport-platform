@@ -30,6 +30,13 @@ public class Ride extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "linked_ride_id") private Long linkedRideId;
+    @Column(name = "journey_leg", length = 16) private String journeyLeg;
+    public Long getLinkedRideId() { return linkedRideId; }
+    public void setLinkedRideId(Long value) { linkedRideId = value; }
+    public String getJourneyLeg() { return journeyLeg; }
+    public void setJourneyLeg(String value) { journeyLeg = value; }
+
     @Version
     @Column(name = "entity_version", nullable = false)
     private long version;

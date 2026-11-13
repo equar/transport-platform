@@ -10,6 +10,7 @@ export interface RiderPortalDashboardRecord {
   activeRideCount: number;
   openInvoiceCount: number;
   outstandingBalance: number;
+  outstandingBalances?: Record<string, number>;
   unreadNotifications: number;
 }
 
@@ -64,6 +65,8 @@ export interface LinkedRiderRecord {
 }
 
 export interface RiderPortalRideRecord {
+  linkedRideId?: number | null;
+  journeyLeg?: string | null;
   id: number;
   rideNumber: string;
   status: string;

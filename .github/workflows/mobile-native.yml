@@ -1,0 +1,63 @@
+name: Mobile native release compilation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['mobile/**', '.github/workflows/mobile-native.yml']
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - name: Generate Android native project
+        run: npx expo prebuild --platform android --no-install
+      - name: Generate an ephemeral build-test key (never a store signing key)
+        run: |
+          keytool -genkeypair -keystore android/app/ci-build-test.keystore -storepass temporary-build-test -keypass temporary-build-test -alias ci-build-test -dname 'CN=Unshippable CI test' -keyalg RSA -keysize 2048 -validity 2
+          cat > android/key.properties <<'EOF'
+          storeFile=ci-build-test.keystore
+          storePassword=temporary-build-test
+          keyAlias=ci-build-test
+          keyPassword=temporary-build-test
+          EOF
+      - name: Compile release native code and JavaScript (artifact is not published)
+        env:
+          EXPO_PUBLIC_API_BASE_URL: https://example.invalid/api
+        run: cd android && ./gradlew :app:assembleRelease --no-daemon
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - name: Generate iOS native project
+        run: npx expo prebuild --platform ios --no-install
+      - run: cd ios && pod install
+      - name: Compile an unsigned release for the simulator
+        env:
+          EXPO_PUBLIC_API_BASE_URL: https://example.invalid/api
+        run: xcodebuild -workspace ios/TransportPlatform.xcworkspace -scheme TransportPlatform -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/transport-native-ci CODE_SIGNING_ALLOWED=NO build

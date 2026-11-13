@@ -72,6 +72,10 @@ public class PushDeliveryWorker {
                     "Transport update", "Open Bakaroo to view your notification.",safeData));
                 sent=result.sent(); error=result.errorMessage(); receiptId=result.receiptId();
             } catch(Exception exception) { error="Push delivery provider failed."; }
+            if ("DELIVERY_DISABLED".equals(error)) {
+                jdbc.update("UPDATE push_delivery_jobs SET status='SKIPPED',error_message='Delivery is disabled.',next_attempt_at=NULL WHERE id=?",id);
+                continue;
+            }
             int attempts=((Number)job.get("attempts")).intValue()+1;
             tokenService.markDeliveryResult(token.get().getId(),sent,error);
             jdbc.update("UPDATE push_delivery_jobs SET status=?, error_message=?, next_attempt_at=?, receipt_id=?, accepted_at=? WHERE id=?",

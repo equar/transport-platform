@@ -1,5 +1,4 @@
 import { DriverVehicles } from '@components/DriverVehicles';
-import { useBrandingColors } from '@theme/BrandingContext';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import { AccountActions } from '@components/AccountActions';
@@ -169,7 +168,6 @@ function TabButton({
 
 function Row({ label, value }: { label: string; value: string }) {
   const rowStyles = useThemedStyles(createRowStyles);
-  const styles = useThemedStyles(createStyles);
   return (
     <View style={rowStyles.row}>
       <Text style={rowStyles.label}>{label}</Text>

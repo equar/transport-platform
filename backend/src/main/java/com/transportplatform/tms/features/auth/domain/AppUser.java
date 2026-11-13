@@ -19,6 +19,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
+@org.hibernate.annotations.DynamicUpdate
 @Table(name = "app_users", uniqueConstraints = @UniqueConstraint(name = "uk_app_users_email", columnNames = "email"))
 public class AppUser extends AuditableEntity {
 
@@ -62,6 +63,22 @@ public class AppUser extends AuditableEntity {
 
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
+
+    @Column(name = "mfa_secret", length = 512) private String mfaSecret;
+    @Column(name = "mfa_pending_secret", length = 512) private String mfaPendingSecret;
+    @Column(name = "mfa_pending_expires_at") private Instant mfaPendingExpiresAt;
+    @Column(name = "mfa_last_counter", nullable = false) private long mfaLastCounter = -1;
+    @Column(name = "mfa_recovery_hashes", columnDefinition = "TEXT") private String mfaRecoveryHashes;
+    public String getMfaSecret() { return mfaSecret; }
+    public void setMfaSecret(String value) { mfaSecret = value; }
+    public String getMfaPendingSecret() { return mfaPendingSecret; }
+    public void setMfaPendingSecret(String value) { mfaPendingSecret = value; }
+    public Instant getMfaPendingExpiresAt() { return mfaPendingExpiresAt; }
+    public void setMfaPendingExpiresAt(Instant value) { mfaPendingExpiresAt = value; }
+    public long getMfaLastCounter() { return mfaLastCounter; }
+    public void setMfaLastCounter(long value) { mfaLastCounter = value; }
+    public String getMfaRecoveryHashes() { return mfaRecoveryHashes; }
+    public void setMfaRecoveryHashes(String value) { mfaRecoveryHashes = value; }
 
     @Column(name = "security_version", nullable = false)
     private long securityVersion;

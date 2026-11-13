@@ -1,5 +1,7 @@
 """Transport deployment validation and systemd EnvironmentFile serialization."""
 import os
+import base64
+import binascii
 import re
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -7,7 +9,7 @@ from urllib.parse import urlsplit
 SECRET_KEYS = {
     'LIGHTSAIL_HOST', 'LIGHTSAIL_USER', 'LIGHTSAIL_SSH_KEY_B64', 'LIGHTSAIL_SSH_KEY',
     'LIGHTSAIL_KNOWN_HOSTS', 'MYSQL_PASSWORD', 'APP_SECURITY_JWT_SECRET',
-    'APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD', 'MICROSOFT_GRAPH_CLIENT_SECRET', 'EXPO_ACCESS_TOKEN',
+    'APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD', 'MICROSOFT_GRAPH_CLIENT_SECRET', 'EXPO_ACCESS_TOKEN', 'APP_SECURITY_MFA_ENCRYPTION_KEY',
 }
 DEFAULTS = {
     'APP_PUBLIC_URL': 'https://transport.bakaroo.com', 'APP_ADMIN_URL': 'https://admin.transport.bakaroo.com', 'VITE_API_BASE_URL': '/api',
@@ -19,6 +21,7 @@ DEFAULTS = {
     'APP_EMAIL_ENABLED': 'false', 'APP_EMAIL_PROVIDER': 'logging', 'APP_EMAIL_FROM': '',
     'MICROSOFT_GRAPH_CLIENT_ID': '', 'MICROSOFT_GRAPH_TENANT_ID': '', 'MICROSOFT_GRAPH_CLIENT_SECRET': '',
     'APP_PUSH_ENABLED': 'false', 'APP_PUSH_PROVIDER': 'logging', 'EXPO_ACCESS_TOKEN': '',
+    'APP_SECURITY_MFA_ENCRYPTION_KEY': '', 'APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS': 'false',
     'APP_PUSH_EXPO_URL': 'https://exp.host/--/api/v2/push/send',
     'APP_LOGGING_LEVEL_ROOT': 'INFO', 'APP_LOGGING_LEVEL_APP': 'INFO',
     'APP_LOGGING_LEVEL_WEB': 'WARN', 'APP_LOGGING_LEVEL_SECURITY': 'INFO',
@@ -89,6 +92,14 @@ def settings(environ=None, target='all', require_ssh=True):
         required(env, key)
     if len(env['APP_SECURITY_JWT_SECRET'].encode()) < 32 or 'change-before' in env['APP_SECURITY_JWT_SECRET']:
         raise ValueError('APP_SECURITY_JWT_SECRET must contain at least 32 random bytes')
+    try:
+        mfa_key = base64.b64decode(required(env, 'APP_SECURITY_MFA_ENCRYPTION_KEY'), validate=True)
+    except (ValueError, binascii.Error):
+        raise ValueError('APP_SECURITY_MFA_ENCRYPTION_KEY must be base64-encoded 32 random bytes') from None
+    if len(mfa_key) != 32:
+        raise ValueError('APP_SECURITY_MFA_ENCRYPTION_KEY must be base64-encoded 32 random bytes')
+    if env['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS'] not in ('true', 'false'):
+        raise ValueError('APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS must be true or false')
     origins = env['APP_SECURITY_ALLOWED_ORIGINS'].split(',')
     for origin in origins:
         public_origin(origin.strip(), 'APP_SECURITY_ALLOWED_ORIGINS')
@@ -120,6 +131,8 @@ def settings(environ=None, target='all', require_ssh=True):
         raise ValueError('Enabled push requires the expo provider')
     if env['APP_PUSH_ENABLED'] == 'false' and env['APP_PUSH_PROVIDER'] != 'logging':
         raise ValueError('Disabled push must use the logging provider')
+    if env['APP_EMAIL_ENABLED'] != 'true' or env['APP_PUSH_ENABLED'] != 'true':
+        raise ValueError('Production requires enabled email and push delivery')
     if env['APP_PUSH_EXPO_URL'] != DEFAULTS['APP_PUSH_EXPO_URL']:
         raise ValueError('Production push must use the official Expo HTTPS endpoint')
     reset = env.get('APP_AUTH_PASSWORD_RESET_BASE_URL') or env['APP_ADMIN_URL'] + '/reset-password'

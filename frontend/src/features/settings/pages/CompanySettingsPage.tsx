@@ -422,7 +422,8 @@ export function CompanySettingsPage() {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={settings.dispatchStrictComplianceMode}
+                      checked={true}
+                      disabled
                       onChange={(event) =>
                         setValue(
                           "dispatchStrictComplianceMode",
@@ -450,7 +451,8 @@ export function CompanySettingsPage() {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={settings.requireDriverLicense}
+                      checked={true}
+                      disabled
                       onChange={(event) =>
                         setValue("requireDriverLicense", event.target.checked)
                       }
@@ -461,7 +463,8 @@ export function CompanySettingsPage() {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={settings.requireBackgroundCheck}
+                      checked={true}
+                      disabled
                       onChange={(event) =>
                         setValue("requireBackgroundCheck", event.target.checked)
                       }
@@ -472,7 +475,8 @@ export function CompanySettingsPage() {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={settings.requireDrugTest}
+                      checked={true}
+                      disabled
                       onChange={(event) =>
                         setValue("requireDrugTest", event.target.checked)
                       }
@@ -483,7 +487,8 @@ export function CompanySettingsPage() {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={settings.requireVehicleRegistration}
+                      checked={true}
+                      disabled
                       onChange={(event) =>
                         setValue(
                           "requireVehicleRegistration",
@@ -497,7 +502,8 @@ export function CompanySettingsPage() {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={settings.requireVehicleInsurance}
+                      checked={true}
+                      disabled
                       onChange={(event) =>
                         setValue(
                           "requireVehicleInsurance",
@@ -511,7 +517,8 @@ export function CompanySettingsPage() {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={settings.requireVehicleInspection}
+                      checked={true}
+                      disabled
                       onChange={(event) =>
                         setValue(
                           "requireVehicleInspection",
