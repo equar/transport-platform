@@ -14,6 +14,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -21,7 +22,7 @@ export default function LoginPage() {
     setSubmitted(true); setError('');
     if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim()) || !password || loading) return;
     setLoading(true);
-    try { const session = await signIn({ email: email.trim().toLowerCase(), password }); router.replace(mobileDefaultRoute(session) as never); }
+    try { const session = await signIn({ email: email.trim().toLowerCase(), password, mfaCode: mfaCode.trim() || undefined }); router.replace(mobileDefaultRoute(session) as never); }
     catch (err) { setError(err instanceof Error ? err.message : 'We couldn’t sign you in. Check your details and try again.'); }
     finally { setLoading(false); }
   }
@@ -31,6 +32,7 @@ export default function LoginPage() {
     <View style={styles.fields}>
       <AppInput label="Email address" hideLabel leftIcon="account-outline" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoComplete="email" editable={!loading} error={submitted && !/^\S+@\S+\.\S+$/.test(email.trim()) ? 'Enter a valid email address.' : undefined} />
       <AppInput label="Password" hideLabel leftIcon="lock-outline" value={password} onChangeText={setPassword} placeholder="Enter your password" secureTextEntry autoComplete="current-password" editable={!loading} error={submitted && !password ? 'Enter your password.' : undefined} />
+      <AppInput label="Authenticator or recovery code (if enabled)" value={mfaCode} onChangeText={setMfaCode} autoCapitalize="none" editable={!loading} />
     </View>
     <AppButton label="Sign in" onPress={() => void submit()} loading={loading} fullWidth size="lg" />
   </AuthFrame>;

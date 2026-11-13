@@ -20,6 +20,10 @@ jobs:
           cache: maven
       - name: Build backend
         run: mvn -B verify
+      - name: Scan production Java dependencies
+        run: |
+          mvn -B dependency:tree -DoutputType=json -DoutputFile=target/dependency-tree.json
+          python3 ../scripts/check-maven-vulnerabilities.py target/dependency-tree.json target/security-report.json
       - name: Verify generated client contracts
         working-directory: ${{ github.workspace }}
         run: |
@@ -40,6 +44,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
         run: npm ci
+      - name: Dependency security gate
+        run: npm audit --audit-level=high
       - name: Run web tests
         run: npm test
       - name: Type check and build
@@ -61,4 +67,7 @@ jobs:
           cache-dependency-path: mobile/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run security:patch-check
+      - run: npm audit --audit-level=high
       - run: npm run test:ci

@@ -32,10 +32,12 @@ public class DriverComplianceSummaryService {
 
     private final DriverDocumentRepository driverDocumentRepository;
     private final Clock clock;
+    private final com.transportplatform.tms.features.settings.application.TenantTimeService tenantTime;
 
-    public DriverComplianceSummaryService(DriverDocumentRepository driverDocumentRepository, Clock clock) {
+    public DriverComplianceSummaryService(DriverDocumentRepository driverDocumentRepository, Clock clock, com.transportplatform.tms.features.settings.application.TenantTimeService tenantTime) {
         this.driverDocumentRepository = driverDocumentRepository;
         this.clock = clock;
+        this.tenantTime = tenantTime;
     }
 
     public DriverComplianceSummaryResponse getSummary(String tenantId, Driver driver) {
@@ -55,7 +57,7 @@ public class DriverComplianceSummaryService {
         Map<Long, DriverComplianceSummaryResponse> summaries = new LinkedHashMap<>();
         for (Driver driver : drivers) {
             List<DriverDocument> documents = documentsByDriverId.getOrDefault(driver.getId(), List.of());
-            summaries.put(driver.getId(), buildSummary(documents));
+            summaries.put(driver.getId(), buildSummary(tenantId, documents));
         }
         return summaries;
     }
@@ -76,8 +78,8 @@ public class DriverComplianceSummaryService {
         return Set.copyOf(REQUIRED_DOCUMENT_TYPES);
     }
 
-    private DriverComplianceSummaryResponse buildSummary(List<DriverDocument> documents) {
-        LocalDate today = LocalDate.now(clock);
+    private DriverComplianceSummaryResponse buildSummary(String tenantId, List<DriverDocument> documents) {
+        LocalDate today = tenantTime.today(tenantId);
         List<DriverDocument> activeDocuments = documents.stream()
                 .filter(document -> document.getStatus() == DriverDocumentStatus.ACTIVE)
                 .toList();

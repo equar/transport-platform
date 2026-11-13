@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class InvoiceNumberGenerator {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.settings.domain.TenantSettingsRepository numberingSettings;
 
     private final InvoiceRepository invoiceRepository;
 
@@ -18,7 +20,7 @@ public class InvoiceNumberGenerator {
 
     public String generate(String tenantId) {
         for (int attempt = 0; attempt < 10; attempt++) {
-            String number = "INV-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+            String number = numberingSettings.findById(tenantId).map(settings -> settings.getInvoicePrefix()).orElse("INV") + "-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
             if (!invoiceRepository.existsByTenantIdAndInvoiceNumberIgnoreCase(tenantId, number)) {
                 return number;
             }

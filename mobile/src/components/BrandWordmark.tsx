@@ -1,3 +1,5 @@
+// Metro requires a static require expression for bundled images.
+/* eslint @typescript-eslint/no-require-imports: [error, { allow: ['\\.png$'] }] */
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { useBrandingColors } from '@theme/BrandingContext';
 import { useThemedStyles } from '@theme/ThemeProvider';

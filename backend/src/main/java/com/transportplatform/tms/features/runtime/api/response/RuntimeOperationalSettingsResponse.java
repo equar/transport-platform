@@ -8,5 +8,5 @@ public record RuntimeOperationalSettingsResponse(
         int defaultInvoiceDueDays,
         String invoicePrefix,
         String paymentPrefix,
-        String pricingRulePrefix) {
+        String pricingRulePrefix, boolean taxEnabled, java.math.BigDecimal defaultTaxRate, boolean allowManualInvoiceOverrides, boolean allowManualRideCreation, boolean allowRoundTripRides) {
 }

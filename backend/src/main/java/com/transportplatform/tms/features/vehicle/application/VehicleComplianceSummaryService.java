@@ -31,10 +31,12 @@ public class VehicleComplianceSummaryService {
 
     private final VehicleDocumentRepository vehicleDocumentRepository;
     private final Clock clock;
+    private final com.transportplatform.tms.features.settings.application.TenantTimeService tenantTime;
 
-    public VehicleComplianceSummaryService(VehicleDocumentRepository vehicleDocumentRepository, Clock clock) {
+    public VehicleComplianceSummaryService(VehicleDocumentRepository vehicleDocumentRepository, Clock clock, com.transportplatform.tms.features.settings.application.TenantTimeService tenantTime) {
         this.vehicleDocumentRepository = vehicleDocumentRepository;
         this.clock = clock;
+        this.tenantTime = tenantTime;
     }
 
     public VehicleComplianceSummaryResponse getSummary(String tenantId, Vehicle vehicle) {
@@ -54,7 +56,7 @@ public class VehicleComplianceSummaryService {
         Map<Long, VehicleComplianceSummaryResponse> summaries = new LinkedHashMap<>();
         for (Vehicle vehicle : vehicles) {
             List<VehicleDocument> documents = documentsByVehicleId.getOrDefault(vehicle.getId(), List.of());
-            summaries.put(vehicle.getId(), buildSummary(documents));
+            summaries.put(vehicle.getId(), buildSummary(tenantId, documents));
         }
         return summaries;
     }
@@ -75,8 +77,8 @@ public class VehicleComplianceSummaryService {
         return Set.copyOf(REQUIRED_DOCUMENT_TYPES);
     }
 
-    private VehicleComplianceSummaryResponse buildSummary(List<VehicleDocument> documents) {
-        LocalDate today = LocalDate.now(clock);
+    private VehicleComplianceSummaryResponse buildSummary(String tenantId, List<VehicleDocument> documents) {
+        LocalDate today = tenantTime.today(tenantId);
         List<VehicleDocument> activeDocuments = documents.stream()
                 .filter(document -> document.getStatus() == VehicleDocumentStatus.ACTIVE)
                 .toList();

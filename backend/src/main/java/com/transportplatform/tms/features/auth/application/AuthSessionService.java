@@ -42,7 +42,10 @@ public class AuthSessionService {
         Instant now = clock.instant();
         AuthRefreshSession current = repository.findByTokenHash(hash(rawToken)).orElseThrow(this::invalidToken);
         if (current.getUsedAt() != null || current.getReplacedByTokenHash() != null) {
-            revokeAllForUser(current.getUser().getId()); // A replay is a credential-compromise event.
+            // Reject overlap without issuing another token or revoking the successful rotation.
+            if (current.getUsedAt() == null || current.getUsedAt().plusSeconds(5).isBefore(now)) {
+                revokeAllForUser(current.getUser().getId());
+            }
             throw invalidToken();
         }
         if (current.getRevokedAt() != null || !current.getExpiresAt().isAfter(now)

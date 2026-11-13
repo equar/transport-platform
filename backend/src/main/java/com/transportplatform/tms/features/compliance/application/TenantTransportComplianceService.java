@@ -24,13 +24,15 @@ public class TenantTransportComplianceService {
     private final TenantRepository tenantRepository;
     private final CurrentAuthenticatedUserService currentUserService;
     private final Clock clock;
+    private final com.transportplatform.tms.features.settings.application.TenantTimeService tenantTime;
 
     public TenantTransportComplianceService(TenantTransportComplianceRepository repository,
-            TenantRepository tenantRepository, CurrentAuthenticatedUserService currentUserService, Clock clock) {
+            TenantRepository tenantRepository, CurrentAuthenticatedUserService currentUserService, Clock clock, com.transportplatform.tms.features.settings.application.TenantTimeService tenantTime) {
         this.repository = repository;
         this.tenantRepository = tenantRepository;
         this.currentUserService = currentUserService;
         this.clock = clock;
+        this.tenantTime = tenantTime;
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +90,7 @@ public class TenantTransportComplianceService {
     }
 
     public boolean isDispatchApproved(String tenantId) {
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(tenantId);
         return repository.findById(tenantId).filter(profile ->
                 profile.getVerificationStatus() == TransportVerificationStatus.VERIFIED
                 && profile.isInsuranceVerified()
@@ -99,7 +101,7 @@ public class TenantTransportComplianceService {
     }
 
     private void validateAttestation(TenantTransportComplianceRequest request) {
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = tenantTime.today(requireTenantAdmin().tenantId());
         if (!request.insuranceVerified() || request.insuranceExpiresOn() == null
                 || request.insuranceExpiresOn().isBefore(today)) throw validation("Current insurance verification is required.");
         if (!request.studentSafeguardingPolicyVerified() || !request.ferpaDataAgreementVerified()

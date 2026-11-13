@@ -68,7 +68,10 @@ public class NotificationEmailRetryService {
         int attempts = notification.getDeliveryAttemptCount() + 1;
         notification.setDeliveryAttemptCount(attempts);
         notification.setErrorMessage(result.errorMessage());
-        if (result.sent()) {
+        if ("DELIVERY_DISABLED".equals(result.errorMessage())) {
+            notification.setDeliveryStatus(NotificationDeliveryStatus.SKIPPED);
+            notification.setNextDeliveryAttemptAt(null);
+        } else if (result.sent()) {
             notification.setDeliveryStatus(NotificationDeliveryStatus.SENT);
             notification.setSentAt(now);
             notification.setNextDeliveryAttemptAt(null);

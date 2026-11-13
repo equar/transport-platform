@@ -1,0 +1,22 @@
+{"new_access_after": [401], "old_access_after": 401, "probe": "parallel_refresh", "statuses": [200, 401]}
+{"amount_paid_after": 198.0, "amount_paid_before": 197.0, "expected_amount_paid": 201.0, "probe": "concurrent_payment_application", "saved_payment_statuses": ["PARTIALLY_APPLIED", "PARTIALLY_APPLIED", "PARTIALLY_APPLIED", "PARTIALLY_APPLIED"], "statuses": [200, 200, 200, 200]}
+{"path": "/portal/organization/profile", "probe": "organization_optional_address", "status": 500}
+{"path": "/portal/organization/rides", "probe": "organization_optional_address", "status": 500}
+{"error": {"code": "VALIDATION_FAILED", "details": {"fieldErrors": {"headingDegrees": "Heading cannot be negative."}}, "message": "Validation failed for the request.", "timestamp": "2026-11-13T22:04:49.274445Z"}, "heading": -1, "probe": "location_unknown_course", "status": 400}
+{"error": null, "heading": null, "probe": "location_unknown_course", "status": 200}
+{"path": "/company/riders", "probe": "driver_scope_boundary", "status": 403}
+{"path": "/portal/driver/rides/2", "probe": "driver_scope_boundary", "status": 403}
+{"path": "/portal/driver/rides/999999", "probe": "driver_scope_boundary", "status": 404}
+{"path": "/portal/rider/rides", "probe": "driver_scope_boundary", "status": 403}
+{"probe": "create_synthetic_ride", "status": 201}
+{"error": null, "probe": "assign_synthetic_ride", "status": 200}
+{"action": "driver-en-route", "error": null, "probe": "trip_transition", "ride_status": "DRIVER_EN_ROUTE", "status": 200}
+{"action": "arrived", "error": null, "probe": "trip_transition", "ride_status": "ARRIVED", "status": 200}
+{"action": "picked-up", "error": null, "probe": "trip_transition", "ride_status": "PICKED_UP", "status": 200}
+{"action": "dropped-off", "error": null, "probe": "trip_transition", "ride_status": "DROPPED_OFF", "status": 200}
+{"action": "complete", "error": null, "probe": "trip_transition", "ride_status": "COMPLETED", "status": 200}
+{"keys": ["channel", "createdAt", "deliveryStatus", "id", "message", "notificationCode", "notificationType", "readAt", "readStatus", "relatedEntityId", "relatedEntityType", "sentAt", "status", "title"], "mobile_expected_keys_present": false, "probe": "notification_wire_contract", "status": 200}
+{"probe": "disable_creation_settings", "status": 200}
+{"probe": "create_despite_disabled_settings", "status": 201, "trip_type": "ROUND_TRIP"}
+{"final_internal_notes": "original", "first_status": 200, "probe": "stale_ride_edit", "stale_status": 200}
+{"created_count": 2, "distinct_records": 2, "probe": "identical_payment_without_key"}

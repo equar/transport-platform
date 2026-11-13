@@ -1,5 +1,4 @@
 import { RequestError } from '@components/RequestError';
-import { useBrandingColors } from '@theme/BrandingContext';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import React from 'react';

@@ -165,7 +165,7 @@ export function OrganizationPortalHomePage() {
             <MetricCard
               icon={<AttachMoneyRoundedIcon color="primary" />}
               label="Outstanding Balance"
-              value={formatCurrency(dashboard.outstandingBalance)}
+              value={Object.entries(dashboard.outstandingBalances ?? { USD: dashboard.outstandingBalance }).map(([currency, balance]) => formatCurrency(balance, currency)).join(" · ") || "No balance due"}
             />
           </Box>
           <Box>

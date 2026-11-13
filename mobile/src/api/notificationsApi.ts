@@ -1,14 +1,14 @@
 import { apiClient, unwrapResponse } from './client';
 import type { PageResponse } from './types';
+import type { NotificationSummaryResponse } from './generated/contracts';
 
-export interface NotificationRecord {
-  id: number;
+export interface NotificationRecord extends Required<Pick<NotificationSummaryResponse, 'id' | 'title' | 'message' | 'createdAt'>> {
   notificationType: string;
   channel: string;
-  subject: string | null;
-  summary: string;
   readStatus: 'READ' | 'UNREAD';
-  sentAt: string;
+  sentAt: string | null;
+  relatedEntityType: string | null;
+  relatedEntityId: string | null;
 }
 
 export const notificationsApi = {

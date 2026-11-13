@@ -13,6 +13,7 @@ module.exports = {
   extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
   ignorePatterns: [
     "node_modules/",
+    "btransport/",
     ".expo/",
     "dist/",
     "coverage/",

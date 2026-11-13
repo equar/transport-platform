@@ -79,7 +79,7 @@ class RecurringRideScheduleServiceTest {
                 rideCodeGenerator,
                 rideEventService,
                 auditLogService,
-                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
+                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC), org.mockito.Mockito.mock(com.transportplatform.tms.features.settings.domain.TenantSettingsRepository.class));
 
         Rider rider = buildRider();
 
@@ -107,11 +107,12 @@ class RecurringRideScheduleServiceTest {
                 rideCodeGenerator,
                 rideEventService,
                 auditLogService,
-                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
+                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC), org.mockito.Mockito.mock(com.transportplatform.tms.features.settings.domain.TenantSettingsRepository.class));
 
         RecurringRideSchedule schedule = buildDailySchedule();
 
-        when(rideAccessService.findRecurringRideScheduleForCompanyScope(91L)).thenReturn(schedule);
+        when(rideAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
+        when(recurringRideScheduleRepository.lockForGeneration(91L, "tenant-123")).thenReturn(java.util.Optional.of(schedule));
         when(rideRepository.countByTenantIdAndRecurrenceScheduleId("tenant-123", null)).thenReturn(0L);
         when(rideRepository.existsByTenantIdAndRecurrenceScheduleIdAndScheduledPickupAt(
                 eq("tenant-123"),

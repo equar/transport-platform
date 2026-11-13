@@ -1,3 +1,4 @@
+import { AuthenticatorCard } from '../components/AuthenticatorCard';
 import { Stack, Typography } from "@mui/material";
 import { PageCard } from "../../../shared/components/PageCard";
 import { PasswordChangeCard } from "../components/PasswordChangeCard";
@@ -14,6 +15,7 @@ export function AccountSecurityPage() {
         </Stack>
       </PageCard>
       <PasswordChangeCard />
+      <AuthenticatorCard />
     </Stack>
   );
 }

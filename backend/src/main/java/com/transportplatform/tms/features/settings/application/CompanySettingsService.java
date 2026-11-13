@@ -81,15 +81,15 @@ public class CompanySettingsService {
         settings.setDefaultRideLeadTimeMinutes(request.defaultRideLeadTimeMinutes());
         settings.setAllowManualRideCreation(request.allowManualRideCreation());
         settings.setAllowRoundTripRides(request.allowRoundTripRides());
-        settings.setDispatchStrictComplianceMode(request.dispatchStrictComplianceMode());
+        settings.setDispatchStrictComplianceMode(true);
         settings.setDefaultInvoiceDueDays(request.defaultInvoiceDueDays());
         settings.setDefaultNotificationPreferencesSummary(trimToNull(request.defaultNotificationPreferencesSummary()));
-        settings.setRequireDriverLicense(request.requireDriverLicense());
-        settings.setRequireBackgroundCheck(request.requireBackgroundCheck());
-        settings.setRequireDrugTest(request.requireDrugTest());
-        settings.setRequireVehicleRegistration(request.requireVehicleRegistration());
-        settings.setRequireVehicleInsurance(request.requireVehicleInsurance());
-        settings.setRequireVehicleInspection(request.requireVehicleInspection());
+        settings.setRequireDriverLicense(true);
+        settings.setRequireBackgroundCheck(true);
+        settings.setRequireDrugTest(true);
+        settings.setRequireVehicleRegistration(true);
+        settings.setRequireVehicleInsurance(true);
+        settings.setRequireVehicleInspection(true);
         settings.setExpiringSoonThresholdDays(request.expiringSoonThresholdDays());
         settings.setInvoicePrefix(request.invoicePrefix().trim().toUpperCase());
         settings.setPaymentPrefix(request.paymentPrefix().trim().toUpperCase());
@@ -157,7 +157,7 @@ public class CompanySettingsService {
         settings.setDefaultRideLeadTimeMinutes(120);
         settings.setAllowManualRideCreation(true);
         settings.setAllowRoundTripRides(true);
-        settings.setDispatchStrictComplianceMode(false);
+        settings.setDispatchStrictComplianceMode(true);
         settings.setDefaultInvoiceDueDays(30);
         settings.setDefaultNotificationPreferencesSummary("In-app notifications enabled for operational alerts.");
         settings.setRequireDriverLicense(true);
@@ -205,15 +205,15 @@ public class CompanySettingsService {
                 settings.getDefaultRideLeadTimeMinutes(),
                 settings.isAllowManualRideCreation(),
                 settings.isAllowRoundTripRides(),
-                settings.isDispatchStrictComplianceMode(),
+                true,
                 settings.getDefaultInvoiceDueDays(),
                 settings.getDefaultNotificationPreferencesSummary(),
-                settings.isRequireDriverLicense(),
-                settings.isRequireBackgroundCheck(),
-                settings.isRequireDrugTest(),
-                settings.isRequireVehicleRegistration(),
-                settings.isRequireVehicleInsurance(),
-                settings.isRequireVehicleInspection(),
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
                 settings.getExpiringSoonThresholdDays(),
                 settings.getInvoicePrefix(),
                 settings.getPaymentPrefix(),

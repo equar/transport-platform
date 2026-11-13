@@ -113,7 +113,7 @@ export function RiderGuardianPortalHomePage() {
             <MetricCard
               icon={<ReceiptLongRoundedIcon color="primary" />}
               label="Outstanding Balance"
-              value={formatCurrency(dashboard.outstandingBalance)}
+              value={Object.entries(dashboard.outstandingBalances ?? { USD: dashboard.outstandingBalance }).map(([currency, balance]) => formatCurrency(balance, currency)).join(" · ") || "No balance due"}
             />
           </Box>
           <Box>
@@ -253,7 +253,7 @@ export function RiderGuardianPortalHomePage() {
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Outstanding balance:{" "}
-                {formatCurrency(dashboard?.outstandingBalance ?? 0)}
+                {Object.entries(dashboard?.outstandingBalances ?? { USD: dashboard?.outstandingBalance ?? 0 }).map(([currency, balance]) => formatCurrency(balance, currency)).join(" · ") || "No balance due"}
               </Typography>
             </Stack>
           </PageCard>

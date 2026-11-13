@@ -15,6 +15,6 @@ public class LoggingNotificationEmailSender implements NotificationEmailSender {
     public DeliveryResult send(NotificationEmailCommand command) {
         LOGGER.info("Email notification hook queued for {} with subject '{}'", command.recipientEmail(),
                 command.subject());
-        return new DeliveryResult(true, null);
+        return new DeliveryResult(false, "DELIVERY_DISABLED");
     }
 }

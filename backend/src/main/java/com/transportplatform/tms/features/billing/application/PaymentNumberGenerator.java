@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class PaymentNumberGenerator {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.settings.domain.TenantSettingsRepository numberingSettings;
 
     private final PaymentRepository paymentRepository;
 
@@ -18,7 +20,7 @@ public class PaymentNumberGenerator {
 
     public String generate(String tenantId) {
         for (int attempt = 0; attempt < 10; attempt++) {
-            String number = "PAY-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+            String number = numberingSettings.findById(tenantId).map(settings -> settings.getPaymentPrefix()).orElse("PAY") + "-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
             if (!paymentRepository.existsByTenantIdAndPaymentNumberIgnoreCase(tenantId, number)) {
                 return number;
             }

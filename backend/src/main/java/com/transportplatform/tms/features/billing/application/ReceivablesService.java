@@ -132,6 +132,7 @@ public class ReceivablesService {
 
     @Transactional
     public CollectionNoteResponse addCollectionNote(Long invoiceId, CollectionNoteUpsertRequest request) {
+        billingAccessService.lockFinancialWrites();
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(invoiceId);
         if (!invoiceFinancialService.isReceivable(invoice)) {
             throw validationFailure(

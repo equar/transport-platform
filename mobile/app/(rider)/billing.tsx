@@ -1,5 +1,4 @@
 import { DetailSheet } from '@components/DetailSheet';
-import { useBrandingColors } from '@theme/BrandingContext';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import { Pagination } from '@components/Pagination';

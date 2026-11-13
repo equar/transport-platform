@@ -1,3 +1,5 @@
+import { View, Text, Button } from 'react-native';
+import { logClientEvent } from '../src/utils/clientTelemetry';
 import { useQueryConnectivity } from '@hooks/useQueryConnectivity';
 import { runtimeApi } from '@api/runtimeApi';
 import { setServiceTimezone } from '../src/utils/serviceTime';
@@ -155,4 +157,13 @@ function AppViewport({ children }: { children: React.ReactNode }) {
     <StatusBar style={auth && scheme !== 'dark' ? 'dark' : 'light'} />
     {children}
   </SafeAreaView>;
+}
+
+export function ErrorBoundary({ retry }: { retry: () => void }) {
+  useEffect(() => { logClientEvent('error', 'ui.render.failed'); }, []);
+  return <View style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 16, backgroundColor: '#fff' }}>
+    <Text style={{ fontSize: 24, color: '#142831' }}>This screen could not open</Text>
+    <Text style={{ color: '#142831' }}>If you were updating a trip, refresh it to confirm the result before submitting again.</Text>
+    <Button title="Try again" onPress={retry} />
+  </View>;
 }

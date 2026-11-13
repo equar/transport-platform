@@ -31,6 +31,7 @@ export function LoginPage() {
   const { signIn } = useAuth();
   const { showSuccess } = useToast();
   const [email, setEmail] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +69,7 @@ export function LoginPage() {
       const session = await signIn({
         email: normalizedEmail,
         password,
+        mfaCode: mfaCode.trim() || undefined,
       });
       showSuccess("Signed in successfully.");
       navigate(resolvePostLoginRoute(session, targetPath), { replace: true });
@@ -159,6 +161,8 @@ export function LoginPage() {
             },
           }}
         />
+        <TextField label="Authenticator or recovery code" value={mfaCode} onChange={event => setMfaCode(event.target.value)} autoComplete="one-time-code" inputProps={{ maxLength: 32 }} helperText="Required only if an authenticator is enabled for your account." fullWidth disabled={submitting} />
+
 
         <Button type="submit" variant="contained" size="large" disabled={submitting} fullWidth sx={{ mt: 1 }}>{submitting ? "Signing in…" : "Sign in to workspace"}</Button>
 

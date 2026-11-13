@@ -87,6 +87,11 @@ export interface RuntimeTenantCapabilities {
     invoicePrefix: string;
     paymentPrefix: string;
     pricingRulePrefix: string;
+    taxEnabled?: boolean;
+    defaultTaxRate?: number;
+    allowManualInvoiceOverrides?: boolean;
+    allowManualRideCreation?: boolean;
+    allowRoundTripRides?: boolean;
   };
   moduleAccess: RuntimeModuleAccess;
 }

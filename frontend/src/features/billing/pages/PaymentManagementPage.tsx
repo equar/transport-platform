@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '../../../shared/api/client';
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
@@ -14,7 +15,7 @@ import {
   TableRow,
   TextField,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import { EmptyState } from "../../../shared/components/EmptyState";
@@ -74,7 +75,9 @@ export function PaymentManagementPage() {
   );
   const [saving, setSaving] = useState(false);
 
+  const loadGeneration = useRef(0);
   async function loadPayments() {
+    const generation = ++loadGeneration.current;
     setLoading(true);
     setError(null);
     try {
@@ -89,17 +92,20 @@ export function PaymentManagementPage() {
         sortBy: "updatedAt",
         sortDirection: "DESC",
       });
+      if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
     } catch {
+      if (generation !== loadGeneration.current) return;
       setError("Payments could not be loaded.");
     } finally {
-      setLoading(false);
+      if (generation === loadGeneration.current) setLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadPayments();
+    const timer = window.setTimeout(() => void loadPayments(), 250);
+    return () => { window.clearTimeout(timer); loadGeneration.current++; };
   }, [fromDate, keyword, page, paymentMethod, size, status, toDate]);
 
   async function handleOpenEdit(paymentId: number) {
@@ -107,8 +113,8 @@ export function PaymentManagementPage() {
       const response = await billingApi.getPayment(paymentId);
       setSelectedPayment(response);
       setDialogOpen(true);
-    } catch {
-      showError("Payment details could not be loaded.");
+    } catch (error) {
+      showError(getApiErrorMessage(error, "Payment details could not be loaded."));
     }
   }
 
@@ -125,8 +131,8 @@ export function PaymentManagementPage() {
       setDialogOpen(false);
       setSelectedPayment(null);
       await loadPayments();
-    } catch {
-      showError("Payment changes could not be saved.");
+    } catch (error) {
+      showError(getApiErrorMessage(error, "Payment changes could not be saved."));
     } finally {
       setSaving(false);
     }

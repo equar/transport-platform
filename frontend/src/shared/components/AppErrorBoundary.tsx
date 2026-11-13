@@ -1,3 +1,4 @@
+import { logClientEvent } from '../observability/clientTelemetry';
 import React, { type PropsWithChildren } from "react";
 import { Box, Button, Chip, Stack, Typography } from "@mui/material";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
@@ -20,6 +21,8 @@ export class AppErrorBoundary extends React.Component<
     return { hasError: true };
   }
 
+  public componentDidCatch() { logClientEvent('error', 'ui.render.failed'); }
+
   public render() {
     if (this.state.hasError) {
       return (
@@ -35,7 +38,7 @@ export class AppErrorBoundary extends React.Component<
             <Stack spacing={2.5}>
               <Chip icon={<SupportAgentRoundedIcon />} label="Application recovery" color="error" sx={{ alignSelf: "flex-start" }} />
               <Typography variant="h3">This workspace needs a quick reset.</Typography>
-              <Typography color="text.secondary">An unexpected interface error interrupted this view. Your saved business data was not changed. Reload the application, and contact support if the same action fails again.</Typography>
+              <Typography color="text.secondary">An unexpected interface error interrupted this view. If you were saving a change, refresh its record to confirm the result before submitting again. Reload the application, and contact support if the same action fails again.</Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Button
                   variant="contained"

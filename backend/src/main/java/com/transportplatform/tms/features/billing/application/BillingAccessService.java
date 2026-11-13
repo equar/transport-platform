@@ -25,6 +25,8 @@ public class BillingAccessService {
 
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final PricingRuleRepository pricingRuleRepository;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.tenant.domain.TenantRepository financialTenants;
     private final InvoiceRepository invoiceRepository;
     private final InvoiceLineItemRepository invoiceLineItemRepository;
     private final PaymentRepository paymentRepository;
@@ -57,6 +59,12 @@ public class BillingAccessService {
                 "A tenant or billing administrator account is required for billing operations.");
         }
         return user.tenantId();
+    }
+
+    /** Acquire before any financial read to serialize invoice/payment/line-item transitions. */
+    public void lockFinancialWrites() {
+        financialTenants.lockForDispatch(requireCompanyTenantId()).orElseThrow(() ->
+                new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Company was not found."));
     }
 
     public PricingRule findPricingRuleForCompanyScope(Long pricingRuleId) {

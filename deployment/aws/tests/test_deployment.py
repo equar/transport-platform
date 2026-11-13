@@ -25,7 +25,11 @@ def environment():
         LIGHTSAIL_HOST='host.example.invalid', LIGHTSAIL_USER='ubuntu',
         LIGHTSAIL_SSH_KEY_B64='dummy-key', LIGHTSAIL_KNOWN_HOSTS='host.example.invalid ssh-ed25519 dummy',
         MYSQL_HOST='db.example.invalid', MYSQL_USER='transport', MYSQL_PASSWORD='private-db-value',
-        APP_SECURITY_JWT_SECRET='random-signing-secret-value-32-bytes-long')
+        APP_SECURITY_JWT_SECRET='random-signing-secret-value-32-bytes-long',
+        APP_SECURITY_MFA_ENCRYPTION_KEY='MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
+        APP_EMAIL_ENABLED='true', APP_EMAIL_PROVIDER='microsoft-graph', APP_EMAIL_FROM='sender@example.invalid',
+        MICROSOFT_GRAPH_CLIENT_ID='client', MICROSOFT_GRAPH_TENANT_ID='tenant', MICROSOFT_GRAPH_CLIENT_SECRET='synthetic',
+        APP_PUSH_ENABLED='true', APP_PUSH_PROVIDER='expo')
 
 
 class SelectionTests(unittest.TestCase):
@@ -78,7 +82,7 @@ class SelectionTests(unittest.TestCase):
 class ConfigurationTests(unittest.TestCase):
     def test_email_bootstrap_requires_real_delivery_and_exclusive_mode(self):
         env = environment()
-        env.update(APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL_ENABLED='true', APP_BOOTSTRAP_PLATFORM_ADMIN_EMAILS='apps@bakaroo.com,equarhishe@gmail.com')
+        env.update(APP_EMAIL_ENABLED='false', APP_EMAIL_PROVIDER='logging', APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL_ENABLED='true', APP_BOOTSTRAP_PLATFORM_ADMIN_EMAILS='apps@bakaroo.com,equarhishe@gmail.com')
         with self.assertRaisesRegex(ValueError, 'enabled email'):
             settings(env)
         env.update(APP_EMAIL_ENABLED='true', APP_EMAIL_PROVIDER='microsoft-graph', APP_EMAIL_FROM='sender@example.test', MICROSOFT_GRAPH_CLIENT_ID='client', MICROSOFT_GRAPH_TENANT_ID='tenant', MICROSOFT_GRAPH_CLIENT_SECRET='private')
@@ -120,6 +124,7 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_invalid_production_settings_are_rejected_without_values(self):
         for key, value in [('APP_PUBLIC_URL', 'http://localhost:3007'), ('VITE_API_BASE_URL', 'https://unrelated.invalid'),
+            ('APP_SECURITY_MFA_ENCRYPTION_KEY', 'invalid-key'), ('APP_EMAIL_ENABLED', 'false'), ('APP_PUSH_ENABLED', 'false'),
             ('MYSQL_DATABASE', 'bingo'), ('MYSQL_PORT', '70000'), ('APP_SECURITY_JWT_SECRET', 'short'),
             ('APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED', 'true'), ('APP_LOGGING_LEVEL_SQL_BIND', 'TRACE'),
             ('APP_LOGGING_LEVEL_APP', 'DEBUG'), ('MYSQL_PASSWORD', 'sentinel-secret\nSERVER_PORT=1234')]:
@@ -146,7 +151,7 @@ class ConfigurationTests(unittest.TestCase):
     def test_delivery_configuration_is_checked(self):
         env = environment(); env.update(APP_PUSH_ENABLED='true', APP_PUSH_PROVIDER='expo')
         settings(env)
-        env.update(APP_EMAIL_ENABLED='true', APP_EMAIL_PROVIDER='microsoft-graph')
+        env.update(APP_EMAIL_ENABLED='true', APP_EMAIL_PROVIDER='microsoft-graph', MICROSOFT_GRAPH_CLIENT_SECRET='')
         with self.assertRaises(ValueError): settings(env)
         env.update(APP_EMAIL_FROM='dispatch@example.invalid', MICROSOFT_GRAPH_CLIENT_ID='client',
             MICROSOFT_GRAPH_TENANT_ID='tenant', MICROSOFT_GRAPH_CLIENT_SECRET='private-graph')

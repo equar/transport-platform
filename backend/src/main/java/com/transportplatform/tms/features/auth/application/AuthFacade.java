@@ -39,6 +39,8 @@ import com.transportplatform.tms.features.tenant.domain.TenantStatus;
 @Service
 public class AuthFacade {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private MfaService mfa;
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -98,6 +100,10 @@ public class AuthFacade {
         ensureEligibleForTokenIssuance(user, true);
         ensureClientAllowed(user, clientType, true);
         ensureTenantActive(user);
+        if (mfa.required(user) && user.getMfaSecret() == null) {
+            authSessionService.revokeAllForUser(user.getId());
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.UNAUTHORIZED, "Authenticator enrollment is required. Contact your administrator.");
+        }
         return issueTokens(user, rotated.token());
     }
 
@@ -259,35 +265,22 @@ public class AuthFacade {
                 null,
                 Map.of("userId", user.getId(), "email", user.getEmail())));
         String link = buildPasswordResetLink(rawToken);
-        notificationEmailSender.send(new NotificationEmailSender.NotificationEmailCommand(
-                user.getEmail(),
-                "Password reset request",
-                "Password reset request",
-                "A password reset was requested for your account. Use this link to continue: " + link));
+        try {
+            var delivery = notificationEmailSender.send(new NotificationEmailSender.NotificationEmailCommand(
+                    user.getEmail(), "Password reset request", "Password reset request",
+                    "A password reset was requested for your account. Use this link to continue: " + link));
+            if (delivery == null || !delivery.sent()) {
+                org.slf4j.LoggerFactory.getLogger(AuthFacade.class).error("Password recovery email delivery failed; investigate delivery provider health.");
+            }
+        } catch (RuntimeException failure) {
+            // Preserve the public anti-enumeration response without logging the token or provider payload.
+            org.slf4j.LoggerFactory.getLogger(AuthFacade.class).error("Password recovery email provider unavailable.");
+        }
     }
 
-    private void ensureMfaComplete(AppUser user, String mfaCode) {
-        if (authFlowProperties == null || !authFlowProperties.isRequireMfaForPrivilegedAccounts()) {
-            return;
-        }
-        boolean privileged = user.getRoles().stream().anyMatch(role ->
-                role == com.transportplatform.tms.features.auth.domain.RoleName.ROLE_PLATFORM_ADMIN
-                        || role == com.transportplatform.tms.features.auth.domain.RoleName.ROLE_TENANT_ADMIN);
-        if (!privileged) {
-            return;
-        }
-        if (mfaCode == null || mfaCode.isBlank()) {
-            throw new ApiException(
-                    ErrorCode.FORBIDDEN,
-                    HttpStatus.UNAUTHORIZED,
-                    "Multi-factor authentication is required to sign in with an administrative account.");
-        }
-        String expected = System.getenv().getOrDefault("APP_AUTH_ADMIN_MFA_CODE", "").trim();
-        if (expected.isBlank() || !expected.equals(mfaCode.trim())) {
-            throw new ApiException(
-                    ErrorCode.FORBIDDEN,
-                    HttpStatus.UNAUTHORIZED,
-                    "The administrative MFA code is invalid or not configured.");
+    private void ensureMfaComplete(AppUser user, String code) {
+        if (user.getMfaSecret() != null || (authFlowProperties != null && authFlowProperties.isRequireMfaForPrivilegedAccounts())) {
+            mfa.verify(user, code);
         }
     }
 

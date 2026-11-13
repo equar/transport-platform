@@ -1,3 +1,4 @@
+import { env } from '../config/env';
 type TelemetryLevel = 'info' | 'warn' | 'error';
 
 type TelemetryDetails = Record<string, unknown>;
@@ -23,6 +24,10 @@ function scrubValue(value: unknown): unknown {
 }
 
 export function logClientEvent(level: TelemetryLevel, event: string, details?: TelemetryDetails) {
+  if (typeof fetch === 'function' && level !== 'info' && /^[a-zA-Z0-9._-]{1,100}$/.test(event)) {
+    void fetch(`${env.apiBaseUrl}/client-events`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, level, client: 'web', release: '0.1.0' }), keepalive: true }).catch(() => undefined);
+  }
   const payload = {
     event,
     at: new Date().toISOString(),

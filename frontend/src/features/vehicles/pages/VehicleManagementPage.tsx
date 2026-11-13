@@ -20,7 +20,7 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import PauseCircleRoundedIcon from "@mui/icons-material/PauseCircleRounded";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
@@ -96,7 +96,9 @@ export function VehicleManagementPage() {
   } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  const loadGeneration = useRef(0);
   async function loadVehicles() {
+    const generation = ++loadGeneration.current;
     setLoading(true);
     setError(null);
     try {
@@ -110,17 +112,20 @@ export function VehicleManagementPage() {
         sortBy: "updatedAt",
         sortDirection: "DESC",
       });
+      if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
     } catch {
+      if (generation !== loadGeneration.current) return;
       setError("Vehicles could not be loaded.");
     } finally {
-      setLoading(false);
+      if (generation === loadGeneration.current) setLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadVehicles();
+    const timer = window.setTimeout(() => void loadVehicles(), 250);
+    return () => { window.clearTimeout(timer); loadGeneration.current++; };
   }, [keyword, ownershipType, page, serviceType, size, status]);
 
   async function handleSubmit(payload: VehiclePayload) {

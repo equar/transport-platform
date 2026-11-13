@@ -62,5 +62,6 @@ public record RideResponse(
         String createdBy,
         Instant createdAt,
         String updatedBy,
-        Instant updatedAt) {
+        Instant updatedAt,
+        long version, Long linkedRideId, String journeyLeg) {
 }

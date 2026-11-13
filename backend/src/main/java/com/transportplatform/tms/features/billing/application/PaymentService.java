@@ -126,6 +126,7 @@ public class PaymentService {
 
     @Transactional
     public PaymentDetailResponse createCompanyPayment(PaymentUpsertRequest request, String idempotencyKey) {
+        billingAccessService.lockFinancialWrites();
         String tenantId = billingAccessService.requireCompanyTenantId();
         PaymentCreationIdempotencyService.Claim claim = paymentCreationIdempotencyService.claim(idempotencyKey, request);
         PaymentCreationIdempotency idempotency = claim == null ? null : claim.record();
@@ -171,6 +172,7 @@ public class PaymentService {
 
     @Transactional
     public PaymentDetailResponse updateCompanyPayment(Long paymentId, PaymentUpsertRequest request) {
+        billingAccessService.lockFinancialWrites();
         Payment payment = billingAccessService.findPaymentForCompanyScope(paymentId);
         PaymentStatusWorkflow.ensureCanUpdate(payment);
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(request.invoiceId());
@@ -187,6 +189,7 @@ public class PaymentService {
 
     @Transactional
     public PaymentDetailResponse applyCompanyPayment(Long paymentId) {
+        billingAccessService.lockFinancialWrites();
         Payment payment = billingAccessService.findPaymentForCompanyScope(paymentId);
         PaymentStatusWorkflow.ensureCanApply(payment);
         Invoice invoice = payment.getInvoice();
@@ -210,6 +213,7 @@ public class PaymentService {
 
     @Transactional
     public PaymentDetailResponse voidCompanyPayment(Long paymentId, PaymentVoidRequest request) {
+        billingAccessService.lockFinancialWrites();
         Payment payment = billingAccessService.findPaymentForCompanyScope(paymentId);
         PaymentStatusWorkflow.ensureCanVoid(payment);
         Object oldPaymentSnapshot = snapshot(payment);

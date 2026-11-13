@@ -122,6 +122,32 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.failure(error));
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(Exception exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.failure(
+                ApiErrorResponse.of(ErrorCode.RESOURCE_NOT_FOUND.name(), "This resource was not found.", Map.of())));
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethod(Exception exception) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(ApiResponse.failure(
+                ApiErrorResponse.of(ErrorCode.VALIDATION_FAILED.name(), "This action is not supported for this resource.", Map.of())));
+    }
+
+    @ExceptionHandler({org.springframework.dao.PessimisticLockingFailureException.class,
+            org.springframework.dao.DataIntegrityViolationException.class})
+    public ResponseEntity<ApiResponse<Void>> handleDataConflict(Exception exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.failure(
+                ApiErrorResponse.of(ErrorCode.RESOURCE_CONFLICT.name(),
+                        "This change conflicts with another update. Refresh and retry the same request.", Map.of())));
+    }
+
+    @ExceptionHandler(org.springframework.web.bind.MissingRequestHeaderException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingHeader(Exception exception) {
+        return ResponseEntity.status(HttpStatus.PRECONDITION_REQUIRED).body(ApiResponse.failure(
+                ApiErrorResponse.of(ErrorCode.RESOURCE_CONFLICT.name(), "Refresh this record before saving changes.", Map.of())));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleUnhandled(Exception exception) {
         LOGGER.error("Unhandled exception", exception);

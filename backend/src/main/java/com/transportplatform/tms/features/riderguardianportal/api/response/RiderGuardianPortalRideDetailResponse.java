@@ -20,5 +20,5 @@ public record RiderGuardianPortalRideDetailResponse(
         String dropoffAddress,
         Long routeId,
         Long recurrenceScheduleId,
-        boolean recurringRide) {
+        boolean recurringRide, Long linkedRideId, String journeyLeg) {
 }

@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useBrandingColors } from '@theme/BrandingContext';
+import React, { useState, useEffect } from 'react';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import { Image, Linking, StyleSheet, Text, View } from 'react-native';
@@ -53,6 +52,8 @@ export function TripTrackingCard({
 }: TripTrackingCardProps) {
   const styles = useThemedStyles(createStyles);
   const [mapFailed, setMapFailed] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  useEffect(() => { setMapFailed(false); }, [snapshot?.capturedAt]);
   const [details, setDetails] = useState(false);
   const ageMinutes = snapshot ? Math.max(0, Math.floor((Date.now() - Date.parse(snapshot.capturedAt)) / 60000)) : null;
   const mapUrl = snapshot ? buildStaticMapUrl(snapshot) : null;
@@ -64,7 +65,9 @@ export function TripTrackingCard({
         {error ? <Text accessibilityRole="alert" style={styles.emptyText}>Location updates could not be loaded. Check your connection and refresh tracking.</Text> : null}
         {snapshot ? (
           <>
-            {mapUrl && !mapFailed ? (
+            {mapUrl && !showMap ? <AppButton label="Show map" variant="outlined" accessibilityHint="Shares this reported vehicle location with the map provider" onPress={() => setShowMap(true)} /> : null}
+            {!showMap ? <Text style={styles.emptyText}>Showing a map shares this location with the map provider.</Text> : null}
+            {mapUrl && showMap && !mapFailed ? (
               <Image accessibilityLabel="Latest reported vehicle location" onError={() => setMapFailed(true)} source={{ uri: mapUrl }} style={styles.map} resizeMode="cover" />
             ) : null}
             <Text style={styles.emptyText}>{ageMinutes != null && ageMinutes >= 2 ? `Location may be stale (${ageMinutes} minutes ago).` : 'Latest reported location'}</Text>

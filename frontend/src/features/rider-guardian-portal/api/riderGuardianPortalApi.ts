@@ -9,6 +9,7 @@ export interface RiderGuardianPortalDashboardRecord {
   activeRecurringScheduleCount: number;
   openInvoiceCount: number;
   outstandingBalance: number;
+  outstandingBalances?: Record<string, number>;
   unreadNotifications: number;
 }
 

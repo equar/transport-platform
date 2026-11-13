@@ -76,6 +76,7 @@ app:
       email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:samuelweld2018@gmail.com}
       password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:Password123}
   security:
+    mfa-encryption-key: ${APP_SECURITY_MFA_ENCRYPTION_KEY:}
     api-docs-enabled: false
     allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:}
     refresh-cookie:

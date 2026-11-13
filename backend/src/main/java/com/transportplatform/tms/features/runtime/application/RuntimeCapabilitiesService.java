@@ -135,7 +135,7 @@ public class RuntimeCapabilitiesService {
                         settings.getDefaultInvoiceDueDays(),
                         settings.getInvoicePrefix(),
                         settings.getPaymentPrefix(),
-                        settings.getPricingRulePrefix()),
+                        settings.getPricingRulePrefix(), settings.isTaxEnabled(), settings.getDefaultTaxRate(), settings.isAllowManualInvoiceOverrides(), settings.isAllowManualRideCreation(), settings.isAllowRoundTripRides()),
                 resolveModuleAccess(resolvedFlags));
     }
 

@@ -15,7 +15,7 @@ public class LoggingNotificationPushSender implements NotificationPushSender {
     public DeliveryResult send(PushNotificationCommand command) {
         LOGGER.info("Push notification hook queued for token {} with title '{}'",
                 redact(command.token()), command.title());
-        return new DeliveryResult(true, null);
+        return new DeliveryResult(false, "DELIVERY_DISABLED");
     }
 
     private String redact(String token) {

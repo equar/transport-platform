@@ -61,6 +61,11 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         }
 
         Instant now = Instant.now(clock);
+        if (counters.size() > 10000) counters.entrySet().removeIf(entry ->
+                !entry.getValue().windowStartedAt().plus(config.getWindow()).isAfter(now));
+        if (counters.size() >= 20000 && !counters.containsKey(path + "::" + clientIp(request))) {
+            response.setStatus(429); response.setHeader("Retry-After", "60"); return;
+        }
         RateLimitDecision decision = consume(path + "::" + clientIp(request), limit, config.getWindow(), now);
         if (decision.allowed()) {
             filterChain.doFilter(request, response);
@@ -80,6 +85,8 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     }
 
     private int resolveLimit(String path, SecurityProperties.AuthRateLimit config) {
+        if ("/client-events".equals(path)) return 30;
+        if (path.startsWith("/v1/auth/mfa/")) return config.getForgotPasswordMaxRequests();
         if ("/v1/auth/login".equals(path)) {
             return config.getLoginMaxRequests();
         }

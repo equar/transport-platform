@@ -172,11 +172,11 @@ export const dispatchApi = {
     const response = await apiClient.post(`/company/rides/${rideId}/unassign-vehicle`);
     return unwrapResponse<RideRecord>(response.data);
   },
-  async listDriverOptions() {
+  async listDriverOptions(keyword = "") {
     const [driverResponse, vehicleResponse] = await Promise.all([
       apiClient.get("/company/drivers", {
         params: {
-          keyword: "",
+          keyword,
           status: "ACTIVE",
           page: 0,
           size: 100,
@@ -215,10 +215,10 @@ export const dispatchApi = {
         assignedVehicleId: assignedVehicleByDriverId.get(item.id)?.id ?? null,
       } satisfies LookupOption));
   },
-  async listVehicleOptions() {
+  async listVehicleOptions(keyword = "") {
     const response = await apiClient.get("/company/vehicles", {
       params: {
-        keyword: "",
+        keyword,
         status: "ACTIVE",
         page: 0,
         size: 100,

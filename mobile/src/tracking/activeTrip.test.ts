@@ -73,3 +73,9 @@ it('stops a native background callback when assignment access has been revoked',
   expect(mockStorage.has('active-trip-tracking')).toBe(false);
   expect(useTrackingState.getState().active).toBe(false);
 });
+
+it('normalizes unavailable iOS speed and heading instead of rejecting valid coordinates', async () => {
+  jest.mocked(Location.getCurrentPositionAsync).mockResolvedValue({ ...position, coords: { ...position.coords, speed: -1, heading: -1 } });
+  await startTripTracking(trip);
+  expect(driverPortalApi.captureRideLocationSnapshot).toHaveBeenCalledWith(10, expect.objectContaining({ latitude: 42, longitude: -71, speedMps: null, headingDegrees: null }));
+});

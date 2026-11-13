@@ -1,3 +1,4 @@
+import { withSessionCookieLock } from './sessionLock';
 import axios from 'axios';
 import { env } from '../config/env';
 import { AUTH_SESSION_INVALIDATED_EVENT } from '../config/storage';
@@ -33,10 +34,10 @@ let refreshPromise: Promise<string | null> | null = null;
 
 async function refreshAccessToken() {
   const generation = sessionGeneration;
-  const response = await axios.post(`${env.apiBaseUrl}/v1/auth/refresh`, undefined, {
+  const response = await withSessionCookieLock(() => axios.post(`${env.apiBaseUrl}/v1/auth/refresh`, undefined, {
     withCredentials: true,
     timeout: 10000,
-  });
+  }));
   const tokens = unwrapResponse<{
     accessToken: string;
     refreshToken: string | null;

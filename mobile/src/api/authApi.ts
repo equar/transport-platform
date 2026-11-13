@@ -21,6 +21,7 @@ interface AuthTokensResponse {
 export interface LoginPayload {
   email: string;
   password: string;
+  mfaCode?: string;
   tenantId?: string | null;
 }
 

@@ -22,7 +22,7 @@ import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import PersonOffRoundedIcon from "@mui/icons-material/PersonOffRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
@@ -88,7 +88,9 @@ export function DriverManagementPage() {
   } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  const loadGeneration = useRef(0);
   async function loadDrivers() {
+    const generation = ++loadGeneration.current;
     setLoading(true);
     setError(null);
     try {
@@ -101,17 +103,20 @@ export function DriverManagementPage() {
         sortBy: "updatedAt",
         sortDirection: "DESC",
       });
+      if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
     } catch {
+      if (generation !== loadGeneration.current) return;
       setError("Drivers could not be loaded.");
     } finally {
-      setLoading(false);
+      if (generation === loadGeneration.current) setLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadDrivers();
+    const timer = window.setTimeout(() => void loadDrivers(), 250);
+    return () => { window.clearTimeout(timer); loadGeneration.current++; };
   }, [keyword, status, driverType, page, size]);
 
   async function handleSubmit(payload: DriverPayload) {

@@ -13,7 +13,7 @@ public class RideMapper {
     public void apply(Ride ride,
             RideUpsertRequest request,
             RideReferenceValidationService.ResolvedReferences references) {
-        schedule.validate(ride.getTenantId(),request);
+        schedule.validate(ride.getTenantId(),request,ride.getId() == null);
         ride.setRider(references.rider());
         ride.setGuardian(references.guardian());
         ride.setOrganization(references.organization());
@@ -102,7 +102,8 @@ public class RideMapper {
                 ride.getCreatedBy(),
                 ride.getCreatedAt(),
                 ride.getUpdatedBy(),
-                ride.getUpdatedAt());
+                ride.getUpdatedAt(),
+                ride.getVersion(), ride.getLinkedRideId(), ride.getJourneyLeg());
     }
 
     private String formatRiderName(Ride ride) {

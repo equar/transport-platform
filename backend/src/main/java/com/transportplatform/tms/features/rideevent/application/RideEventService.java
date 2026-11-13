@@ -106,7 +106,21 @@ public class RideEventService {
         rideEvent.setActorEmail(actor.username());
         rideEvent.setPreviousStatus(previousStatus);
         rideEvent.setNewStatus(newStatus);
-        rideEvent.setNotes(trimToNull(notes));
+        if (org.springframework.web.context.request.RequestContextHolder.getRequestAttributes()
+                instanceof org.springframework.web.context.request.ServletRequestAttributes attributes) {
+            String reported = attributes.getRequest().getHeader("X-Occurred-At");
+            if (reported != null) {
+                try {
+                    var instant = java.time.Instant.parse(reported); var now = java.time.Instant.now();
+                    if (instant.isAfter(now.plusSeconds(300)) || instant.isBefore(now.minusSeconds(604800))) throw new IllegalArgumentException();
+                    notes = "Client-reported milestone time: " + instant + ". Server receipt time is the audit creation time. " + (notes == null ? "" : notes);
+                } catch (java.time.format.DateTimeParseException | IllegalArgumentException invalid) {
+                    throw new com.transportplatform.tms.common.exception.ApiException(com.transportplatform.tms.common.exception.ErrorCode.VALIDATION_FAILED,
+                            org.springframework.http.HttpStatus.BAD_REQUEST,"The reported trip milestone time is invalid or older than seven days. Contact dispatch to reconcile it.");
+                }
+            }
+        }
+        rideEvent.setNotes(notes == null ? null : notes.substring(0, Math.min(2000,notes.length())).trim());
         rideEventRepository.save(rideEvent);
     }
 

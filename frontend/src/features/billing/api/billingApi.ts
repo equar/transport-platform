@@ -2,6 +2,8 @@ import { apiClient, unwrapResponse } from "../../../shared/api/client";
 import type { PageResponse } from "../../../shared/api/types";
 import type { RideTripType, ServiceType } from "../../rides/api/ridesApi";
 
+const paymentIntentFallback = new Map<string, string>();
+
 export const pricingModelOptions = [
   "FLAT_RATE",
   "PER_TRIP",
@@ -584,7 +586,18 @@ export const billingApi = {
     return unwrapResponse<PaymentPreviewRecord>(response.data);
   },
   async createPayment(payload: PaymentPayload) {
-    const response = await apiClient.post("/company/payments", payload);
+    // Persist only a digest and random intent key, never payer or payment details.
+    const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(payload)));
+    const digest = Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
+    const storageKey = `payment-intent:${digest}`;
+    let key = paymentIntentFallback.get(storageKey);
+    try { key = sessionStorage.getItem(storageKey) ?? key; } catch { /* Browser storage may be disabled. */ }
+    if (!key) key = crypto.randomUUID();
+    paymentIntentFallback.set(storageKey, key);
+    try { sessionStorage.setItem(storageKey, key); } catch { /* Retain retry identity in this tab's memory. */ }
+    const response = await apiClient.post("/company/payments", payload, { headers: { 'Idempotency-Key': key } });
+    paymentIntentFallback.delete(storageKey);
+    try { sessionStorage.removeItem(storageKey); } catch { /* Storage is unavailable. */ }
     return unwrapResponse<PaymentRecord>(response.data);
   },
   async updatePayment(id: number, payload: PaymentPayload) {

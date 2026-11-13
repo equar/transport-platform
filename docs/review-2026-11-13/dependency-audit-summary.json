@@ -1,0 +1,673 @@
+{
+  "web": {
+    "metadata": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 1,
+        "high": 3,
+        "critical": 2,
+        "total": 6
+      },
+      "dependencies": {
+        "prod": 112,
+        "dev": 177,
+        "optional": 52,
+        "peer": 10,
+        "peerOptional": 0,
+        "total": 288
+      }
+    },
+    "packages": [
+      {
+        "name": "@vitest/mocker",
+        "severity": "moderate",
+        "direct": false,
+        "range": "<=4.1.11",
+        "fixAvailable": {
+          "name": "vitest",
+          "version": "2.0.5",
+          "isSemVerMajor": true
+        },
+        "advisories": [
+          {
+            "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+            "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9"
+          },
+          {
+            "title": "Vitest: Code injection via unauthenticated manual mock registration",
+            "url": "https://github.com/advisories/GHSA-qxg6-89mg-rqv8"
+          }
+        ]
+      },
+      {
+        "name": "follow-redirects",
+        "severity": "high",
+        "direct": false,
+        "range": "1.16.0 - 1.16.1",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "title": "follow-redirects array-form headers bypass cross-origin credential stripping",
+            "url": "https://github.com/advisories/GHSA-q3jh-wrc6-jgq8"
+          },
+          {
+            "title": "follow-redirects sensitiveHeaders regex escaping can expose credential headers",
+            "url": "https://github.com/advisories/GHSA-8r9p-f939-6h3c"
+          },
+          {
+            "title": "follow-redirects: Cross-realm sensitiveHeaders arrays are discarded and custom credentials can follow redirects",
+            "url": "https://github.com/advisories/GHSA-mrwp-f3q8-3g9p"
+          }
+        ]
+      },
+      {
+        "name": "source-map-js",
+        "severity": "high",
+        "direct": false,
+        "range": "1.0.0 - 1.2.1",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+            "url": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q"
+          }
+        ]
+      },
+      {
+        "name": "tinypool",
+        "severity": "critical",
+        "direct": false,
+        "range": "<=2.1.1",
+        "fixAvailable": {
+          "name": "vitest",
+          "version": "2.0.5",
+          "isSemVerMajor": true
+        },
+        "advisories": [
+          {
+            "title": "Tinypool: Prototype Pollution gadget in worker options leads to Remote Code Execution",
+            "url": "https://github.com/advisories/GHSA-5gmw-xhrv-c9v3"
+          },
+          {
+            "title": "Tinypool: Prototype Pollution Gadget to RCE in run() options",
+            "url": "https://github.com/advisories/GHSA-85c8-ppgw-ccpr"
+          }
+        ]
+      },
+      {
+        "name": "vite",
+        "severity": "high",
+        "direct": true,
+        "range": "<=6.4.3",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "title": "launch-editor: escapeCmdArgs() omits % escaping on Windows",
+            "url": "https://github.com/advisories/GHSA-698v-4r3x-3vcv"
+          },
+          {
+            "title": "launch-editor: Editor CLI flag misinterpretation causing arbitrary command execution for some editors",
+            "url": "https://github.com/advisories/GHSA-r825-w8mm-5pxw"
+          },
+          {
+            "title": "launch-editor: `fs.existsSync()` existence check can be bypassed on Windows",
+            "url": "https://github.com/advisories/GHSA-587h-7wmj-h5pm"
+          },
+          {
+            "title": "Vite: Cross origin script execution through Vite custom middleware",
+            "url": "https://github.com/advisories/GHSA-9jrq-w75r-8gcw"
+          },
+          {
+            "title": "Vite: Files outside `server.fs.allow` could be served when project paths match system paths on non-Windows machine",
+            "url": "https://github.com/advisories/GHSA-rq7h-c2jc-7f22"
+          }
+        ]
+      },
+      {
+        "name": "vitest",
+        "severity": "critical",
+        "direct": true,
+        "range": "0.0.95 - 4.1.10",
+        "fixAvailable": {
+          "name": "vitest",
+          "version": "2.0.5",
+          "isSemVerMajor": true
+        },
+        "advisories": [
+          {
+            "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+            "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9"
+          }
+        ]
+      }
+    ]
+  },
+  "mobile": {
+    "metadata": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 6,
+        "moderate": 14,
+        "high": 11,
+        "critical": 1,
+        "total": 32
+      },
+      "dependencies": {
+        "prod": 722,
+        "dev": 324,
+        "optional": 12,
+        "peer": 0,
+        "peerOptional": 0,
+        "total": 1056
+      }
+    },
+    "packages": [
+      {
+        "name": "@expo/cli",
+        "severity": "high",
+        "direct": false,
+        "range": "0.19.0-canary-20240625-2333e70 - 57.0.32 || 58.0.0-canary-20260806-8c2d007 - 58.1.19",
+        "fixAvailable": true,
+        "advisories": []
+      },
+      {
+        "name": "@expo/config",
+        "severity": "moderate",
+        "direct": false,
+        "range": "9.1.0-canary-20240628-1ba8152 - 57.0.10 || 58.0.0-canary-20260806-8c2d007 - 58.0.10",
+        "fixAvailable": true,
+        "advisories": []
+      },
+      {
+        "name": "@expo/config-plugins",
+        "severity": "moderate",
+        "direct": false,
+        "range": "<=57.0.11 || 58.0.0-canary-20260806-8c2d007 - 58.0.11",
+        "fixAvailable": true,
+        "advisories": []
+      },
+      {
+        "name": "@expo/fingerprint",
+        "severity": "moderate",
+        "direct": false,
+        "range": ">=0.11.12-canary-20250303-4dba60e",
+        "fixAvailable": true,
+        "advisories": []
+      },
+      {
+        "name": "@expo/metro-config",
+        "severity": "moderate",
+        "direct": false,
+        "range": "0.19.0-canary-20240625-2333e70 - 57.0.13 || 58.0.0-canary-20260806-8c2d007 - 58.0.20",
+        "fixAvailable": true,
+        "advisories": []
+      },
+      {
+        "name": "@jest/core",
+        "severity": "low",
+        "direct": false,
+        "range": ">=25.2.0-alpha.86",
+        "fixAvailable": {
+          "name": "jest",
+          "version": "25.1.0",
+          "isSemVerMajor": true
+        },
+        "advisories": []
+      },
+      {
+        "name": "@typescript-eslint/eslint-plugin",
+        "severity": "moderate",
+        "direct": true,
+        "range": "6.16.0 - 8.72.2",
+        "fixAvailable": {
+          "name": "@typescript-eslint/eslint-plugin",
+          "version": "6.15.0",
+          "isSemVerMajor": true
+        },
+        "advisories": []
+      },
+      {
+        "name": "@typescript-eslint/parser",
+        "severity": "moderate",
+        "direct": true,
+        "range": "6.16.0 - 8.72.2",
+        "fixAvailable": {
+          "name": "@typescript-eslint/parser",
+          "version": "6.15.0",
+          "isSemVerMajor": true
+        },
+        "advisories": []
+      },
+      {
+        "name": "@typescript-eslint/type-utils",
+        "severity": "moderate",
+        "direct": false,
+        "range": "6.16.0 - 8.72.2",
+        "fixAvailable": true,
+        "advisories": []
+      },
+      {
+        "name": "@typescript-eslint/typescript-estree",
+        "severity": "moderate",
+        "direct": false,
+        "range": "6.16.0 - 8.72.2",
+        "fixAvailable": {
+          "name": "@typescript-eslint/parser",
+          "version": "6.15.0",
+          "isSemVerMajor": true
+        },
+        "advisories": []
+      },
+      {
+        "name": "@typescript-eslint/utils",
+        "severity": "moderate",
+        "direct": false,
+        "range": "6.16.0 - 8.72.2",
+        "fixAvailable": {
+          "name": "@typescript-eslint/eslint-plugin",
+          "version": "6.15.0",
+          "isSemVerMajor": true
+        },
+        "advisories": []
+      },
+      {
+        "name": "babel-plugin-module-resolver",
+        "severity": "moderate",
+        "direct": true,
+        "range": ">=5.0.1",
+        "fixAvailable": {
+          "name": "babel-plugin-module-resolver",
+          "version": "5.0.0",
+          "isSemVerMajor": true
+        },
+        "advisories": []
+      },
+      {
+        "name": "brace-expansion",
+        "severity": "high",
+        "direct": false,
+        "range": "<=1.1.20 || 2.0.0 - 2.1.6 || 4.0.0 - 5.0.11",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+            "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr"
+          },
+          {
+            "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+            "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr"
+          },
+          {
+            "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+            "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr"
+          },
+          {
+            "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7"
+          },
+          {
+            "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7"
+          },
+          {
+            "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7"
+          },
+          {
+            "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p"
+          },
+          {
+            "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p"
+          },
+          {
+            "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p"
+          }
+        ]
+      },
+      {
+        "name": "compression",
+        "severity": "high",
+        "direct": false,
+        "range": "<1.8.2",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "title": "compression vulnerable to Denial of Service via memory leak on premature response close",
+            "url": "https://github.com/advisories/GHSA-vc2v-76pw-4v95"
+          }
+        ]
+      },
+      {
+        "name": "create-jest",
+        "severity": "low",
+        "direct": false,
+        "range": ">=29.7.0",
+        "fixAvailable": true,
+        "advisories": []
+      },
+      {
+        "name": "decode-uri-component",
+        "severity": "high",
+        "direct": false,
+        "range": "<=0.5.0",
+        "fixAvailable": {
+          "name": "expo-router",
+          "version": "58.0.31",
+          "isSemVerMajor": true
+        },
+        "advisories": [
+          {
+            "title": "decode-uri-component: Denial of service via exponential decoding of malformed percent-encoded input",
+            "url": "https://github.com/advisories/GHSA-vcc3-ghjq-m6fr"
+          },
+          {
+            "title": "decode-uri-component vulnerable to denial of service via quadratic replacement of percent-encoded runs",
+            "url": "https://github.com/advisories/GHSA-qr28-fpjm-wq7f"
+          }
+        ]
+      },
+      {
+        "name": "deepmerge",
+        "severity": "low",
+        "direct": false,
+        "range": ">=4.2.0",
+        "fixAvailable": {
+          "name": "jest",
+          "version": "25.1.0",
+          "isSemVerMajor": true
+        },
+        "advisories": [
+          {
+            "title": "deepmerge mergeObject() allows prototype poisoning of returned objects",
+            "url": "https://github.com/advisories/GHSA-gcqx-w48m-w2h4"
+          }
+        ]
+      },
+      {
+        "name": "expo-router",
+        "severity": "high",
+        "direct": true,
+        "range": "1.2.2 - 3.1.2 || 5.2.0-canary-20250611-f0afe80 - 58.0.12",
+        "fixAvailable": {
+          "name": "expo-router",
+          "version": "58.0.31",
+          "isSemVerMajor": true
+        },
+        "advisories": []
+      },
+      {
+        "name": "follow-redirects",
+        "severity": "high",
+        "direct": false,
+        "range": "1.16.0 - 1.16.1",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "title": "follow-redirects array-form headers bypass cross-origin credential stripping",
+            "url": "https://github.com/advisories/GHSA-q3jh-wrc6-jgq8"
+          },
+          {
+            "title": "follow-redirects sensitiveHeaders regex escaping can expose credential headers",
+            "url": "https://github.com/advisories/GHSA-8r9p-f939-6h3c"
+          },
+          {
+            "title": "follow-redirects: Cross-realm sensitiveHeaders arrays are discarded and custom credentials can follow redirects",
+            "url": "https://github.com/advisories/GHSA-mrwp-f3q8-3g9p"
+          }
+        ]
+      },
+      {
+        "name": "glob",
+        "severity": "moderate",
+        "direct": false,
+        "range": "9.0.0 - 14.0.1",
+        "fixAvailable": {
+          "name": "babel-plugin-module-resolver",
+          "version": "5.0.0",
+          "isSemVerMajor": true
+        },
+        "advisories": [
+          {
+            "title": "Glob: AbortSignal cancellation bypass allows post-timeout filesystem traversal",
+            "url": "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4"
+          }
+        ]
+      },
+      {
+        "name": "jest",
+        "severity": "low",
+        "direct": true,
+        "range": ">=25.2.0-alpha.86",
+        "fixAvailable": {
+          "name": "jest",
+          "version": "25.1.0",
+          "isSemVerMajor": true
+        },
+        "advisories": []
+      },
+      {
+        "name": "jest-cli",
+        "severity": "low",
+        "direct": false,
+        "range": ">=25.2.0-alpha.86",
+        "fixAvailable": true,
+        "advisories": []
+      },
+      {
+        "name": "jest-config",
+        "severity": "low",
+        "direct": false,
+        "range": ">=25.2.0-alpha.86",
+        "fixAvailable": {
+          "name": "jest",
+          "version": "25.1.0",
+          "isSemVerMajor": true
+        },
+        "advisories": []
+      },
+      {
+        "name": "js-yaml",
+        "severity": "high",
+        "direct": false,
+        "range": "3.0.0 - 3.15.1 || 4.0.0 - 4.3.1",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+            "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh"
+          },
+          {
+            "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+            "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh"
+          }
+        ]
+      },
+      {
+        "name": "minimatch",
+        "severity": "moderate",
+        "direct": false,
+        "range": "7.0.0 - 11.0.0",
+        "fixAvailable": {
+          "name": "babel-plugin-module-resolver",
+          "version": "5.0.0",
+          "isSemVerMajor": true
+        },
+        "advisories": [
+          {
+            "title": "minimatch has potential denial of service via globparts amplification",
+            "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249"
+          }
+        ]
+      },
+      {
+        "name": "node-forge",
+        "severity": "high",
+        "direct": false,
+        "range": "<=1.4.2",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "title": "node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements",
+            "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv"
+          },
+          {
+            "title": "Forge: ASN.1 OID first arc truncation in asn1.oidToDer",
+            "url": "https://github.com/advisories/GHSA-4642-5mcj-2rqw"
+          },
+          {
+            "title": "Forge: Prototype Pollution in forge.http cookie handling via a malicious Set-Cookie",
+            "url": "https://github.com/advisories/GHSA-6wvx-3r32-xmcg"
+          },
+          {
+            "title": "Forge: TLS client crash when the server sends no certificate",
+            "url": "https://github.com/advisories/GHSA-525v-9gp9-w22h"
+          },
+          {
+            "title": "Forge: Regular expression denial of service in PEM decoding (pem.decode)",
+            "url": "https://github.com/advisories/GHSA-7wch-p9px-956x"
+          },
+          {
+            "title": "Forge: Denial of Service via infinite loop in BigInteger.modInverse() with negative input (incomplete fix of CVE-2026-33891)",
+            "url": "https://github.com/advisories/GHSA-h6cr-wjv9-3cpp"
+          },
+          {
+            "title": "Forge: verifyCertificateChain() removes trusted CA certificates with the same subject from the CA store",
+            "url": "https://github.com/advisories/GHSA-4487-j8r4-4g2f"
+          },
+          {
+            "title": "Forge: AES-GCM authentication bypass via unvalidated tagLength option",
+            "url": "https://github.com/advisories/GHSA-5cwg-6vw7-rj6p"
+          },
+          {
+            "title": "Forge: PKCS#12 MAC forgery and constant-key PBE via zero iteration count",
+            "url": "https://github.com/advisories/GHSA-jc66-7q78-782g"
+          },
+          {
+            "title": "Forge: Denial of service in TLS record processing via a record interleaved with a fragmented handshake message",
+            "url": "https://github.com/advisories/GHSA-8hrf-8g6f-7xwp"
+          },
+          {
+            "title": "Forge: Denial of service in TLS record processing via call stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-hqq3-7jhf-c5jx"
+          },
+          {
+            "title": "Forge: X.509 basicConstraints bypass in verifyCertificateChain() via deprecated extension OIDs 2.5.29.10 and 2.5.29.13",
+            "url": "https://github.com/advisories/GHSA-5x38-2vff-x55p"
+          },
+          {
+            "title": "Forge: Certificate signature verified with the issuer's RSA signature scheme",
+            "url": "https://github.com/advisories/GHSA-9wg5-mj3p-v49q"
+          },
+          {
+            "title": "Forge: Incomplete PKCS#7 padding validation in AES/DES CBC and ECB decryption",
+            "url": "https://github.com/advisories/GHSA-2vgq-wchc-25w7"
+          },
+          {
+            "title": "Forge: X.509 pathLenConstraint not enforced by verifyCertificateChain() for CA certificates without keyUsage",
+            "url": "https://github.com/advisories/GHSA-h46v-rmh6-fq4f"
+          },
+          {
+            "title": "Forge: ASN.1 resource exhaustion via BIT STRING decoding in asn1.fromDer",
+            "url": "https://github.com/advisories/GHSA-rhr8-3pm8-cq29"
+          },
+          {
+            "title": "Forge: RSA PKCS#1 v1.5 signature forgery via non-canonical DigestInfo encoding",
+            "url": "https://github.com/advisories/GHSA-6qrw-m8cv-hcxf"
+          },
+          {
+            "title": "Forge: Ed25519 signature verification accepts small-order public keys",
+            "url": "https://github.com/advisories/GHSA-6889-vf6x-f3g5"
+          },
+          {
+            "title": "Forge: TLS client crash on an unsupported ServerHello compression method",
+            "url": "https://github.com/advisories/GHSA-w4xr-hqv8-ch44"
+          },
+          {
+            "title": "Forge: ReDoS in forge.http response header and cookie trimming",
+            "url": "https://github.com/advisories/GHSA-6cv4-p8m7-4r25"
+          },
+          {
+            "title": "Forge: TLS client crash on a handshake record received without a session",
+            "url": "https://github.com/advisories/GHSA-j8rw-jp99-435v"
+          }
+        ]
+      },
+      {
+        "name": "query-string",
+        "severity": "high",
+        "direct": false,
+        "range": "5.0.0 - 9.4.1",
+        "fixAvailable": {
+          "name": "expo-router",
+          "version": "58.0.31",
+          "isSemVerMajor": true
+        },
+        "advisories": []
+      },
+      {
+        "name": "shell-quote",
+        "severity": "critical",
+        "direct": false,
+        "range": "1.8.4 - 1.10.0",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "title": "shell-quote: `quote()` command injection via a line terminator in a token after a `{ comment }` token",
+            "url": "https://github.com/advisories/GHSA-pqg4-j6r4-53mv"
+          }
+        ]
+      },
+      {
+        "name": "source-map-js",
+        "severity": "high",
+        "direct": false,
+        "range": "1.0.0 - 1.2.1",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+            "url": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q"
+          }
+        ]
+      },
+      {
+        "name": "uuid",
+        "severity": "moderate",
+        "direct": false,
+        "range": "<11.1.1",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+            "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq"
+          }
+        ]
+      },
+      {
+        "name": "xcode",
+        "severity": "moderate",
+        "direct": false,
+        "range": "0.9.2 - 3.0.2-nightly.20251125002453809.sha.e6b981ec",
+        "fixAvailable": true,
+        "advisories": []
+      },
+      {
+        "name": "zod",
+        "severity": "high",
+        "direct": false,
+        "range": "<4.6.6",
+        "fixAvailable": true,
+        "advisories": [
+          {
+            "title": "Zod can exhaust memory while validating oversized constrained collections",
+            "url": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -24,6 +24,8 @@ public class PortalBillingDetailsController {
     public record Receipt(String paymentNumber,String invoiceNumber,LocalDate paymentDate,BigDecimal amount,
         String currency,PaymentStatus status,PaymentMethod paymentMethod) {}
     private final RiderGuardianPortalAccessService access;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.settings.application.TenantTimeService tenantTime;
     private final InvoiceRepository invoices;
     private final InvoiceLineItemRepository lines;
     private final PaymentRepository payments;
@@ -37,7 +39,7 @@ public class PortalBillingDetailsController {
         ensureAccess(invoice,scope);
         var items=lines.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(id,scope.user().tenantId()).stream()
             .map(line->new Line(line.getDescription(),line.getQuantity(),line.getUnitPrice(),line.getLineAmount(),line.getServiceDate())).toList();
-        return ApiResponse.success(new InvoiceDetail(invoice.getId(),invoice.getInvoiceNumber(),invoice.getInvoiceDate(),invoice.getDueDate(),invoice.getSubtotal(),invoice.getTaxAmount(),invoice.getDiscountAmount(),invoice.getTotalAmount(),invoice.getAmountPaid(),invoice.getBalanceDue(),invoice.getCurrency(),invoice.getStatus(),items));
+        return ApiResponse.success(new InvoiceDetail(invoice.getId(),invoice.getInvoiceNumber(),invoice.getInvoiceDate(),invoice.getDueDate(),invoice.getSubtotal(),invoice.getTaxAmount(),invoice.getDiscountAmount(),invoice.getTotalAmount(),invoice.getAmountPaid(),invoice.getBalanceDue(),invoice.getCurrency(),com.transportplatform.tms.features.billing.application.InvoiceStatusWorkflow.resolveEffectiveStatus(invoice,tenantTime.today(scope.user().tenantId())),items));
     }
     @GetMapping("/portal/rider/payments/{id}/receipt")
     public ApiResponse<Receipt> receipt(@PathVariable Long id) {

@@ -93,8 +93,15 @@ public class RideManagementController {
     @PutMapping("/company/rides/{rideId}")
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> updateCompanyRide(@PathVariable Long rideId,
+            @org.springframework.web.bind.annotation.RequestHeader("If-Match") long version,
             @Valid @RequestBody RideUpsertRequest request) {
-        return ApiResponse.success(rideService.updateCompanyRide(rideId, request));
+        return ApiResponse.success(rideService.updateCompanyRide(rideId, request, version));
+    }
+
+    @PostMapping("/company/rides/{rideId}/split-round-trip")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
+    public ApiResponse<RideResponse> splitRoundTrip(@PathVariable Long rideId) {
+        return ApiResponse.success(rideService.splitCompanyRoundTrip(rideId));
     }
 
     @PostMapping("/company/rides/{rideId}/request")

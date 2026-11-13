@@ -19,7 +19,7 @@ import PauseCircleRoundedIcon from "@mui/icons-material/PauseCircleRounded";
 import PersonOffRoundedIcon from "@mui/icons-material/PersonOffRounded";
 import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminFilterBar } from "../../../shared/components/AdminFilterBar";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
@@ -83,7 +83,9 @@ export function GuardianManagementPage() {
   } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  const loadGeneration = useRef(0);
   async function loadGuardians() {
+    const generation = ++loadGeneration.current;
     setLoading(true);
     setError(null);
     try {
@@ -97,17 +99,20 @@ export function GuardianManagementPage() {
         sortBy: "updatedAt",
         sortDirection: "DESC",
       });
+      if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
     } catch {
+      if (generation !== loadGeneration.current) return;
       setError("Guardians could not be loaded.");
     } finally {
-      setLoading(false);
+      if (generation === loadGeneration.current) setLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadGuardians();
+    const timer = window.setTimeout(() => void loadGuardians(), 250);
+    return () => { window.clearTimeout(timer); loadGeneration.current++; };
   }, [keyword, status, authorizedForPickup, billingContact, page, size]);
 
   useEffect(() => {
