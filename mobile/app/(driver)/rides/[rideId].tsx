@@ -375,7 +375,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   },
   onlineBadge: {
     backgroundColor: colors.success,
-    color: colors.white,
+    color: colors.surface,
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
     paddingHorizontal: Spacing.sm,
