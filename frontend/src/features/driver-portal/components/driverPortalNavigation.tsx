@@ -4,6 +4,7 @@ import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import RouteRoundedIcon from "@mui/icons-material/RouteRounded";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
+import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
 import type { ReactNode } from "react";
 
 export interface DriverPortalNavigationItem {
@@ -43,6 +44,12 @@ export const driverPortalNavigationItems: DriverPortalNavigationItem[] = [
     description: "Document status, expirations, and open issues.",
     to: "/portal/driver/compliance",
     icon: <FactCheckRoundedIcon fontSize="small" />,
+  },
+  {
+    label: "Payments",
+    description: "Trip earnings, payment calculation, and adjustments.",
+    to: "/portal/driver/payments",
+    icon: <PaymentsRoundedIcon fontSize="small" />,
   },
   {
     label: "My Notifications",

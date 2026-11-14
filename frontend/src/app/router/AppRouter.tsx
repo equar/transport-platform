@@ -194,6 +194,10 @@ const CompanyReportsPage = lazyPage(
   () => import("../../features/reports/pages/CompanyReportsPage"),
   "CompanyReportsPage",
 );
+const DriverEarningsManagementPage = lazyPage(
+  () => import("../../features/driver-earnings/pages/DriverEarningsManagementPage"),
+  "DriverEarningsManagementPage",
+);
 const CompanySettingsPage = lazyPage(
   () => import("../../features/settings/pages/CompanySettingsPage"),
   "CompanySettingsPage",
@@ -206,6 +210,10 @@ const DriverPortalNotificationsPage = lazyPage(
   () =>
     import("../../features/driver-portal/pages/DriverPortalNotificationsPage"),
   "DriverPortalNotificationsPage",
+);
+const DriverPortalPaymentsPage = lazyPage(
+  () => import("../../features/driver-portal/pages/DriverPortalPaymentsPage"),
+  "DriverPortalPaymentsPage",
 );
 const DriverPortalProfilePage = lazyPage(
   () => import("../../features/driver-portal/pages/DriverPortalProfilePage"),
@@ -468,6 +476,10 @@ const router = createBrowserRouter([
         element: <UserManagementPage />,
       },
       {
+        path: "payments",
+        element: <DriverPortalPaymentsPage />,
+      },
+      {
         path: "notifications",
         element: <NotificationCenterPage />,
       },
@@ -576,6 +588,10 @@ const router = createBrowserRouter([
         element: <PaymentManagementPage />,
       },
       {
+        path: "driver-earnings",
+        element: <DriverEarningsManagementPage />,
+      },
+      {
         path: "payments/:paymentId",
         element: <PaymentDetailsPage />,
       },
@@ -635,6 +651,10 @@ const router = createBrowserRouter([
         element: <DriverPortalRouteDetailsPage />,
       },
       {
+        path: "payments",
+        element: <DriverPortalPaymentsPage />,
+      },
+      {
         path: "notifications",
         element: <DriverPortalNotificationsPage />,
       },
@@ -683,6 +703,10 @@ const router = createBrowserRouter([
         element: <RiderGuardianPortalPaymentHistoryPage />,
       },
       {
+        path: "payments",
+        element: <DriverPortalPaymentsPage />,
+      },
+      {
         path: "notifications",
         element: <RiderGuardianPortalNotificationsPage />,
       },
@@ -729,6 +753,10 @@ const router = createBrowserRouter([
       {
         path: "billing",
         element: <OrganizationPortalBillingPage />,
+      },
+      {
+        path: "payments",
+        element: <DriverPortalPaymentsPage />,
       },
       {
         path: "notifications",
