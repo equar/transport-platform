@@ -19,6 +19,7 @@ interface TripTrackingCardProps {
   onRefresh?: () => void;
   refreshing?: boolean;
   error?: boolean;
+  autoShowMap?: boolean;
 }
 
 function buildStaticMapUrl(
@@ -49,6 +50,7 @@ export function TripTrackingCard({
   onRefresh,
   refreshing = false,
   error = false,
+  autoShowMap = false,
 }: TripTrackingCardProps) {
   const styles = useThemedStyles(createStyles);
   const [mapFailed, setMapFailed] = useState(false);
@@ -57,6 +59,7 @@ export function TripTrackingCard({
   const [details, setDetails] = useState(false);
   const ageMinutes = snapshot ? Math.max(0, Math.floor((Date.now() - Date.parse(snapshot.capturedAt)) / 60000)) : null;
   const mapUrl = snapshot ? buildStaticMapUrl(snapshot) : null;
+  const mapVisible = autoShowMap || showMap;
 
   return (
     <View style={styles.section}>
@@ -65,10 +68,11 @@ export function TripTrackingCard({
         {error ? <Text accessibilityRole="alert" style={styles.emptyText}>Location updates could not be loaded. Check your connection and refresh tracking.</Text> : null}
         {snapshot ? (
           <>
-            {mapUrl && !showMap ? <AppButton label="Show map" variant="outlined" accessibilityHint="Shares this reported vehicle location with the map provider" onPress={() => setShowMap(true)} /> : null}
-            {!showMap ? <Text style={styles.emptyText}>Showing a map shares this location with the map provider.</Text> : null}
-            {mapUrl && showMap && !mapFailed ? (
-              <Image accessibilityLabel="Latest reported vehicle location" onError={() => setMapFailed(true)} source={{ uri: mapUrl }} style={styles.map} resizeMode="cover" />
+            {mapUrl && !autoShowMap && !showMap ? <AppButton label="Show map" variant="outlined" accessibilityHint="Shares this reported location with the map provider" onPress={() => setShowMap(true)} /> : null}
+            {mapUrl && !mapVisible ? <Text style={styles.emptyText}>Showing a map shares this location with the map provider.</Text> : null}
+            {mapUrl && mapVisible ? <Text style={styles.emptyText}>The pin shows the assigned driver’s latest reported location. It indicates the rider’s location only after pickup. Map data is provided by OpenStreetMap.</Text> : null}
+            {mapUrl && mapVisible && !mapFailed ? (
+              <Image accessibilityLabel="Latest reported driver location" onError={() => setMapFailed(true)} source={{ uri: mapUrl }} style={styles.map} resizeMode="cover" />
             ) : null}
             <Text style={styles.emptyText}>{ageMinutes != null && ageMinutes >= 2 ? `Location may be stale (${ageMinutes} minutes ago).` : 'Latest reported location'}</Text>
             {mapFailed ? <Text style={styles.emptyText}>Map unavailable. Open the location in Maps below.</Text> : null}
