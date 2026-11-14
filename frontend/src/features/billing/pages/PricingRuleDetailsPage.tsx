@@ -19,6 +19,7 @@ import {
   type PricingRuleRecord,
 } from "../api/billingApi";
 import { PricingRuleUpsertDialog } from "../components/PricingRuleUpsertDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 type PricingRuleAction = "activate" | "suspend" | "deactivate";
 
@@ -64,8 +65,8 @@ export function PricingRuleDetailsPage() {
     try {
       const response = await billingApi.getPricingRule(resolvedPricingRuleId);
       setPricingRule(response);
-    } catch {
-      setError("Pricing rule details could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Pricing rule details could not be loaded."));
       setPricingRule(null);
     } finally {
       setLoading(false);
@@ -91,8 +92,8 @@ export function PricingRuleDetailsPage() {
       showSuccess("Pricing rule updated successfully.");
       setDialogOpen(false);
       await loadPage();
-    } catch {
-      showError("Pricing rule changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Pricing rule changes could not be saved.");
     } finally {
       setSaving(false);
     }
@@ -114,8 +115,8 @@ export function PricingRuleDetailsPage() {
       showSuccess("Pricing rule status updated successfully.");
       setAction(null);
       await loadPage();
-    } catch {
-      showError("The pricing rule action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The pricing rule action could not be completed.");
     } finally {
       setActionLoading(false);
     }

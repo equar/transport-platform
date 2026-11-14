@@ -42,6 +42,7 @@ import {
 } from "../api/billingApi";
 import { serviceTypeOptions, type ServiceType } from "../../rides/api/ridesApi";
 import { PricingRuleUpsertDialog } from "../components/PricingRuleUpsertDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 type PricingRuleAction = "activate" | "suspend" | "deactivate";
 
@@ -105,8 +106,8 @@ export function PricingRuleManagementPage() {
       });
       setItems(response.items as PricingRuleRecord[]);
       setTotal(response.totalElements);
-    } catch {
-      setError("Pricing rules could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Pricing rules could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -129,8 +130,8 @@ export function PricingRuleManagementPage() {
       setDialogOpen(false);
       setSelectedPricingRule(null);
       await loadPricingRules();
-    } catch {
-      showError("Pricing rule changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Pricing rule changes could not be saved.");
     } finally {
       setSaving(false);
     }
@@ -153,8 +154,8 @@ export function PricingRuleManagementPage() {
       showSuccess("Pricing rule status updated successfully.");
       setActionState(null);
       await loadPricingRules();
-    } catch {
-      showError("The pricing rule action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The pricing rule action could not be completed.");
     } finally {
       setActionLoading(false);
     }

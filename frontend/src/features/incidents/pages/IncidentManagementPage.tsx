@@ -50,6 +50,7 @@ import {
   type IncidentType,
 } from "../api/incidentsApi";
 import { IncidentUpsertDialog } from "../components/IncidentUpsertDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 type IncidentAction =
   | "in-review"
@@ -162,8 +163,8 @@ export function IncidentManagementPage() {
     try {
       const response = await incidentsApi.getReferenceData();
       setReferenceData(response);
-    } catch {
-      showError("Incident reference data could not be loaded.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Incident reference data could not be loaded.");
     }
   }
 
@@ -186,8 +187,8 @@ export function IncidentManagementPage() {
       });
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
-      setError("Incidents could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Incidents could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -216,8 +217,8 @@ export function IncidentManagementPage() {
       const response = await incidentsApi.getById(incidentId);
       setSelectedIncident(response);
       return response;
-    } catch {
-      showError("Incident details could not be loaded.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Incident details could not be loaded.");
       return null;
     }
   }
@@ -239,8 +240,8 @@ export function IncidentManagementPage() {
       setDialogOpen(false);
       setEditingIncident(null);
       await loadIncidents();
-    } catch {
-      showError("Incident changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Incident changes could not be saved.");
     } finally {
       setSaving(false);
     }
@@ -306,8 +307,8 @@ export function IncidentManagementPage() {
         `Incident ${type.replaceAll("-", " ")} completed successfully.`,
       );
       await loadIncidents();
-    } catch {
-      showError("Incident workflow action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Incident workflow action could not be completed.");
     } finally {
       setActionLoading(false);
     }

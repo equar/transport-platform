@@ -104,6 +104,37 @@ class RiderRelationshipServiceTest {
     }
 
     @Test
+    void linkRejectsAnAlreadyActiveGuardianWithBusinessSpecificMessage() {
+        Rider rider = rider(10L, "tenant-a");
+        Guardian guardian = guardian(20L, "tenant-a");
+        RiderGuardian existing = relationship(100L, rider, guardian, true);
+        RiderRelationshipService riderRelationshipService = new RiderRelationshipService(
+                riderGuardianRepository,
+                riderAccessService,
+                guardianAccessService,
+                new RiderGuardianMapper(),
+                auditLogService);
+
+        when(riderAccessService.findRiderForCompanyScope(10L)).thenReturn(rider);
+        when(guardianAccessService.findGuardianForCompanyScope(20L)).thenReturn(guardian);
+        when(riderGuardianRepository.findByTenantIdAndRider_IdAndGuardian_Id("tenant-a", 10L, 20L))
+                .thenReturn(Optional.of(existing));
+
+        ApiException exception = assertThrows(ApiException.class,
+                () -> riderRelationshipService.linkGuardianToRider(10L,
+                        new RiderGuardianUpsertRequest(20L,
+                                RiderGuardianRelationshipType.PARENT,
+                                false,
+                                true,
+                                false,
+                                null)));
+
+        assertEquals(
+                "This guardian is already linked to this rider. Use the existing guardian link to update the relationship.",
+                exception.getMessage());
+    }
+
+    @Test
     void updatingPrimaryGuardianDemotesExistingPrimary() {
         Rider rider = rider(10L, "tenant-a");
         Guardian primaryGuardian = guardian(20L, "tenant-a");

@@ -17,6 +17,7 @@ import { LoadingState } from "../../../shared/components/LoadingState";
 import { PageCard } from "../../../shared/components/PageCard";
 import { SectionHeader } from "../../../shared/components/SectionHeader";
 import { rolesApi, type RoleCatalogItem } from "../api/rolesApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 export function RoleManagementPage() {
   const { session } = useAuth();
@@ -35,9 +36,9 @@ export function RoleManagementPage() {
           setItems(response);
         }
       })
-      .catch(() => {
+      .catch((_caughtError) => {
         if (active) {
-          setError("Role catalog data could not be loaded.");
+          setError(getApiErrorMessage(_caughtError, "Role catalog data could not be loaded."));
         }
       })
       .finally(() => {

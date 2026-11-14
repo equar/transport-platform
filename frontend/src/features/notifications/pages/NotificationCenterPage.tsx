@@ -36,6 +36,7 @@ import {
   type NotificationSummaryRecord,
   type NotificationType,
 } from "../api/notificationApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 const readStatusOptions: NotificationReadStatus[] = ["UNREAD", "READ"];
 
@@ -73,8 +74,8 @@ export function NotificationCenterPage() {
       });
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
-      setError("Notifications could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Notifications could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -92,8 +93,8 @@ export function NotificationCenterPage() {
         await notificationApi.markRead(notificationId);
         await loadNotifications();
       }
-    } catch {
-      showError("Notification details could not be loaded.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Notification details could not be loaded.");
     }
   }
 
@@ -103,8 +104,8 @@ export function NotificationCenterPage() {
       const response = await notificationApi.markAllRead();
       showSuccess(`${response.updatedCount} notifications marked as read.`);
       await loadNotifications();
-    } catch {
-      showError("Notifications could not be marked as read.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Notifications could not be marked as read.");
     } finally {
       setActioning(false);
     }
@@ -121,8 +122,8 @@ export function NotificationCenterPage() {
         showSuccess("Notification marked as unread.");
       }
       await loadNotifications();
-    } catch {
-      showError("Notification state could not be updated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Notification state could not be updated.");
     } finally {
       setActioning(false);
     }

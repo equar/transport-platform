@@ -39,6 +39,7 @@ import {
   type GuardianStatus,
 } from "../api/guardiansApi";
 import { GuardianUpsertDialog } from "../components/GuardianUpsertDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 const guardianStatuses: Array<GuardianStatus | ""> = [
   "",
@@ -102,9 +103,9 @@ export function GuardianManagementPage() {
       if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
+    } catch (_caughtError) {
       if (generation !== loadGeneration.current) return;
-      setError("Guardians could not be loaded.");
+      setError(getApiErrorMessage(_caughtError, "Guardians could not be loaded."));
     } finally {
       if (generation === loadGeneration.current) setLoading(false);
     }
@@ -173,8 +174,8 @@ export function GuardianManagementPage() {
       showSuccess("Guardian status updated successfully.");
       setActionState(null);
       await loadGuardians();
-    } catch {
-      showError("The guardian action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The guardian action could not be completed.");
     } finally {
       setActionLoading(false);
     }

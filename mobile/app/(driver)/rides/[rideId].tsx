@@ -70,6 +70,12 @@ export default function DriverRideDetailPage() {
   const ride = serverRide && session?.identity.tenantId ? { ...serverRide,
     status: pendingTripStatus(serverRide.status, serverRide.id, { tenantId: session.identity.tenantId, userId: session.identity.id }, queue) as typeof serverRide.status,
   } : serverRide;
+  const { data: earnings } = useQuery({
+    queryKey: ['driver-payments'],
+    queryFn: () => driverPortalApi.getPayments(),
+    enabled: serverRide?.status === 'COMPLETED',
+  });
+  const rideEarnings = earnings?.entries.find(entry => entry.rideId === serverRide?.id && entry.entryType === 'EARNED');
   const pendingActions = queue.filter(item => item.rideId === Number(rideId) && item.userId === session?.identity.id && item.tenantId === session?.identity.tenantId);
   const blockedActions = pendingActions.some(item => item.failed) || conflicts.some(item => item.rideId === Number(rideId) && item.userId === session?.identity.id && item.tenantId === session?.identity.tenantId);
 
@@ -208,6 +214,32 @@ export default function DriverRideDetailPage() {
           {pendingActions.length > 0 ? <Text style={styles.instructions}>Pending on this device • dispatch last confirmed {serverRide?.status.replace(/_/g, " ")}</Text> : null}
         </View>
       </View>
+
+      {ride.status === 'COMPLETED' ? (
+        <View style={styles.earningsCard}>
+          <Text style={styles.earningsTitle}>Trip earnings</Text>
+          {rideEarnings ? (
+            <>
+              <Text style={styles.earningsAmount}>
+                {rideEarnings.amount == null
+                  ? 'Amount not calculated yet'
+                  : new Intl.NumberFormat('en-US', { style: 'currency', currency: rideEarnings.currency }).format(rideEarnings.amount)}
+              </Text>
+              <Text style={styles.instructions}>
+                {rideEarnings.status === 'PENDING_CALCULATION'
+                  ? 'Awaiting the issued ride charge or the tenant earnings rate.'
+                  : rideEarnings.status === 'PENDING_REVIEW'
+                    ? 'Calculated and awaiting tenant admin approval.'
+                    : 'Approved by your tenant administrator.'}
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.instructions}>
+              Earnings will appear when a ride charge is issued and the tenant rate is available.
+            </Text>
+          )}
+        </View>
+      ) : null}
 
       {isTrackableTrip(ride.status) && (<Text accessibilityRole="text" style={{ fontFamily: Typography.fontBody, color: colors.textSecondary, lineHeight: 22 }}>{tracking.rideId === ride.id ? tracking.message : 'Tracking is off for this trip'}{tracking.rideId === ride.id && tracking.lastSyncedAt ? ` • Last synced ${new Date(tracking.lastSyncedAt).toLocaleTimeString()}` : ""}</Text>)}
       <Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>← Dispatches</Text>
@@ -373,6 +405,24 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     borderRadius: 14,
     padding: Spacing.lg,
     gap: Spacing.sm,
+  },
+  earningsCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    padding: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  earningsTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: Typography.sizeMd,
+    color: colors.textPrimary,
+  },
+  earningsAmount: {
+    fontFamily: 'Manrope_700Bold',
+    fontSize: Typography.sizeXl,
+    color: colors.textPrimary,
   },
   heroTopRow: {
     flexDirection: 'row',

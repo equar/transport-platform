@@ -10,6 +10,11 @@ public interface InvoiceLineItemRepository extends JpaRepository<InvoiceLineItem
 
     Optional<InvoiceLineItem> findFirstByTenantIdAndSourceReferenceIdOrderByIdDesc(String tenantId, Long sourceReferenceId);
 
+    List<InvoiceLineItem> findAllByTenantIdAndChargeSourceTypeAndSourceReferenceIdOrderByIdDesc(
+            String tenantId,
+            ChargeSourceType chargeSourceType,
+            Long sourceReferenceId);
+
     List<InvoiceLineItem> findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(Long invoiceId, String tenantId);
 
     long countByInvoiceIdAndTenantId(Long invoiceId, String tenantId);

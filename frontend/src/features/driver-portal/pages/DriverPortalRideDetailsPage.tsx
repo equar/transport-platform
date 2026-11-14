@@ -90,8 +90,8 @@ export function DriverPortalRideDetailsPage() {
       if (activeRideId.current !== resolvedRideId) return;
       setRide(response);
       showSuccess("Ride updated.");
-    } catch {
-      if (activeRideId.current === resolvedRideId) { showError("Ride action could not be completed. Refreshing the current assignment."); setRetryCount(value => value + 1); }
+    } catch (_caughtError) {
+      if (activeRideId.current === resolvedRideId) { showError(_caughtError, "Ride action could not be completed. Refreshing the current assignment."); setRetryCount(value => value + 1); }
     } finally {
       if (activeRideId.current === resolvedRideId) { actionInFlight.current = false; setActionLoading(false); }
     }
@@ -107,8 +107,8 @@ export function DriverPortalRideDetailsPage() {
       setRide(response);
       setNote("");
       showSuccess("Ride note added.");
-    } catch {
-      showError("Ride note could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Ride note could not be saved.");
     } finally {
       if (activeRideId.current === resolvedRideId) { actionInFlight.current = false; setActionLoading(false); }
     }

@@ -100,9 +100,9 @@ export function RideManagementPage() {
       if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
+    } catch (_caughtError) {
       if (generation !== loadGeneration.current) return;
-      setError("Rides could not be loaded.");
+      setError(getApiErrorMessage(_caughtError, "Rides could not be loaded."));
     } finally {
       if (generation === loadGeneration.current) setLoading(false);
     }

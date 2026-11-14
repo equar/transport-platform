@@ -102,8 +102,8 @@ export function RiderGuardianPortalProfilePage() {
       );
       setProfile(response);
       showSuccess("Portal profile updated.");
-    } catch {
-      showError("Portal profile could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Portal profile could not be saved.");
     } finally {
       setSaving(false);
     }

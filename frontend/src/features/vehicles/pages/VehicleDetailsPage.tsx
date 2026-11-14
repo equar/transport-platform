@@ -52,6 +52,7 @@ import {
 import { VehicleDocumentReviewDialog } from "../components/VehicleDocumentReviewDialog";
 import { VehicleDocumentUpsertDialog } from "../components/VehicleDocumentUpsertDialog";
 import { VehicleUpsertDialog } from "../components/VehicleUpsertDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 type VehicleAction =
   | "activate"
@@ -159,8 +160,8 @@ export function VehicleDetailsPage() {
     setError(null);
     try {
       await Promise.all([loadVehicle(), loadDocuments()]);
-    } catch {
-      setError("Vehicle details could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Vehicle details could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -192,8 +193,8 @@ export function VehicleDetailsPage() {
       showSuccess("Vehicle updated successfully.");
       setVehicleDialogOpen(false);
       await loadPage();
-    } catch {
-      showError("Vehicle changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Vehicle changes could not be saved.");
     } finally {
       setVehicleSaving(false);
     }
@@ -225,8 +226,8 @@ export function VehicleDetailsPage() {
       showSuccess("Vehicle status updated successfully.");
       setVehicleAction(null);
       await loadPage();
-    } catch {
-      showError("The vehicle action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The vehicle action could not be completed.");
     } finally {
       setVehicleActionLoading(false);
     }
@@ -248,8 +249,8 @@ export function VehicleDetailsPage() {
       setDocumentDialogOpen(false);
       setSelectedDocument(null);
       await loadPage();
-    } catch {
-      showError("Vehicle document changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Vehicle document changes could not be saved.");
     } finally {
       setDocumentSaving(false);
     }
@@ -270,8 +271,8 @@ export function VehicleDetailsPage() {
       }
       setReviewState(null);
       await loadPage();
-    } catch {
-      showError("The document review action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The document review action could not be completed.");
     } finally {
       setReviewLoading(false);
     }
@@ -291,8 +292,8 @@ export function VehicleDetailsPage() {
       showSuccess("Vehicle document updated successfully.");
       setDocumentAction(null);
       await loadPage();
-    } catch {
-      showError("The document action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The document action could not be completed.");
     } finally {
       setDocumentActionLoading(false);
     }

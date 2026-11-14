@@ -58,6 +58,7 @@ import {
 } from "../../rides/api/ridesApi";
 import { useRuntimeCapabilities } from "../../runtime/context/RuntimeCapabilitiesContext";
 import { env } from "../../../shared/config/env";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 function todayValue(zone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
@@ -171,7 +172,7 @@ export function DispatchBoardPage() {
         .then(([drivers, vehicles]) => { if (!active) return; setOptionError(null);
           setDriverOptions(previous => [...previous.filter(option => option.id === selectedDriverId && !drivers.some(next => next.id === option.id)), ...drivers]);
           setVehicleOptions(previous => [...previous.filter(option => option.id === selectedVehicleId && !vehicles.some(next => next.id === option.id)), ...vehicles]);
-        }).catch(() => { if (active) setOptionError('Resource search is unavailable. Change the search text to retry.'); });
+        }).catch((_caughtError) => { if (active) setOptionError(getApiErrorMessage(_caughtError, 'Resource search is unavailable. Change the search text to retry.')); });
     }, 300);
     return () => { active = false; window.clearTimeout(timer); };
   }, [driverSearch, vehicleSearch, dialogRide?.rideId, bulk]);
@@ -227,8 +228,8 @@ export function DispatchBoardPage() {
       setMapUnavailable(mapResponse === null);
       if (mapResponse) setMapItems(mapResponse);
       if (!dialogRide && !bulk) { setDriverOptions(drivers); setVehicleOptions(vehicles); }
-    } catch {
-      if (currentRequest === requestId.current && !activeController.signal.aborted) { resourceCache.current = null; setError("Dispatch board data could not be loaded. Showing the last available data."); }
+    } catch (_caughtError) {
+      if (currentRequest === requestId.current && !activeController.signal.aborted) { resourceCache.current = null; setError(getApiErrorMessage(_caughtError, "Dispatch board data could not be loaded. Showing the last available data.")); }
     } finally {
       if (currentRequest === requestId.current) setLoading(false);
     }
@@ -332,8 +333,8 @@ export function DispatchBoardPage() {
       }
       showSuccess("Dispatch assignment updated successfully.");
       await loadBoard();
-    } catch {
-      showError("Dispatch assignment could not be updated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Dispatch assignment could not be updated.");
     }
   }
 
@@ -366,7 +367,7 @@ export function DispatchBoardPage() {
         <Stack direction="row" spacing={1}>
           <Button onClick={() => updateFilters('view', 'EXCEPTIONS')}>All exceptions</Button>
           <Button onClick={() => { sessionStorage.setItem(savedKey, JSON.stringify(filters)); showSuccess('View saved for this browser session.'); }}>Save view</Button>
-          <Button onClick={() => { try { const saved = sessionStorage.getItem(savedKey); if (saved) setFilters({ ...defaultFilters(tenantZone), ...JSON.parse(saved) }); } catch { showError('Saved view is unavailable.'); } }}>Restore saved view</Button>
+          <Button onClick={() => { try { const saved = sessionStorage.getItem(savedKey); if (saved) setFilters({ ...defaultFilters(tenantZone), ...JSON.parse(saved) }); } catch (_caughtError) { showError(_caughtError, 'Saved view is unavailable.'); } }}>Restore saved view</Button>
         </Stack>
       </Paper>
       {!showMap ? <Button onClick={() => setShowMap(true)}>Show map — shares vehicle locations with the map provider</Button> : null}

@@ -29,6 +29,7 @@ import type {
 } from "../api/usersApi";
 import type { PortalSubjectType } from "../api/usersApi";
 import { FormSection } from "../../../shared/components/FormSection";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 interface UserUpsertDialogProps {
   open: boolean;
@@ -111,11 +112,11 @@ export function UserUpsertDialog({
           setPortalOptions(options);
         }
       })
-      .catch(() => {
+      .catch((_caughtError) => {
         if (active) {
           setPortalOptions([]);
           setPortalOptionsError(
-            "Operational records could not be loaded. Close the dialog and try again.",
+            getApiErrorMessage(_caughtError, "Operational records could not be loaded. Close the dialog and try again."),
           );
         }
       })

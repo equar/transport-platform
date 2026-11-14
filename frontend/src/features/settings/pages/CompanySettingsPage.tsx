@@ -26,6 +26,7 @@ import {
   type CompanySettingsPayload,
   type CompanySettingsRecord,
 } from "../api/settingsApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 function toPayload(settings: CompanySettingsRecord): CompanySettingsPayload {
   return {
@@ -143,8 +144,8 @@ export function CompanySettingsPage() {
       const response = await settingsApi.getCompanySettings();
       setSettings(response);
       setError(null);
-    } catch {
-      setError("Company settings could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Company settings could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -170,8 +171,8 @@ export function CompanySettingsPage() {
       setSettings(response);
       await reloadCapabilities();
       showSuccess("Company settings updated successfully.");
-    } catch {
-      showError("Company settings could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Company settings could not be saved.");
     } finally {
       setSaving(false);
     }

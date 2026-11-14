@@ -43,6 +43,7 @@ import {
   type RouteSearchParams,
   type RouteStatus,
 } from "../api/routesApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 function defaultFilters(): RouteSearchParams {
   return {
@@ -107,8 +108,8 @@ export function RouteManagementPage() {
       setTotal(response.totalElements);
       setDriverOptions(drivers);
       setVehicleOptions(vehicles);
-    } catch {
-      setError("Routes could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Routes could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -162,8 +163,8 @@ export function RouteManagementPage() {
       }
       setDialogOpen(false);
       await loadRoutes();
-    } catch {
-      showError("Route changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Route changes could not be saved.");
     } finally {
       setSaving(false);
     }
@@ -182,8 +183,8 @@ export function RouteManagementPage() {
       showSuccess("Route resources updated successfully.");
       setAssignmentRoute(null);
       await loadRoutes();
-    } catch {
-      showError("Route resources could not be updated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Route resources could not be updated.");
     } finally {
       setSaving(false);
     }
@@ -210,8 +211,8 @@ export function RouteManagementPage() {
       }
       showSuccess("Route updated successfully.");
       await loadRoutes();
-    } catch {
-      showError("Route status could not be updated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Route status could not be updated.");
     }
   }
 

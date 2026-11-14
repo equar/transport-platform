@@ -127,7 +127,7 @@ public class RiderRelationshipService {
             throw new ApiException(
                     ErrorCode.RESOURCE_CONFLICT,
                     HttpStatus.CONFLICT,
-                    "This guardian is already linked to the selected rider.");
+                    "This guardian is already linked to this rider. Use the existing guardian link to update the relationship.");
         }
         Object oldSnapshot = snapshot(existing);
         riderGuardianMapper.applyAttributes(existing, request);

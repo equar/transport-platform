@@ -33,6 +33,7 @@ import {
   type InvoiceSummaryRecord,
   type ReceivablesSummaryRecord,
 } from "../api/billingApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -89,8 +90,8 @@ export function ReceivablesManagementPage() {
             invoice.status !== "VOID",
         ),
       );
-    } catch {
-      setError("Receivables data could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Receivables data could not be loaded."));
       setSummary(null);
       setItems([]);
     } finally {

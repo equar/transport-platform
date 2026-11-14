@@ -12,6 +12,7 @@ import { StatusChip } from "../../../shared/components/StatusChip";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
 import { billingApi, type PaymentRecord } from "../api/billingApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -48,8 +49,8 @@ export function PaymentDetailsPage() {
     try {
       const response = await billingApi.getPayment(resolvedPaymentId);
       setPayment(response);
-    } catch {
-      setError("Payment details could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Payment details could not be loaded."));
       setPayment(null);
     } finally {
       setLoading(false);
@@ -85,8 +86,8 @@ export function PaymentDetailsPage() {
       setAction(null);
       setVoidReason("");
       await loadPage();
-    } catch {
-      showError("The payment action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The payment action could not be completed.");
     } finally {
       setActionLoading(false);
     }

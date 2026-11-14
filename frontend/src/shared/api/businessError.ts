@@ -35,25 +35,55 @@ function kindFor(status?: number, code?: string): BusinessErrorKind {
   return "unknown";
 }
 
+function formatFieldErrors(details: Record<string, unknown>) {
+  const fieldErrors = details.fieldErrors;
+  if (!fieldErrors || typeof fieldErrors !== "object" || Array.isArray(fieldErrors)) {
+    return undefined;
+  }
+  const entries = Object.entries(fieldErrors).flatMap(([field, message]) => {
+    if (typeof message !== "string" || !message.trim()) {
+      return [];
+    }
+    const fieldName = field
+      .split(".")
+      .pop()!
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/^./, (character) => character.toUpperCase());
+    return [`${fieldName}: ${message}`];
+  });
+  return entries.length ? `Please correct: ${entries.join("; ")}.` : undefined;
+}
+
 export function normalizeBusinessError(error: unknown, fallback: string): BusinessError {
   if (typeof error === "string") {
-    return { kind: "unknown", code: "ACTION_FAILED", title: titles.unknown, message: error, details: {}, retryable: false };
+    return { kind: "unknown", code: "ACTION_FAILED", title: titles.unknown, message: fallback, details: {}, retryable: false };
   }
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
     const body = error.response?.data as { error?: ApiErrorResponse; message?: string } | undefined;
     const apiError = body?.error;
     const kind = kindFor(status, apiError?.code);
+    const details = apiError?.details || {};
+    const fieldErrorsMessage =
+      kind === "validation" && apiError?.code === "VALIDATION_FAILED"
+        ? formatFieldErrors(details)
+        : undefined;
     return {
       kind,
       code: apiError?.code || (status ? `HTTP_${status}` : "NETWORK_ERROR"),
       title: titles[kind],
-      message: apiError?.message || body?.message || (status ? fallback : "Check your connection and try again."),
+      message:
+        kind === "server"
+          ? fallback
+          : fieldErrorsMessage ||
+            apiError?.message ||
+            body?.message ||
+            (status ? fallback : "Check your connection and try again."),
       status,
-      details: apiError?.details || {},
+      details,
       retryable: kind === "network" || kind === "server",
     };
   }
   const kind: BusinessErrorKind = "unknown";
-  return { kind, code: "UNKNOWN_ERROR", title: titles[kind], message: error instanceof Error ? error.message : fallback, details: {}, retryable: false };
+  return { kind, code: "UNKNOWN_ERROR", title: titles[kind], message: fallback, details: {}, retryable: false };
 }

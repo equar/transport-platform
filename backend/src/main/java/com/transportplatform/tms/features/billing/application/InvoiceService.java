@@ -45,6 +45,7 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -55,6 +56,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class InvoiceService {
     @org.springframework.beans.factory.annotation.Autowired
     private com.transportplatform.tms.features.settings.domain.TenantSettingsRepository invoiceSettings;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.driverearnings.application.DriverEarningsService driverEarningsService;
 
     private final InvoiceRepository invoiceRepository;
     private final InvoiceLineItemRepository invoiceLineItemRepository;
@@ -270,6 +273,12 @@ public class InvoiceService {
         Invoice saved = invoiceRepository.save(invoice);
         recordInvoiceAudit(saved, "ISSUED", "Invoice " + saved.getInvoiceNumber() + " was issued.", oldSnapshot,
                 snapshot(saved));
+        lineItems.stream()
+                .filter(lineItem -> lineItem.getChargeSourceType() == ChargeSourceType.RIDE)
+                .map(InvoiceLineItem::getSourceReferenceId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(rideId -> driverEarningsService.calculatePendingForIssuedRide(saved.getTenantId(), rideId));
         notificationEventService.publishInvoiceIssued(saved);
         return toDetail(saved);
     }

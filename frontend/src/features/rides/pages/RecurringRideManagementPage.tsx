@@ -48,6 +48,7 @@ import {
 } from "../api/ridesApi";
 import { GenerateRideInstancesDialog } from "../components/GenerateRideInstancesDialog";
 import { RecurringRideScheduleDialog } from "../components/RecurringRideScheduleDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 type RecurringAction = "activate" | "pause" | "deactivate";
 
@@ -99,8 +100,8 @@ export function RecurringRideManagementPage() {
       const response = await ridesApi.searchRecurring(filters);
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
-      setError("Recurring ride schedules could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Recurring ride schedules could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -134,8 +135,8 @@ export function RecurringRideManagementPage() {
       setDialogOpen(false);
       setSelectedSchedule(null);
       await loadSchedules();
-    } catch {
-      showError("Recurring ride schedule changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Recurring ride schedule changes could not be saved.");
     } finally {
       setSaving(false);
     }
@@ -161,8 +162,8 @@ export function RecurringRideManagementPage() {
       showSuccess("Recurring ride schedule status updated successfully.");
       setActionState(null);
       await loadSchedules();
-    } catch {
-      showError("The recurring ride schedule action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The recurring ride schedule action could not be completed.");
     } finally {
       setActionLoading(false);
     }
@@ -181,8 +182,8 @@ export function RecurringRideManagementPage() {
       showSuccess(result.summary || "Ride instances generated successfully.");
       setGenerateState(null);
       await loadSchedules();
-    } catch {
-      showError("Ride instances could not be generated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Ride instances could not be generated.");
     } finally {
       setGenerateLoading(false);
     }

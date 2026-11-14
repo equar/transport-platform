@@ -46,6 +46,7 @@ import {
   type RouteStopRecord,
   type UpdateRouteStopPayload,
 } from "../api/routesApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 export function RouteDetailsPage() {
   const { routeId } = useParams();
@@ -114,8 +115,8 @@ export function RouteDetailsPage() {
       setVehicleOptions(vehicles);
       setSelectedDriverId(routeResponse.assignedDriverId ?? "");
       setSelectedVehicleId(routeResponse.assignedVehicleId ?? "");
-    } catch {
-      setError("Route details could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Route details could not be loaded."));
       setRoute(null);
     } finally {
       setLoading(false);
@@ -143,8 +144,8 @@ export function RouteDetailsPage() {
         notes: "",
       });
       await loadRoute();
-    } catch {
-      showError("Ride could not be added to the route.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Ride could not be added to the route.");
     } finally {
       setSaving(false);
     }
@@ -172,8 +173,8 @@ export function RouteDetailsPage() {
       );
       showSuccess("Route stop order updated successfully.");
       await loadRoute();
-    } catch {
-      showError("Route stops could not be reordered.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Route stops could not be reordered.");
     }
   }
 
@@ -187,8 +188,8 @@ export function RouteDetailsPage() {
       showSuccess("Route stop updated successfully.");
       setEditingStop(null);
       await loadRoute();
-    } catch {
-      showError("Route stop could not be updated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Route stop could not be updated.");
     } finally {
       setSaving(false);
     }
@@ -202,8 +203,8 @@ export function RouteDetailsPage() {
       await routesApi.removeStop(route.id, stopId);
       showSuccess("Route stop removed successfully.");
       await loadRoute();
-    } catch {
-      showError("Route stop could not be removed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Route stop could not be removed.");
     }
   }
 
@@ -220,8 +221,8 @@ export function RouteDetailsPage() {
       showSuccess("Route resources updated successfully.");
       setAssignmentDialogOpen(false);
       await loadRoute();
-    } catch {
-      showError("Route resources could not be updated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Route resources could not be updated.");
     } finally {
       setSaving(false);
     }
@@ -245,8 +246,8 @@ export function RouteDetailsPage() {
       }
       showSuccess("Route updated successfully.");
       await loadRoute();
-    } catch {
-      showError("Route status could not be updated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Route status could not be updated.");
     }
   }
 

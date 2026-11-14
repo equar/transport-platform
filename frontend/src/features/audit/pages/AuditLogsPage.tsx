@@ -26,6 +26,7 @@ import { TableActionButton } from "../../../shared/components/TableActionButton"
 import { formatDateTime } from "../../../shared/utils/format";
 import { AuditLogDetailsDialog } from "../components/AuditLogDetailsDialog";
 import { auditLogsApi, type AuditLogRecord } from "../api/auditLogsApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 const moduleOptions = [
   "",
@@ -100,8 +101,8 @@ export function AuditLogsPage() {
         setItems(response.items);
         setTotal(response.totalElements);
       })
-      .catch(() => {
-        setError("Audit log records could not be loaded.");
+      .catch((_caughtError) => {
+        setError(getApiErrorMessage(_caughtError, "Audit log records could not be loaded."));
       })
       .finally(() => {
         setLoading(false);
