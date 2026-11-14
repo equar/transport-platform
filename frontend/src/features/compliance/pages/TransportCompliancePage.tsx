@@ -36,7 +36,7 @@ export function TransportCompliancePage() {
         setStatus(verificationStatus);
         setNotes(verificationNotes);
       }
-    }).catch(() => showError("Transport compliance profile could not be loaded."))
+    }).catch((_caughtError) => showError(_caughtError, "Transport compliance profile could not be loaded."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -51,7 +51,7 @@ export function TransportCompliancePage() {
       setStatus(saved.verificationStatus);
       setNotes(saved.verificationNotes);
       showSuccess("Compliance profile submitted for platform review.");
-    } catch { showError("Compliance profile could not be submitted. Check all required attestations and dates."); }
+    } catch (_caughtError) { showError(_caughtError, "Compliance profile could not be submitted. Check all required attestations and dates."); }
     finally { setSaving(false); }
   }
 

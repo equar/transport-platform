@@ -40,6 +40,7 @@ import {
   type ComplianceIssueStatus,
   type ComplianceIssueSummaryRecord,
 } from "../api/complianceApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 export function ComplianceDashboardPage() {
   const { showError, showSuccess } = useToast();
@@ -84,8 +85,8 @@ export function ComplianceDashboardPage() {
       setSummary(summaryResponse);
       setItems(issuesResponse.items);
       setTotal(issuesResponse.totalElements);
-    } catch {
-      setError("Compliance data could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Compliance data could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -108,8 +109,8 @@ export function ComplianceDashboardPage() {
     try {
       const response = await complianceApi.getIssue(issueId);
       setSelectedIssue(response);
-    } catch {
-      showError("Compliance issue details could not be loaded.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Compliance issue details could not be loaded.");
     }
   }
 
@@ -127,8 +128,8 @@ export function ComplianceDashboardPage() {
       setSelectedIssue(response);
       showSuccess(`Compliance issue ${action}d successfully.`);
       await loadCompliance();
-    } catch {
-      showError("Compliance issue could not be updated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Compliance issue could not be updated.");
     }
   }
 

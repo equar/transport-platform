@@ -158,16 +158,17 @@ app store.
 ## Android Play Store AAB
 
 To generate a release-signed Android App Bundle for Google Play, pass the
-release build number. The script uses the same signing configuration as the
-bingo app when available; otherwise it requires the real Play upload-keystore
-environment variables and refuses to build with a debug signing key:
+release build number. The script uses Transport's existing
+`android/key.properties` when present. Otherwise, configure Transport's Play
+upload-keystore environment variables; it refuses to build with a debug signing
+key:
 
 ```bash
 cd mobile
 ./scripts/playstoreBuild.sh 123
 ```
 
-If the bingo signing files are not already present, set the upload key explicitly:
+If Transport's `android/key.properties` is not present, set the upload key explicitly:
 
 ```bash
 export TRANSPORT_UPLOAD_STORE_FILE="~/keys/transport-upload.jks"

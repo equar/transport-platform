@@ -95,9 +95,9 @@ export function PaymentManagementPage() {
       if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
+    } catch (_caughtError) {
       if (generation !== loadGeneration.current) return;
-      setError("Payments could not be loaded.");
+      setError(getApiErrorMessage(_caughtError, "Payments could not be loaded."));
     } finally {
       if (generation === loadGeneration.current) setLoading(false);
     }

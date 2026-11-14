@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
                                 LinkedHashMap::new)));
         ApiErrorResponse error = ApiErrorResponse.of(
                 ErrorCode.VALIDATION_FAILED.name(),
-                "Validation failed for the request.",
+                "Some submitted fields are missing or invalid. Review the field details and try again.",
                 details);
         return ResponseEntity.badRequest().body(ApiResponse.failure(error));
     }

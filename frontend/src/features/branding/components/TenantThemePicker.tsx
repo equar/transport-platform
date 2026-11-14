@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { Alert, Box, Button, CircularProgress, Paper, Radio, RadioGroup, Stack, Typography } from '@mui/material';
 import { brandingApi, type TenantThemeState } from '../api/brandingApi';
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 export function TenantThemePicker({ tenantId, onApplied }: { tenantId?: string; onApplied?: () => Promise<void> }) {
   const groupId = useId();
@@ -13,7 +14,7 @@ export function TenantThemePicker({ tenantId, onApplied }: { tenantId?: string; 
     let active = true;
     setLoading(true); setState(null); setError(null); setSaved(false);
     void brandingApi.get(tenantId).then(result => { if (active) { setState(result); setSelected(result.selectedCode); } })
-      .catch(() => { if (active) setError('Tenant themes could not be loaded.'); })
+      .catch((_caughtError) => { if (active) setError(getApiErrorMessage(_caughtError, 'Tenant themes could not be loaded.')); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [tenantId, attempt]);
@@ -24,7 +25,7 @@ export function TenantThemePicker({ tenantId, onApplied }: { tenantId?: string; 
       const result = await brandingApi.apply(selected, tenantId);
       setState(result); setSaved(true);
       try { await onApplied?.(); } catch { setError('Theme saved. Refresh this page to load the updated appearance.'); }
-    } catch { setError('The theme could not be applied. Confirm tenant verification and try again.'); }
+    } catch (_caughtError) { setError(getApiErrorMessage(_caughtError, 'The theme could not be applied. Confirm tenant verification and try again.')); }
     finally { setSaving(false); }
   }
   if (loading) return <Stack direction="row" spacing={1} alignItems="center"><CircularProgress size={20} /><Typography>Loading tenant themes…</Typography></Stack>;

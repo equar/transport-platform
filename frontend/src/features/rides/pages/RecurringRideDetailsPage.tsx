@@ -21,6 +21,7 @@ import {
 } from "../api/ridesApi";
 import { GenerateRideInstancesDialog } from "../components/GenerateRideInstancesDialog";
 import { RecurringRideScheduleDialog } from "../components/RecurringRideScheduleDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 type RecurringAction = "activate" | "pause" | "deactivate";
 
@@ -61,8 +62,8 @@ export function RecurringRideDetailsPage() {
     try {
       const response = await ridesApi.getRecurringById(resolvedRecurrenceId);
       setSchedule(response);
-    } catch {
-      setError("Recurring ride schedule details could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Recurring ride schedule details could not be loaded."));
       setSchedule(null);
     } finally {
       setLoading(false);
@@ -88,8 +89,8 @@ export function RecurringRideDetailsPage() {
       showSuccess("Recurring ride schedule updated successfully.");
       setDialogOpen(false);
       await loadSchedule();
-    } catch {
-      showError("Recurring ride schedule changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Recurring ride schedule changes could not be saved.");
     } finally {
       setSaving(false);
     }
@@ -115,8 +116,8 @@ export function RecurringRideDetailsPage() {
       showSuccess("Recurring ride schedule status updated successfully.");
       setActionState(null);
       await loadSchedule();
-    } catch {
-      showError("The recurring ride schedule action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The recurring ride schedule action could not be completed.");
     } finally {
       setActionLoading(false);
     }
@@ -132,8 +133,8 @@ export function RecurringRideDetailsPage() {
       showSuccess(result.summary || "Ride instances generated successfully.");
       setGenerateOpen(false);
       await loadSchedule();
-    } catch {
-      showError("Ride instances could not be generated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Ride instances could not be generated.");
     } finally {
       setGenerateLoading(false);
     }

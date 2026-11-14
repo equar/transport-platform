@@ -56,6 +56,7 @@ import {
   type ReportFilters,
   type ReportType,
 } from "../api/reportsApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 type ColumnDefinition = {
   key: string;
@@ -478,7 +479,7 @@ export function CompanyReportsPage() {
   useEffect(() => { try { if (exportJob) sessionStorage.setItem(exportKey, JSON.stringify(exportJob)); else sessionStorage.removeItem(exportKey); } catch { /* job still works in this session */ } }, [exportJob, exportKey]);
   useEffect(() => {
     if (!exportJob || !['PENDING', 'RUNNING'].includes(exportJob.status)) return;
-    const timer = window.setInterval(() => { void reportsApi.exportStatus(exportJob.id).then(job => { setExportJob(job); setExportError(null); }).catch(() => setExportError('Export status unavailable. Checking again when connected.')); }, 3000);
+    const timer = window.setInterval(() => { void reportsApi.exportStatus(exportJob.id).then(job => { setExportJob(job); setExportError(null); }).catch((_caughtError) => setExportError(getApiErrorMessage(_caughtError, 'Export status unavailable. Checking again when connected.'))); }, 3000);
     return () => window.clearInterval(timer);
   }, [exportJob?.id, exportJob?.status]);
 
@@ -501,9 +502,9 @@ export function CompanyReportsPage() {
         setReferenceData(refs);
         setSelectedReportType(reportDefinitions[0]?.reportType ?? "DRIVER");
         setError(null);
-      } catch {
-        setError("Report definitions could not be loaded.");
-        showError("Report definitions could not be loaded.");
+      } catch (_caughtError) {
+        setError(getApiErrorMessage(_caughtError, "Report definitions could not be loaded."));
+        showError(_caughtError, "Report definitions could not be loaded.");
       } finally {
         setLoading(false);
       }
@@ -545,9 +546,9 @@ export function CompanyReportsPage() {
       setReport(
         response as unknown as CompanyReportResponse<Record<string, unknown>>,
       );
-    } catch {
-      setError("The selected report could not be generated.");
-      showError("The selected report could not be generated.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "The selected report could not be generated."));
+      showError(_caughtError, "The selected report could not be generated.");
     } finally {
       setRunning(false);
     }

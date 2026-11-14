@@ -41,6 +41,7 @@ import {
   type TenantSubscriptionPayload,
   type TenantSubscriptionRecord,
 } from "../api/saasAdminApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 const subscriptionStatuses = [
   "",
@@ -128,8 +129,8 @@ export function TenantSubscriptionManagementPage() {
       });
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
-      setError("Tenant subscriptions could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Tenant subscriptions could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -186,8 +187,8 @@ export function TenantSubscriptionManagementPage() {
       }
       setDialogOpen(false);
       await loadSubscriptions();
-    } catch {
-      showError("Tenant subscription changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Tenant subscription changes could not be saved.");
     }
   }
 
@@ -208,8 +209,8 @@ export function TenantSubscriptionManagementPage() {
       setActionSubscription(null);
       setActionType(null);
       await loadSubscriptions();
-    } catch {
-      showError("Tenant subscription status change could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Tenant subscription status change could not be completed.");
     } finally {
       setActionLoading(false);
     }

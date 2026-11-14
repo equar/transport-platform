@@ -43,6 +43,7 @@ import {
   type RiderType,
 } from "../api/ridersApi";
 import { RiderUpsertDialog } from "../components/RiderUpsertDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 const riderStatuses: Array<RiderStatus | ""> = [
   "",
@@ -107,9 +108,9 @@ export function RiderManagementPage() {
       if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
+    } catch (_caughtError) {
       if (generation !== loadGeneration.current) return;
-      setError("Riders could not be loaded.");
+      setError(getApiErrorMessage(_caughtError, "Riders could not be loaded."));
     } finally {
       if (generation === loadGeneration.current) setLoading(false);
     }
@@ -176,8 +177,8 @@ export function RiderManagementPage() {
       showSuccess("Rider status updated successfully.");
       setActionState(null);
       await loadRiders();
-    } catch {
-      showError("The rider action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The rider action could not be completed.");
     } finally {
       setActionLoading(false);
     }

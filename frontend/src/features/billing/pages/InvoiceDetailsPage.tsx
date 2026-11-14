@@ -43,6 +43,7 @@ import {
 import { InvoiceLineItemDialog } from "../components/InvoiceLineItemDialog";
 import { InvoiceUpsertDialog } from "../components/InvoiceUpsertDialog";
 import { PaymentUpsertDialog } from "../components/PaymentUpsertDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 type InvoiceAction = "issue" | "void" | "remove-line-item";
 
@@ -95,8 +96,8 @@ export function InvoiceDetailsPage() {
     try {
       const response = await billingApi.getInvoice(resolvedInvoiceId);
       setInvoice(response);
-    } catch {
-      setError("Invoice details could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Invoice details could not be loaded."));
       setInvoice(null);
     } finally {
       setLoading(false);
@@ -122,8 +123,8 @@ export function InvoiceDetailsPage() {
       showSuccess("Invoice updated successfully.");
       setInvoiceDialogOpen(false);
       await loadPage();
-    } catch {
-      showError("Invoice changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Invoice changes could not be saved.");
     } finally {
       setInvoiceSaving(false);
     }
@@ -145,8 +146,8 @@ export function InvoiceDetailsPage() {
       setLineItemDialogOpen(false);
       setSelectedLineItem(null);
       await loadPage();
-    } catch {
-      showError("Line item changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Line item changes could not be saved.");
     } finally {
       setLineItemSaving(false);
     }
@@ -174,8 +175,8 @@ export function InvoiceDetailsPage() {
       setSelectedLineItem(null);
       setVoidReason("");
       await loadPage();
-    } catch {
-      showError("The invoice action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The invoice action could not be completed.");
     } finally {
       setActionLoading(false);
     }
@@ -188,8 +189,8 @@ export function InvoiceDetailsPage() {
       showSuccess("Payment recorded successfully.");
       setPaymentDialogOpen(false);
       await loadPage();
-    } catch {
-      showError("Payment could not be recorded for this invoice.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Payment could not be recorded for this invoice.");
     } finally {
       setPaymentSaving(false);
     }
@@ -214,8 +215,8 @@ export function InvoiceDetailsPage() {
       setCollectionNote("");
       setNextFollowUpDate("");
       await loadPage();
-    } catch {
-      showError("Collection note could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Collection note could not be saved.");
     } finally {
       setCollectionSaving(false);
     }

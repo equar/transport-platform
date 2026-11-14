@@ -15,11 +15,11 @@ export function PlatformTransportCompliancePage() {
   const [notes, setNotes] = useState("");
   const { showError, showSuccess } = useToast();
   useEffect(() => { complianceApi.getTenantTransportProfile(tenantId).then(setProfile)
-    .catch(() => showError("Compliance profile could not be loaded."))
+    .catch((_caughtError) => showError(_caughtError, "Compliance profile could not be loaded."))
     .finally(() => setLoading(false)); }, [tenantId]);
   async function decide(approved: boolean) {
     try { setProfile(await complianceApi.decideTenantTransportProfile(tenantId, approved, notes)); showSuccess(approved ? "Profile verified." : "Profile rejected."); }
-    catch { showError("The compliance decision could not be saved."); }
+    catch (_caughtError) { showError(_caughtError, "The compliance decision could not be saved."); }
   }
   if (loading) return <LoadingState title="Loading tenant compliance profile" />;
   if (!profile) return <Stack spacing={2}><EmptyState title="No compliance submission" description="This tenant has not submitted its transport compliance attestation." /><Button component={Link} to="/platform/tenants">Back to tenants</Button></Stack>;

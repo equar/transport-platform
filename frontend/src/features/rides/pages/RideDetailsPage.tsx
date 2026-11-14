@@ -39,6 +39,7 @@ import {
 import { RideCancellationDialog } from "../components/RideCancellationDialog";
 import { RideUpsertDialog } from "../components/RideUpsertDialog";
 import { env } from "../../../shared/config/env";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 type RideAction = "request" | "review" | "schedule";
 const ACTIVE_LOCATION_STATUSES = new Set([
@@ -133,8 +134,8 @@ export function RideDetailsPage() {
       setVehicleOptions(vehicles);
       setSelectedDriverId(response.driverId ?? "");
       setSelectedVehicleId(response.vehicleId ?? "");
-    } catch {
-      setError("Ride details could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Ride details could not be loaded."));
       setRide(null);
       setLocationSnapshot(null);
     } finally {
@@ -174,8 +175,8 @@ export function RideDetailsPage() {
       showSuccess("Ride updated successfully.");
       setDialogOpen(false);
       await loadRide();
-    } catch {
-      showError("Ride changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Ride changes could not be saved.");
     } finally {
       setSaving(false);
     }
@@ -201,8 +202,8 @@ export function RideDetailsPage() {
       showSuccess("Ride status updated successfully.");
       setActionState(null);
       await loadRide();
-    } catch {
-      showError("The ride action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The ride action could not be completed.");
     } finally {
       setActionLoading(false);
     }
@@ -218,8 +219,8 @@ export function RideDetailsPage() {
       showSuccess("Ride cancelled successfully.");
       setCancelOpen(false);
       await loadRide();
-    } catch {
-      showError("The ride could not be cancelled.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The ride could not be cancelled.");
     } finally {
       setCancelLoading(false);
     }
@@ -237,8 +238,8 @@ export function RideDetailsPage() {
       });
       showSuccess("Ride resources updated successfully.");
       await loadRide();
-    } catch {
-      showError("Ride resources could not be updated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Ride resources could not be updated.");
     } finally {
       setAssignmentLoading(false);
     }
@@ -291,8 +292,8 @@ export function RideDetailsPage() {
       }
       showSuccess("Ride status updated successfully.");
       await loadRide();
-    } catch {
-      showError("The ride status could not be updated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The ride status could not be updated.");
     }
   }
 
@@ -306,8 +307,8 @@ export function RideDetailsPage() {
       showSuccess("Ride note added successfully.");
       setNote("");
       await loadRide();
-    } catch {
-      showError("Ride note could not be added.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Ride note could not be added.");
     } finally {
       setNoteLoading(false);
     }
@@ -648,8 +649,8 @@ export function RideDetailsPage() {
                     void dispatchApi
                       .unassignDriver(ride.id)
                       .then(loadRide)
-                      .catch(() =>
-                        showError("Driver assignment could not be removed."),
+                      .catch((_caughtError) =>
+                        showError(_caughtError, "Driver assignment could not be removed."),
                       )
                   }
                 >
@@ -663,8 +664,8 @@ export function RideDetailsPage() {
                     void dispatchApi
                       .unassignVehicle(ride.id)
                       .then(loadRide)
-                      .catch(() =>
-                        showError("Vehicle assignment could not be removed."),
+                      .catch((_caughtError) =>
+                        showError(_caughtError, "Vehicle assignment could not be removed."),
                       )
                   }
                 >
@@ -728,8 +729,8 @@ export function RideDetailsPage() {
                       void ridesApi
                         .getLocationSnapshot(ride.id)
                         .then(setLocationSnapshot)
-                        .catch(() =>
-                          showError("Driver location snapshot could not be refreshed."),
+                        .catch((_caughtError) =>
+                          showError(_caughtError, "Driver location snapshot could not be refreshed."),
                         )
                     }
                   >

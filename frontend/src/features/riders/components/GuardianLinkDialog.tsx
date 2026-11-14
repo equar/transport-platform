@@ -25,6 +25,7 @@ import { riderGuardianRelationshipTypeOptions } from "../api/ridersApi";
 interface GuardianLinkDialogProps {
   open: boolean;
   guardians: GuardianRecord[];
+  linkedGuardianIds: number[];
   relationship: RiderGuardianRecord | null;
   loading: boolean;
   onClose: () => void;
@@ -45,6 +46,7 @@ function emptyForm(): RiderGuardianPayload {
 export function GuardianLinkDialog({
   open,
   guardians,
+  linkedGuardianIds,
   relationship,
   loading,
   onClose,
@@ -100,6 +102,13 @@ export function GuardianLinkDialog({
 
   async function handleSubmit() {
     if (!validate()) {
+      return;
+    }
+    if (!relationship && linkedGuardianIds.includes(form.guardianId)) {
+      setErrors({
+        guardianId:
+          "This guardian is already linked to this rider. Use Update Guardian Link to change the relationship.",
+      });
       return;
     }
     await onSubmit(form);

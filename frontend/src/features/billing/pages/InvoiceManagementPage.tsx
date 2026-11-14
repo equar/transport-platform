@@ -45,6 +45,7 @@ import {
 } from "../api/billingApi";
 import { InvoiceGenerationDialog } from "../components/InvoiceGenerationDialog";
 import { InvoiceUpsertDialog } from "../components/InvoiceUpsertDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 type InvoiceAction = "issue" | "void";
 
@@ -116,9 +117,9 @@ export function InvoiceManagementPage() {
       if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
+    } catch (_caughtError) {
       if (generation !== loadGeneration.current) return;
-      setError("Invoices could not be loaded.");
+      setError(getApiErrorMessage(_caughtError, "Invoices could not be loaded."));
     } finally {
       if (generation === loadGeneration.current) setLoading(false);
     }
@@ -144,8 +145,8 @@ export function InvoiceManagementPage() {
       const response = await billingApi.getInvoice(invoiceId);
       setSelectedInvoice(response);
       setDialogOpen(true);
-    } catch {
-      showError("Invoice details could not be loaded.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Invoice details could not be loaded.");
     }
   }
 
@@ -162,8 +163,8 @@ export function InvoiceManagementPage() {
       setDialogOpen(false);
       setSelectedInvoice(null);
       await loadInvoices();
-    } catch {
-      showError("Invoice changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Invoice changes could not be saved.");
     } finally {
       setSaving(false);
     }
@@ -189,8 +190,8 @@ export function InvoiceManagementPage() {
       setActionState(null);
       setVoidReason("");
       await loadInvoices();
-    } catch {
-      showError("The invoice action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The invoice action could not be completed.");
     } finally {
       setActionLoading(false);
     }

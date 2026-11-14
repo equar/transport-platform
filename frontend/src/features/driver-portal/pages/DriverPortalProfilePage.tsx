@@ -82,8 +82,8 @@ export function DriverPortalProfilePage() {
       const response = await driverPortalApi.updateProfile(form);
       setProfile(response);
       showSuccess("Driver profile updated.");
-    } catch {
-      showError("Driver profile could not be updated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Driver profile could not be updated.");
     } finally {
       setSaving(false);
     }

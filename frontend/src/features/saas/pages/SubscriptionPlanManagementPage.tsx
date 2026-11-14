@@ -37,6 +37,7 @@ import {
   type SubscriptionPlanPayload,
   type SubscriptionPlanRecord,
 } from "../api/saasAdminApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 const planStatuses = ["", "DRAFT", "ACTIVE", "INACTIVE", "RETIRED"];
 const planTiers = ["", "STARTER", "GROWTH", "ENTERPRISE", "CUSTOM"];
@@ -97,8 +98,8 @@ export function SubscriptionPlanManagementPage() {
       });
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
-      setError("Subscription plans could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Subscription plans could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -160,8 +161,8 @@ export function SubscriptionPlanManagementPage() {
       }
       setDialogOpen(false);
       await loadPlans();
-    } catch {
-      showError("Subscription plan changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Subscription plan changes could not be saved.");
     }
   }
 
@@ -182,8 +183,8 @@ export function SubscriptionPlanManagementPage() {
       setActionPlan(null);
       setActionType(null);
       await loadPlans();
-    } catch {
-      showError("Subscription plan status change could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Subscription plan status change could not be completed.");
     } finally {
       setActionLoading(false);
     }

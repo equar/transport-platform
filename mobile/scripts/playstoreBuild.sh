@@ -7,14 +7,11 @@ PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 prepare_release_signing() {
-  local bingo_key_properties="/Users/samuel/Projects2/bingo-platform/bingo-app/android/key.properties"
-  local bingo_keystore="/Users/samuel/Projects2/bingo-platform/deployment/mobile/signing/bingo-app.jks"
+  local key_props_file="$PROJECT_ROOT/android/key.properties"
 
-  if [[ -f "$bingo_key_properties" ]]; then
-    local key_props_file="$PROJECT_ROOT/android/key.properties"
-    mkdir -p "$PROJECT_ROOT/android"
-    cp "$bingo_key_properties" "$key_props_file"
-    echo "Using the same release signing key as the bingo app: $bingo_keystore" >&2
+  if [[ -f "$key_props_file" ]]; then
+    chmod 600 "$key_props_file"
+    echo "Using Transport's existing Android release signing configuration." >&2
     return 0
   fi
 
@@ -54,7 +51,7 @@ prepare_release_signing() {
     exit 1
   fi
 
-  local key_props_file="$PROJECT_ROOT/android/key.properties"
+  umask 077
   mkdir -p "$PROJECT_ROOT/android"
   cat > "$key_props_file" <<EOF
 storeFile=$store_file

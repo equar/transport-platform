@@ -45,6 +45,7 @@ import {
 import { DriverDocumentReviewDialog } from "../components/DriverDocumentReviewDialog";
 import { DriverDocumentUpsertDialog } from "../components/DriverDocumentUpsertDialog";
 import { DriverUpsertDialog } from "../components/DriverUpsertDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 type DriverAction =
   | "review"
@@ -107,8 +108,8 @@ export function DriverDetailsPage() {
     setError(null);
     try {
       await Promise.all([loadDriver(), loadDocuments()]);
-    } catch {
-      setError("Driver details could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Driver details could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -133,8 +134,8 @@ export function DriverDetailsPage() {
       showSuccess("Driver updated successfully.");
       setDriverDialogOpen(false);
       await loadPage();
-    } catch {
-      showError("Driver changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Driver changes could not be saved.");
     } finally {
       setDriverSaving(false);
     }
@@ -208,8 +209,8 @@ export function DriverDetailsPage() {
       setDocumentDialogOpen(false);
       setSelectedDocument(null);
       await loadPage();
-    } catch {
-      showError("Driver document changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Driver document changes could not be saved.");
     } finally {
       setDocumentSaving(false);
     }
@@ -230,8 +231,8 @@ export function DriverDetailsPage() {
       }
       setReviewState(null);
       await loadPage();
-    } catch {
-      showError("The document review action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The document review action could not be completed.");
     } finally {
       setReviewLoading(false);
     }
@@ -251,8 +252,8 @@ export function DriverDetailsPage() {
       showSuccess("Driver document updated successfully.");
       setDocumentAction(null);
       await loadPage();
-    } catch {
-      showError("The document action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The document action could not be completed.");
     } finally {
       setDocumentActionLoading(false);
     }
@@ -620,8 +621,8 @@ export function DriverDetailsPage() {
                                 const url = URL.createObjectURL(blob);
                                 window.open(url, "_blank", "noopener,noreferrer");
                                 window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-                              } catch {
-                                showError("Unable to open the uploaded document.");
+                              } catch (_caughtError) {
+                                showError(_caughtError, "Unable to open the uploaded document.");
                               }
                             }}
                           >

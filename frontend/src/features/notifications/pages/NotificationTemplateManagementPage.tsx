@@ -42,6 +42,7 @@ import {
   type NotificationTemplateStatus,
   type NotificationType,
 } from "../api/notificationApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 const emptyPayload: NotificationTemplatePayload = {
   name: "",
@@ -88,8 +89,8 @@ export function NotificationTemplateManagementPage() {
       });
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
-      setError("Notification templates could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Notification templates could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -132,8 +133,8 @@ export function NotificationTemplateManagementPage() {
       }
       setDialogOpen(false);
       await loadTemplates();
-    } catch {
-      showError("Notification template changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Notification template changes could not be saved.");
     } finally {
       setSaving(false);
     }
@@ -149,8 +150,8 @@ export function NotificationTemplateManagementPage() {
         showSuccess("Notification template activated.");
       }
       await loadTemplates();
-    } catch {
-      showError("Notification template status could not be updated.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Notification template status could not be updated.");
     }
   }
 

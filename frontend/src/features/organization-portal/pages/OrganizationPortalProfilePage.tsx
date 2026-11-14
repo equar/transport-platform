@@ -81,8 +81,8 @@ export function OrganizationPortalProfilePage() {
       );
       setProfile(response);
       showSuccess("Organization contact profile updated.");
-    } catch {
-      showError("Organization contact profile could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Organization contact profile could not be saved.");
     } finally {
       setSaving(false);
     }

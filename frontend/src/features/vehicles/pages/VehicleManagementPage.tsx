@@ -41,6 +41,7 @@ import {
   type VehicleStatus,
 } from "../api/vehiclesApi";
 import { VehicleUpsertDialog } from "../components/VehicleUpsertDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 const vehicleStatuses: Array<VehicleStatus | ""> = [
   "",
@@ -115,9 +116,9 @@ export function VehicleManagementPage() {
       if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
+    } catch (_caughtError) {
       if (generation !== loadGeneration.current) return;
-      setError("Vehicles could not be loaded.");
+      setError(getApiErrorMessage(_caughtError, "Vehicles could not be loaded."));
     } finally {
       if (generation === loadGeneration.current) setLoading(false);
     }
@@ -141,8 +142,8 @@ export function VehicleManagementPage() {
       setDialogOpen(false);
       setSelectedVehicle(null);
       await loadVehicles();
-    } catch {
-      showError("Vehicle changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Vehicle changes could not be saved.");
     } finally {
       setSaving(false);
     }
@@ -172,8 +173,8 @@ export function VehicleManagementPage() {
       showSuccess("Vehicle status updated successfully.");
       setActionState(null);
       await loadVehicles();
-    } catch {
-      showError("The vehicle action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The vehicle action could not be completed.");
     } finally {
       setActionLoading(false);
     }

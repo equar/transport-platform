@@ -35,6 +35,7 @@ import {
   type GuardianRecord,
 } from "../api/guardiansApi";
 import { GuardianUpsertDialog } from "../components/GuardianUpsertDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 type GuardianAction = "activate" | "suspend" | "deactivate";
 
@@ -57,8 +58,8 @@ export function GuardianDetailsPage() {
     try {
       const response = await guardiansApi.getById(resolvedGuardianId);
       setGuardian(response);
-    } catch {
-      setError("Guardian details could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Guardian details could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -83,8 +84,8 @@ export function GuardianDetailsPage() {
       showSuccess("Guardian updated successfully.");
       setDialogOpen(false);
       await loadGuardian();
-    } catch {
-      showError("Guardian changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Guardian changes could not be saved.");
     } finally {
       setSaving(false);
     }
@@ -110,8 +111,8 @@ export function GuardianDetailsPage() {
       showSuccess("Guardian status updated successfully.");
       setAction(null);
       await loadGuardian();
-    } catch {
-      showError("The guardian action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The guardian action could not be completed.");
     } finally {
       setActionLoading(false);
     }

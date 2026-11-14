@@ -40,6 +40,7 @@ import {
   type FeatureFlagPayload,
   type FeatureFlagRecord,
 } from "../api/saasAdminApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 const featureFlagStatuses = ["", "ACTIVE", "INACTIVE"];
 const moduleKeys = [
@@ -125,8 +126,8 @@ export function FeatureFlagManagementPage() {
       });
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
-      setError("Feature flags could not be loaded.");
+    } catch (_caughtError) {
+      setError(getApiErrorMessage(_caughtError, "Feature flags could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -178,8 +179,8 @@ export function FeatureFlagManagementPage() {
       }
       setDialogOpen(false);
       await loadFeatureFlags();
-    } catch {
-      showError("Feature flag changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Feature flag changes could not be saved.");
     }
   }
 
@@ -198,8 +199,8 @@ export function FeatureFlagManagementPage() {
       setActionFlag(null);
       setActionType(null);
       await loadFeatureFlags();
-    } catch {
-      showError("Feature flag status change could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Feature flag status change could not be completed.");
     } finally {
       setActionLoading(false);
     }
@@ -218,8 +219,8 @@ export function FeatureFlagManagementPage() {
       showSuccess("Tenant feature override saved successfully.");
       setOverrideOpen(false);
       await loadFeatureFlags();
-    } catch {
-      showError("Tenant feature override could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Tenant feature override could not be saved.");
     }
   }
 

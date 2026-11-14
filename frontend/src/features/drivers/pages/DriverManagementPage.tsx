@@ -43,6 +43,7 @@ import {
   type DriverType,
 } from "../api/driversApi";
 import { DriverUpsertDialog } from "../components/DriverUpsertDialog";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 const driverStatuses: Array<DriverStatus | ""> = [
   "",
@@ -106,9 +107,9 @@ export function DriverManagementPage() {
       if (generation !== loadGeneration.current) return;
       setItems(response.items);
       setTotal(response.totalElements);
-    } catch {
+    } catch (_caughtError) {
       if (generation !== loadGeneration.current) return;
-      setError("Drivers could not be loaded.");
+      setError(getApiErrorMessage(_caughtError, "Drivers could not be loaded."));
     } finally {
       if (generation === loadGeneration.current) setLoading(false);
     }
@@ -174,8 +175,8 @@ export function DriverManagementPage() {
       showSuccess("Driver status updated successfully.");
       setActionState(null);
       await loadDrivers();
-    } catch {
-      showError("The driver action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The driver action could not be completed.");
     } finally {
       setActionLoading(false);
     }

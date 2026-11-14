@@ -34,6 +34,7 @@ import { SectionHeader } from "../../../shared/components/SectionHeader";
 import { StatusChip } from "../../../shared/components/StatusChip";
 import { TableActionButton } from "../../../shared/components/TableActionButton";
 import { useToast } from "../../../shared/providers/ToastProvider";
+import { getApiErrorMessage } from "../../../shared/api/client";
 import { formatDateTime } from "../../../shared/utils/format";
 import {
   ridersApi,
@@ -106,8 +107,13 @@ export function RiderDetailsPage() {
     setError(null);
     try {
       await Promise.all([loadRider(), loadGuardianOptions()]);
-    } catch {
-      setError("Rider details could not be loaded.");
+    } catch (error) {
+      setError(
+        getApiErrorMessage(
+          error,
+          "Rider details and available guardian contacts could not be loaded.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -132,8 +138,8 @@ export function RiderDetailsPage() {
       showSuccess("Rider updated successfully.");
       setRiderDialogOpen(false);
       await loadRider();
-    } catch {
-      showError("Rider changes could not be saved.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Rider changes could not be saved.");
     } finally {
       setRiderSaving(false);
     }
@@ -155,8 +161,11 @@ export function RiderDetailsPage() {
       setRelationshipDialogOpen(false);
       setSelectedRelationship(null);
       await loadRider();
-    } catch {
-      showError("The guardian relationship could not be saved.");
+    } catch (error) {
+      showError(
+        error,
+        "The guardian link could not be saved. Check whether this guardian is already linked and review the relationship details.",
+      );
     } finally {
       setRelationshipSaving(false);
     }
@@ -185,8 +194,8 @@ export function RiderDetailsPage() {
       showSuccess("Rider status updated successfully.");
       setRiderAction(null);
       await loadRider();
-    } catch {
-      showError("The rider action could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "The rider action could not be completed.");
     } finally {
       setRiderActionLoading(false);
     }
@@ -202,8 +211,8 @@ export function RiderDetailsPage() {
       showSuccess("Guardian unlinked successfully.");
       setUnlinkRelationship(null);
       await loadRider();
-    } catch {
-      showError("Guardian unlink could not be completed.");
+    } catch (_caughtError) {
+      showError(_caughtError, "Guardian unlink could not be completed.");
     } finally {
       setUnlinkLoading(false);
     }
@@ -595,6 +604,7 @@ export function RiderDetailsPage() {
       <GuardianLinkDialog
         open={relationshipDialogOpen}
         guardians={availableGuardians}
+        linkedGuardianIds={rider.guardians.map((guardian) => guardian.guardianId)}
         relationship={selectedRelationship}
         loading={relationshipSaving}
         onClose={() => {

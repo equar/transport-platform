@@ -24,6 +24,7 @@ import {
   type PaymentPreviewRecord,
   type PaymentRecord,
 } from "../api/billingApi";
+import { getApiErrorMessage } from "../../../shared/api/client";
 
 interface PaymentUpsertDialogProps {
   open: boolean;
@@ -186,11 +187,11 @@ export function PaymentUpsertDialog({
           setPreviewError(null);
         }
       })
-      .catch(() => {
+      .catch((_caughtError) => {
         if (active) {
           setPreview(null);
           setPreviewError(
-            "Payment preview could not be calculated for the selected invoice.",
+            getApiErrorMessage(_caughtError, "Payment preview could not be calculated for the selected invoice."),
           );
         }
       });
