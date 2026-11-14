@@ -84,3 +84,17 @@ it('stops sharing immediately after confirming an offline drop-off', async () =>
   expect(stopTripTracking).toHaveBeenCalledWith({ rideId: 10, tenantId: 'tenant-a', userId: 7 });
   expect(driverPortalApi.postRideAction).not.toHaveBeenCalled();
 });
+
+it.each(['COMPLETED', 'DROPPED_OFF', 'CANCELLED', 'FAILED', 'RIDER_NO_SHOW', 'MISSED', 'ASSIGNED'])('does not show or fetch live tracking for %s trips', async status => {
+  mockRide = { ...mockRide, status: status as DriverPortalRideDetailRecord['status'] };
+  await openTrip();
+  expect(screen.queryByText('Live Route')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Refresh Tracking' })).toBeNull();
+  expect(driverPortalApi.getRideLocationSnapshot).not.toHaveBeenCalled();
+});
+it('keeps refresh tracking available during an active trip', async () => {
+  mockRide = { ...mockRide, status: 'PICKED_UP' };
+  await openTrip();
+  expect(screen.getByRole('button', { name: 'Refresh Tracking' })).toBeTruthy();
+  await waitFor(() => expect(driverPortalApi.getRideLocationSnapshot).toHaveBeenCalledWith(10));
+});
