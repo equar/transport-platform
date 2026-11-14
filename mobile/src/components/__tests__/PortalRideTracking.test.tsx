@@ -48,7 +48,9 @@ it('automatically shows the assigned driver location map to a guardian during an
   clients.push(client);
   render(<QueryClientProvider client={client}><GuardianRideDetailPage /></QueryClientProvider>);
 
-  expect(await screen.findByLabelText('Latest reported driver location')).toBeTruthy();
+  expect(await screen.findByLabelText('Map showing the latest shared ride location')).toBeTruthy();
+  expect(screen.getByLabelText('Rider and assigned driver')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Show map' })).toBeNull();
-  expect(screen.getByText(/It indicates the rider’s location only after pickup/)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Open in Maps' })).toBeNull();
+  expect(screen.getByText(/The pin shows the rider traveling with the assigned driver/)).toBeTruthy();
 });

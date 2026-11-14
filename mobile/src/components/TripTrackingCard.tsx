@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
-import { Image, Linking, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import MapView, { Marker, UrlTile } from 'react-native-maps';
 import { AppButton } from '@components/ui';
 import { Spacing, Typography } from '@theme/tokens';
 
@@ -16,25 +17,20 @@ interface TripTrackingCardProps {
   } | null;
   pickupAddress?: string | null;
   dropoffAddress?: string | null;
+  rideStatus?: string;
   onRefresh?: () => void;
   refreshing?: boolean;
   error?: boolean;
   autoShowMap?: boolean;
 }
 
-function buildStaticMapUrl(
-  snapshot: NonNullable<TripTrackingCardProps['snapshot']>,
-) {
-  const latitude = Number(snapshot.latitude);
-  const longitude = Number(snapshot.longitude);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-    return null;
-  }
-  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-    return null;
-  }
-
-  return `https://staticmap.openstreetmap.de/staticmap.php?center=${latitude},${longitude}&zoom=14&size=1200x600&markers=${latitude},${longitude},red-pushpin`;
+function isValidLocation(snapshot: NonNullable<TripTrackingCardProps['snapshot']>) {
+  return Number.isFinite(snapshot.latitude)
+    && Number.isFinite(snapshot.longitude)
+    && snapshot.latitude >= -90
+    && snapshot.latitude <= 90
+    && snapshot.longitude >= -180
+    && snapshot.longitude <= 180;
 }
 
 function formatSpeed(speedMps?: number | null) {
@@ -47,19 +43,25 @@ export function TripTrackingCard({
   snapshot,
   pickupAddress,
   dropoffAddress,
+  rideStatus,
   onRefresh,
   refreshing = false,
   error = false,
   autoShowMap = false,
 }: TripTrackingCardProps) {
   const styles = useThemedStyles(createStyles);
-  const [mapFailed, setMapFailed] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  useEffect(() => { setMapFailed(false); }, [snapshot?.capturedAt]);
   const [details, setDetails] = useState(false);
   const ageMinutes = snapshot ? Math.max(0, Math.floor((Date.now() - Date.parse(snapshot.capturedAt)) / 60000)) : null;
-  const mapUrl = snapshot ? buildStaticMapUrl(snapshot) : null;
+  const validLocation = snapshot != null && isValidLocation(snapshot);
   const mapVisible = autoShowMap || showMap;
+  const riderPickedUp = rideStatus === 'PICKED_UP';
+  const mapRegion = validLocation ? {
+    latitude: snapshot.latitude,
+    longitude: snapshot.longitude,
+    latitudeDelta: 0.012,
+    longitudeDelta: 0.012,
+  } : null;
 
   return (
     <View style={styles.section}>
@@ -68,14 +70,43 @@ export function TripTrackingCard({
         {error ? <Text accessibilityRole="alert" style={styles.emptyText}>Location updates could not be loaded. Check your connection and refresh tracking.</Text> : null}
         {snapshot ? (
           <>
-            {mapUrl && !autoShowMap && !showMap ? <AppButton label="Show map" variant="outlined" accessibilityHint="Shares this reported location with the map provider" onPress={() => setShowMap(true)} /> : null}
-            {mapUrl && !mapVisible ? <Text style={styles.emptyText}>Showing a map shares this location with the map provider.</Text> : null}
-            {mapUrl && mapVisible ? <Text style={styles.emptyText}>The pin shows the assigned driver’s latest reported location. It indicates the rider’s location only after pickup. Map data is provided by OpenStreetMap.</Text> : null}
-            {mapUrl && mapVisible && !mapFailed ? (
-              <Image accessibilityLabel="Latest reported driver location" onError={() => setMapFailed(true)} source={{ uri: mapUrl }} style={styles.map} resizeMode="cover" />
+            {validLocation && !mapVisible ? <AppButton label="Show map" variant="outlined" onPress={() => setShowMap(true)} /> : null}
+            {mapVisible && validLocation ? (
+              <Text style={styles.emptyText}>
+                {riderPickedUp
+                  ? 'The pin shows the rider traveling with the assigned driver.'
+                  : 'The pin shows the assigned driver’s latest reported location.'}
+              </Text>
             ) : null}
+            {mapVisible && mapRegion && snapshot ? (
+              <MapView
+                accessibilityLabel="Map showing the latest shared ride location"
+                testID="ride-location-map"
+                style={styles.map}
+                region={mapRegion}
+                mapType={Platform.OS === 'android' ? 'none' : 'standard'}
+                showsUserLocation={false}
+                showsCompass
+                zoomEnabled
+                scrollEnabled
+              >
+                <UrlTile
+                  urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  maximumZ={19}
+                  shouldReplaceMapContent={Platform.OS === 'ios'}
+                />
+                <Marker
+                  coordinate={{ latitude: mapRegion.latitude, longitude: mapRegion.longitude }}
+                  title={riderPickedUp ? 'Rider and assigned driver' : 'Assigned driver'}
+                  description={riderPickedUp
+                    ? 'The rider is traveling with the driver.'
+                    : 'Latest location reported by the assigned driver.'}
+                />
+              </MapView>
+            ) : null}
+            {mapVisible && !validLocation ? <Text style={styles.emptyText}>The latest location cannot be shown on the map.</Text> : null}
+            {mapVisible ? <Text style={styles.emptyText}>© OpenStreetMap contributors</Text> : null}
             <Text style={styles.emptyText}>{ageMinutes != null && ageMinutes >= 2 ? `Location may be stale (${ageMinutes} minutes ago).` : 'Latest reported location'}</Text>
-            {mapFailed ? <Text style={styles.emptyText}>Map unavailable. Open the location in Maps below.</Text> : null}
             {pickupAddress ? <Row label="Pickup" value={pickupAddress} /> : null}
             {dropoffAddress ? <Row label="Drop-off" value={dropoffAddress} /> : null}
             <Row label="Updated" value={new Date(snapshot.capturedAt).toLocaleString()} />
@@ -88,27 +119,19 @@ export function TripTrackingCard({
               value={`${snapshot.latitude.toFixed(6)}, ${snapshot.longitude.toFixed(6)}`}
             />
             </> : null}
-            <View style={styles.actions}>
+            {onRefresh ? (
               <AppButton
-                label="Open in Maps"
-                variant="outlined"
-                onPress={() => void Linking.openURL(`https://maps.google.com/?q=${snapshot.latitude},${snapshot.longitude}`)}
+                label="Refresh Tracking"
+                onPress={onRefresh}
+                loading={refreshing}
                 fullWidth
               />
-              {onRefresh ? (
-                <AppButton
-                  label="Refresh Tracking"
-                  onPress={onRefresh}
-                  loading={refreshing}
-                  fullWidth
-                />
-              ) : null}
-            </View>
+            ) : null}
           </>
         ) : (
           <>
             <Text style={styles.emptyText}>
-              Location appears during an active trip when your driver is sharing updates. Pull down or tap refresh for the latest report.
+              Waiting for the driver’s first location update. The map pin will appear when location sharing is active and the driver’s app has a connection.
             </Text>
             {onRefresh ? (
               <AppButton
@@ -151,7 +174,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   body: { padding: Spacing.md, gap: Spacing.sm },
   map: {
     width: '100%',
-    height: 220,
+    height: 280,
     borderRadius: 14,
     backgroundColor: colors.canvas,
   },
@@ -168,7 +191,6 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     fontSize: Typography.sizeSm,
     color: colors.textPrimary,
   },
-  actions: { gap: Spacing.sm, marginTop: Spacing.sm },
   emptyText: {
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,

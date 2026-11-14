@@ -90,12 +90,19 @@ export async function startTripTracking(trip: ActiveTrip) {
   const permission = await Location.requestForegroundPermissionsAsync();
   if (epoch !== trackingGeneration) return;
   if (permission.status !== 'granted') { useTrackingState.setState({ rideId: trip.rideId, active: false, message: 'Location permission is required for trip tracking.' }); return; }
+  if (epoch !== trackingGeneration || !await sessionMatches(trip)) return;
+  await setSessionValue(KEY, JSON.stringify(trip));
+  if (epoch !== trackingGeneration) return;
+  useTrackingState.setState({ rideId: trip.rideId, active: true, lastSyncedAt: null, message: 'Starting active trip location sharing.' });
+  await refreshTripTracking();
+  if (epoch !== trackingGeneration) return;
+
   let backgroundAllowed = false;
   try { backgroundAllowed = (await Location.requestBackgroundPermissionsAsync()).status === 'granted'; } catch { /* Foreground sharing remains available. */ }
   if (epoch !== trackingGeneration || !await sessionMatches(trip) || epoch !== trackingGeneration) return;
-  await setSessionValue(KEY, JSON.stringify(trip));
-  if (epoch !== trackingGeneration) return;
-  useTrackingState.setState({ rideId: trip.rideId, active: true, lastSyncedAt: null, message: backgroundAllowed ? 'Active trip tracking' : 'Tracking while app is open. Allow background location in Settings to track while navigating.' });
+  if (!backgroundAllowed) {
+    useTrackingState.setState({ message: 'Location sharing is active while the app is open. Allow background location in Settings to share while navigating.' });
+  }
   if (backgroundAllowed) {
     try {
       await nativeUpdate(async () => {
@@ -108,7 +115,6 @@ export async function startTripTracking(trip: ActiveTrip) {
       });
     } catch { if (epoch === trackingGeneration) useTrackingState.setState({ message: 'Tracking while app is open. Background tracking could not start.' }); }
   }
-  if (epoch === trackingGeneration) await refreshTripTracking();
 }
 export async function refreshTripTracking() {
   if (foregroundBusy || Platform.OS === 'web') return;

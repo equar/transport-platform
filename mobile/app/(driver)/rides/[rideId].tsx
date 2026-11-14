@@ -319,6 +319,7 @@ export default function DriverRideDetailPage() {
 <TripTrackingCard
         title="Live Route"
         snapshot={locationSnapshot ?? null}
+  rideStatus={ride.status}
         error={locationError}
         pickupAddress={ride.pickupAddress}
         dropoffAddress={ride.dropoffAddress}

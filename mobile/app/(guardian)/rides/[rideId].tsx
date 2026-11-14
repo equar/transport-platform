@@ -78,6 +78,7 @@ export default function GuardianRideDetailPage() {
 				title="Driver Location"
 				snapshot={isTrackableTrip(ride.status) ? locationSnapshot ?? null : null}
         autoShowMap
+        rideStatus={ride.status}
         error={locationError && isTrackableTrip(ride.status)}
 				pickupAddress={ride.pickupAddress}
 				dropoffAddress={ride.dropoffAddress}
