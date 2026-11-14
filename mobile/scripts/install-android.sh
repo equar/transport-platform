@@ -68,6 +68,11 @@ if [[ -z "$PROFILE" ]]; then
   fi
 fi
 
+if [[ "$ENV_NAME" == "aws" && "$BUILD_TYPE" == "debug" ]]; then
+  echo "AWS installs require a standalone bundle; switching to release."
+  BUILD_TYPE="release"
+fi
+
 if [[ "$BUILD_TYPE" == "release" ]]; then
   PROFILE="prod"
   apply_runtime_profile "$PROFILE"
@@ -170,9 +175,6 @@ for serial in "${SERIALS[@]}"; do
     APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/release/app-release.apk"
   else
     GRADLE_DEBUG_ARGS=(assembleDebug --no-daemon -PreactNativeArchitectures="$DEVICE_ABI")
-    if [[ "$ENV_NAME" == "aws" ]]; then
-      GRADLE_DEBUG_ARGS+=(-Ptransport.embedDebugBundle=true)
-    fi
     NODE_ENV=development ./gradlew "${GRADLE_DEBUG_ARGS[@]}"
     APK_PATH="$PROJECT_ROOT/android/app/build/outputs/apk/debug/app-debug.apk"
   fi
