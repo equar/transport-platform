@@ -13,14 +13,20 @@ function formatCurrency(value: number | null, currency: string) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value ?? 0);
 }
 
+function statusLabel(status: string) {
+  if (status === 'PENDING_CALCULATION') return 'Awaiting calculation';
+  if (status === 'PENDING_REVIEW') return 'Awaiting tenant admin approval';
+  return 'Approved';
+}
+
 export default function DriverPaymentsPage() {
   const styles = useThemedStyles(React.useCallback(colors => StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing.xxxl },
     heading: { fontFamily: Typography.fontHeading, color: colors.textPrimary, fontSize: 26 },
     subtitle: { fontFamily: Typography.fontBody, color: colors.textSecondary, lineHeight: 22 },
-    summary: { flexDirection: 'row', gap: Spacing.md },
-    summaryCard: { flex: 1, gap: Spacing.xs },
+    summary: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
+    summaryCard: { flexGrow: 1, flexBasis: '45%', gap: Spacing.xs },
     label: { fontFamily: Typography.fontBody, color: colors.textSecondary, fontSize: Typography.sizeSm },
     amount: { fontFamily: Typography.fontHeading, color: colors.textPrimary, fontSize: 24 },
     item: { gap: Spacing.xs },
@@ -35,7 +41,7 @@ export default function DriverPaymentsPage() {
   if (payments.isLoading) return <LoadingState />;
   if (payments.isError || !payments.data) return <RequestError onRetry={() => void payments.refetch()} />;
 
-  const { currency, earnedTotal, pendingTotal, entries } = payments.data;
+  const { currency, earnedTotal, pendingTotal, pendingReviewTotal, entries } = payments.data;
   return <ScrollView
     style={styles.screen}
     contentContainerStyle={styles.content}
@@ -43,12 +49,16 @@ export default function DriverPaymentsPage() {
   >
     <View>
       <Text style={styles.heading}>Payments</Text>
-      <Text style={styles.subtitle}>Your completed-trip earnings and payment adjustments.</Text>
+      <Text style={styles.subtitle}>Your trip earnings and the review status of each record.</Text>
     </View>
     <View style={styles.summary}>
       <AppCard style={styles.summaryCard}>
-        <Text style={styles.label}>Running earnings</Text>
+        <Text style={styles.label}>Approved earnings</Text>
         <Text style={styles.amount}>{formatCurrency(earnedTotal, currency)}</Text>
+      </AppCard>
+      <AppCard style={styles.summaryCard}>
+        <Text style={styles.label}>Awaiting approval</Text>
+        <Text style={styles.amount}>{formatCurrency(pendingReviewTotal, currency)}</Text>
       </AppCard>
       <AppCard style={styles.summaryCard}>
         <Text style={styles.label}>Awaiting calculation</Text>
@@ -56,17 +66,24 @@ export default function DriverPaymentsPage() {
       </AppCard>
     </View>
     <AppCard>
-      {entries.length === 0 ? <EmptyState title="No payment records yet" description="Completed-trip earnings will appear here." /> : entries.map((entry, index) => <React.Fragment key={entry.id}>
-        {index > 0 ? <View style={styles.divider} /> : null}
-        <View style={styles.item}>
-          <View style={styles.itemRow}>
-            <Text style={styles.itemTitle}>{entry.rideId ? `Trip #${entry.rideId}` : 'Payment adjustment'}</Text>
-            <Text style={styles.itemAmount}>{entry.status === 'PENDING_CALCULATION' ? 'Pending' : formatCurrency(entry.amount, currency)}</Text>
+      {entries.length === 0 ? <EmptyState title="No payment records yet" description="Completed-trip earnings will appear here." /> : entries.map((entry, index) => (
+        <React.Fragment key={entry.id}>
+          {index > 0 ? <View style={styles.divider} /> : null}
+          <View style={styles.item}>
+            <View style={styles.itemRow}>
+              <Text style={styles.itemTitle}>
+                {entry.rideNumber ?? (entry.rideId ? `Trip #${entry.rideId}` : 'Payment adjustment')}
+              </Text>
+              <Text style={styles.itemAmount}>
+                {entry.amount == null ? 'Pending' : formatCurrency(entry.amount, currency)}
+              </Text>
+            </View>
+            <Text style={styles.itemDetail}>{statusLabel(entry.status)}</Text>
+            {entry.reason ? <Text style={styles.itemDetail}>{entry.reason}</Text> : null}
+            <Text style={styles.itemDetail}>{new Date(entry.createdAt).toLocaleDateString()}</Text>
           </View>
-          <Text style={styles.itemDetail}>{entry.status === 'PENDING_CALCULATION' ? 'Awaiting payment calculation' : entry.reason || entry.entryType.replace(/_/g, ' ')}</Text>
-          <Text style={styles.itemDetail}>{new Date(entry.createdAt).toLocaleDateString()}</Text>
-        </View>
-      </React.Fragment>)}
+        </React.Fragment>
+      ))}
     </AppCard>
   </ScrollView>;
 }

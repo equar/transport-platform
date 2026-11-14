@@ -46,12 +46,14 @@ export interface DriverPortalDashboardRecord {
 export interface DriverEarningsEntryRecord {
   id: number;
   driverId: number;
+  driverName: string | null;
   rideId: number | null;
+  rideNumber: string | null;
   entryType: string;
-  status: 'EARNED' | 'PENDING_CALCULATION';
+  status: 'APPROVED' | 'PENDING_REVIEW' | 'PENDING_CALCULATION';
   amount: number | null;
   currency: string;
-  invoiceTotal: number | null;
+  billableAmount: number | null;
   earningsRate: number | null;
   reason: string | null;
   createdAt: string;
@@ -60,6 +62,7 @@ export interface DriverEarningsEntryRecord {
 export interface DriverEarningsSummaryRecord {
   earnedTotal: number;
   pendingTotal: number;
+  pendingReviewTotal: number;
   currency: string;
   entries: DriverEarningsEntryRecord[];
 }
