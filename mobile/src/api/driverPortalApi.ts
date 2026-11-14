@@ -43,6 +43,27 @@ export interface DriverPortalDashboardRecord {
   unreadNotifications: number;
 }
 
+export interface DriverEarningsEntryRecord {
+  id: number;
+  driverId: number;
+  rideId: number | null;
+  entryType: string;
+  status: 'EARNED' | 'PENDING_CALCULATION';
+  amount: number | null;
+  currency: string;
+  invoiceTotal: number | null;
+  earningsRate: number | null;
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface DriverEarningsSummaryRecord {
+  earnedTotal: number;
+  pendingTotal: number;
+  currency: string;
+  entries: DriverEarningsEntryRecord[];
+}
+
 export interface DriverPortalProfileRecord {
   id: number;
   driverCode: string;
@@ -218,6 +239,10 @@ export const driverPortalApi = {
   async getDashboard() {
     const r = await apiClient.get(`${base}/dashboard`);
     return unwrapResponse<DriverPortalDashboardRecord>(r.data);
+  },
+  async getPayments() {
+    const r = await apiClient.get(`${base}/payments`);
+    return unwrapResponse<DriverEarningsSummaryRecord>(r.data);
   },
   async getProfile() {
     const r = await apiClient.get(`${base}/profile`);

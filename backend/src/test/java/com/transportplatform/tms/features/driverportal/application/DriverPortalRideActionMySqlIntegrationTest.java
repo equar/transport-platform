@@ -118,6 +118,7 @@ class DriverPortalRideActionMySqlIntegrationTest {
     @MockBean private NotificationEventService notificationEventService;
     @MockBean private DriverDocumentStorageService driverDocumentStorageService;
     @MockBean private ComplianceIssueSyncService complianceIssueSyncService;
+    @MockBean private com.transportplatform.tms.features.driverearnings.application.DriverEarningsService driverEarningsService;
 
     @DynamicPropertySource
     static void configureDataSource(DynamicPropertyRegistry registry) {
