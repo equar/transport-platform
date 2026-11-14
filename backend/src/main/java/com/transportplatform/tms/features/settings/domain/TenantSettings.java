@@ -81,6 +81,9 @@ public class TenantSettings extends AuditableEntity {
     @Column(name = "default_tax_rate", nullable = false, precision = 5, scale = 2)
     private BigDecimal defaultTaxRate;
 
+    @Column(name = "driver_earnings_rate", precision = 5, scale = 2)
+    private BigDecimal driverEarningsRate;
+
     @Column(name = "allow_manual_invoice_overrides", nullable = false)
     private boolean allowManualInvoiceOverrides;
 
@@ -291,6 +294,10 @@ public class TenantSettings extends AuditableEntity {
     public void setDefaultTaxRate(BigDecimal defaultTaxRate) {
         this.defaultTaxRate = defaultTaxRate;
     }
+
+    public BigDecimal getDriverEarningsRate() { return driverEarningsRate; }
+
+    public void setDriverEarningsRate(BigDecimal driverEarningsRate) { this.driverEarningsRate = driverEarningsRate; }
 
     public boolean isAllowManualInvoiceOverrides() {
         return allowManualInvoiceOverrides;

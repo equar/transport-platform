@@ -269,6 +269,14 @@ const companySections: AppShellNavSection[] = [
         audiences: ["company-admin", "billing-admin"],
       },
       {
+        label: "Driver earnings",
+        description: "Driver payment ledger, earning rate, and adjustments.",
+        to: "/company/driver-earnings",
+        icon: <PaymentsRoundedIcon fontSize="small" />,
+        requiredModule: "billing",
+        audiences: ["company-admin"],
+      },
+      {
         label: "Receivables",
         description: "Aging exposure, overdue balances, and follow-up posture.",
         to: "/company/receivables",

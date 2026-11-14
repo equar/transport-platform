@@ -8,6 +8,8 @@ public interface InvoiceLineItemRepository extends JpaRepository<InvoiceLineItem
 
     Optional<InvoiceLineItem> findByIdAndTenantId(Long id, String tenantId);
 
+    Optional<InvoiceLineItem> findFirstByTenantIdAndSourceReferenceIdOrderByIdDesc(String tenantId, Long sourceReferenceId);
+
     List<InvoiceLineItem> findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(Long invoiceId, String tenantId);
 
     long countByInvoiceIdAndTenantId(Long invoiceId, String tenantId);

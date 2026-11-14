@@ -102,6 +102,7 @@ public class DriverPortalService {
     private final Clock clock;
     private final TenantTimeService tenantTime;
     private final DispatchAssignmentValidationService dispatchValidation;
+    private final com.transportplatform.tms.features.driverearnings.application.DriverEarningsService driverEarningsService;
 
     public DriverPortalService(DriverPortalAccessService driverPortalAccessService,
             CurrentAuthenticatedUserService currentAuthenticatedUserService,
@@ -120,7 +121,8 @@ public class DriverPortalService {
             ComplianceIssueSyncService complianceIssueSyncService,
             Clock clock,
             DispatchAssignmentValidationService dispatchValidation,
-            TenantTimeService tenantTime) {
+            TenantTimeService tenantTime,
+            com.transportplatform.tms.features.driverearnings.application.DriverEarningsService driverEarningsService) {
         this.driverPortalAccessService = driverPortalAccessService;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.driverRepository = driverRepository;
@@ -139,6 +141,7 @@ public class DriverPortalService {
         this.clock = clock;
         this.tenantTime = tenantTime;
         this.dispatchValidation = dispatchValidation;
+        this.driverEarningsService = driverEarningsService;
     }
 
     @Transactional
@@ -403,12 +406,9 @@ public class DriverPortalService {
     public DriverPortalRideDetailResponse completeRide(Long rideId) {
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         RideStatusWorkflow.ensureCanMarkCompleted(ride.getStatus());
-        return driverPortalMapper.toRideDetailResponse(updateRideStatus(
-                ride,
-                RideStatus.COMPLETED,
-                RideEventType.COMPLETED,
-                "COMPLETED",
-                "Driver completed the ride."));
+        Ride completed = updateRideStatus(ride, RideStatus.COMPLETED, RideEventType.COMPLETED, "COMPLETED", "Driver completed the ride.");
+        driverEarningsService.createForCompletedRide(completed);
+        return driverPortalMapper.toRideDetailResponse(completed);
     }
 
     @Transactional

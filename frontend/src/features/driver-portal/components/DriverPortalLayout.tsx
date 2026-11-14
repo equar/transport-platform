@@ -291,7 +291,7 @@ export function DriverPortalLayout() {
         }}
       >
         <BottomNavigation showLabels value={currentItem.to}>
-          {driverPortalNavigationItems.map((item) => (
+          {driverPortalNavigationItems.filter((item) => item.to !== "/portal/driver/notifications").map((item) => (
             <BottomNavigationAction
               key={item.to}
               component={RouterLink}

@@ -45,6 +45,7 @@ public class RideService {
     private final AuditLogService auditLogService;
     private final NotificationEventService notificationEventService;
     private final Clock clock;
+    private final com.transportplatform.tms.features.driverearnings.application.DriverEarningsService driverEarningsService;
 
     public RideService(RideRepository rideRepository,
             RideAccessService rideAccessService,
@@ -55,8 +56,9 @@ public class RideService {
             AuditLogService auditLogService,
             NotificationEventService notificationEventService,
             Clock clock, com.transportplatform.tms.features.tenant.domain.TenantRepository dispatchTenants,
-            com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService dispatchValidation) {
-        this.dispatchTenants=dispatchTenants;this.dispatchValidation=dispatchValidation;
+            com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService dispatchValidation,
+            com.transportplatform.tms.features.driverearnings.application.DriverEarningsService driverEarningsService) {
+        this.dispatchTenants=dispatchTenants;this.dispatchValidation=dispatchValidation;this.driverEarningsService=driverEarningsService;
         this.rideRepository = rideRepository;
         this.rideAccessService = rideAccessService;
         this.rideReferenceValidationService = rideReferenceValidationService;
@@ -266,8 +268,10 @@ public class RideService {
     public RideResponse completeCompanyRide(Long rideId) {
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkCompleted(ride.getStatus());
-        return updateStatus(ride, RideStatus.COMPLETED, "COMPLETED",
+        RideResponse response = updateStatus(ride, RideStatus.COMPLETED, "COMPLETED",
                 "Ride " + ride.getRideNumber() + " was completed.");
+        driverEarningsService.createForCompletedRide(ride);
+        return response;
     }
 
     @Transactional

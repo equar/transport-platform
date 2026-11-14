@@ -25,6 +25,9 @@ export type DriverPortalRouteStatus =
   | "COMPLETED"
   | "CANCELLED";
 
+export interface DriverEarningsEntryRecord { id: number; driverId: number; rideId: number | null; entryType: string; status: "EARNED" | "PENDING_CALCULATION"; amount: number | null; currency: string; invoiceTotal: number | null; earningsRate: number | null; reason: string | null; createdAt: string; }
+export interface DriverEarningsSummaryRecord { earnedTotal: number; pendingTotal: number; currency: string; entries: DriverEarningsEntryRecord[]; }
+
 export interface DriverPortalDashboardRecord {
   ridesToday: number;
   assignedRides: number;
@@ -180,6 +183,10 @@ export const driverPortalApi = {
   async getVehicles() {
     const response = await apiClient.get('/portal/driver/vehicles');
     return unwrapResponse<DriverPortalVehicleRecord[]>(response.data);
+  },
+  async getPayments() {
+    const response = await apiClient.get(`${basePath}/payments`);
+    return unwrapResponse<DriverEarningsSummaryRecord>(response.data);
   },
   async getDashboard() {
     const response = await apiClient.get(`${basePath}/dashboard`);
