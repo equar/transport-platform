@@ -90,5 +90,18 @@ public class RiderGuardianPortalAccessService {
             Guardian guardian,
             List<RiderGuardian> links,
             List<Rider> linkedRiders) {
+        public List<Long> billingRiderIds() {
+            if (scopeType == PortalSubjectType.RIDER) {
+                return rider == null ? List.of() : List.of(rider.getId());
+            }
+            if (scopeType != PortalSubjectType.GUARDIAN) {
+                return List.of();
+            }
+            return links.stream()
+                    .filter(RiderGuardian::isBillingContact)
+                    .map(link -> link.getRider().getId())
+                    .distinct()
+                    .toList();
+        }
     }
 }

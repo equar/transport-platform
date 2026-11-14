@@ -2,7 +2,9 @@ package com.transportplatform.tms.features.route.application;
 
 import com.transportplatform.tms.common.exception.ApiException;
 import com.transportplatform.tms.common.exception.ErrorCode;
+import com.transportplatform.tms.features.ride.domain.RideStatus;
 import com.transportplatform.tms.features.route.domain.RouteStatus;
+import java.util.Collection;
 import org.springframework.http.HttpStatus;
 
 public final class RouteStatusWorkflow {
@@ -46,9 +48,21 @@ public final class RouteStatusWorkflow {
         }
     }
 
+    public static void ensureRidesFinished(Collection<RideStatus> rideStatuses) {
+        if (rideStatuses.isEmpty() || rideStatuses.stream().anyMatch(status -> status != RideStatus.COMPLETED
+                && status != RideStatus.CANCELLED
+                && status != RideStatus.MISSED
+                && status != RideStatus.FAILED
+                && status != RideStatus.RIDER_NO_SHOW)) {
+            throw invalidTransition("All route rides must be completed or otherwise finished before the route can be completed.");
+        }
+    }
+
     public static void ensureCanCancel(RouteStatus currentStatus) {
-        if (currentStatus == RouteStatus.COMPLETED || currentStatus == RouteStatus.CANCELLED) {
-            throw invalidTransition("Completed or cancelled routes cannot be cancelled again.");
+        if (currentStatus == RouteStatus.IN_PROGRESS
+                || currentStatus == RouteStatus.COMPLETED
+                || currentStatus == RouteStatus.CANCELLED) {
+            throw invalidTransition("In-progress, completed, or cancelled routes cannot be cancelled.");
         }
     }
 
