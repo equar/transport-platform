@@ -34,8 +34,7 @@ export default function GuardianRideDetailPage() {
 	} = useQuery({
 		queryKey: ['guardian-ride-location', rideId],
 		queryFn: () => riderPortalApi.getRideLocationSnapshot(Number(rideId)),
-		enabled: !!ride && !isError && isTrackableTrip(ride.status),
-		refetchInterval: ride && isTrackableTrip(ride.status) ? 30000 : false,
+		enabled: false,
 	});
 
 	if (isLoading) return <LoadingState />;

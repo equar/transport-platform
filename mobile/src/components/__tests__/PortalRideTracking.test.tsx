@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, render, screen, waitFor } from '@testing-library/react-native';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import RiderRideDetailPage from '../../../app/(rider)/rides/[rideId]';
 import GuardianRideDetailPage from '../../../app/(guardian)/rides/[rideId]';
@@ -29,7 +29,11 @@ it.each([
   await screen.findByText('TRIP-10');
   if (active) {
     expect(screen.getByRole('button', { name: 'Refresh Tracking' })).toBeTruthy();
-    await waitFor(() => expect(riderPortalApi.getRideLocationSnapshot).toHaveBeenCalledWith(10));
+    if (_role === 'guardian') {
+      expect(riderPortalApi.getRideLocationSnapshot).not.toHaveBeenCalled();
+    } else {
+      await waitFor(() => expect(riderPortalApi.getRideLocationSnapshot).toHaveBeenCalledWith(10));
+    }
   } else {
     expect(screen.queryByRole('button', { name: 'Refresh Tracking' })).toBeNull();
     expect(screen.queryByText(/Location appears during an active trip/)).toBeNull();
@@ -37,7 +41,7 @@ it.each([
   }
 });
 
-it('automatically shows the assigned driver location map to a guardian during an active trip', async () => {
+it('fetches and shows the assigned driver location map when a guardian refreshes tracking', async () => {
   jest.mocked(riderPortalApi.getRide).mockResolvedValue({ id: 10, rideNumber: 'TRIP-10', status: 'PICKED_UP', scheduledPickupAt: '2026-11-13T12:00:00', pickupAddress: 'Pickup', dropoffAddress: 'Destination' } as never);
   jest.mocked(riderPortalApi.getRideLocationSnapshot).mockResolvedValue({
     latitude: 38.8977,
@@ -48,7 +52,11 @@ it('automatically shows the assigned driver location map to a guardian during an
   clients.push(client);
   render(<QueryClientProvider client={client}><GuardianRideDetailPage /></QueryClientProvider>);
 
+  await screen.findByText('TRIP-10');
+  expect(riderPortalApi.getRideLocationSnapshot).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByRole('button', { name: 'Refresh Tracking' }));
   expect(await screen.findByLabelText('Map showing the latest shared ride location')).toBeTruthy();
+  expect(riderPortalApi.getRideLocationSnapshot).toHaveBeenCalledTimes(1);
   expect(screen.getByLabelText('Rider and assigned driver')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Show map' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Open in Maps' })).toBeNull();
