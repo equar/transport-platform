@@ -59,6 +59,9 @@ class RideServiceTest {
         @Mock
         private NotificationEventService notificationEventService;
 
+        @Mock
+        private com.transportplatform.tms.features.driverearnings.application.DriverEarningsService driverEarningsService;
+
         @Test
         void companyRideCreationUsesTenantScopeAndRequestedDefault() {
                 RideService rideService = new RideService(
@@ -72,7 +75,8 @@ class RideServiceTest {
                                 notificationEventService,
                                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC),
                                 org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class),
-                                org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class));
+                                org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class),
+                                driverEarningsService);
 
                 Rider rider = buildRider();
 
@@ -105,7 +109,8 @@ class RideServiceTest {
                                 notificationEventService,
                                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC),
                                 org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class),
-                                org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class));
+                                org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class),
+                                driverEarningsService);
 
                 Rider rider = buildRider();
 
@@ -134,7 +139,8 @@ class RideServiceTest {
                                 notificationEventService,
                                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC),
                                 org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class),
-                                org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class));
+                                org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class),
+                                driverEarningsService);
 
                 Ride ride = new Ride();
                 ride.setTenantId("tenant-123");
