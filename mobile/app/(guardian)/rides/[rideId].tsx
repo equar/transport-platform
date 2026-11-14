@@ -34,8 +34,7 @@ export default function GuardianRideDetailPage() {
 	} = useQuery({
 		queryKey: ['guardian-ride-location', rideId],
 		queryFn: () => riderPortalApi.getRideLocationSnapshot(Number(rideId)),
-		enabled: !!ride && !isError && isTrackableTrip(ride.status),
-		refetchInterval: ride && isTrackableTrip(ride.status) ? 30000 : false,
+		enabled: false,
 	});
 
 	if (isLoading) return <LoadingState />;
@@ -78,6 +77,7 @@ export default function GuardianRideDetailPage() {
 				title="Driver Location"
 				snapshot={isTrackableTrip(ride.status) ? locationSnapshot ?? null : null}
         autoShowMap
+        rideStatus={ride.status}
         error={locationError && isTrackableTrip(ride.status)}
 				pickupAddress={ride.pickupAddress}
 				dropoffAddress={ride.dropoffAddress}

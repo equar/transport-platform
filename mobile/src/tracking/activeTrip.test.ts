@@ -64,6 +64,13 @@ it('does not start location sharing without foreground permission', async () => 
   expect(mockStorage.has('active-trip-tracking')).toBe(false);
 });
 
+it('uploads the first foreground location before requesting background permission', async () => {
+  await startTripTracking(trip);
+  expect(driverPortalApi.captureRideLocationSnapshot).toHaveBeenCalledTimes(1);
+  expect(jest.mocked(Location.getCurrentPositionAsync).mock.invocationCallOrder[0])
+    .toBeLessThan(jest.mocked(Location.requestBackgroundPermissionsAsync).mock.invocationCallOrder[0]);
+});
+
 it('stops a native background callback when assignment access has been revoked', async () => {
   await startTripTracking(trip);
   jest.mocked(driverPortalApi.captureRideLocationSnapshot).mockClear();

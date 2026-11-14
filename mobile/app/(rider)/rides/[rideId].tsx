@@ -99,6 +99,7 @@ export default function RiderRideDetailPage() {
 <TripTrackingCard
         title="Trip Tracking"
         snapshot={isTrackableTrip(ride.status) ? locationSnapshot ?? null : null}
+        rideStatus={ride.status}
         error={locationError && isTrackableTrip(ride.status)}
         pickupAddress={ride.pickupAddress}
         dropoffAddress={ride.dropoffAddress}

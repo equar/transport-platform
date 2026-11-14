@@ -47,6 +47,7 @@ export type DriverDocumentUpsertRequest = { "documentType": "DRIVER_LICENSE" | "
 export type DriverEarningsAdjustmentRequest = { "driverId": number; "amount": number; "reason": string };
 export type DriverEarningsEntryResponse = { "id"?: number; "driverId"?: number; "driverName"?: string; "rideId"?: number; "rideNumber"?: string; "entryType"?: string; "status"?: string; "amount"?: number; "currency"?: string; "billableAmount"?: number; "earningsRate"?: number; "reason"?: string; "createdAt"?: string };
 export type DriverEarningsRateRequest = { "rate": number };
+export type DriverEarningsReviewRequest = { "amount": number; "reason": string };
 export type DriverEarningsSummaryResponse = { "earnedTotal"?: number; "pendingTotal"?: number; "pendingReviewTotal"?: number; "currency"?: string; "entries"?: Array<DriverEarningsEntryResponse> };
 export type DriverLocationSnapshotRequest = { "latitude": number; "longitude": number; "accuracyMeters"?: number; "speedMps"?: number; "headingDegrees"?: number; "capturedAt"?: string };
 export type DriverLocationSnapshotResponse = { "id"?: number; "rideId"?: number; "driverId"?: number; "vehicleId"?: number; "latitude"?: number; "longitude"?: number; "accuracyMeters"?: number; "speedMps"?: number; "headingDegrees"?: number; "capturedAt"?: string; "createdAt"?: string; "createdBy"?: string };
