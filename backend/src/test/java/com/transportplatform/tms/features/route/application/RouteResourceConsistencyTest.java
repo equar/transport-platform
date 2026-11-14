@@ -17,6 +17,7 @@ import com.transportplatform.tms.features.route.domain.*;
 import com.transportplatform.tms.features.tenant.domain.*;
 import com.transportplatform.tms.features.vehicle.application.VehicleComplianceSummaryService;
 import com.transportplatform.tms.features.vehicle.domain.*;
+import com.transportplatform.tms.features.notification.application.NotificationEventService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,19 +33,24 @@ class RouteResourceConsistencyTest {
     private final DriverRepository drivers = mock(DriverRepository.class);
     private final VehicleRepository vehicles = mock(VehicleRepository.class);
     private final RouteAccessService access = mock(RouteAccessService.class);
+    private final RideEventService rideEvents = mock(RideEventService.class);
+    private final NotificationEventService notifications = mock(NotificationEventService.class);
     private final DriverComplianceSummaryService compliance = mock(DriverComplianceSummaryService.class, RETURNS_DEEP_STUBS);
     private final RouteService service = new RouteService(tenants, validation, routes, stops, rides, drivers,
             vehicles, access, mock(RideAccessService.class), mock(RouteMapper.class), mock(RouteCodeGenerator.class),
-            compliance, mock(VehicleComplianceSummaryService.class), mock(RideEventService.class), mock(AuditLogService.class), mock(com.transportplatform.tms.features.notification.application.NotificationEventService.class));
+            compliance, mock(VehicleComplianceSummaryService.class), rideEvents, mock(AuditLogService.class), notifications);
     private Route route;
     private Ride ride;
+    private RouteStop stop;
 
     @BeforeEach void setup() {
         route = new Route(); ReflectionTestUtils.setField(route, "id", 1L);
         route.setTenantId("tenant"); route.setStatus(RouteStatus.PLANNED); route.setAssignedDriverId(10L);
         ride = new Ride(); ReflectionTestUtils.setField(ride, "id", 2L);
         ride.setTenantId("tenant"); ride.setRouteId(1L); ride.setDriverId(10L); ride.setStatus(RideStatus.ASSIGNED);
-        RouteStop stop = new RouteStop(); stop.setRide(ride); stop.setRoute(route);
+        ride.setRideNumber("ride-1");
+        stop = new RouteStop(); ReflectionTestUtils.setField(stop, "id", 3L);
+        stop.setTenantId("tenant"); stop.setStopSequence(1); stop.setRide(ride); stop.setRoute(route);
         when(access.requireCompanyTenantId()).thenReturn("tenant");
         when(tenants.lockForDispatch("tenant")).thenReturn(Optional.of(new Tenant()));
         when(access.findRouteForCompanyScope(1L)).thenReturn(route);
@@ -70,5 +76,31 @@ class RouteResourceConsistencyTest {
         ride.setStatus(RideStatus.PICKED_UP);
         assertThrows(ApiException.class, () -> service.unassignCompanyRouteDriver(1L));
         assertEquals(10L, ride.getDriverId()); verify(rides, never()).save(any());
+    }
+    @Test void cancellingUnstartedRouteReleasesLinkedRideAndResources() {
+        route.setRouteCode("route-1");
+        route.setAssignedVehicleId(30L);
+        ride.setVehicleId(30L);
+
+        service.cancelCompanyRoute(1L);
+
+        assertEquals(RouteStatus.CANCELLED, route.getStatus());
+        assertNull(route.getAssignedDriverId());
+        assertNull(route.getAssignedVehicleId());
+        assertNull(ride.getRouteId());
+        assertNull(ride.getDriverId());
+        assertNull(ride.getVehicleId());
+        assertEquals(RideStatus.SCHEDULED, ride.getStatus());
+        verify(stops).deleteAll(List.of(stop));
+        verify(rides).save(ride);
+        verify(rideEvents).recordRouteUnassigned(ride, "route-1", null);
+        verify(notifications).publishRideStatusChanged(ride, RideStatus.ASSIGNED, RideStatus.SCHEDULED);
+    }
+    @Test void cannotCompleteRouteWhileLinkedRideIsStillAssigned() {
+        route.setStatus(RouteStatus.IN_PROGRESS);
+
+        assertThrows(ApiException.class, () -> service.completeCompanyRoute(1L));
+
+        verify(routes, never()).save(any());
     }
 }

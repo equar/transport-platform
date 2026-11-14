@@ -52,7 +52,7 @@ public class PortalBillingDetailsController {
     private void ensureAccess(Invoice invoice,RiderGuardianPortalAccessService.ResolvedRiderGuardianScope scope) {
         boolean allowed=Objects.equals(invoice.getTenantId(),scope.user().tenantId()) &&
             (scope.scopeType()==PortalSubjectType.RIDER ? Objects.equals(invoice.getRiderId(),scope.rider().getId()) :
-                Objects.equals(invoice.getGuardianId(),scope.guardian().getId()) || scope.linkedRiders().stream().anyMatch(r->Objects.equals(r.getId(),invoice.getRiderId())));
+                Objects.equals(invoice.getGuardianId(),scope.guardian().getId()) || scope.billingRiderIds().contains(invoice.getRiderId()));
         if(!allowed) throw missing();
     }
     private ApiException missing() {return new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Billing record not found for your account.");}

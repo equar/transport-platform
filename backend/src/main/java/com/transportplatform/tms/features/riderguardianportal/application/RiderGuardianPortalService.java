@@ -160,7 +160,7 @@ public class RiderGuardianPortalService {
                 .filter(java.util.Objects::nonNull)
                 .distinct()
                 .count();
-        var totals = portalTotals.calculate(scope.user().tenantId(), scope.rider() == null ? null : scope.rider().getId(), scope.guardian() == null ? null : scope.guardian().getId(), scope.linkedRiders().stream().map(Rider::getId).toList(), null);
+        var totals = portalTotals.calculate(scope.user().tenantId(), scope.rider() == null ? null : scope.rider().getId(), scope.guardian() == null ? null : scope.guardian().getId(), scope.billingRiderIds(), null);
         long openInvoiceCount = totals.count();
         BigDecimal outstandingBalance = totals.singleCurrencyBalance();
         long unreadNotifications = notificationRepository.countByTenantIdAndRecipientUserIdAndReadStatusAndStatus(
@@ -402,10 +402,10 @@ public class RiderGuardianPortalService {
             if (scope.scopeType() == PortalSubjectType.RIDER) {
                 predicate = builder.and(predicate, builder.equal(invoiceJoin.get("riderId"), scope.rider().getId()));
             } else {
-                List<Long> riderIds = scope.linkedRiders().stream().map(Rider::getId).toList();
+                List<Long> riderIds = scope.billingRiderIds();
                 predicate = builder.and(predicate, builder.or(
                         builder.equal(invoiceJoin.get("guardianId"), scope.guardian().getId()),
-                        invoiceJoin.get("riderId").in(riderIds)));
+                        riderIds.isEmpty() ? builder.disjunction() : invoiceJoin.get("riderId").in(riderIds)));
             }
             return predicate;
         }, pageable);
@@ -432,10 +432,10 @@ public class RiderGuardianPortalService {
             if (scope.scopeType() == PortalSubjectType.RIDER) {
                 predicate = builder.and(predicate, builder.equal(root.get("riderId"), scope.rider().getId()));
             } else {
-                List<Long> riderIds = scope.linkedRiders().stream().map(Rider::getId).toList();
+                List<Long> riderIds = scope.billingRiderIds();
                 predicate = builder.and(predicate, builder.or(
                         builder.equal(root.get("guardianId"), scope.guardian().getId()),
-                        root.get("riderId").in(riderIds)));
+                        riderIds.isEmpty() ? builder.disjunction() : root.get("riderId").in(riderIds)));
             }
             return predicate;
         }, pageable);

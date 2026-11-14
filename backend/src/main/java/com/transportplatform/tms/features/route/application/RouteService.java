@@ -40,10 +40,14 @@ import com.transportplatform.tms.features.vehicle.domain.VehicleComplianceStatus
 import com.transportplatform.tms.features.vehicle.domain.VehicleRepository;
 import com.transportplatform.tms.features.vehicle.domain.VehicleStatus;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -276,6 +280,11 @@ public class RouteService {
         dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanComplete(route.getStatus());
+        List<RouteStop> stops = routeStopRepository.findAllByTenantIdAndRoute_IdOrderByStopSequenceAsc(
+                route.getTenantId(), route.getId());
+        RouteStatusWorkflow.ensureRidesFinished(stops.stream()
+                .map(stop -> stop.getRide().getStatus())
+                .toList());
         return updateRouteStatus(route, RouteStatus.COMPLETED, "COMPLETED",
                 "Route " + route.getRouteCode() + " was completed.");
     }
@@ -285,8 +294,50 @@ public class RouteService {
         dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
         RouteStatusWorkflow.ensureCanCancel(route.getStatus());
-        return updateRouteStatus(route, RouteStatus.CANCELLED, "CANCELLED",
-                "Route " + route.getRouteCode() + " was cancelled.");
+        Object oldRouteSnapshot = snapshot(route);
+        List<RouteStop> routeStops = routeStopRepository.findAllByTenantIdAndRoute_IdOrderByStopSequenceAsc(
+                route.getTenantId(), route.getId());
+        for (RouteStop routeStop : routeStops) {
+            Ride ride = routeStop.getRide();
+            RideStatusWorkflow.ensureCanAssignResources(ride.getStatus());
+        }
+        for (RouteStop routeStop : routeStops) {
+            Ride ride = routeStop.getRide();
+            RideStatus previousStatus = ride.getStatus();
+            if (ride.getDriverId() != null) {
+                rideEventService.recordDriverUnassigned(ride, ride.getDriverId().toString(),
+                        "Route " + route.getRouteCode() + " was cancelled.");
+            }
+            if (ride.getVehicleId() != null) {
+                rideEventService.recordVehicleUnassigned(ride, ride.getVehicleId().toString(),
+                        "Route " + route.getRouteCode() + " was cancelled.");
+            }
+            rideEventService.recordRouteUnassigned(ride, route.getRouteCode(), routeStop.getNotes());
+            ride.setRouteId(null);
+            ride.setDriverId(null);
+            ride.setVehicleId(null);
+            ride.setStatus(RideStatus.SCHEDULED);
+            rideRepository.save(ride);
+            if (previousStatus != ride.getStatus()) {
+                notifications.publishRideStatusChanged(ride, previousStatus, ride.getStatus());
+            }
+            recordRouteStopAudit(routeStop, "STOP_REMOVED",
+                    "Ride " + ride.getRideNumber() + " was released because route " + route.getRouteCode()
+                            + " was cancelled.",
+                    snapshot(routeStop),
+                    null);
+        }
+        routeStopRepository.deleteAll(routeStops);
+        routeStopRepository.flush();
+        route.setAssignedDriverId(null);
+        route.setAssignedVehicleId(null);
+        route.setStatus(RouteStatus.CANCELLED);
+        Route savedRoute = routeRepository.save(route);
+        recordRouteAudit(savedRoute, "CANCELLED",
+                "Route " + route.getRouteCode() + " was cancelled.",
+                oldRouteSnapshot,
+                snapshot(savedRoute));
+        return getCompanyRoute(savedRoute.getId());
     }
 
     @Transactional
@@ -313,7 +364,6 @@ public class RouteService {
                 route.getTenantId(),
                 route.getId());
         int targetSequence = resolveTargetSequence(existingStops, request.stopSequence());
-        shiftStopsForInsertion(existingStops, targetSequence);
 
         RouteStop routeStop = new RouteStop();
         routeStop.setTenantId(route.getTenantId());
@@ -325,8 +375,10 @@ public class RouteService {
         routeStop.setNotes(trimToNull(request.notes()));
         routeStop.setStatus(RouteStopStatus.PLANNED);
         validateRouteStop(routeStop);
-        routeStopRepository.saveAll(existingStops);
-        RouteStop savedStop = routeStopRepository.save(routeStop);
+        List<RouteStop> orderedStops = new ArrayList<>(existingStops);
+        orderedStops.add(targetSequence - 1, routeStop);
+        RouteStopSequence.persist(routeStopRepository, orderedStops);
+        RouteStop savedStop = routeStop;
 
         ride.setRouteId(route.getId());
         applyRouteResourcesToRide(ride, route);
@@ -357,9 +409,8 @@ public class RouteService {
                     route.getId());
             existingStops.removeIf(stop -> stop.getId().equals(routeStop.getId()));
             int targetSequence = resolveTargetSequence(existingStops, request.stopSequence());
-            shiftStopsForInsertion(existingStops, targetSequence);
-            routeStop.setStopSequence(targetSequence);
-            routeStopRepository.saveAll(existingStops);
+            existingStops.add(targetSequence - 1, routeStop);
+            RouteStopSequence.persist(routeStopRepository, existingStops);
         }
         validateRouteStop(routeStop);
         RouteStop saved = routeStopRepository.save(routeStop);
@@ -383,6 +434,7 @@ public class RouteService {
         Ride ride = routeStop.getRide();
         RideStatusWorkflow.ensureCanAssignResources(ride.getStatus());
         routeStopRepository.delete(routeStop);
+        routeStopRepository.flush();
         normalizeStopSequences(route.getTenantId(), route.getId());
         ride.setRouteId(null);
         RideStatus previousStatus = ride.getStatus();
@@ -416,15 +468,20 @@ public class RouteService {
                     HttpStatus.BAD_REQUEST,
                     "All existing route stops must be included when reordering a route.");
         }
+        Set<Long> requestedStopIds = new HashSet<>();
+        if (request.items().stream().anyMatch(item -> !requestedStopIds.add(item.routeStopId()))) {
+            throw new ApiException(
+                    ErrorCode.VALIDATION_FAILED,
+                    HttpStatus.BAD_REQUEST,
+                    "Route stop order must include each stop exactly once.");
+        }
         for (var item : request.items()) {
-            RouteStop routeStop = stopsById.get(item.routeStopId());
-            if (routeStop == null) {
+            if (!stopsById.containsKey(item.routeStopId())) {
                 throw new ApiException(
                         ErrorCode.VALIDATION_FAILED,
                         HttpStatus.BAD_REQUEST,
                         "Route stop order contains an invalid stop reference.");
             }
-            routeStop.setStopSequence(item.stopSequence());
         }
         if (request.items().stream().map(item -> item.stopSequence()).distinct().count() != request.items().size()) {
             throw new ApiException(
@@ -432,8 +489,11 @@ public class RouteService {
                     HttpStatus.BAD_REQUEST,
                     "Route stop order must not contain duplicate sequence values.");
         }
-        routeStopRepository.saveAll(currentStops);
-        normalizeStopSequences(route.getTenantId(), route.getId());
+        List<RouteStop> orderedStops = request.items().stream()
+                .sorted(Comparator.comparingInt(item -> item.stopSequence()))
+                .map(item -> stopsById.get(item.routeStopId()))
+                .toList();
+        RouteStopSequence.persist(routeStopRepository, orderedStops);
         validateRouteCapacity(route);
         recordRouteAudit(route, "STOPS_REORDERED", "Route stops were reordered for route " + route.getRouteCode() + ".",
                 null, Map.of("stopCount", currentStops.size()));
@@ -575,21 +635,10 @@ public class RouteService {
         return requestedSequence;
     }
 
-    private void shiftStopsForInsertion(List<RouteStop> existingStops, int targetSequence) {
-        for (RouteStop existingStop : existingStops) {
-            if (existingStop.getStopSequence() >= targetSequence) {
-                existingStop.setStopSequence(existingStop.getStopSequence() + 1);
-            }
-        }
-    }
-
     private void normalizeStopSequences(String tenantId, Long routeId) {
         List<RouteStop> routeStops = routeStopRepository.findAllByTenantIdAndRoute_IdOrderByStopSequenceAsc(tenantId,
                 routeId);
-        for (int index = 0; index < routeStops.size(); index++) {
-            routeStops.get(index).setStopSequence(index + 1);
-        }
-        routeStopRepository.saveAll(routeStops);
+        RouteStopSequence.persist(routeStopRepository, routeStops);
     }
 
     private Map<Long, Driver> loadDriversById(String tenantId, Collection<Route> routes) {
