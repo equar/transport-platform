@@ -15,7 +15,13 @@ health_check() {
 }
 new_remote_directory() {
   local kind="$1" directory
-  directory="$(ssh "${SSH_OPTIONS[@]}" "$SERVER" "umask 077; mktemp -d /tmp/transport-$kind.XXXXXXXX")"
-  [[ "$directory" =~ ^/tmp/transport-(backend|frontend|setup)\.[a-zA-Z0-9]+$ ]] || { echo 'Unexpected remote staging directory' >&2; exit 1; }
+  directory="$(ssh "${SSH_OPTIONS[@]}" "$SERVER" "
+    set -e
+    umask 077
+    staging_directory=\"\$HOME/.cache/transport-platform-deploy\"
+    install -d -m 700 \"\$staging_directory\"
+    mktemp -d \"\$staging_directory/transport-$kind.XXXXXXXX\"
+  ")"
+  [[ "$directory" =~ ^/home/[a-z_][a-z0-9_-]*/\.cache/transport-platform-deploy/transport-(backend|frontend|setup)\.[a-zA-Z0-9]+$ ]] || { echo 'Unexpected remote staging directory' >&2; exit 1; }
   printf '%s' "$directory"
 }

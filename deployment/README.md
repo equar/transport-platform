@@ -281,6 +281,10 @@ files to a remote host.
 
 ## Failure handling and recovery
 
+Deployment artifacts stage in a private `~/.cache/transport-platform-deploy`
+directory owned by the SSH deployment user. They do not rely on shared `/tmp`
+permissions.
+
 Backend activation retains the previous **healthy** JAR/environment/unit pair,
 checks startup health and attempts restoration if the new release fails. It
 reports failed rollback health rather than claiming recovery. Its environment
