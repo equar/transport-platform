@@ -36,3 +36,19 @@ it.each([
     expect(riderPortalApi.getRideLocationSnapshot).not.toHaveBeenCalled();
   }
 });
+
+it('automatically shows the assigned driver location map to a guardian during an active trip', async () => {
+  jest.mocked(riderPortalApi.getRide).mockResolvedValue({ id: 10, rideNumber: 'TRIP-10', status: 'PICKED_UP', scheduledPickupAt: '2026-11-13T12:00:00', pickupAddress: 'Pickup', dropoffAddress: 'Destination' } as never);
+  jest.mocked(riderPortalApi.getRideLocationSnapshot).mockResolvedValue({
+    latitude: 38.8977,
+    longitude: -77.0365,
+    capturedAt: new Date().toISOString(),
+  } as never);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  clients.push(client);
+  render(<QueryClientProvider client={client}><GuardianRideDetailPage /></QueryClientProvider>);
+
+  expect(await screen.findByLabelText('Latest reported driver location')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Show map' })).toBeNull();
+  expect(screen.getByText(/It indicates the rider’s location only after pickup/)).toBeTruthy();
+});
