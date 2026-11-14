@@ -476,10 +476,6 @@ const router = createBrowserRouter([
         element: <UserManagementPage />,
       },
       {
-        path: "payments",
-        element: <DriverPortalPaymentsPage />,
-      },
-      {
         path: "notifications",
         element: <NotificationCenterPage />,
       },
