@@ -48,12 +48,6 @@ const SECONDARY_STATUS_ACTIONS: Record<string, { action: DriverRideAction; label
   DROPPED_OFF: [{ action: 'failed', label: 'Report Failed Trip' }],
 };
 
-const TRACKABLE_STATUSES = new Set([
-  'DRIVER_EN_ROUTE',
-  'ARRIVED',
-  'PICKED_UP',
-]);
-
 export default function DriverRideDetailPage() {
   const styles = useThemedStyles(createStyles);
   const colors = useBrandingColors();
@@ -87,8 +81,8 @@ export default function DriverRideDetailPage() {
   } = useQuery({
     queryKey: ['driver-ride-location', rideId],
     queryFn: () => driverPortalApi.getRideLocationSnapshot(Number(rideId)),
-    enabled: !!ride && !isError,
-    refetchInterval: ride && TRACKABLE_STATUSES.has(ride.status) ? 30000 : false,
+    enabled: !!ride && !isError && isTrackableTrip(ride.status),
+    refetchInterval: ride && isTrackableTrip(ride.status) ? 30000 : false,
   });
 
   const { mutate: performAction, isPending: actionPending } = useMutation({
@@ -215,7 +209,7 @@ export default function DriverRideDetailPage() {
         </View>
       </View>
 
-      <Text accessibilityRole="text" style={{ fontFamily: Typography.fontBody, color: colors.textSecondary, lineHeight: 22 }}>{tracking.rideId === ride.id ? tracking.message : 'Tracking is off for this trip'}{tracking.rideId === ride.id && tracking.lastSyncedAt ? ` • Last synced ${new Date(tracking.lastSyncedAt).toLocaleTimeString()}` : ""}</Text>
+      {isTrackableTrip(ride.status) && (<Text accessibilityRole="text" style={{ fontFamily: Typography.fontBody, color: colors.textSecondary, lineHeight: 22 }}>{tracking.rideId === ride.id ? tracking.message : 'Tracking is off for this trip'}{tracking.rideId === ride.id && tracking.lastSyncedAt ? ` • Last synced ${new Date(tracking.lastSyncedAt).toLocaleTimeString()}` : ""}</Text>)}
       <Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>← Dispatches</Text>
 
       {ride.linkedRideId ? <Text style={styles.instructions}>This is the {ride.journeyLeg?.toLowerCase()} leg. The paired journey has a separate assignment and completion status. Contact dispatch for changes.</Text> : null}
@@ -289,7 +283,8 @@ export default function DriverRideDetailPage() {
         <Row label="To" value={ride.dropoffAddress ?? '—'} />
       </Section>
 
-      <TripTrackingCard
+      {isTrackableTrip(ride.status) && (
+<TripTrackingCard
         title="Live Route"
         snapshot={locationSnapshot ?? null}
         error={locationError}
@@ -300,6 +295,7 @@ export default function DriverRideDetailPage() {
         }}
         refreshing={locationRefreshing}
       />
+      )}
 
       {/* Instructions */}
       {ride.specialInstructions ? (

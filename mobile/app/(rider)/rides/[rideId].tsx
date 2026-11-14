@@ -95,7 +95,8 @@ export default function RiderRideDetailPage() {
         <Row label="To" value={ride.dropoffAddress ?? '—'} />
       </View>
 
-      <TripTrackingCard
+      {isTrackableTrip(ride.status) && (
+<TripTrackingCard
         title="Trip Tracking"
         snapshot={isTrackableTrip(ride.status) ? locationSnapshot ?? null : null}
         error={locationError && isTrackableTrip(ride.status)}
@@ -106,6 +107,7 @@ export default function RiderRideDetailPage() {
         }}
         refreshing={locationRefreshing}
       />
+      )}
 
       {ride.guardianName ? (
         <View style={styles.section}>

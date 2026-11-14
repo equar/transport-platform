@@ -73,7 +73,8 @@ export default function GuardianRideDetailPage() {
 				<Text style={styles.routeText}>{ride.dropoffAddress ?? 'Drop-off TBD'}</Text>
 			</AppCard>
 
-			<TripTrackingCard
+			{isTrackableTrip(ride.status) && (
+<TripTrackingCard
 				title="Current Position"
 				snapshot={isTrackableTrip(ride.status) ? locationSnapshot ?? null : null}
         error={locationError && isTrackableTrip(ride.status)}
@@ -84,6 +85,7 @@ export default function GuardianRideDetailPage() {
 				}}
 				refreshing={locationRefreshing}
 			/>
+      )}
 
 			<View style={styles.actionRow}>
 				<View style={styles.actionSlot}>
