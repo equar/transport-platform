@@ -195,7 +195,9 @@ class DeploymentScriptTests(unittest.TestCase):
             path.chmod(0o755)
             script = (AWS/'activate-frontend.sh').read_text()
             script = script.replace('[[ "$EUID" -eq 0 ]]', 'true')
-            script = script.replace('^/tmp/transport-frontend\\.[a-zA-Z0-9]+$', '^'+str(incoming)+'$')
+            script = script.replace(
+                '^/home/[a-z_][a-z0-9_-]*/\\.cache/transport-platform-deploy/transport-frontend\\.[a-zA-Z0-9]+$',
+                '^'+str(incoming)+'$')
             script = script.replace('/var/www/', str(root)+'/')
             script = script.replace('/var/lock/transport-platform-deploy.lock', str(root/'deploy.lock'))
             activation = root/'activate.sh'; activation.write_text(script)
@@ -227,7 +229,7 @@ class DeploymentScriptTests(unittest.TestCase):
             script.write_text('''#!/bin/bash
 printf '%s %s\\n' "$(basename "$0")" "$*" >> "$DEPLOY_TEST_LOG"
 case "$(basename "$0")" in
- ssh) if [[ "$*" == *mktemp* ]]; then echo /tmp/transport-frontend.ABCDEFGH; else cat >> "$DEPLOY_TEST_PAYLOAD"; fi ;;
+ ssh) if [[ "$*" == *mktemp* ]]; then echo /home/ubuntu/.cache/transport-platform-deploy/transport-frontend.ABCDEFGH; else cat >> "$DEPLOY_TEST_PAYLOAD"; fi ;;
  curl) if [[ "$*" == *release.json* ]]; then printf '{"release":"%s"}' "${TEST_RELEASE:-release-123}"; else echo '{"status":"UP"}'; fi ;;
 esac
 '''); script.chmod(0o755)

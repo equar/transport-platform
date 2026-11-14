@@ -3,7 +3,7 @@
 set -euo pipefail
 incoming="${1:?Pass the private staging directory}"
 release_id="${2:?Pass the release ID}"
-[[ "$incoming" =~ ^/tmp/transport-backend\.[a-zA-Z0-9]+$ && "$release_id" =~ ^[a-zA-Z0-9._-]{1,80}$ ]]
+[[ "$incoming" =~ ^/home/[a-z_][a-z0-9_-]*/\.cache/transport-platform-deploy/transport-backend\.[a-zA-Z0-9]+$ && "$release_id" =~ ^[a-zA-Z0-9._-]{1,80}$ ]]
 [[ "$EUID" -eq 0 ]] || { echo 'Backend activation requires root' >&2; exit 1; }
 # Also serialize direct operator releases, not only GitHub workflow runs.
 exec 9>/var/lock/transport-platform-deploy.lock
