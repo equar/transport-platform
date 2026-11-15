@@ -5,6 +5,7 @@ import com.transportplatform.tms.features.ride.domain.RideBillingType;
 import com.transportplatform.tms.features.ride.domain.RideRecurrencePatternType;
 import com.transportplatform.tms.features.ride.domain.RideRecurrenceStatus;
 import com.transportplatform.tms.features.ride.domain.RideTripType;
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -57,6 +58,7 @@ public record RecurringRideScheduleResponse(
         int companionCount,
         String specialInstructions,
         String internalNotes,
+        BigDecimal pricePerRide,
         RideBillingType billingType,
         RideRecurrenceStatus status,
         String createdBy,

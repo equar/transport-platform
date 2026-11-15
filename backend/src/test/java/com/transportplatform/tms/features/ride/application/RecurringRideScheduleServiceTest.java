@@ -26,6 +26,7 @@ import com.transportplatform.tms.features.ride.domain.RideRecurrenceStatus;
 import com.transportplatform.tms.features.ride.domain.RideRepository;
 import com.transportplatform.tms.features.ride.domain.RideTripType;
 import com.transportplatform.tms.features.rideevent.application.RideEventService;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.Instant;
@@ -137,6 +138,34 @@ class RecurringRideScheduleServiceTest {
         verify(rideRepository).save(rideCaptor.capture());
         assertEquals(LocalDateTime.of(2026, 4, 2, 8, 0), rideCaptor.getValue().getScheduledPickupAt());
         assertEquals(schedule, rideCaptor.getValue().getRecurrenceSchedule());
+        assertEquals(new BigDecimal("25.00"), rideCaptor.getValue().getQuotedPrice());
+    }
+
+    @Test
+    void createRecurringScheduleStoresPricePerRide() {
+        RecurringRideScheduleService service = new RecurringRideScheduleService(
+                recurringRideScheduleRepository,
+                rideRepository,
+                rideAccessService,
+                rideReferenceValidationService,
+                new RecurringRideScheduleMapper(),
+                recurringRideCodeGenerator,
+                rideCodeGenerator,
+                rideEventService,
+                auditLogService,
+                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC), org.mockito.Mockito.mock(com.transportplatform.tms.features.settings.domain.TenantSettingsRepository.class));
+        Rider rider = buildRider();
+
+        when(rideAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
+        when(recurringRideCodeGenerator.generate("tenant-123")).thenReturn("RCR-000123");
+        when(rideReferenceValidationService.resolve("tenant-123", 11L, null, null, null, null))
+                .thenReturn(new RideReferenceValidationService.ResolvedReferences(rider, null, null, null, null));
+        when(recurringRideScheduleRepository.save(any(RecurringRideSchedule.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = service.createCompanyRecurringRideSchedule(buildWeeklyRequest(Set.of(DayOfWeek.MONDAY), null));
+
+        assertEquals(new BigDecimal("14.50"), response.pricePerRide());
     }
 
     private Rider buildRider() {
@@ -188,6 +217,7 @@ class RecurringRideScheduleServiceTest {
                 0,
                 null,
                 null,
+                new BigDecimal("14.50"),
                 RideBillingType.CONTRACT,
                 RideRecurrenceStatus.DRAFT);
     }
@@ -216,6 +246,7 @@ class RecurringRideScheduleServiceTest {
         schedule.setEndDate(LocalDate.of(2026, 4, 2));
         schedule.setStatus(RideRecurrenceStatus.ACTIVE);
         schedule.setBillingType(RideBillingType.CONTRACT);
+        schedule.setPricePerRide(new BigDecimal("25.00"));
         return schedule;
     }
 }

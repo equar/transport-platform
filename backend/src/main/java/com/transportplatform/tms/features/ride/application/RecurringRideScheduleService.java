@@ -277,6 +277,7 @@ public class RecurringRideScheduleService {
             ride.setSpecialInstructions(schedule.getSpecialInstructions());
             ride.setInternalNotes(schedule.getInternalNotes());
             ride.setBillingType(schedule.getBillingType());
+            ride.setQuotedPrice(schedule.getPricePerRide());
             ride.setRecurrenceSchedule(schedule);
             ride.setStatus(RideStatus.SCHEDULED);
             for (var time : new LocalDateTime[] {ride.getScheduledPickupAt(), ride.getScheduledDropoffAt(), ride.getReturnPickupAt(), ride.getReturnDropoffAt()}) {

@@ -90,6 +90,7 @@ public class RideMapper {
                 ride.getOperationalNotes(),
                 ride.getPriorityLevel(),
                 ride.getBillingType(),
+                ride.getQuotedPrice(),
                 ride.getDriverId(),
                 ride.getVehicleId(),
                 ride.getRouteId(),

@@ -51,6 +51,7 @@ public class RecurringRideScheduleMapper {
         schedule.setCompanionCount(request.companionCount() == null ? 0 : request.companionCount());
         schedule.setSpecialInstructions(trimToNull(request.specialInstructions()));
         schedule.setInternalNotes(trimToNull(request.internalNotes()));
+        schedule.setPricePerRide(request.pricePerRide());
         schedule.setBillingType(request.billingType());
     }
 
@@ -101,6 +102,7 @@ public class RecurringRideScheduleMapper {
                 schedule.getCompanionCount(),
                 schedule.getSpecialInstructions(),
                 schedule.getInternalNotes(),
+                schedule.getPricePerRide(),
                 schedule.getBillingType(),
                 schedule.getStatus(),
                 schedule.getCreatedBy(),

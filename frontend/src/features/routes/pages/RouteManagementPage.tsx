@@ -65,6 +65,7 @@ function defaultPayload(): RoutePayload {
     routeName: "",
     routeDate: "",
     serviceType: "GENERAL_TRANSPORT",
+    price: null,
     startTime: "",
     endTime: "",
     manifestNotes: "",
@@ -142,6 +143,7 @@ export function RouteManagementPage() {
       routeName: route.routeName,
       routeDate: route.routeDate,
       serviceType: route.serviceType,
+      price: route.price,
       startTime: route.startTime,
       endTime: route.endTime,
       manifestNotes: route.manifestNotes ?? "",
@@ -305,6 +307,7 @@ export function RouteManagementPage() {
             <TableRow>
               <TableCell>Route</TableCell>
               <TableCell>Schedule</TableCell>
+              <TableCell>Price</TableCell>
               <TableCell>Assignments</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align="right">Actions</TableCell>
@@ -327,6 +330,9 @@ export function RouteManagementPage() {
                   <Typography variant="caption" color="text.secondary">
                     {route.startTime ?? "-"} to {route.endTime ?? "-"}
                   </Typography>
+                </TableCell>
+                <TableCell>
+                  {route.price == null ? "Not set" : route.price.toFixed(2)}
                 </TableCell>
                 <TableCell>
                   <Stack spacing={0.5}>
@@ -471,6 +477,22 @@ export function RouteManagementPage() {
                 </MenuItem>
               ))}
             </TextField>
+            <TextField
+              label="Route Price"
+              type="number"
+              value={payload.price ?? ""}
+              onChange={(event) =>
+                setPayload((current) => ({
+                  ...current,
+                  price:
+                    event.target.value === ""
+                      ? null
+                      : Number(event.target.value),
+                }))
+              }
+              inputProps={{ min: 0, step: 0.01 }}
+              helperText="Optional total for this route, in the tenant's billing currency."
+            />
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
                 label="Start Time"

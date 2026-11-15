@@ -10,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -36,6 +37,9 @@ public class Route extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "service_type", nullable = false, length = 40)
     private ServiceType serviceType;
+
+    @Column(name = "price", precision = 12, scale = 2)
+    private BigDecimal price;
 
     @Column(name = "assigned_driver_id")
     private Long assignedDriverId;
@@ -101,6 +105,14 @@ public class Route extends AuditableEntity {
 
     public void setServiceType(ServiceType serviceType) {
         this.serviceType = serviceType;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
     }
 
     public Long getAssignedDriverId() {

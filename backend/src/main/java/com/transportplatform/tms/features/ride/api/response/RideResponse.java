@@ -5,6 +5,7 @@ import com.transportplatform.tms.features.ride.domain.RideBillingType;
 import com.transportplatform.tms.features.ride.domain.RidePriorityLevel;
 import com.transportplatform.tms.features.ride.domain.RideStatus;
 import com.transportplatform.tms.features.ride.domain.RideTripType;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 
@@ -50,6 +51,7 @@ public record RideResponse(
         String operationalNotes,
         RidePriorityLevel priorityLevel,
         RideBillingType billingType,
+        BigDecimal quotedPrice,
         Long driverId,
         Long vehicleId,
         Long routeId,

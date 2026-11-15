@@ -310,6 +310,14 @@ export function RecurringRideDetailsPage() {
               label="Service Area"
               value={formatValue(schedule.serviceAreaName)}
             />
+            <DetailField
+              label="Price per ride"
+              value={
+                schedule.pricePerRide == null
+                  ? "Not set"
+                  : schedule.pricePerRide.toFixed(2)
+              }
+            />
           </Stack>
         </PageCard>
 

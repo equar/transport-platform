@@ -75,6 +75,7 @@ function emptyForm(): RecurringRideSchedulePayload {
     companionCount: 0,
     specialInstructions: "",
     internalNotes: "",
+    pricePerRide: null,
     billingType: null,
     status: "DRAFT",
   };
@@ -164,6 +165,7 @@ export function RecurringRideScheduleDialog({
         companionCount: schedule.companionCount,
         specialInstructions: schedule.specialInstructions ?? "",
         internalNotes: schedule.internalNotes ?? "",
+        pricePerRide: schedule.pricePerRide,
         billingType: schedule.billingType,
         status: "DRAFT",
       });
@@ -622,6 +624,20 @@ export function RecurringRideScheduleDialog({
                 </MenuItem>
               ))}
             </TextField>
+            <TextField
+              label="Price per ride"
+              type="number"
+              value={form.pricePerRide ?? ""}
+              onChange={(event) =>
+                setField(
+                  "pricePerRide",
+                  event.target.value === "" ? null : Number(event.target.value),
+                )
+              }
+              inputProps={{ min: 0, step: 0.01 }}
+              helperText="Optional amount applied to each generated ride, in the tenant's billing currency."
+              fullWidth
+            />
           </Stack>
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <TextField
