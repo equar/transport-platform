@@ -7,9 +7,13 @@ import com.transportplatform.tms.features.ride.domain.RideRecurrenceStatus;
 import com.transportplatform.tms.features.ride.domain.RideTripType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -51,6 +55,7 @@ public record RecurringRideScheduleUpsertRequest(
         @Min(value = 0, message = "Companion count cannot be negative.") @Max(value = 10, message = "Companion count must be 10 or fewer.") Integer companionCount,
         @Size(max = 2000, message = "Special instructions must be 2000 characters or fewer.") String specialInstructions,
         @Size(max = 2000, message = "Internal notes must be 2000 characters or fewer.") String internalNotes,
+        @DecimalMin(value = "0.00", message = "Price per ride cannot be negative.") @DecimalMax(value = "9999999999.99", message = "Price per ride is too large.") @Digits(integer = 10, fraction = 2, message = "Price per ride must have at most 2 decimal places.") BigDecimal pricePerRide,
         RideBillingType billingType,
         RideRecurrenceStatus status) {
 }

@@ -18,6 +18,7 @@ public class RouteMapper {
         route.setRouteName(request.routeName().trim());
         route.setRouteDate(request.routeDate());
         route.setServiceType(request.serviceType());
+        route.setPrice(request.price());
         route.setStartTime(request.startTime());
         route.setEndTime(request.endTime());
         route.setManifestNotes(trimToNull(request.manifestNotes()));
@@ -34,6 +35,7 @@ public class RouteMapper {
                 route.getRouteName(),
                 route.getRouteDate(),
                 route.getServiceType(),
+                route.getPrice(),
                 route.getAssignedDriverId(),
                 assignedDriver == null ? null : formatDriverName(assignedDriver),
                 route.getAssignedVehicleId(),
@@ -61,6 +63,7 @@ public class RouteMapper {
                 route.getRouteName(),
                 route.getRouteDate(),
                 route.getServiceType(),
+                route.getPrice(),
                 route.getAssignedDriverId(),
                 assignedDriver == null ? null : formatDriverName(assignedDriver),
                 route.getAssignedVehicleId(),

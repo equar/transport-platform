@@ -322,6 +322,10 @@ export function RouteDetailsPage() {
             Date: {route.routeDate}
           </Typography>
           <Typography color="text.secondary">
+            Route price:{" "}
+            {route.price == null ? "Not set" : route.price.toFixed(2)}
+          </Typography>
+          <Typography color="text.secondary">
             Driver: {route.assignedDriverName ?? "Unassigned"}
           </Typography>
           <Typography color="text.secondary">

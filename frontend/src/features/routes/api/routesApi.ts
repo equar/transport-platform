@@ -34,6 +34,7 @@ export interface RouteRecord {
   routeName: string;
   routeDate: string;
   serviceType: ServiceType;
+  price: number | null;
   assignedDriverId: number | null;
   assignedDriverName: string | null;
   assignedVehicleId: number | null;
@@ -68,6 +69,7 @@ export interface RoutePayload {
   routeName: string;
   routeDate: string;
   serviceType: ServiceType;
+  price?: number | null;
   startTime?: string | null;
   endTime?: string | null;
   manifestNotes?: string | null;

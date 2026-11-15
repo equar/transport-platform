@@ -73,6 +73,7 @@ export interface RideRecord {
   operationalNotes: string | null;
   priorityLevel: RidePriorityLevel | null;
   billingType: RideBillingType | null;
+  quotedPrice: number | null;
   driverId: number | null;
   vehicleId: number | null;
   routeId: number | null;
@@ -134,6 +135,7 @@ export interface RecurringRideScheduleRecord {
   companionCount: number;
   specialInstructions: string | null;
   internalNotes: string | null;
+  pricePerRide: number | null;
   billingType: RideBillingType | null;
   status: RideRecurrenceStatus;
   createdBy: string;
@@ -218,6 +220,7 @@ export interface RecurringRideSchedulePayload {
   companionCount: number;
   specialInstructions?: string | null;
   internalNotes?: string | null;
+  pricePerRide?: number | null;
   billingType?: RideBillingType | null;
   status?: Extract<RideRecurrenceStatus, "DRAFT" | "ACTIVE"> | null;
 }

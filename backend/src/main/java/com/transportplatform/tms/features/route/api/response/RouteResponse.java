@@ -2,6 +2,7 @@ package com.transportplatform.tms.features.route.api.response;
 
 import com.transportplatform.tms.features.organization.domain.ServiceType;
 import com.transportplatform.tms.features.route.domain.RouteStatus;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -14,6 +15,7 @@ public record RouteResponse(
         String routeName,
         LocalDate routeDate,
         ServiceType serviceType,
+        BigDecimal price,
         Long assignedDriverId,
         String assignedDriverName,
         Long assignedVehicleId,

@@ -397,6 +397,7 @@ export function RecurringRideManagementPage() {
                 <TableCell>Rider</TableCell>
                 <TableCell>Pattern</TableCell>
                 <TableCell>Service</TableCell>
+                <TableCell>Price per ride</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Generated Rides</TableCell>
                 <TableCell align="right">Actions</TableCell>
@@ -446,6 +447,11 @@ export function RecurringRideManagementPage() {
                       <StatusChip value={schedule.serviceType} />
                       <StatusChip value={schedule.tripType} />
                     </Stack>
+                  </TableCell>
+                  <TableCell>
+                    {schedule.pricePerRide == null
+                      ? "Not set"
+                      : schedule.pricePerRide.toFixed(2)}
                   </TableCell>
                   <TableCell>
                     <StatusChip value={schedule.status} />

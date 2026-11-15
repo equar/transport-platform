@@ -19,6 +19,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 
@@ -148,6 +149,9 @@ public class Ride extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "billing_type", length = 40)
     private RideBillingType billingType;
+
+    @Column(name = "quoted_price", precision = 12, scale = 2)
+    private BigDecimal quotedPrice;
 
     @Column(name = "driver_id")
     private Long driverId;
@@ -441,6 +445,14 @@ public class Ride extends AuditableEntity {
 
     public void setBillingType(RideBillingType billingType) {
         this.billingType = billingType;
+    }
+
+    public BigDecimal getQuotedPrice() {
+        return quotedPrice;
+    }
+
+    public void setQuotedPrice(BigDecimal quotedPrice) {
+        this.quotedPrice = quotedPrice;
     }
 
     public Long getDriverId() {

@@ -3,8 +3,11 @@ package com.transportplatform.tms.features.driverearnings.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.transportplatform.tms.common.security.AuthenticatedUser;
 import com.transportplatform.tms.common.security.CurrentAuthenticatedUserService;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
 import com.transportplatform.tms.features.billing.domain.ChargeSourceType;
@@ -12,12 +15,14 @@ import com.transportplatform.tms.features.billing.domain.Invoice;
 import com.transportplatform.tms.features.billing.domain.InvoiceLineItem;
 import com.transportplatform.tms.features.billing.domain.InvoiceLineItemRepository;
 import com.transportplatform.tms.features.billing.domain.InvoiceStatus;
+import com.transportplatform.tms.features.auth.domain.RoleName;
 import com.transportplatform.tms.features.driver.domain.DriverRepository;
 import com.transportplatform.tms.features.driverportal.application.DriverPortalAccessService;
 import com.transportplatform.tms.features.driverearnings.domain.DriverEarningsEntryType;
 import com.transportplatform.tms.features.driverearnings.domain.DriverEarningsLedger;
 import com.transportplatform.tms.features.driverearnings.domain.DriverEarningsLedgerRepository;
 import com.transportplatform.tms.features.driverearnings.domain.DriverEarningsStatus;
+import com.transportplatform.tms.features.driverearnings.api.request.DriverEarningsReviewRequest;
 import com.transportplatform.tms.features.ride.domain.RideRepository;
 import com.transportplatform.tms.features.settings.domain.TenantSettings;
 import com.transportplatform.tms.features.settings.domain.TenantSettingsRepository;
@@ -27,6 +32,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 class DriverEarningsServiceTest {
 
@@ -90,6 +96,45 @@ class DriverEarningsServiceTest {
 
         assertEquals(new BigDecimal("10.00"), pendingEntry.getAmount());
         assertEquals(DriverEarningsStatus.PENDING_REVIEW, pendingEntry.getStatus());
+    }
+
+    @Test
+    void tenantAdminCanSetAmountSubmitForReviewAndApproveLedgerEntry() {
+        when(currentUser.requireCurrentUser()).thenReturn(tenantAdmin());
+        when(drivers.findByIdAndTenantId(9L, "tenant-1")).thenReturn(Optional.empty());
+        when(rides.findByIdAndTenantId(42L, "tenant-1")).thenReturn(Optional.empty());
+        DriverEarningsLedger entry = new DriverEarningsLedger();
+        entry.setTenantId("tenant-1");
+        entry.setDriverId(9L);
+        entry.setRideId(42L);
+        entry.setEntryType(DriverEarningsEntryType.EARNED);
+        entry.setStatus(DriverEarningsStatus.PENDING_CALCULATION);
+        entry.setCurrency("USD");
+        when(ledger.findByIdAndTenantId(2L, "tenant-1")).thenReturn(Optional.of(entry));
+
+        var submitted = service.updateEntry(
+                2L, new DriverEarningsReviewRequest(new BigDecimal("25.50"), " Manually reviewed fare "));
+        assertEquals(new BigDecimal("25.50"), submitted.amount());
+        assertEquals("Manually reviewed fare", submitted.reason());
+        assertEquals(DriverEarningsStatus.PENDING_REVIEW.name(), submitted.status());
+
+        var approved = service.approve(2L);
+        assertEquals(DriverEarningsStatus.APPROVED.name(), approved.status());
+        verify(ledger, times(2)).save(entry);
+    }
+
+    private AuthenticatedUser tenantAdmin() {
+        return new AuthenticatedUser(
+                1L,
+                "tenant-1",
+                "admin",
+                "Tenant",
+                "Admin",
+                "",
+                true,
+                true,
+                false,
+                List.of(new SimpleGrantedAuthority(RoleName.ROLE_TENANT_ADMIN.name())));
     }
 
     private TenantSettings tenantSettings(String rate) {

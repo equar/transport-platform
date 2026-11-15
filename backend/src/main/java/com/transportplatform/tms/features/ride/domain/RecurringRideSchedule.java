@@ -20,6 +20,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -157,6 +158,9 @@ public class RecurringRideSchedule extends AuditableEntity {
 
     @Column(name = "internal_notes", length = 2000)
     private String internalNotes;
+
+    @Column(name = "price_per_ride", precision = 12, scale = 2)
+    private BigDecimal pricePerRide;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "billing_type", length = 40)
@@ -464,6 +468,14 @@ public class RecurringRideSchedule extends AuditableEntity {
 
     public void setInternalNotes(String internalNotes) {
         this.internalNotes = internalNotes;
+    }
+
+    public BigDecimal getPricePerRide() {
+        return pricePerRide;
+    }
+
+    public void setPricePerRide(BigDecimal pricePerRide) {
+        this.pricePerRide = pricePerRide;
     }
 
     public RideBillingType getBillingType() {
