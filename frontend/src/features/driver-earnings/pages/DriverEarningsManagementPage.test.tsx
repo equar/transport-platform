@@ -75,3 +75,19 @@ it("lets a tenant admin set an amount for a pending record and approve it", asyn
   expect(await screen.findByText("Approved")).toBeTruthy();
   expect(driverEarningsApi.approve).toHaveBeenCalledWith(7);
 });
+
+it("disables actions on every earnings row while a record is being approved", async () => {
+  vi.mocked(driverEarningsApi.list).mockReset().mockResolvedValueOnce([
+    pendingReview,
+    { ...pendingReview, id: 8, driverId: 11, driverName: "Casey Driver" },
+  ]);
+  vi.mocked(driverEarningsApi.approve).mockImplementation(() => new Promise(() => {}));
+
+  render(<DriverEarningsManagementPage />);
+  expect(await screen.findByText("Jordan Driver")).toBeTruthy();
+
+  fireEvent.click(screen.getAllByRole("button", { name: "Approve" })[0]);
+
+  expect(screen.getAllByRole("button", { name: "Approve" }).every((button) => button.hasAttribute("disabled"))).toBe(true);
+  expect(screen.getAllByRole("button", { name: "Edit" }).every((button) => button.hasAttribute("disabled"))).toBe(true);
+});

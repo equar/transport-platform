@@ -8,6 +8,11 @@ import DriverDashboard from '../../../app/(driver)/index';
 import { PassengerHomeScreen } from '../../screens/PassengerHomeScreen';
 const mockFetchNextPage = jest.fn();
 const mockSignIn = jest.fn(); const mockPush = jest.fn(); const mockReplace = jest.fn();
+const mockRiderItems = [
+  { id: 1, rideNumber: 'ACTIVE-TRIP', riderName: 'Taylor', status: 'PICKED_UP', scheduledPickupAt: '2020-01-01T10:00:00', pickupAddress: 'Pickup', dropoffAddress: 'Drop-off' },
+  { id: 2, rideNumber: 'FINISHED-TRIP', riderName: 'Taylor', status: 'COMPLETED', scheduledPickupAt: '2030-01-01T10:00:00', pickupAddress: 'Pickup', dropoffAddress: 'Drop-off' },
+];
+let mockRides: typeof mockRiderItems = mockRiderItems;
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush, replace: mockReplace }) }));
 jest.mock('@auth/AuthContext', () => ({ useAuth: () => ({ signIn: mockSignIn, session: { identity: { firstName: 'Taylor', tenantId: 'test-tenant' } } }) }));
 jest.mock('@components/TenantHeader', () => ({ TenantHeader: () => null }));
@@ -16,15 +21,12 @@ jest.mock('@api/riderPortalApi', () => ({ riderPortalApi: {} }));
 jest.mock('@expo/vector-icons', () => ({ MaterialCommunityIcons: 'Icon' }));
 jest.mock('@tanstack/react-query', () => ({ useInfiniteQuery: () => ({
   isLoading: false, isError: false, hasNextPage: true, isFetchingNextPage: false, isRefetching: false, fetchNextPage: mockFetchNextPage, refetch: jest.fn(),
-  data: { pages: [{ items: [
-    { id: 1, rideNumber: 'ACTIVE-TRIP', riderName: 'Taylor', status: 'PICKED_UP', scheduledPickupAt: '2020-01-01T10:00:00', pickupAddress: 'Pickup', dropoffAddress: 'Drop-off' },
-    { id: 2, rideNumber: 'FINISHED-TRIP', riderName: 'Taylor', status: 'COMPLETED', scheduledPickupAt: '2030-01-01T10:00:00', pickupAddress: 'Pickup', dropoffAddress: 'Drop-off' },
-  ] }] },
+  data: { pages: [{ items: mockRides }] },
 }), useQuery: ({ queryKey }: { queryKey: string[] }) => ({
   isLoading: false, isError: false, isRefetching: false, refetch: jest.fn(),
   data: queryKey[0] === 'driver-dashboard' ? { ridesToday: 7, assignedRides: 3, activeRoutesToday: 2, unresolvedComplianceIssues: 1 } : queryKey[0].endsWith('-dashboard') ? { upcomingRideCount: 4, activeRideCount: 1, openInvoiceCount: 2, linkedRiderCount: 3, unreadNotifications: 0 } : { items: [] },
 }) }));
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => { jest.clearAllMocks(); mockRides = mockRiderItems; });
 it('centers the login heading and omits the sign-in description', () => {
   render(<LoginPage />);
   expect(screen.getByText('Welcome back')).toHaveStyle({ textAlign: 'center' });
@@ -78,6 +80,19 @@ it('keeps delayed active rides separate from history and exposes explicit pagina
   expect(screen.queryByText('ACTIVE-TRIP')).toBeNull();
   fireEvent.press(screen.getByRole('button', { name: 'Load more trips' }));
   expect(mockFetchNextPage).toHaveBeenCalled();
+});
+
+it('explains empty rider pages and keeps the load-more action available', () => {
+  mockRides = [];
+  render(<RiderRidesPage />);
+
+  expect(screen.getByText('No upcoming trips on this page')).toBeTruthy();
+  expect(screen.getByText('Load more trips to check for assigned trips.')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Load more trips' })).toBeTruthy();
+
+  fireEvent.press(screen.getByRole('tab', { name: 'History' }));
+  expect(screen.getByText('No finished trips on this page')).toBeTruthy();
+  expect(screen.getByText('Load more trips to view earlier trip history.')).toBeTruthy();
 });
 
 it('shows assigned travel and existing billing actions without a service catalog for riders', () => {
