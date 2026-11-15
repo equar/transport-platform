@@ -19,7 +19,7 @@ export function ActionRow({ icon, title, description, onPress, tone = 'primary',
   const { width } = useWindowDimensions();
   const colors = useBrandingColors();
   const styles = useThemedStyles(React.useCallback(colors => StyleSheet.create({
-    row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: colors.surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: colors.border, ...Shadow.soft },
+    row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: colors.surface, borderRadius: Radius.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.divider, ...Shadow.card },
     pressed: { opacity: .8, transform: [{ scale: Motion.pressScale.subtle }] }, disabled: { opacity: 0.55 },
     icon: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' }, iconCompact: { width: 40, height: 40 },
     copy: { flex: 1, gap: 2 }, title: { fontFamily: Typography.fontBodyBold, fontSize: Typography.sizeMd, color: colors.textPrimary },

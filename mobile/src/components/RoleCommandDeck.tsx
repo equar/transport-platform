@@ -37,7 +37,7 @@ export function RoleCommandDeck({
   const resolvedStatusColor = statusColor ?? colors.success;
   if (toneColor === colors.primary) { toneColor = colors.primary; softColor = colors.primarySoft; }
   return (
-    <View style={[styles.shell, { borderColor: toneColor }]}> 
+    <View style={styles.shell}>
       <View style={[styles.accentStrip, { backgroundColor: toneColor }]} />
 
       <View style={styles.topRow}>
@@ -77,11 +77,12 @@ export function RoleCommandDeck({
 
 const createStyles = (colors: BrandColors) => StyleSheet.create({
   shell: {
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.divider,
     borderRadius: Radius.lg,
     backgroundColor: colors.surface,
     padding: Spacing.lg,
-    ...Shadow.soft,
+    ...Shadow.card,
   },
   accentStrip: {
     position: 'absolute',

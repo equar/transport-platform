@@ -17,7 +17,7 @@ export function DashboardHeader({ name, role }: { name: string; role: 'driver' |
   return <View style={[styles.header, { backgroundColor: colors.primarySoft }]}>
     <View style={styles.copy}>
       <Text accessibilityRole="header" style={styles.title}>Hello, {name}</Text>
-      <Text style={styles.subtitle}>{role === 'driver' ? 'Driver workspace' : role === 'guardian' ? 'Family workspace' : 'Your transport'}</Text>
+      <Text style={styles.subtitle}>{role === 'driver' ? 'Your routes and trips' : role === 'guardian' ? 'Your linked riders' : 'Your trips and updates'}</Text>
     </View>
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.skyline}>
       {[28, 48, 38, 66, 46, 80, 58].map((height, i) => <View key={i} style={[styles.building, { height, backgroundColor: colors.primary, opacity: .06 + i * .012 }]} />)}
