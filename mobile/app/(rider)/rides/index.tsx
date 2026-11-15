@@ -83,7 +83,7 @@ export default function RiderRidesPage() {
           </TouchableOpacity>
         )}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
-        ListEmptyComponent={<EmptyState title={segment === 'upcoming' ? 'No upcoming trips' : 'No past trips yet'} description={segment === 'upcoming' ? 'New trips will appear here when assigned.' : 'Completed trips will appear here.'} />}
+        ListEmptyComponent={<EmptyState title={segment === 'upcoming' ? 'No upcoming trips on this page' : 'No finished trips on this page'} description={segment === 'upcoming' ? 'Load more trips to check for assigned trips.' : 'Load more trips to view earlier trip history.'} />}
         onEndReached={() => hasNextPage && fetchNextPage()}
         onEndReachedThreshold={0.3}
         ListFooterComponent={hasNextPage ? <AppButton label="Load more trips" variant="outlined" loading={isFetchingNextPage} onPress={() => void fetchNextPage()} /> : null}
