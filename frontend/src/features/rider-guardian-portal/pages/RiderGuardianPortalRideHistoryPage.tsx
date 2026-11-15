@@ -68,8 +68,7 @@ export function RiderGuardianPortalRideHistoryPage() {
         <Stack spacing={1}>
           <Typography variant="h4">Ride History</Typography>
           <Typography color="text.secondary">
-            Review past rides within your rider or guardian scope without
-            exposing unrelated rider records.
+            Past trips for you and your linked riders.
           </Typography>
         </Stack>
       </PageCard>
@@ -77,7 +76,7 @@ export function RiderGuardianPortalRideHistoryPage() {
       {rides.length === 0 ? (
         <PageCard>
           <Typography color="text.secondary">
-            No finished trips on this page.
+            No past trips yet.
           </Typography>
         </PageCard>
       ) : (

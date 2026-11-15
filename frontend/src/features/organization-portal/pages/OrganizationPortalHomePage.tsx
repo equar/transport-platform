@@ -108,14 +108,9 @@ export function OrganizationPortalHomePage() {
           <Typography variant="overline" color="secondary.main">
             Client workspace
           </Typography>
-          <Typography variant="h3">
-            Track riders, service activity, contracts, billing, and
-            notifications in one place.
-          </Typography>
+          <Typography variant="h3">Your service, at a glance</Typography>
           <Typography color="text.secondary">
-            Everything shown here is limited to the current organization scope
-            so business users can review service activity without crossing into
-            tenant administration.
+            View your organization’s riders, trips, contracts, invoices, and updates.
           </Typography>
         </Stack>
       </PageCard>

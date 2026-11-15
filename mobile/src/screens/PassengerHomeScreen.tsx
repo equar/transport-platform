@@ -32,7 +32,7 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
       { label: guardian ? 'Linked riders' : 'Open invoices', value: guardian ? data?.linkedRiderCount ?? '—' : data?.openInvoiceCount ?? '—', icon: guardian ? 'account-group-outline' : 'receipt-text-outline' },
       { label: 'Unread alerts', value: data?.unreadNotifications ?? '—', icon: 'bell-outline' },
     ]} />
-    <SectionHeader title={guardian ? 'Next rider trip' : 'Your next trip'} subtitle={guardian ? 'Pickup details and trip updates for your linked riders.' : 'Pickup details and the latest trip status.'} />
+    <SectionHeader title="Next trip" subtitle={guardian ? 'Pickup and status for your linked riders.' : 'Pickup details and trip status.'} />
     <AppCard style={styles.trip}>
       {trips.isLoading ? <Text style={styles.body}>Loading your trips…</Text> : trips.isError ? <><Text style={styles.body}>Trips couldn’t be loaded.</Text><AppButton label="Retry trips" variant="outlined" onPress={() => void trips.refetch()} /></> : next ? <>
         <AppBadge status={next.status} /><Text style={styles.title}>{formatShortDateTime(next.scheduledPickupAt)}</Text>

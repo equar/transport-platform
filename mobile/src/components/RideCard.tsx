@@ -52,8 +52,8 @@ export function RideCard({ ride, onPress }: RideCardProps) {
 const createStyles = (colors: BrandColors) => StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.divider,
     borderRadius: 14,
     padding: Spacing.lg,
     gap: Spacing.sm,

@@ -69,7 +69,7 @@ export function RiderGuardianPortalHomePage() {
 
   return (
     <Stack spacing={2.5}>
-      <PageHero eyebrow={`${scopeLabel} workspace`} title={scopeLabel === "Guardian" ? "Everyone you care for, safely in view." : "Your next ride is easy to find."} description={scopeLabel === "Guardian" ? "Track linked riders, upcoming pickups, account alerts, and billing from one reassuring view." : "Check pickup details, ride status, billing, and important service updates without the clutter."}>
+      <PageHero eyebrow={scopeLabel} title={scopeLabel === "Guardian" ? "Trips for your linked riders" : "Your trips at a glance"} description={scopeLabel === "Guardian" ? "See upcoming pickups, trip updates, and billing for your linked riders." : "Find pickup details, trip status, updates, and billing in one place."}>
         <Button component={RouterLink} to="/portal/rider/rides" variant="contained">View upcoming rides</Button>
         <Button component={RouterLink} to="/portal/rider/notifications" variant="outlined">Check updates</Button>
       </PageHero>
@@ -136,11 +136,9 @@ export function RiderGuardianPortalHomePage() {
         <PageCard>
           <Stack spacing={2}>
             <Stack spacing={0.75}>
-              <Typography variant="h5">Next rides in your scope</Typography>
+              <Typography variant="h5">Upcoming trips</Typography>
               <Typography color="text.secondary">
-                Guardians can clearly see which rider each trip belongs to.
-                Operational details stay limited to what the portal is meant to
-                expose.
+                See each rider, pickup time, and route.
               </Typography>
             </Stack>
 
@@ -166,7 +164,7 @@ export function RiderGuardianPortalHomePage() {
                       />
                     </Stack>
                     <Typography variant="body2" color="text.secondary">
-                      Rider in view: {ride.riderName}
+                      Rider: {ride.riderName}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Pickup: {formatDateTime(ride.scheduledPickupAt)}
@@ -184,7 +182,7 @@ export function RiderGuardianPortalHomePage() {
                         to={`/portal/rider/rides/${ride.id}`}
                         variant="outlined"
                       >
-                        Open ride detail
+                        Ride details
                       </Button>
                       <Button
                         component={RouterLink}
@@ -241,7 +239,7 @@ export function RiderGuardianPortalHomePage() {
 
           <PageCard>
             <Stack spacing={1.25}>
-              <Typography variant="h5">Scope summary</Typography>
+              <Typography variant="h5">At a glance</Typography>
               <Typography variant="body2" color="text.secondary">
                 Linked riders: {dashboard?.linkedRiderCount ?? 0}
               </Typography>
