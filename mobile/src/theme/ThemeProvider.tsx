@@ -27,14 +27,14 @@ function isAppearancePreference(value: string | null): value is AppearancePrefer
   return value === 'system' || value === 'light' || value === 'dark';
 }
 
-function paperTheme(colors: PaperPalette, dark = false) {
+export function paperTheme(colors: PaperPalette, dark = false) {
   const baseTheme = dark ? MD3DarkTheme : MD3LightTheme;
   return { ...baseTheme, dark, roundness: Radius.md,
     fonts: configureFonts({ config: { fontFamily: Typography.fontBody } }),
     colors: { ...baseTheme.colors, primary: colors.primary, onPrimary: colors.onPrimary,
       primaryContainer: colors.primarySoft, onPrimaryContainer: colors.primaryDark,
       secondary: colors.secondary, onSecondary: colors.onSecondary,
-      secondaryContainer: colors.secondarySoft, onSecondaryContainer: colors.secondaryDark,
+      secondaryContainer: colors.secondarySoft, onSecondaryContainer: dark ? colors.secondary : colors.secondaryDark,
       background: colors.background, surface: colors.surface, surfaceVariant: colors.surfaceMuted,
       onSurface: colors.textPrimary, onSurfaceVariant: colors.textSecondary, outline: colors.border,
       error: colors.error, onError: colors.onError },
@@ -49,6 +49,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
   const [preference, setPreferenceState] = React.useState<AppearancePreference>('system');
   const preferenceRef = React.useRef<AppearancePreference>('system');
+  const settledPreferenceRef = React.useRef<AppearancePreference>('system');
+  const saveQueueRef = React.useRef<Promise<void>>(Promise.resolve());
+  const latestSaveIdRef = React.useRef(0);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -57,6 +60,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.getItem(APPEARANCE_STORAGE_KEY)
       .then((stored) => {
         if (active && isAppearancePreference(stored)) {
+          settledPreferenceRef.current = stored;
           preferenceRef.current = stored;
           setPreferenceState(stored);
         }
@@ -75,20 +79,27 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setPreference = React.useCallback(async (nextPreference: AppearancePreference) => {
-    const previousPreference = preferenceRef.current;
+    const saveId = latestSaveIdRef.current + 1;
+    latestSaveIdRef.current = saveId;
     preferenceRef.current = nextPreference;
     setPreferenceState(nextPreference);
     setError(null);
-    try {
-      await AsyncStorage.setItem(APPEARANCE_STORAGE_KEY, nextPreference);
-    } catch (caughtError) {
-      if (preferenceRef.current === nextPreference) {
-        preferenceRef.current = previousPreference;
-        setPreferenceState(previousPreference);
+    const save = saveQueueRef.current.then(async () => {
+      const previousPreference = settledPreferenceRef.current;
+      try {
+        await AsyncStorage.setItem(APPEARANCE_STORAGE_KEY, nextPreference);
+        settledPreferenceRef.current = nextPreference;
+      } catch (caughtError) {
+        if (saveId === latestSaveIdRef.current) {
+          preferenceRef.current = previousPreference;
+          setPreferenceState(previousPreference);
+          setError('Appearance preference could not be saved on this device.');
+        }
+        throw caughtError;
       }
-      setError('Appearance preference could not be saved on this device.');
-      throw caughtError;
-    }
+    });
+    saveQueueRef.current = save.catch(() => undefined);
+    await save;
   }, []);
 
   const resolvedScheme: AppearanceMode = preference === 'system'

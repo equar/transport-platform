@@ -228,7 +228,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   tabLabelActive: {
-    color: colors.secondaryDark,
+    color: colors.onAccent,
   },
   section: { gap: Spacing.sm },
   sectionTitle: {

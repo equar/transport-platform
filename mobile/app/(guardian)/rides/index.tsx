@@ -126,7 +126,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
 		fontSize: Typography.sizeSm,
 		color: colors.textSecondary,
 	},
-	segmentLabelSelected: { color: colors.secondaryDark },
+	segmentLabelSelected: { color: colors.onAccent },
 	listContent: { paddingTop: Spacing.sm },
 	card: { gap: Spacing.xs },
 	row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
