@@ -247,18 +247,18 @@ export function DriverEarningsManagementPage() {
                     <Typography variant="body2" color="text.secondary">Complete</Typography>
                   ) : editingId === entry.id ? (
                     <Stack spacing={1}>
-                      <Button size="small" variant="contained" disabled={busyEntryId === entry.id} onClick={() => void saveEdit(entry.id)}>
+                      <Button size="small" variant="contained" disabled={busyEntryId !== null} onClick={() => void saveEdit(entry.id)}>
                         Submit for approval
                       </Button>
-                      <Button size="small" disabled={busyEntryId === entry.id} onClick={() => setEditingId(null)}>Cancel</Button>
+                      <Button size="small" disabled={busyEntryId !== null} onClick={() => setEditingId(null)}>Cancel</Button>
                     </Stack>
                   ) : (
                     <Stack spacing={0.75} alignItems="flex-start">
-                      <Button size="small" disabled={busyEntryId === entry.id} onClick={() => beginEdit(entry)}>
+                      <Button size="small" disabled={busyEntryId !== null} onClick={() => beginEdit(entry)}>
                         {entry.status === "PENDING_CALCULATION" ? "Set amount" : "Edit"}
                       </Button>
                       {entry.status === "PENDING_REVIEW" && (
-                        <Button size="small" variant="contained" disabled={busyEntryId === entry.id} onClick={() => void approve(entry.id)}>
+                        <Button size="small" variant="contained" disabled={busyEntryId !== null} onClick={() => void approve(entry.id)}>
                           Approve
                         </Button>
                       )}

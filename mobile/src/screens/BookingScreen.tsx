@@ -338,7 +338,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   pillLabelActive: {
-    color: colors.white,
+    color: colors.surface,
   },
   assistanceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md, minHeight: 52 },
   assistanceLabel: { flex: 1, fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: colors.textPrimary },

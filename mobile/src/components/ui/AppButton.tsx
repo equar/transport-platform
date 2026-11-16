@@ -34,17 +34,17 @@ const sizeMap = {
 function getVariantStyles(variant: Variant, styles: ReturnType<typeof createStyles>, colors: ReturnType<typeof useBrandingColors>) {
   switch (variant) {
     case 'primary':
-      return { container: styles.primary, label: { color: colors.onAccent }, iconColor: colors.onAccent };
+      return { container: styles.primary, label: styles.labelFilled, iconColor: colors.surface };
     case 'secondary':
-      return { container: styles.secondary, label: { color: colors.onSecondary }, iconColor: colors.onSecondary };
+      return { container: styles.secondary, label: styles.labelFilled, iconColor: colors.surface };
     case 'outlined':
       return { container: styles.outlined, label: styles.labelDark, iconColor: colors.primary };
     case 'ghost':
       return { container: styles.ghost, label: styles.labelDark, iconColor: colors.primary };
     case 'destructive':
-      return { container: styles.destructive, label: { color: colors.onError }, iconColor: colors.onError };
+      return { container: styles.destructive, label: styles.labelFilled, iconColor: colors.surface };
     default:
-      return { container: styles.primary, label: { color: colors.onAccent }, iconColor: colors.onAccent };
+      return { container: styles.primary, label: styles.labelFilled, iconColor: colors.surface };
   }
 }
 
@@ -157,6 +157,9 @@ const createStyles = (colors: ReturnType<typeof useBrandingColors>) => StyleShee
     fontFamily: Typography.fontBodyMedium,
     fontWeight: '600',
     letterSpacing: 0.12,
+  },
+  labelFilled: {
+    color: colors.surface,
   },
   labelDark: {
     color: colors.primary,
