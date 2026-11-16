@@ -7,7 +7,7 @@ import com.transportplatform.tms.features.settings.domain.TenantSettings;
 public record TenantThemePreset(String code, String name, String description,
         String primaryColor, String secondaryColor, String accentColor) {
     public static final List<TenantThemePreset> ALL = List.of(
-        new TenantThemePreset("DEFAULT", "Classic Blue", "The original Bakaroo look: dependable blue and navy.", "#214e82", "#12263e", "#d8662a"),
+        new TenantThemePreset("DEFAULT", "Classic Blue", "The original Bakaroo look: dependable blue and navy with a teal accent.", "#214e82", "#12263e", "#00796b"),
         new TenantThemePreset("HARBOR", "Harbor Teal", "Calm teal navigation with warm copper accents.", "#006b68", "#103c40", "#b66324"),
         new TenantThemePreset("FOREST", "Forest Green", "Grounded greens with a warm gold accent.", "#276442", "#173c2b", "#8b641c"),
         new TenantThemePreset("INDIGO", "Indigo", "Confident violet-blue with a terracotta accent.", "#5341a1", "#2d2354", "#a84e32"),

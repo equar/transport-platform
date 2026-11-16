@@ -1,11 +1,23 @@
 import React from 'react';
 import { Text } from 'react-native';
 import * as ReactNative from 'react-native';
-import { render, screen } from '@testing-library/react-native';
-import { ThemeProvider, useBrandingColors, appTheme, resolvePaperPalette } from './ThemeProvider';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemeProvider, useBrandingColors, appTheme, resolvePaperPalette, useAppearancePreference } from './ThemeProvider';
 import { RoleShell } from '@components/RoleShell';
 import { AuthFrame } from '@components/AuthFrame';
 import { DarkColors, LightColors } from './tokens';
+function luminance(hex: string) {
+  const channels = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255);
+  return channels.reduce((sum, channel, index) => {
+    const linear = channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    return sum + linear * [0.2126, 0.7152, 0.0722][index];
+  }, 0);
+}
+function contrastRatio(foreground: string, background: string) {
+  const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+  return (values[0] + 0.05) / (values[1] + 0.05);
+}
 let mockTenant: string | null = 'tenant-a';
 let mockPage = '(driver)';
 let mockPrimary = '#276442';
@@ -15,6 +27,10 @@ jest.mock('expo-router', () => ({ useSegments: () => mockPage === '(driver)' ? [
 jest.mock('@expo/vector-icons', () => ({ MaterialCommunityIcons: 'Icon' }));
 jest.mock('@api/runtimeApi', () => ({ runtimeApi: { getTenantBranding: jest.fn() } }));
 jest.mock('@auth/sessionStorage', () => ({ getCachedTenantBranding: jest.fn().mockResolvedValue(null), setCachedTenantBranding: jest.fn().mockResolvedValue(undefined) }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn().mockResolvedValue(null),
+  setItem: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock('@tanstack/react-query', () => ({ useQuery: ({ queryKey }: { queryKey: string[] }) => ({
   data: queryKey[1] ? { displayName: queryKey[1] === 'tenant-a' ? 'Blue Harbor Mobility' : 'Forest Transit', primaryColor: mockPrimary, secondaryColor: '#173c2b', accentColor: '#8b641c' } : null,
   refetch: mockRefetch,
@@ -23,10 +39,22 @@ jest.mock('react-native-paper', () => ({ PaperProvider: ({ children }: { childre
   MD3LightTheme: { colors: {} }, MD3DarkTheme: { colors: {} }, configureFonts: () => ({}) }));
 const mockUseColorScheme = jest.spyOn(ReactNative, 'useColorScheme');
 function Probe() { const colors = useBrandingColors(); return <Text>{`${String(colors.primary)}|${String(colors.secondaryDark)}|${String(colors.accent)}`}</Text>; }
-function App() { return <ThemeProvider><RoleShell role="driver"><Probe /></RoleShell></ThemeProvider>; }
+function AppearanceLoadedProbe() {
+  const { isLoading } = useAppearancePreference();
+  return <Text testID="appearance-loaded">{isLoading ? 'loading' : 'ready'}</Text>;
+}
+async function waitForAppearanceLoad() {
+  await waitFor(() => expect(screen.getByTestId('appearance-loaded').props.children).toBe('ready'));
+}
+function AppearanceProbe() {
+  const { preference, resolvedScheme, setPreference } = useAppearancePreference();
+  return <Text onPress={() => void setPreference('dark')}>{`${preference}|${resolvedScheme}`}</Text>;
+}
+function App() { return <ThemeProvider><RoleShell role="driver"><Probe /><AppearanceLoadedProbe /></RoleShell></ThemeProvider>; }
 beforeEach(() => { mockTenant = 'tenant-a'; mockPage = '(driver)'; mockPrimary = '#276442'; mockUseColorScheme.mockReturnValue('light'); });
-it('shows the tenant business name while keeping the mobile palette fixed through theme and account changes', () => {
+it('shows the tenant business name while keeping the mobile palette fixed through theme and account changes', async () => {
   const view = render(<App />);
+  await waitForAppearanceLoad();
   expect(screen.getByRole('header', { name: 'Blue Harbor Mobility' })).toBeTruthy();
   expect(screen.queryByLabelText('Bakaroo Transport')).toBeNull();
   expect(screen.getByText(`${LightColors.primary}|${LightColors.secondaryDark}|${LightColors.accent}`)).toBeTruthy();
@@ -41,20 +69,65 @@ it('shows the tenant business name while keeping the mobile palette fixed throug
   expect(screen.queryByText('Forest Transit')).toBeNull();
   expect(screen.getByText(`${LightColors.primary}|${LightColors.secondaryDark}|${LightColors.accent}`)).toBeTruthy();
 });
-it('uses the dark palette when the device is in dark mode', () => {
+it('uses the dark palette when the device is in dark mode', async () => {
   mockUseColorScheme.mockReturnValue('dark');
-  render(<ThemeProvider><Probe /></ThemeProvider>);
+  render(<ThemeProvider><Probe /><AppearanceLoadedProbe /></ThemeProvider>);
+  await waitForAppearanceLoad();
   expect(screen.getByText(`${DarkColors.primary}|${DarkColors.secondaryDark}|${DarkColors.accent}`)).toBeTruthy();
   expect(resolvePaperPalette('dark')).toEqual(DarkColors);
   expect(resolvePaperPalette('light')).toEqual(LightColors);
 });
-it('shows the current page title on signed-in subpages', () => {
+it('keeps theme text, badges, and action labels readable in both palettes', () => {
+  expect(LightColors.accent).toBe('#00796b');
+  expect(DarkColors.accent).toBe('#4db6ac');
+  for (const colors of [LightColors, DarkColors]) {
+    for (const background of [colors.background, colors.surface, colors.surfaceMuted]) {
+      expect(contrastRatio(colors.textPrimary, background)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(colors.textSecondary, background)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(colors.primary, background)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(colors.secondary, background)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(colors.accent, background)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(colors.error, background)).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(contrastRatio(colors.textInverse, colors.surfaceStrong)).toBeGreaterThanOrEqual(4.5);
+    for (const [foreground, background] of [
+      [colors.onPrimary, colors.primary],
+      [colors.onSecondary, colors.secondary],
+      [colors.onAccent, colors.accent],
+      [colors.onError, colors.error],
+      [colors.primaryDark, colors.primarySoft],
+      [colors.statusActive, colors.successSoft],
+      [colors.statusPending, colors.warningSoft],
+      [colors.statusSuspended, colors.errorSoft],
+      [colors.statusCompleted, colors.primarySoft],
+      [colors.statusCancelled, colors.canvas],
+      [colors.statusEnRoute, colors.primarySoft],
+      [colors.warning, colors.warningSoft],
+      [colors.info, colors.primarySoft],
+    ]) {
+      expect(contrastRatio(foreground, background)).toBeGreaterThanOrEqual(4.5);
+    }
+  }
+});
+it('persists and applies a selected appearance preference', async () => {
+  render(<ThemeProvider><AppearanceProbe /><AppearanceLoadedProbe /></ThemeProvider>);
+  await waitForAppearanceLoad();
+  await waitFor(() => expect(screen.getByText('system|light')).toBeTruthy());
+
+  fireEvent.press(screen.getByText('system|light'));
+
+  await waitFor(() => expect(screen.getByText('dark|dark')).toBeTruthy());
+  expect(AsyncStorage.setItem).toHaveBeenCalledWith('transport-platform.appearance', 'dark');
+});
+it('shows the current page title on signed-in subpages', async () => {
   mockPage = 'rides'; render(<App />);
+  await waitForAppearanceLoad();
   expect(screen.getByRole('header', { name: 'My Trips' })).toBeTruthy();
   expect(screen.getByText('My Trips')).toBeTruthy();
 });
-it('keeps the Bakaroo logo on the authentication frame', () => {
-  render(<ThemeProvider><AuthFrame title="Welcome back" description="Sign in"><Text>Login fields</Text></AuthFrame></ThemeProvider>);
+it('keeps the Bakaroo logo on the authentication frame', async () => {
+  render(<ThemeProvider><AuthFrame title="Welcome back" description="Sign in"><Text>Login fields</Text></AuthFrame><AppearanceLoadedProbe /></ThemeProvider>);
+  await waitForAppearanceLoad();
   expect(screen.getByLabelText('Bakaroo Transport logo')).toBeTruthy();
   expect(screen.queryByText('Blue Harbor Mobility')).toBeNull();
 });

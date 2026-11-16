@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { PageCard } from "../../../shared/components/PageCard";
+import { AppearancePreferenceCard } from "../../../shared/components/AppearancePreferenceCard";
 import { SectionHeader } from "../../../shared/components/SectionHeader";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { formatDateTime } from "../../../shared/utils/format";
@@ -376,6 +377,7 @@ export function RiderGuardianPortalProfilePage() {
           </Typography>
         </Stack>
       </PageCard>
+      <AppearancePreferenceCard />
       <PageCard>
         <Stack spacing={2}>
           <Typography variant="h5">Linked riders</Typography>

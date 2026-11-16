@@ -51,7 +51,7 @@ export function RecentActivityList({
           <List disablePadding>
             {items.map((item, index) => (
               <div key={item.id}>
-                <ListItem disableGutters sx={{ py: 1.25, px: 1, borderRadius: 1, "&:hover": { bgcolor: "#f7fafb" } }}>
+                <ListItem disableGutters sx={{ py: 1.25, px: 1, borderRadius: 1, "&:hover": { bgcolor: "action.hover" } }}>
                   <ListItemText
                     primary={item.summary}
                     primaryTypographyProps={{ fontWeight: 700, sx: { mb: 0.4 } }}

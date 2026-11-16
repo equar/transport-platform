@@ -11,6 +11,7 @@ import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { useState } from "react";
 import { PageCard } from "../../../shared/components/PageCard";
+import { AppearancePreferenceCard } from "../../../shared/components/AppearancePreferenceCard";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { useAuth } from "../context/AuthContext";
 import { authApi } from "../api/authApi";
@@ -122,6 +123,8 @@ export function PlatformAdminProfilePage() {
           />
         </Stack>
       </PageCard>
+
+      <AppearancePreferenceCard />
 
       <PageCard>
         <Stack spacing={2}>

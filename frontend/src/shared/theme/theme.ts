@@ -1,9 +1,21 @@
-import { alpha, createTheme, darken, lighten } from '@mui/material/styles';
+import { alpha, createTheme, darken, getContrastRatio, lighten } from '@mui/material/styles';
 
 type Branding = { primaryColor?: string | null; secondaryColor?: string | null; accentColor?: string | null };
 const DEFAULT_PRIMARY = '#214e82';
 const DEFAULT_SECONDARY = '#12263e';
-const DEFAULT_ACCENT = '#d8662a';
+const DEFAULT_ACCENT = '#00796b';
+
+function readableColor(color: string, background: string, darkMode: boolean) {
+  let candidate = color;
+  for (let attempt = 0; attempt < 12 && getContrastRatio(candidate, background) < 4.5; attempt += 1) {
+    candidate = darkMode ? lighten(candidate, .1) : darken(candidate, .1);
+  }
+  return candidate;
+}
+
+function contrastText(color: string) {
+  return getContrastRatio(color, '#000') >= getContrastRatio(color, '#fff') ? '#000' : '#fff';
+}
 
 function sanitizeColor(value: string | null | undefined, fallback: string) {
   if (!value) return fallback;
@@ -20,20 +32,40 @@ function normalizeBranding(branding?: Branding | null) {
   };
 }
 
-export function createAppTheme(branding?: Branding | null, experience: 'public' | 'admin' = 'admin') {
+export function createAppTheme(
+  branding?: Branding | null,
+  experience: 'public' | 'admin' = 'admin',
+  mode: 'light' | 'dark' = 'light',
+) {
   const publicSite = experience === 'public';
+  const darkMode = mode === 'dark' && !publicSite;
   const resolved = publicSite ? null : normalizeBranding(branding);
-  const primary = publicSite ? '#bc4710' : resolved?.primaryColor || DEFAULT_PRIMARY;
-  const secondary = publicSite ? '#12263e' : resolved?.secondaryColor || DEFAULT_SECONDARY;
-  const accent = publicSite ? '#d8662a' : resolved?.accentColor || DEFAULT_ACCENT;
+  const rawPrimary = publicSite ? '#00796b' : resolved?.primaryColor || DEFAULT_PRIMARY;
+  const rawSecondary = publicSite ? '#12263e' : resolved?.secondaryColor || DEFAULT_SECONDARY;
+  const rawAccent = publicSite ? DEFAULT_ACCENT : resolved?.accentColor || DEFAULT_ACCENT;
+  const backgroundDefault = darkMode ? '#111a23' : publicSite ? '#faf9f6' : lighten(rawPrimary, .96);
+  const backgroundPaper = darkMode ? '#1b2733' : '#fff';
+  const primary = readableColor(rawPrimary, backgroundPaper, darkMode);
+  const secondary = readableColor(rawSecondary, backgroundPaper, darkMode);
+  const accent = readableColor(rawAccent, backgroundPaper, darkMode);
+  const textPrimary = darkMode ? '#edf3f8' : '#172b40';
+  const textSecondary = darkMode ? '#b1bfcc' : '#626f80';
+  const divider = darkMode ? '#354452' : '#e4e8ed';
+  const subtleBackground = darkMode ? '#202e3a' : '#f8fafc';
+  const hoverBackground = darkMode ? '#243340' : '#fafbfd';
+  const controlBorder = darkMode ? '#506171' : '#d8dfe7';
   return createTheme({
     palette: {
-      primary: { main: primary, dark: darken(primary, .22), light: lighten(primary, .88), contrastText: '#fff' },
-      secondary: { main: secondary, light: lighten(secondary, .90), contrastText: '#fff' },
-      background: { default: publicSite ? '#faf9f6' : lighten(primary, .96), paper: '#fff' },
-      text: { primary: '#172b40', secondary: '#667384' },
-      divider: '#e4e8ed',
-      success: { main: '#197357' }, warning: { main: '#9e6612' },
+      mode: darkMode ? 'dark' : 'light',
+      primary: { main: primary, dark: darken(primary, .22), light: lighten(primary, .88), contrastText: contrastText(primary) },
+      secondary: { main: secondary, dark: rawSecondary, light: lighten(rawSecondary, .90), contrastText: contrastText(secondary) },
+      background: { default: backgroundDefault, paper: backgroundPaper },
+      text: { primary: textPrimary, secondary: textSecondary },
+      divider,
+      success: { main: darkMode ? '#7fdbb7' : '#116149', contrastText: darkMode ? '#111a23' : '#fff' },
+      warning: { main: darkMode ? '#ffd180' : '#755200', contrastText: darkMode ? '#111a23' : '#fff' },
+      error: { main: darkMode ? '#ffb4ab' : '#b42318', contrastText: darkMode ? '#111a23' : '#fff' },
+      info: { main: darkMode ? '#90caf9' : '#004787', contrastText: darkMode ? '#111a23' : '#fff' },
     },
     spacing: 8,
     shape: { borderRadius: 10 },
@@ -57,19 +89,19 @@ export function createAppTheme(branding?: Branding | null, experience: 'public' 
       MuiCssBaseline: { styleOverrides: {
         body: { backgroundImage: 'none', WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' },
         '*': { boxSizing: 'border-box', scrollbarWidth: 'thin', scrollbarColor: '#bdc6d1 transparent' },
-        '::selection': { background: alpha(accent, .20), color: '#172b40' },
+        '::selection': { background: alpha(accent, .20), color: textPrimary },
         'a:focus-visible, button:focus-visible': { outline: `3px solid ${accent}`, outlineOffset: 4 },
         '@media (prefers-reduced-motion: reduce)': { '*': { animation: 'none !important', transition: 'none !important', scrollBehavior: 'auto !important' } },
       } },
       MuiPaper: { defaultProps: { elevation: 0 }, styleOverrides: { root: { backgroundImage: 'none' } } },
       MuiButton: { defaultProps: { disableElevation: true }, styleOverrides: {
         root: { borderRadius: publicSite ? 8 : 7, minHeight: 42, padding: '9px 18px', boxShadow: 'none', transition: 'background-color .2s, border-color .2s, transform .2s' },
-        sizeLarge: { minHeight: 50, padding: '12px 24px' }, outlined: { borderColor: '#d4dbe3' },
+        sizeLarge: { minHeight: 50, padding: '12px 24px' }, outlined: { borderColor: divider },
       } },
       MuiIconButton: { styleOverrides: { root: { borderRadius: 8 } } },
       MuiTextField: { defaultProps: { fullWidth: true } },
       MuiOutlinedInput: { styleOverrides: {
-        root: { borderRadius: 8, backgroundColor: '#fff', fontSize: '.9rem', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#d8dfe7' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#9aaabc' } },
+        root: { borderRadius: 8, backgroundColor: backgroundPaper, fontSize: '.9rem', '& .MuiOutlinedInput-notchedOutline': { borderColor: controlBorder }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: darkMode ? '#90a5b8' : '#9aaabc' } },
         input: { padding: '14px 14px' },
       } },
       MuiInputLabel: { styleOverrides: { root: { fontSize: '.9rem' } } },
@@ -77,14 +109,14 @@ export function createAppTheme(branding?: Branding | null, experience: 'public' 
       MuiToolbar: { styleOverrides: { root: { minHeight: '72px !important' } } },
       MuiChip: { styleOverrides: { root: { borderRadius: 6, height: 26, fontSize: '.72rem', fontWeight: 600 } } },
       MuiTableCell: { styleOverrides: {
-        root: { padding: '14px 20px', borderColor: '#edf0f3', fontSize: '.825rem' },
-        head: { background: '#f8fafc', color: '#667384', fontSize: '.67rem', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', whiteSpace: 'nowrap' },
+        root: { padding: '14px 20px', borderColor: divider, fontSize: '.825rem' },
+        head: { background: subtleBackground, color: textSecondary, fontSize: '.67rem', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', whiteSpace: 'nowrap' },
       } },
-      MuiTableRow: { styleOverrides: { root: { '&:last-child td': { borderBottom: 0 }, '&:hover': { backgroundColor: '#fafbfd' } } } },
-      MuiDialog: { styleOverrides: { paper: { borderRadius: 14, boxShadow: '0 24px 90px #13263e26' } } },
-      MuiDialogTitle: { styleOverrides: { root: { padding: '22px 24px', fontSize: '1.1rem', borderBottom: '1px solid #edf0f3' } } },
-      MuiDialogActions: { styleOverrides: { root: { padding: '16px 24px', borderTop: '1px solid #edf0f3' } } },
-      MuiMenu: { styleOverrides: { paper: { border: '1px solid #e4e8ed', boxShadow: '0 12px 40px #172b4014', borderRadius: 10, marginTop: 8 } } },
+      MuiTableRow: { styleOverrides: { root: { '&:last-child td': { borderBottom: 0 }, '&:hover': { backgroundColor: hoverBackground } } } },
+      MuiDialog: { styleOverrides: { paper: { borderRadius: 14, boxShadow: darkMode ? '0 24px 90px #00000066' : '0 24px 90px #13263e26' } } },
+      MuiDialogTitle: { styleOverrides: { root: { padding: '22px 24px', fontSize: '1.1rem', borderBottom: `1px solid ${divider}` } } },
+      MuiDialogActions: { styleOverrides: { root: { padding: '16px 24px', borderTop: `1px solid ${divider}` } } },
+      MuiMenu: { styleOverrides: { paper: { border: `1px solid ${divider}`, boxShadow: darkMode ? '0 12px 40px #00000040' : '0 12px 40px #172b4014', borderRadius: 10, marginTop: 8 } } },
       MuiMenuItem: { styleOverrides: { root: { fontSize: '.85rem', minHeight: 42 } } },
       MuiAlert: { styleOverrides: { root: { borderRadius: 8 } } },
       MuiTabs: { styleOverrides: { indicator: { height: 3, borderRadius: 3 } } },
