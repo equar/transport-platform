@@ -2,6 +2,7 @@ module.exports = {
   preset: 'jest-expo',
   watchman: false,
   testMatch: ['<rootDir>/src/**/*.test.{ts,tsx}'],
+  setupFilesAfterEnv: ['<rootDir>/src/test/jestSetup.js'],
   moduleNameMapper: {
     '^react-native-maps$': '<rootDir>/src/test/mocks/react-native-maps.tsx',
     '^@theme/(.*)$': '<rootDir>/src/theme/$1',
