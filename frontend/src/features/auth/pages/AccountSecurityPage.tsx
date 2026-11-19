@@ -2,6 +2,7 @@ import { AuthenticatorCard } from '../components/AuthenticatorCard';
 import { Stack, Typography } from "@mui/material";
 import { PageCard } from "../../../shared/components/PageCard";
 import { PasswordChangeCard } from "../components/PasswordChangeCard";
+import { AppearancePreferenceCard } from "../../../shared/components/AppearancePreferenceCard";
 
 export function AccountSecurityPage() {
   return (
@@ -14,6 +15,7 @@ export function AccountSecurityPage() {
           </Typography>
         </Stack>
       </PageCard>
+      <AppearancePreferenceCard />
       <PasswordChangeCard />
       <AuthenticatorCard />
     </Stack>

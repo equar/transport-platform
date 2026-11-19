@@ -132,7 +132,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   segmentLabelSelected: {
-    color: colors.secondaryDark,
+    color: colors.onAccent,
   },
   card: {
     marginHorizontal: 0,

@@ -3,7 +3,7 @@ import { Text } from 'react-native';
 import * as ReactNative from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ThemeProvider, useBrandingColors, appTheme, resolvePaperPalette, useAppearancePreference } from './ThemeProvider';
+import { ThemeProvider, useBrandingColors, appTheme, paperTheme, resolvePaperPalette, useAppearancePreference } from './ThemeProvider';
 import { RoleShell } from '@components/RoleShell';
 import { AuthFrame } from '@components/AuthFrame';
 import { DarkColors, LightColors } from './tokens';
@@ -109,6 +109,11 @@ it('keeps theme text, badges, and action labels readable in both palettes', () =
     }
   }
 });
+it('uses a readable foreground for the dark segmented-button selection', () => {
+  const colors = paperTheme(DarkColors, true).colors;
+  expect(colors.onSecondaryContainer).toBe(DarkColors.secondary);
+  expect(contrastRatio(colors.onSecondaryContainer, colors.secondaryContainer)).toBeGreaterThanOrEqual(4.5);
+});
 it('persists and applies a selected appearance preference', async () => {
   render(<ThemeProvider><AppearanceProbe /><AppearanceLoadedProbe /></ThemeProvider>);
   await waitForAppearanceLoad();
@@ -118,6 +123,41 @@ it('persists and applies a selected appearance preference', async () => {
 
   await waitFor(() => expect(screen.getByText('dark|dark')).toBeTruthy());
   expect(AsyncStorage.setItem).toHaveBeenCalledWith('transport-platform.appearance', 'dark');
+});
+it('serializes appearance saves and rolls back to the last saved value after consecutive failures', async () => {
+  let rejectFirst!: (error: Error) => void;
+  let rejectSecond!: (error: Error) => void;
+  (AsyncStorage.setItem as jest.Mock).mockClear();
+  (AsyncStorage.setItem as jest.Mock)
+    .mockImplementationOnce(() => new Promise<void>((_resolve, reject) => {
+      rejectFirst = reject;
+    }))
+    .mockImplementationOnce(() => new Promise<void>((_resolve, reject) => {
+      rejectSecond = reject;
+    }));
+
+  function SaveProbe() {
+    const { preference, setPreference } = useAppearancePreference();
+    return (
+      <>
+        <Text onPress={() => void setPreference('dark').catch(() => undefined)}>Choose dark</Text>
+        <Text onPress={() => void setPreference('light').catch(() => undefined)}>Choose light</Text>
+        <Text testID="selected-preference">{preference}</Text>
+      </>
+    );
+  }
+
+  render(<ThemeProvider><SaveProbe /><AppearanceLoadedProbe /></ThemeProvider>);
+  await waitForAppearanceLoad();
+  fireEvent.press(screen.getByText('Choose dark'));
+  fireEvent.press(screen.getByText('Choose light'));
+  expect(screen.getByTestId('selected-preference').props.children).toBe('light');
+  await waitFor(() => expect(AsyncStorage.setItem).toHaveBeenCalledTimes(1));
+
+  rejectFirst(new Error('first save failed'));
+  await waitFor(() => expect(AsyncStorage.setItem).toHaveBeenCalledTimes(2));
+  rejectSecond(new Error('second save failed'));
+  await waitFor(() => expect(screen.getByTestId('selected-preference').props.children).toBe('system'));
 });
 it('shows the current page title on signed-in subpages', async () => {
   mockPage = 'rides'; render(<App />);

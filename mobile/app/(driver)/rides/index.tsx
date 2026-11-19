@@ -172,7 +172,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   segmentLabelSelected: {
-    color: colors.secondaryDark,
+    color: colors.onAccent,
   },
   headerMeta: {
     marginTop: Spacing.sm,

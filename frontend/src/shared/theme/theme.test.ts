@@ -31,6 +31,8 @@ it('keeps text, semantic states, and branded controls readable in light and dark
         expect(getContrastRatio(color, background)).toBeGreaterThanOrEqual(4.5);
       }
     }
+    expect(getContrastRatio(theme.palette.primary.main, theme.palette.primary.light)).toBeGreaterThanOrEqual(4.5);
+    expect(getContrastRatio(theme.palette.primary.dark, theme.palette.background.paper)).toBeGreaterThanOrEqual(4.5);
     for (const color of [theme.palette.primary, theme.palette.secondary, theme.palette.success,
       theme.palette.warning, theme.palette.error, theme.palette.info]) {
       expect(getContrastRatio(color.contrastText, color.main)).toBeGreaterThanOrEqual(4.5);

@@ -57,7 +57,7 @@ export function createAppTheme(
   return createTheme({
     palette: {
       mode: darkMode ? 'dark' : 'light',
-      primary: { main: primary, dark: darken(primary, .22), light: lighten(primary, .88), contrastText: contrastText(primary) },
+      primary: { main: primary, dark: darkMode ? primary : darken(primary, .22), light: darkMode ? darken(primary, .72) : lighten(primary, .85), contrastText: contrastText(primary) },
       secondary: { main: secondary, dark: rawSecondary, light: lighten(rawSecondary, .90), contrastText: contrastText(secondary) },
       background: { default: backgroundDefault, paper: backgroundPaper },
       text: { primary: textPrimary, secondary: textSecondary },
