@@ -7,14 +7,10 @@
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "transport",
-    "splash": {
-      "image": "./src/assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0f4c5c"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.bakaroo.transport.app",
+      "appleTeamId": "5YW3888543",
       "infoPlist": {
         "NSCameraUsageDescription": "Upload compliance documents.",
         "NSLocationWhenInUseUsageDescription": "Show your location on the route map.",
@@ -54,6 +50,15 @@
       "expo-secure-store",
       "expo-asset",
       "expo-system-ui",
+      "expo-image",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./src/assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0f4c5c"
+        }
+      ],
       [
         "expo-notifications",
         {

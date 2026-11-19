@@ -1,12 +1,13 @@
 # Mobile installation
 
-The native application uses Expo SDK 52 with checked-in Android and iOS projects. Run commands from `mobile/`.
+The mobile app uses Expo SDK 57. Android and iOS native projects are generated
+with Expo prebuild and are ignored by Git. Run commands from `mobile/`.
 
 ## Prerequisites
 
-- Node.js 20 or newer
+- Node.js 20.19+, 22.13+, or 24+
 - Backend running on port 8082
-- Android: Android Studio, SDK 35, platform tools, an emulator or USB-debug-enabled device, and JDK 17 or 21
+- Android: Android Studio, SDK 35, platform tools, an emulator or USB-debug-enabled device, and JDK 17
 - iOS: macOS, Xcode, CocoaPods, and an installed simulator runtime
 - Physical iOS: Apple Development signing identity, Team ID, trusted device, and Developer Mode
 
@@ -16,7 +17,7 @@ Check the local toolchains:
 npm run setup:check
 ```
 
-Install dependencies and compile native projects:
+Install dependencies and generate native projects:
 
 For a clean JavaScript install, run `npm ci` from `mobile/`. The checked-in
 `.npmrc` enables `legacy-peer-deps`, matching the resolution used for the
@@ -24,6 +25,8 @@ lockfile and native setup scripts. Keep this configuration with the lockfile
 so local installs and GitHub Actions use the same dependency tree.
 
 ```bash
+npx expo prebuild --platform ios
+npx expo prebuild --platform android
 npm run setup:android
 npm run setup:ios
 ```
@@ -229,7 +232,38 @@ Or against the deployed AWS backend:
 DEVELOPMENT_TEAM=YOUR_TEAM_ID npm run ios:device -- --env aws
 ```
 
-Set `IOS_DEVICE_UDID` if automatic selection does not choose the intended device. Xcode manages development provisioning automatically. App Store/TestFlight distribution still requires an Archive with the correct distribution profile.
+Set `IOS_DEVICE_UDID` if automatic selection does not choose the intended device. Xcode manages development provisioning automatically.
+
+## App Store Connect and TestFlight
+
+The generated Xcode project uses automatic signing: Debug uses an Apple
+Development identity and Release uses Apple Distribution, with the team ID
+configured in `app.json`. To prepare a store build:
+
+1. Generate the native project and install pods:
+
+   ```bash
+   npx expo prebuild --platform ios
+   npm run setup:ios
+   ```
+2. Open `ios/TransportPlatform.xcworkspace` in Xcode and select the
+   `TransportPlatform` scheme.
+3. In Xcode's **Signing & Capabilities** tab, confirm **Automatically manage
+   signing** is enabled and the correct Apple Developer team is selected for
+   bundle ID `com.bakaroo.transport.app`. Xcode must be able to create or use
+   the App Store provisioning profile and required capabilities (including
+   Push Notifications if used). Override the configured team for a different
+   account with `EXPO_APPLE_TEAM_ID` before running prebuild.
+4. Create an App Store Connect app record with that exact bundle ID, then
+   choose **Product > Archive** in Xcode and upload the archive through
+   Organizer.
+5. Before each upload, increment the iOS build number. Complete App Store
+   Connect privacy disclosures, support/privacy URLs, age rating, and required
+   screenshots before submitting for review.
+
+The location permission strings and background-location mode are configured
+for active-trip driver tracking. App Review notes and the App Store privacy
+disclosures should describe that behavior and the app's actual data handling.
 
 ## Local HTTP networking
 

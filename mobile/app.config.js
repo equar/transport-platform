@@ -1,4 +1,5 @@
 const { expo } = require('./app.json');
+const withIosAutomaticSigning = require('./plugins/withIosAutomaticSigning');
 const fs = require('fs');
 const path = require('path');
 
@@ -95,6 +96,11 @@ module.exports = () => {
       ? 'true'
       : 'false';
   const projectId = getExpoProjectId();
+  const appleTeamId = (
+    process.env.EXPO_APPLE_TEAM_ID ||
+    expo.ios?.appleTeamId ||
+    ''
+  ).trim();
   const androidGoogleServicesFile = resolveAndroidGoogleServicesFile();
   const iosGoogleServicesFile = resolveIosGoogleServicesFile();
 
@@ -102,6 +108,7 @@ module.exports = () => {
     ...expo,
     ios: {
       ...(expo.ios || {}),
+      ...(appleTeamId ? { appleTeamId } : {}),
       ...(iosGoogleServicesFile
         ? { googleServicesFile: iosGoogleServicesFile }
         : {}),
@@ -123,6 +130,7 @@ module.exports = () => {
             },
           ]]
         : []),
+      withIosAutomaticSigning,
     ],
     extra: {
       ...(expo.extra || {}),
