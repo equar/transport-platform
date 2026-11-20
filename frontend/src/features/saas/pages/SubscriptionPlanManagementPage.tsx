@@ -194,7 +194,7 @@ export function SubscriptionPlanManagementPage() {
     <Stack spacing={3}>
       <SectionHeader
         title="Subscription Plans"
-        description="Commercial packaging for tenant entitlements, usage limits, and future billing readiness."
+        description="Manage company entitlements and usage limits. Per-driver USD billing rates are configured separately in Subscription Billing; the flat plan prices below are not invoiced by that engine."
       >
         <Button
           startIcon={<AddRoundedIcon />}

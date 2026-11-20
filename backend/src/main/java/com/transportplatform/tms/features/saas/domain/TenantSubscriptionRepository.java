@@ -20,6 +20,8 @@ public interface TenantSubscriptionRepository
 
     boolean existsByTenant_IdAndStatusIn(String tenantId, Collection<TenantSubscriptionStatus> statuses);
 
+    boolean existsByTenant_Id(String tenantId);
+
     long countByStatus(TenantSubscriptionStatus status);
 
     List<TenantSubscription> findAllByStatusIn(Collection<TenantSubscriptionStatus> statuses);

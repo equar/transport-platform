@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface SubscriptionPlanRepository
         extends JpaRepository<SubscriptionPlan, Long>, JpaSpecificationExecutor<SubscriptionPlan> {
 
+    Optional<SubscriptionPlan> findByPlanCodeIgnoreCase(String planCode);
+
     boolean existsByPlanCodeIgnoreCase(String planCode);
 
     boolean existsByPlanCodeIgnoreCaseAndIdNot(String planCode, Long id);

@@ -220,7 +220,7 @@ export function TenantSubscriptionManagementPage() {
     <Stack spacing={3}>
       <SectionHeader
         title="Tenant Subscriptions"
-        description="Assign commercial plans to tenants, manage trials, and control lifecycle transitions without breaking tenant isolation."
+        description="Assign company plans and manage trials and lifecycle transitions. Configure per-driver USD rates and scheduled invoicing in Subscription Billing."
       >
         <Button
           startIcon={<AddRoundedIcon />}
@@ -288,7 +288,7 @@ export function TenantSubscriptionManagementPage() {
       {!loading && !error && items.length === 0 ? (
         <EmptyState
           title="No tenant subscriptions found"
-          description="Assign plans to tenants to enable SaaS packaging, trials, and future billing controls."
+          description="Assign a plan to create a subscription, then configure its per-driver rate in Subscription Billing."
         />
       ) : null}
 

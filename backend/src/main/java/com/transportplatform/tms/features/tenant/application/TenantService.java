@@ -7,6 +7,7 @@ import com.transportplatform.tms.features.audit.application.AuditLogCommand;
 import com.transportplatform.tms.features.audit.application.AuditLogService;
 import com.transportplatform.tms.features.auth.application.AuthSessionService;
 import com.transportplatform.tms.features.tenant.api.request.TenantUpsertRequest;
+import com.transportplatform.tms.features.subscriptionbilling.application.SubscriptionProvisioningService;
 import com.transportplatform.tms.features.tenant.api.response.TenantResponse;
 import com.transportplatform.tms.features.tenant.domain.Tenant;
 import com.transportplatform.tms.features.tenant.domain.TenantRepository;
@@ -21,15 +22,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class TenantService {
 
+    private final SubscriptionProvisioningService subscriptions;
     private final TenantRepository tenantRepository;
     private final TenantMapper tenantMapper;
     private final AuditLogService auditLogService;
     private final TenantResourceProvisioningService tenantResourceProvisioningService;
-        private final AuthSessionService authSessionService;
+    private final AuthSessionService authSessionService;
 
     public TenantService(TenantRepository tenantRepository, TenantMapper tenantMapper,
             AuditLogService auditLogService, TenantResourceProvisioningService tenantResourceProvisioningService,
-            AuthSessionService authSessionService) {
+            AuthSessionService authSessionService, SubscriptionProvisioningService subscriptions) {
+        this.subscriptions = subscriptions;
         this.tenantRepository = tenantRepository;
         this.tenantMapper = tenantMapper;
         this.auditLogService = auditLogService;
@@ -59,6 +62,7 @@ public class TenantService {
         tenantMapper.apply(tenant, request);
         Tenant saved = tenantRepository.save(tenant);
         tenantResourceProvisioningService.initialize(saved.getId());
+        subscriptions.provision(saved);
         auditLogService.record(new AuditLogCommand(
                 null,
                 saved.getId(),
@@ -138,6 +142,7 @@ public class TenantService {
     public Tenant createFromApplication(Tenant tenant) {
         Tenant saved = tenantRepository.save(tenant);
         tenantResourceProvisioningService.initialize(saved.getId());
+        subscriptions.provision(saved);
         return saved;
     }
 

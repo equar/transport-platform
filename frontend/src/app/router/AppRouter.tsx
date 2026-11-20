@@ -56,6 +56,7 @@ const AccountSecurityPage = lazyPage(
   () => import("../../features/auth/pages/AccountSecurityPage"),
   "AccountSecurityPage",
 );
+const SubscriptionBillingPage = lazyPage(() => import("../../features/subscription-billing/pages/SubscriptionBillingPage"), "SubscriptionBillingPage");
 const DashboardPage = lazyPage(
   () => import("../../features/dashboard/pages/DashboardPage"),
   "DashboardPage",
@@ -427,6 +428,10 @@ const router = createBrowserRouter([
         element: <SubscriptionPlanManagementPage />,
       },
       {
+        path: "subscription-billing",
+        element: <SubscriptionBillingPage />,
+      },
+      {
         path: "tenant-subscriptions",
         element: <TenantSubscriptionManagementPage />,
       },
@@ -502,6 +507,10 @@ const router = createBrowserRouter([
       {
         path: "settings",
         element: <CompanySettingsPage />,
+      },
+      {
+        path: "subscription-billing",
+        element: <SubscriptionBillingPage />,
       },
       {
         path: "riders",

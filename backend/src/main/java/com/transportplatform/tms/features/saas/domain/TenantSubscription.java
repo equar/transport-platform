@@ -15,6 +15,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 
+@jakarta.persistence.EntityListeners(com.transportplatform.tms.features.subscriptionbilling.application.SubscriptionBillingAccountListener.class)
 @Entity
 @Table(name = "tenant_subscriptions")
 public class TenantSubscription extends AuditableEntity {
