@@ -67,13 +67,17 @@ export function PlatformAdminProfilePage() {
         typeof caughtError === "object" &&
         caughtError !== null &&
         "response" in caughtError &&
-        typeof (caughtError as {
-          response?: { data?: { error?: { message?: string } } };
-        }).response?.data?.error?.message === "string"
-          ? (caughtError as {
-              response?: { data?: { error?: { message?: string } } };
-            }).response?.data?.error?.message ??
-            "Password could not be updated."
+        typeof (
+          caughtError as {
+            response?: { data?: { error?: { message?: string } } };
+          }
+        ).response?.data?.error?.message === "string"
+          ? ((
+              caughtError as {
+                response?: { data?: { error?: { message?: string } } };
+              }
+            ).response?.data?.error?.message ??
+            "Password could not be updated.")
           : "Password could not be updated.";
       setError(message);
       showError(message);
@@ -104,7 +108,9 @@ export function PlatformAdminProfilePage() {
             value={
               [session?.identity.firstName, session?.identity.lastName]
                 .filter(Boolean)
-                .join(" ") || session?.identity.email || ""
+                .join(" ") ||
+              session?.identity.email ||
+              ""
             }
             disabled
             fullWidth
@@ -127,7 +133,22 @@ export function PlatformAdminProfilePage() {
       <AppearancePreferenceCard />
 
       <PageCard>
-        <Stack spacing={2}>
+        <Stack
+          spacing={2}
+          component="form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!saving) void handlePasswordUpdate();
+          }}
+        >
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            value={session?.identity.email ?? ""}
+            readOnly
+            hidden
+          />
           <Typography variant="h5">Update password</Typography>
           <Typography color="text.secondary">
             Use your current password to set a new password for this platform
@@ -135,6 +156,8 @@ export function PlatformAdminProfilePage() {
           </Typography>
           <TextField
             label="Current Password"
+            name="currentPassword"
+            autoComplete="current-password"
             type={currentPasswordVisible ? "text" : "password"}
             value={currentPassword}
             onChange={(event) => setCurrentPassword(event.target.value)}
@@ -167,6 +190,8 @@ export function PlatformAdminProfilePage() {
           />
           <TextField
             label="New Password"
+            name="newPassword"
+            autoComplete="new-password"
             type={newPasswordVisible ? "text" : "password"}
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
@@ -183,7 +208,9 @@ export function PlatformAdminProfilePage() {
                           : "Show new password"
                       }
                       edge="end"
-                      onClick={() => setNewPasswordVisible((current) => !current)}
+                      onClick={() =>
+                        setNewPasswordVisible((current) => !current)
+                      }
                     >
                       {newPasswordVisible ? (
                         <VisibilityOffRoundedIcon />
@@ -198,6 +225,8 @@ export function PlatformAdminProfilePage() {
           />
           <TextField
             label="Confirm New Password"
+            name="confirmPassword"
+            autoComplete="new-password"
             type={confirmPasswordVisible ? "text" : "password"}
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
@@ -229,11 +258,7 @@ export function PlatformAdminProfilePage() {
             }}
           />
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            <Button
-              variant="contained"
-              onClick={handlePasswordUpdate}
-              disabled={saving}
-            >
+            <Button variant="contained" type="submit" disabled={saving}>
               {saving ? "Updating password..." : "Update password"}
             </Button>
           </Stack>

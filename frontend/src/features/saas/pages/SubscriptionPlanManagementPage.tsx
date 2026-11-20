@@ -4,6 +4,7 @@ import PauseCircleRoundedIcon from "@mui/icons-material/PauseCircleRounded";
 import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import ArchiveRoundedIcon from "@mui/icons-material/ArchiveRounded";
 import {
+  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -36,6 +37,7 @@ import {
   saasAdminApi,
   type SubscriptionPlanPayload,
   type SubscriptionPlanRecord,
+  type SubscriptionPlanSummary,
 } from "../api/saasAdminApi";
 import { getApiErrorMessage } from "../../../shared/api/client";
 
@@ -63,7 +65,7 @@ function createEmptyPlan(): SubscriptionPlanPayload {
 
 export function SubscriptionPlanManagementPage() {
   const { showError, showSuccess } = useToast();
-  const [items, setItems] = useState<SubscriptionPlanRecord[]>([]);
+  const [items, setItems] = useState<SubscriptionPlanSummary[]>([]);
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("");
   const [tier, setTier] = useState("");
@@ -77,13 +79,15 @@ export function SubscriptionPlanManagementPage() {
     useState<SubscriptionPlanRecord | null>(null);
   const [form, setForm] = useState<SubscriptionPlanPayload>(createEmptyPlan());
   const [featureCodesText, setFeatureCodesText] = useState("");
-  const [actionPlan, setActionPlan] = useState<SubscriptionPlanRecord | null>(
+  const [actionPlan, setActionPlan] = useState<SubscriptionPlanSummary | null>(
     null,
   );
   const [actionType, setActionType] = useState<
     "activate" | "deactivate" | "retire" | null
   >(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   async function loadPlans() {
     setLoading(true);
@@ -99,7 +103,12 @@ export function SubscriptionPlanManagementPage() {
       setItems(response.items);
       setTotal(response.totalElements);
     } catch (_caughtError) {
-      setError(getApiErrorMessage(_caughtError, "Subscription plans could not be loaded."));
+      setError(
+        getApiErrorMessage(
+          _caughtError,
+          "Subscription plans could not be loaded.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -116,26 +125,40 @@ export function SubscriptionPlanManagementPage() {
     setDialogOpen(true);
   }
 
-  function openEditDialog(plan: SubscriptionPlanRecord) {
-    setSelectedPlan(plan);
-    setForm({
-      planCode: plan.planCode,
-      name: plan.name,
-      description: plan.description ?? "",
-      tier: plan.tier,
-      monthlyPrice: plan.monthlyPrice,
-      annualPrice: plan.annualPrice,
-      currency: plan.currency,
-      maxUsers: plan.maxUsers,
-      maxDrivers: plan.maxDrivers,
-      maxVehicles: plan.maxVehicles,
-      maxRiders: plan.maxRiders,
-      maxOrganizations: plan.maxOrganizations,
-      includedFeatureCodes: plan.includedFeatureCodes,
-      notes: plan.notes ?? "",
-    });
-    setFeatureCodesText(plan.includedFeatureCodes.join(", "));
-    setDialogOpen(true);
+  async function openEditDialog(summary: SubscriptionPlanSummary) {
+    setEditLoading(true);
+    setEditError(null);
+    try {
+      const plan = await saasAdminApi.getSubscriptionPlan(summary.id);
+      setSelectedPlan(plan);
+      setForm({
+        planCode: plan.planCode,
+        name: plan.name,
+        description: plan.description ?? "",
+        tier: plan.tier,
+        monthlyPrice: plan.monthlyPrice,
+        annualPrice: plan.annualPrice,
+        currency: plan.currency,
+        maxUsers: plan.maxUsers,
+        maxDrivers: plan.maxDrivers,
+        maxVehicles: plan.maxVehicles,
+        maxRiders: plan.maxRiders,
+        maxOrganizations: plan.maxOrganizations,
+        includedFeatureCodes: plan.includedFeatureCodes,
+        notes: plan.notes ?? "",
+      });
+      setFeatureCodesText((plan.includedFeatureCodes ?? []).join(", "));
+      setDialogOpen(true);
+    } catch (cause) {
+      setEditError(
+        getApiErrorMessage(
+          cause,
+          "The full subscription plan could not be loaded. Please retry.",
+        ),
+      );
+    } finally {
+      setEditLoading(false);
+    }
   }
 
   async function handleSubmit() {
@@ -184,7 +207,10 @@ export function SubscriptionPlanManagementPage() {
       setActionType(null);
       await loadPlans();
     } catch (_caughtError) {
-      showError(_caughtError, "Subscription plan status change could not be completed.");
+      showError(
+        _caughtError,
+        "Subscription plan status change could not be completed.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -237,6 +263,11 @@ export function SubscriptionPlanManagementPage() {
         </TextField>
       </AdminFilterBar>
 
+      {editError ? (
+        <Alert severity="error" onClose={() => setEditError(null)}>
+          {editError}
+        </Alert>
+      ) : null}
       {loading ? <LoadingState /> : null}
       {error ? (
         <PageCard>
@@ -292,7 +323,7 @@ export function SubscriptionPlanManagementPage() {
                         Users {item.maxUsers} | Drivers {item.maxDrivers}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Vehicles {item.maxVehicles} | Riders {item.maxRiders}
+                        Vehicles {item.maxVehicles}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -302,7 +333,8 @@ export function SubscriptionPlanManagementPage() {
                     <TableCell align="right">
                       <TableActionButton
                         title="Edit plan"
-                        onClick={() => openEditDialog(item)}
+                        buttonProps={{ disabled: editLoading }}
+                        onClick={() => void openEditDialog(item)}
                       >
                         <EditRoundedIcon />
                       </TableActionButton>
