@@ -1,24 +1,20 @@
 import { apiClient, unwrapResponse } from "../../../shared/api/client";
 import type { PageResponse } from "../../../shared/api/types";
 
-export type RideStatus = NonNullable<import("../../../shared/api/generated/contracts").RideResponse["status"]>;
+export type RideStatus = NonNullable<
+  import("../../../shared/api/generated/contracts").RideResponse["status"]
+>;
 
 export type RideTripType = "ONE_WAY" | "ROUND_TRIP";
 export type RidePriorityLevel = "LOW" | "STANDARD" | "HIGH" | "URGENT";
 export type RideBillingType =
-  | "CONTRACT"
-  | "PRIVATE_PAY"
-  | "SPONSORED"
-  | "INTERNAL"
-  | "OTHER";
-export type ServiceType = NonNullable<import("../../../shared/api/generated/contracts").RideResponse["serviceType"]>;
+  "CONTRACT" | "PRIVATE_PAY" | "SPONSORED" | "INTERNAL" | "OTHER";
+export type ServiceType = NonNullable<
+  import("../../../shared/api/generated/contracts").RideResponse["serviceType"]
+>;
 export type RideRecurrencePatternType = "DAILY" | "WEEKLY" | "CUSTOM";
 export type RideRecurrenceStatus =
-  | "DRAFT"
-  | "ACTIVE"
-  | "PAUSED"
-  | "INACTIVE"
-  | "COMPLETED";
+  "DRAFT" | "ACTIVE" | "PAUSED" | "INACTIVE" | "COMPLETED";
 export type RideDayOfWeek =
   | "MONDAY"
   | "TUESDAY"
@@ -393,6 +389,17 @@ export const dayOfWeekOptions: RideDayOfWeek[] = [
 ];
 
 export const ridesApi = {
+  async history(
+    subjectType: string,
+    subjectId: number,
+    page: number,
+    size: number,
+  ) {
+    const response = await apiClient.get("/company/ride-history", {
+      params: { subjectType, subjectId, page, size },
+    });
+    return unwrapResponse<PageResponse<RideRecord>>(response.data);
+  },
   async search(params: RideSearchParams) {
     const response = await apiClient.get("/company/rides", {
       params: {
@@ -422,7 +429,9 @@ export const ridesApi = {
     return unwrapResponse<RideRecord>(response.data);
   },
   async getLocationSnapshot(rideId: number) {
-    const response = await apiClient.get(`/company/rides/${rideId}/location-snapshot`);
+    const response = await apiClient.get(
+      `/company/rides/${rideId}/location-snapshot`,
+    );
     return unwrapResponse<RideLocationSnapshotRecord | null>(response.data);
   },
   async create(payload: RidePayload) {
@@ -430,10 +439,14 @@ export const ridesApi = {
     return unwrapResponse<RideRecord>(response.data);
   },
   async splitRoundTrip(rideId: number) {
-    return unwrapResponse<RideRecord>((await apiClient.post(`/company/rides/${rideId}/split-round-trip`)).data);
+    return unwrapResponse<RideRecord>(
+      (await apiClient.post(`/company/rides/${rideId}/split-round-trip`)).data,
+    );
   },
   async update(rideId: number, payload: RidePayload) {
-    const response = await apiClient.put(`/company/rides/${rideId}`, payload, { headers: { "If-Match": payload.expectedVersion } });
+    const response = await apiClient.put(`/company/rides/${rideId}`, payload, {
+      headers: { "If-Match": payload.expectedVersion },
+    });
     return unwrapResponse<RideRecord>(response.data);
   },
   async request(rideId: number) {
@@ -449,11 +462,15 @@ export const ridesApi = {
     return unwrapResponse<RideRecord>(response.data);
   },
   async markAssigned(rideId: number) {
-    const response = await apiClient.post(`/company/rides/${rideId}/mark-assigned`);
+    const response = await apiClient.post(
+      `/company/rides/${rideId}/mark-assigned`,
+    );
     return unwrapResponse<RideRecord>(response.data);
   },
   async markDriverEnRoute(rideId: number) {
-    const response = await apiClient.post(`/company/rides/${rideId}/driver-en-route`);
+    const response = await apiClient.post(
+      `/company/rides/${rideId}/driver-en-route`,
+    );
     return unwrapResponse<RideRecord>(response.data);
   },
   async markArrived(rideId: number) {
@@ -465,7 +482,9 @@ export const ridesApi = {
     return unwrapResponse<RideRecord>(response.data);
   },
   async markDroppedOff(rideId: number) {
-    const response = await apiClient.post(`/company/rides/${rideId}/dropped-off`);
+    const response = await apiClient.post(
+      `/company/rides/${rideId}/dropped-off`,
+    );
     return unwrapResponse<RideRecord>(response.data);
   },
   async complete(rideId: number) {
@@ -495,7 +514,10 @@ export const ridesApi = {
     return unwrapResponse<RideEventRecord[]>(response.data);
   },
   async addEventNote(rideId: number, notes: string) {
-    const response = await apiClient.post(`/company/rides/${rideId}/events/notes`, { notes });
+    const response = await apiClient.post(
+      `/company/rides/${rideId}/events/notes`,
+      { notes },
+    );
     return unwrapResponse<RideRecord>(response.data);
   },
   async searchRecurring(params: RecurringRideSearchParams) {
@@ -517,10 +539,14 @@ export const ridesApi = {
         sortDirection: params.sortDirection,
       },
     });
-    return unwrapResponse<PageResponse<RecurringRideScheduleRecord>>(response.data);
+    return unwrapResponse<PageResponse<RecurringRideScheduleRecord>>(
+      response.data,
+    );
   },
   async getRecurringById(recurrenceId: number) {
-    const response = await apiClient.get(`/company/recurring-rides/${recurrenceId}`);
+    const response = await apiClient.get(
+      `/company/recurring-rides/${recurrenceId}`,
+    );
     return unwrapResponse<RecurringRideScheduleRecord>(response.data);
   },
   async createRecurring(payload: RecurringRideSchedulePayload) {
@@ -576,9 +602,14 @@ export const ridesApi = {
         sortDirection: "DESC",
       },
     });
-    const page = unwrapResponse<PageResponse<
-      { id: number; riderCode: string; firstName: string; lastName: string }
-    >>(response.data);
+    const page = unwrapResponse<
+      PageResponse<{
+        id: number;
+        riderCode: string;
+        firstName: string;
+        lastName: string;
+      }>
+    >(response.data);
     return page.items.map((item) => ({
       id: item.id,
       code: item.riderCode,
@@ -601,9 +632,9 @@ export const ridesApi = {
   },
   async listOrganizationOptions() {
     const response = await apiClient.get("/company/organizations/options");
-    const items = unwrapResponse<Array<{ id: number; organizationCode: string; name: string }>>(
-      response.data,
-    );
+    const items = unwrapResponse<
+      Array<{ id: number; organizationCode: string; name: string }>
+    >(response.data);
     return items.map((item) => ({
       id: item.id,
       code: item.organizationCode,
@@ -621,12 +652,14 @@ export const ridesApi = {
         sortDirection: "DESC",
       },
     });
-    const page = unwrapResponse<PageResponse<{
-      id: number;
-      contractCode: string;
-      contractName: string;
-      organizationId: number;
-    }>>(response.data);
+    const page = unwrapResponse<
+      PageResponse<{
+        id: number;
+        contractCode: string;
+        contractName: string;
+        organizationId: number;
+      }>
+    >(response.data);
     return page.items.map((item) => ({
       id: item.id,
       code: item.contractCode,
@@ -645,9 +678,9 @@ export const ridesApi = {
         sortDirection: "DESC",
       },
     });
-    const page = unwrapResponse<PageResponse<{ id: number; areaCode: string; name: string }>>(
-      response.data,
-    );
+    const page = unwrapResponse<
+      PageResponse<{ id: number; areaCode: string; name: string }>
+    >(response.data);
     return page.items.map((item) => ({
       id: item.id,
       code: item.areaCode,

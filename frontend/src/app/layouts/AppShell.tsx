@@ -1,3 +1,4 @@
+import { alpha, useTheme } from "@mui/material/styles";
 import { WorkspaceSearch } from "./WorkspaceSearch";
 import { env } from "../../shared/config/env";
 import { Suspense, useEffect, useState } from "react";
@@ -49,7 +50,7 @@ import {
 import { useRuntimeCapabilities } from "../../features/runtime/context/RuntimeCapabilitiesContext";
 import { BrandMark } from "../../shared/components/BrandMark";
 import { LoadingState } from "../../shared/components/LoadingState";
-import { layoutTokens, shadowTokens, spacingTokens, surfaceTokens } from "../../shared/theme/tokens";
+import { layoutTokens, shadowTokens, spacingTokens } from "../../shared/theme/tokens";
 
 const drawerWidth = layoutTokens.drawerWidth;
 
@@ -67,6 +68,17 @@ function getInitials(label: string) {
 }
 
 export function AppShell() {
+  const theme = useTheme();
+  const sidebar = {
+    background: theme.palette.background.paper,
+    text: theme.palette.text.primary,
+    muted: theme.palette.text.secondary,
+    border: theme.palette.divider,
+    card: theme.palette.action.hover,
+    selected: alpha(theme.palette.primary.main, 0.10),
+    selectedHover: alpha(theme.palette.primary.main, 0.16),
+    hover: theme.palette.action.hover,
+  };
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationAnchorEl, setNotificationAnchorEl] =
     useState<HTMLElement | null>(null);
@@ -151,15 +163,15 @@ export function AppShell() {
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const drawer = (
-    <Stack sx={{ height: "100%", bgcolor: "secondary.dark", color: "#ffffff", backgroundImage: "none" }}>
-      <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: "rgba(255,255,255,.02)", borderBottom: `1px solid ${surfaceTokens.shellCardBorder}` }}>
-        <BrandMark compact inverse />
+    <Stack sx={{ height: "100%", bgcolor: sidebar.background, color: sidebar.text, backgroundImage: "none" }}>
+      <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: sidebar.background, borderBottom: `1px solid ${sidebar.border}` }}>
+        <BrandMark compact inverse={theme.palette.mode === "dark"} />
       </Box>
-      <Box sx={{ mx: 1.5, my: 1.5, px: 1.75, py: 1.5, bgcolor: surfaceTokens.shellCardBg, border: `1px solid ${surfaceTokens.shellCardBorder}`, borderRadius: 1.5, boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)" }}>
-        <Typography variant="caption" sx={{ color: "#94a8bd", display: "block", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 800 }}>
+      <Box sx={{ mx: 1.5, my: 1.5, px: 1.75, py: 1.5, bgcolor: sidebar.card, border: `1px solid ${sidebar.border}`, borderRadius: 1.5, boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)" }}>
+        <Typography variant="caption" sx={{ color: sidebar.muted, display: "block", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 800 }}>
           {shellView.scopeLabel}
         </Typography>
-        <Typography variant="subtitle2" sx={{ color: "#fff", fontWeight: 700, mt: .35 }} noWrap>
+        <Typography variant="subtitle2" sx={{ color: sidebar.text, fontWeight: 700, mt: .35 }} noWrap>
           {workspaceLabel}
         </Typography>
       </Box>
@@ -169,7 +181,7 @@ export function AppShell() {
             <Box key={section.title}>
               <Typography
                 variant="overline"
-                sx={{ px: 1.4, pb: 0.9, display: "block", color: "#94a8bd", fontSize: ".59rem", letterSpacing: ".12em", lineHeight: 1.4 }}
+                sx={{ px: 1.4, pb: 0.9, display: "block", color: sidebar.muted, fontSize: ".59rem", letterSpacing: ".12em", lineHeight: 1.4 }}
               >
                 {section.title}
               </Typography>
@@ -187,23 +199,23 @@ export function AppShell() {
                         minHeight: 42,
                         py: 0.75,
                         px: 1.4,
-                        color: "#c8d3df",
+                        color: sidebar.text,
                         borderRadius: 1.5,
                         border: "1px solid transparent",
                         "&.Mui-selected": {
-                          bgcolor: surfaceTokens.shellSelectedBg,
-                          color: "#fff",
-                          borderColor: surfaceTokens.shellCardBorder,
-                          boxShadow: `inset 3px 0 0 ${branding?.accentColor || "#80cbc4"}`,
+                          bgcolor: sidebar.selected,
+                          color: sidebar.text,
+                          borderColor: sidebar.border,
+                          boxShadow: `inset 3px 0 0 ${theme.palette.primary.main}`,
                         },
-                        "&.Mui-selected:hover": { bgcolor: surfaceTokens.shellSelectedBgHover },
-                        "&:hover": { bgcolor: surfaceTokens.shellHoverBg },
+                        "&.Mui-selected:hover": { bgcolor: sidebar.selectedHover },
+                        "&:hover": { bgcolor: sidebar.hover },
                       }}
                     >
                       <ListItemIcon
                         sx={{
                           minWidth: 30,
-                          color: selected ? "#ffffff" : "#94a8bd",
+                          color: selected ? theme.palette.primary.main : sidebar.muted,
                         }}
                       >
                         {item.icon}
@@ -225,17 +237,17 @@ export function AppShell() {
         </Stack>
       </Box>
 
-      <Divider sx={{ borderColor: surfaceTokens.shellCardBorder }} />
+      <Divider sx={{ borderColor: sidebar.border }} />
       <Box sx={{ px: 1.6, py: 1.4 }}>
         <Stack spacing={1}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1 }}>
             <CircleIcon sx={{ fontSize: 8, color: "#80cbc4" }} />
-            <Typography variant="caption" sx={{ color: "#94a8bd" }}>Workspace access</Typography>
+            <Typography variant="caption" sx={{ color: sidebar.muted }}>Workspace access</Typography>
           </Stack>
           <Button
             component="a"
             href={env.publicSiteUrl}
-            sx={{ color: "#c8d3df", justifyContent: "flex-start", fontSize: ".75rem" }}
+            sx={{ color: sidebar.text, justifyContent: "flex-start", fontSize: ".75rem" }}
             endIcon={<LaunchRoundedIcon />}
           >
             Open public site
@@ -505,7 +517,7 @@ export function AppShell() {
               width: drawerWidth,
               borderRight: "1px solid",
               borderColor: "divider",
-              backgroundColor: surfaceTokens.shellSidebarBase,
+              backgroundColor: sidebar.background,
               borderRadius: 0,
             },
           }}

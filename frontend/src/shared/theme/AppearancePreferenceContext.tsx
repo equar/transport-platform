@@ -29,9 +29,9 @@ function isAppearancePreference(value: string | null): value is AppearancePrefer
 function readPreference(storageKey: string): AppearancePreference {
   try {
     const stored = window.localStorage.getItem(storageKey);
-    return isAppearancePreference(stored) ? stored : "system";
+    return isAppearancePreference(stored) ? stored : "light";
   } catch {
-    return "system";
+    return "light";
   }
 }
 

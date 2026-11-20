@@ -11,5 +11,7 @@ public interface GuardianRepository extends JpaRepository<Guardian, Long>, JpaSp
 
     List<Guardian> findAllByTenantId(String tenantId);
 
+    long countByTenantId(String tenantId);
+
     long countByTenantIdAndStatus(String tenantId, GuardianStatus status);
 }

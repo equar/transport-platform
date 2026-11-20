@@ -1,3 +1,4 @@
+import { RecordHistoryPanel } from "../../../shared/components/RecordHistoryPanel";
 import {
   Alert,
   Box,
@@ -239,7 +240,9 @@ export function GuardianDetailsPage() {
             Guardian Summary
           </Typography>
           <Typography variant="h3">
-            {guardian.firstName} {guardian.lastName}
+            {[guardian.firstName, guardian.middleName, guardian.lastName]
+              .filter(Boolean)
+              .join(" ")}
           </Typography>
           <Stack
             direction={{ xs: "column", md: "row" }}
@@ -307,6 +310,9 @@ export function GuardianDetailsPage() {
         <PageCard>
           <Stack spacing={1.25}>
             <Typography variant="h5">Contact Information</Typography>
+            <Typography color="text.secondary">
+              Linked Riders: {guardian.linkedRiderCount}
+            </Typography>
             <Typography color="text.secondary">
               Email: {guardian.email || "-"}
             </Typography>
@@ -498,6 +504,12 @@ export function GuardianDetailsPage() {
           </Paper>
         )}
       </PageCard>
+
+      <RecordHistoryPanel
+        entityType="GUARDIAN"
+        entityId={guardian.id}
+        updatedAt={JSON.stringify([guardian.updatedAt, guardian.riders])}
+      />
 
       <RiderLinkDialog
         open={linkOpen}

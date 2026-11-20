@@ -401,7 +401,10 @@ export function RideManagementPage() {
         />
       ) : (
         <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-          <Table>
+          <Table sx={{
+                "& th, & td": { whiteSpace: "nowrap" },
+                "& th:last-child, & td:last-child": { position: { xs: "static", md: "sticky" }, right: 0, zIndex: 1, backgroundColor: "background.paper", borderLeft: { md: "1px solid" }, borderLeftColor: "divider" },
+              }}>
             <TableHead>
               <TableRow>
                 <TableCell>Ride</TableCell>
@@ -467,7 +470,7 @@ export function RideManagementPage() {
                       </Typography>
                     )}
                   </TableCell>
-                  <TableCell align="right">{renderActions(ride)}</TableCell>
+                  <TableCell align="right"><Stack direction="row" spacing={0.5} sx={{ width: "max-content", ml: "auto" }}>{renderActions(ride)}</Stack></TableCell>
                 </TableRow>
               ))}
             </TableBody>

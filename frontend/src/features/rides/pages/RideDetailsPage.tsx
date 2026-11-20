@@ -1,3 +1,6 @@
+import { driversApi } from "../../drivers/api/driversApi";
+import { vehiclesApi } from "../../vehicles/api/vehiclesApi";
+import { RecordHistoryPanel } from "../../../shared/components/RecordHistoryPanel";
 import {
   Alert,
   Box,
@@ -104,38 +107,103 @@ export function RideDetailsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [assignedDriverName, setAssignedDriverName] = useState<string | null>(
+    null,
+  );
+  const [assignedVehicleName, setAssignedVehicleName] = useState<string | null>(
+    null,
+  );
   const [driverOptions, setDriverOptions] = useState<LookupOption[]>([]);
   const [vehicleOptions, setVehicleOptions] = useState<LookupOption[]>([]);
   const [selectedDriverId, setSelectedDriverId] = useState<number | "">("");
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | "">("");
   const [assignmentLoading, setAssignmentLoading] = useState(false);
+  const [supportingDataError, setSupportingDataError] = useState<string | null>(
+    null,
+  );
   const [events, setEvents] = useState<RideEventRecord[]>([]);
   const [locationSnapshot, setLocationSnapshot] =
     useState<RideLocationSnapshotRecord | null>(null);
   const [note, setNote] = useState("");
   const [noteLoading, setNoteLoading] = useState(false);
-  const mapEmbedUrl = locationSnapshot ? buildSnapshotMapUrl(locationSnapshot) : null;
+  const mapEmbedUrl = locationSnapshot
+    ? buildSnapshotMapUrl(locationSnapshot)
+    : null;
 
   async function loadRide() {
     setLoading(true);
     setError(null);
     try {
-      const [response, eventResponse, snapshotResponse, drivers, vehicles] = await Promise.all([
+      const results = await Promise.allSettled([
         ridesApi.getById(resolvedRideId),
         ridesApi.getEvents(resolvedRideId),
         ridesApi.getLocationSnapshot(resolvedRideId),
         dispatchApi.listDriverOptions(),
         dispatchApi.listVehicleOptions(),
       ]);
+      const [
+        profile,
+        eventResult,
+        snapshotResult,
+        driverResult,
+        vehicleResult,
+      ] = results;
+      if (profile.status === "rejected") throw profile.reason;
+      const response = profile.value;
       setRide(response);
-      setEvents(eventResponse);
-      setLocationSnapshot(snapshotResponse);
-      setDriverOptions(drivers);
-      setVehicleOptions(vehicles);
+      setEvents(eventResult.status === "fulfilled" ? eventResult.value : []);
+      setLocationSnapshot(
+        snapshotResult.status === "fulfilled" ? snapshotResult.value : null,
+      );
+      setDriverOptions(
+        driverResult.status === "fulfilled" ? driverResult.value : [],
+      );
+      setVehicleOptions(
+        vehicleResult.status === "fulfilled" ? vehicleResult.value : [],
+      );
+      const labels = [
+        "trip details",
+        "ride events",
+        "location",
+        "driver options",
+        "vehicle options",
+      ];
+      const failed = results.flatMap((result, index) =>
+        result.status === "rejected" ? [labels[index]] : [],
+      );
+      setSupportingDataError(
+        failed.length
+          ? `Some supporting information could not be loaded: ${failed.join(", ")}.`
+          : null,
+      );
       setSelectedDriverId(response.driverId ?? "");
       setSelectedVehicleId(response.vehicleId ?? "");
+      const [assignedDriver, assignedVehicle] = await Promise.allSettled([
+        response.driverId
+          ? driversApi.getById(response.driverId)
+          : Promise.resolve(null),
+        response.vehicleId
+          ? vehiclesApi.getById(response.vehicleId)
+          : Promise.resolve(null),
+      ]);
+      setAssignedDriverName(
+        assignedDriver.status === "fulfilled" && assignedDriver.value
+          ? `${[assignedDriver.value.firstName, assignedDriver.value.middleName, assignedDriver.value.lastName].filter(Boolean).join(" ")} (${assignedDriver.value.driverCode})`
+          : response.driverId
+            ? `Driver #${response.driverId} (details unavailable)`
+            : null,
+      );
+      setAssignedVehicleName(
+        assignedVehicle.status === "fulfilled" && assignedVehicle.value
+          ? `${assignedVehicle.value.vehicleCode} · ${assignedVehicle.value.make} ${assignedVehicle.value.model} · ${assignedVehicle.value.plateNumber}`
+          : response.vehicleId
+            ? `Vehicle #${response.vehicleId} (details unavailable)`
+            : null,
+      );
     } catch (_caughtError) {
-      setError(getApiErrorMessage(_caughtError, "Ride details could not be loaded."));
+      setError(
+        getApiErrorMessage(_caughtError, "Ride details could not be loaded."),
+      );
       setRide(null);
       setLocationSnapshot(null);
     } finally {
@@ -379,7 +447,15 @@ export function RideDetailsPage() {
             variant="outlined"
             startIcon={<EditRoundedIcon />}
             onClick={() => setDialogOpen(true)}
-            disabled={!["DRAFT", "REQUESTED", "PENDING_REVIEW", "SCHEDULED", "ASSIGNED"].includes(ride.status)}
+            disabled={
+              ![
+                "DRAFT",
+                "REQUESTED",
+                "PENDING_REVIEW",
+                "SCHEDULED",
+                "ASSIGNED",
+              ].includes(ride.status)
+            }
           >
             Update Ride
           </Button>
@@ -399,14 +475,46 @@ export function RideDetailsPage() {
         </Stack>
       </SectionHeader>
 
+      {supportingDataError ? (
+        <Alert
+          severity="warning"
+          action={<Button onClick={() => void loadRide()}>Retry</Button>}
+        >
+          {supportingDataError}
+        </Alert>
+      ) : null}
       <PageCard>
         <Stack spacing={2}>
           <Typography variant="overline" color="secondary.main">
             Ride Summary
           </Typography>
           <Typography variant="h3">{ride.rideNumber}</Typography>
-          {ride.linkedRideId ? <Alert severity="info">{ride.journeyLeg === 'RETURN' ? 'Return' : 'Outbound'} journey. Each leg is assigned, billed, cancelled, and completed separately. <Button component={RouterLink} to={`/company/rides/${ride.linkedRideId}`}>View paired journey</Button></Alert> : null}
-          {ride.tripType === 'ROUND_TRIP' && !ride.linkedRideId ? <Button onClick={() => { void ridesApi.splitRoundTrip(ride.id).then(() => window.location.reload()).catch(error => showError(error, 'The round trip could not be split.')); }}>Split into outbound and return journeys</Button> : null}
+          {ride.linkedRideId ? (
+            <Alert severity="info">
+              {ride.journeyLeg === "RETURN" ? "Return" : "Outbound"} journey.
+              Each leg is assigned, billed, cancelled, and completed separately.{" "}
+              <Button
+                component={RouterLink}
+                to={`/company/rides/${ride.linkedRideId}`}
+              >
+                View paired journey
+              </Button>
+            </Alert>
+          ) : null}
+          {ride.tripType === "ROUND_TRIP" && !ride.linkedRideId ? (
+            <Button
+              onClick={() => {
+                void ridesApi
+                  .splitRoundTrip(ride.id)
+                  .then(() => window.location.reload())
+                  .catch((error) =>
+                    showError(error, "The round trip could not be split."),
+                  );
+              }}
+            >
+              Split into outbound and return journeys
+            </Button>
+          ) : null}
           <Stack
             direction={{ xs: "column", md: "row" }}
             spacing={1.5}
@@ -458,7 +566,13 @@ export function RideDetailsPage() {
                 Schedule Ride
               </Button>
             ) : null}
-            {["DRAFT", "REQUESTED", "PENDING_REVIEW", "SCHEDULED", "ASSIGNED"].includes(ride.status) ? (
+            {[
+              "DRAFT",
+              "REQUESTED",
+              "PENDING_REVIEW",
+              "SCHEDULED",
+              "ASSIGNED",
+            ].includes(ride.status) ? (
               <Button
                 startIcon={<CancelRoundedIcon />}
                 color="error"
@@ -488,6 +602,33 @@ export function RideDetailsPage() {
         <PageCard>
           <Stack spacing={2}>
             <Typography variant="h5">Rider and Service Context</Typography>
+            <Stack direction="row" gap={1} flexWrap="wrap">
+              <Button
+                component={RouterLink}
+                to={`/company/riders/${ride.riderId}`}
+              >
+                View rider
+              </Button>
+              {ride.guardianId ? (
+                <Button
+                  component={RouterLink}
+                  to={`/company/guardians/${ride.guardianId}`}
+                >
+                  View guardian
+                </Button>
+              ) : null}
+            </Stack>
+            <DetailField
+              label="Quoted Price"
+              value={
+                ride.quotedPrice == null
+                  ? "Not quoted"
+                  : new Intl.NumberFormat("en-US", {
+                      maximumFractionDigits: 2,
+                      minimumFractionDigits: 2,
+                    }).format(ride.quotedPrice)
+              }
+            />
             <DetailField
               label="Rider"
               value={`${ride.riderName} (${ride.riderCode})`}
@@ -502,7 +643,11 @@ export function RideDetailsPage() {
             />
             <DetailField
               label="Contract"
-              value={formatValue(ride.contractName)}
+              value={formatValue(
+                [ride.contractCode, ride.contractName]
+                  .filter(Boolean)
+                  .join(" · "),
+              )}
             />
             <DetailField
               label="Service Area"
@@ -581,17 +726,47 @@ export function RideDetailsPage() {
             <DetailField
               label="Assigned Driver"
               value={formatValue(
-                driverOptions.find((item) => item.id === ride.driverId)
-                  ?.label ?? null,
+                assignedDriverName ??
+                  driverOptions.find((item) => item.id === ride.driverId)
+                    ?.label ??
+                  null,
               )}
             />
             <DetailField
               label="Assigned Vehicle"
               value={formatValue(
-                vehicleOptions.find((item) => item.id === ride.vehicleId)
-                  ?.label ?? null,
+                assignedVehicleName ??
+                  vehicleOptions.find((item) => item.id === ride.vehicleId)
+                    ?.label ??
+                  null,
               )}
             />
+            <Stack direction="row" gap={1} flexWrap="wrap">
+              {ride.driverId ? (
+                <Button
+                  component={RouterLink}
+                  to={`/company/drivers/${ride.driverId}`}
+                >
+                  View assigned driver
+                </Button>
+              ) : null}
+              {ride.vehicleId ? (
+                <Button
+                  component={RouterLink}
+                  to={`/company/vehicles/${ride.vehicleId}`}
+                >
+                  View assigned vehicle
+                </Button>
+              ) : null}
+              {ride.routeId ? (
+                <Button
+                  component={RouterLink}
+                  to={`/company/routes/${ride.routeId}`}
+                >
+                  View route
+                </Button>
+              ) : null}
+            </Stack>
             <DetailField
               label="Route Link"
               value={
@@ -609,6 +784,13 @@ export function RideDetailsPage() {
               }
             >
               <MenuItem value="">No change</MenuItem>
+              {ride.driverId &&
+              !driverOptions.some((item) => item.id === ride.driverId) ? (
+                <MenuItem value={ride.driverId} disabled>
+                  {assignedDriverName || `Driver #${ride.driverId}`} (current
+                  assignment)
+                </MenuItem>
+              ) : null}
               {driverOptions.map((option) => (
                 <MenuItem key={option.id} value={option.id}>
                   {option.label}
@@ -627,6 +809,13 @@ export function RideDetailsPage() {
               }
             >
               <MenuItem value="">No change</MenuItem>
+              {ride.vehicleId &&
+              !vehicleOptions.some((item) => item.id === ride.vehicleId) ? (
+                <MenuItem value={ride.vehicleId} disabled>
+                  {assignedVehicleName || `Vehicle #${ride.vehicleId}`} (current
+                  assignment)
+                </MenuItem>
+              ) : null}
               {vehicleOptions.map((option) => (
                 <MenuItem key={option.id} value={option.id}>
                   {option.label}
@@ -650,7 +839,10 @@ export function RideDetailsPage() {
                       .unassignDriver(ride.id)
                       .then(loadRide)
                       .catch((_caughtError) =>
-                        showError(_caughtError, "Driver assignment could not be removed."),
+                        showError(
+                          _caughtError,
+                          "Driver assignment could not be removed.",
+                        ),
                       )
                   }
                 >
@@ -665,7 +857,10 @@ export function RideDetailsPage() {
                       .unassignVehicle(ride.id)
                       .then(loadRide)
                       .catch((_caughtError) =>
-                        showError(_caughtError, "Vehicle assignment could not be removed."),
+                        showError(
+                          _caughtError,
+                          "Vehicle assignment could not be removed.",
+                        ),
                       )
                   }
                 >
@@ -730,7 +925,10 @@ export function RideDetailsPage() {
                         .getLocationSnapshot(ride.id)
                         .then(setLocationSnapshot)
                         .catch((_caughtError) =>
-                          showError(_caughtError, "Driver location snapshot could not be refreshed."),
+                          showError(
+                            _caughtError,
+                            "Driver location snapshot could not be refreshed.",
+                          ),
                         )
                     }
                   >
@@ -754,7 +952,8 @@ export function RideDetailsPage() {
                   />
                 ) : (
                   <Alert severity="info">
-                    Google Maps API key is not configured. Set VITE_GOOGLE_MAPS_API_KEY to render the embedded map.
+                    Google Maps API key is not configured. Set
+                    VITE_GOOGLE_MAPS_API_KEY to render the embedded map.
                   </Alert>
                 )}
               </>
@@ -980,6 +1179,12 @@ export function RideDetailsPage() {
         </Stack>
       </PageCard>
 
+      <RecordHistoryPanel
+        entityType="RIDE"
+        entityId={ride.id}
+        updatedAt={JSON.stringify([ride.updatedAt, events])}
+      />
+
       <RideUpsertDialog
         open={dialogOpen}
         ride={ride}
@@ -991,7 +1196,11 @@ export function RideDetailsPage() {
       <RideCancellationDialog
         open={cancelOpen}
         loading={cancelLoading}
-        rideLabel={ride.linkedRideId ? `${ride.rideNumber} (this leg only; the paired journey is separate)` : ride.rideNumber}
+        rideLabel={
+          ride.linkedRideId
+            ? `${ride.rideNumber} (this leg only; the paired journey is separate)`
+            : ride.rideNumber
+        }
         onClose={() => setCancelOpen(false)}
         onSubmit={handleCancel}
       />

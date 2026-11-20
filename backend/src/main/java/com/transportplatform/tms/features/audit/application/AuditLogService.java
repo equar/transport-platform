@@ -60,8 +60,18 @@ public class AuditLogService {
             LocalDate createdTo,
             int page,
             int size) {
+        return search(keyword, module, action, createdFrom, createdTo, page, size, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<AuditLogResponse> search(String keyword, String module, String action,
+            LocalDate createdFrom, LocalDate createdTo, int page, int size, String entityType, String entityId) {
+        if ((entityType == null || entityType.isBlank()) != (entityId == null || entityId.isBlank())) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Entity type and ID must be provided together.");
+        }
         AuditScope scope = resolveScope();
         Specification<AuditLog> specification = Specification.allOf(
+                AuditLogSpecifications.entityHistory(entityType, entityId),
                 AuditLogSpecifications.keyword(keyword),
                 AuditLogSpecifications.module(module),
                 AuditLogSpecifications.action(action),
@@ -73,7 +83,7 @@ public class AuditLogService {
                         : AuditLogSpecifications.tenantScope(scope.tenantId()));
         return PageResponse.from(auditLogRepository.findAll(
                 specification,
-                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))).map(this::toResponse));
+                PageRequest.of(Math.max(0, page), Math.min(100, Math.max(1, size)), Sort.by(Sort.Direction.DESC, "createdAt", "id"))).map(this::toResponse));
     }
 
     @Transactional(readOnly = true)

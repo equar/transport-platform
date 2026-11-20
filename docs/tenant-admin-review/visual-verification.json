@@ -1,0 +1,56 @@
+{
+  "method": "Playwright; synthetic data only; local app and mocked API, no production access",
+  "results": [
+    {
+      "name": "dashboard",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "name": "driver",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "name": "rider",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "name": "guardian",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "name": "ride",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "name": "dashboard",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "name": "driver",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "name": "rider",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "name": "guardian",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "name": "ride",
+      "width": 390,
+      "overflow": false
+    }
+  ],
+  "errors": []
+}

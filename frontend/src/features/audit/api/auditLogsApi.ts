@@ -18,6 +18,8 @@ export interface AuditLogRecord {
 }
 
 export interface AuditLogSearchParams {
+  entityType?: string;
+  entityId?: string;
   keyword: string;
   module: string;
   action: string;
@@ -31,6 +33,8 @@ export const auditLogsApi = {
   async search(params: AuditLogSearchParams) {
     const response = await apiClient.get("/audit-logs", {
       params: {
+        entityType: params.entityType || undefined,
+        entityId: params.entityId || undefined,
         keyword: params.keyword || undefined,
         module: params.module || undefined,
         action: params.action || undefined,

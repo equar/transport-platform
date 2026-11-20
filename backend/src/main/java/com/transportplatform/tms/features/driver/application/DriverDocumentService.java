@@ -316,6 +316,12 @@ public class DriverDocumentService {
         values.put("fileName", document.getFileName());
         values.put("documentNumber", document.getDocumentNumber());
         values.put("expiryDate", document.getExpiryDate());
+        values.put("notes", document.getNotes());
+        values.put("issueDate", document.getIssueDate());
+        values.put("issuingAuthority", document.getIssuingAuthority());
+        values.put("originalFileName", document.getOriginalFileName());
+        values.put("uploadedBy", document.getUploadedBy());
+        values.put("uploadedAt", document.getUploadedAt());
         return values;
     }
 }

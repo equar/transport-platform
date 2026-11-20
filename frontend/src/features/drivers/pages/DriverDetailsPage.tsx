@@ -1,3 +1,4 @@
+import { RecordHistoryPanel } from "../../../shared/components/RecordHistoryPanel";
 import {
   Alert,
   Box,
@@ -71,6 +72,9 @@ export function DriverDetailsPage() {
   const resolvedDriverId = Number(driverId);
   const { showError, showSuccess } = useToast();
   const [driver, setDriver] = useState<DriverRecord | null>(null);
+  const [documentLoadError, setDocumentLoadError] = useState<string | null>(
+    null,
+  );
   const [documents, setDocuments] = useState<DriverDocumentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,9 +111,23 @@ export function DriverDetailsPage() {
     setLoading(true);
     setError(null);
     try {
-      await Promise.all([loadDriver(), loadDocuments()]);
+      const [profile, documentResult] = await Promise.allSettled([
+        loadDriver(),
+        loadDocuments(),
+      ]);
+      if (profile.status === "rejected") throw profile.reason;
+      setDocumentLoadError(
+        documentResult.status === "rejected"
+          ? getApiErrorMessage(
+              documentResult.reason,
+              "Driver documents could not be loaded.",
+            )
+          : null,
+      );
     } catch (_caughtError) {
-      setError(getApiErrorMessage(_caughtError, "Driver details could not be loaded."));
+      setError(
+        getApiErrorMessage(_caughtError, "Driver details could not be loaded."),
+      );
     } finally {
       setLoading(false);
     }
@@ -182,7 +200,10 @@ export function DriverDetailsPage() {
     }
   }
 
-  async function handleDocumentSubmit(payload: DriverDocumentPayload, file: File | null) {
+  async function handleDocumentSubmit(
+    payload: DriverDocumentPayload,
+    file: File | null,
+  ) {
     if (!driver) {
       return;
     }
@@ -232,7 +253,10 @@ export function DriverDetailsPage() {
       setReviewState(null);
       await loadPage();
     } catch (_caughtError) {
-      showError(_caughtError, "The document review action could not be completed.");
+      showError(
+        _caughtError,
+        "The document review action could not be completed.",
+      );
     } finally {
       setReviewLoading(false);
     }
@@ -279,7 +303,8 @@ export function DriverDetailsPage() {
     );
   }
 
-  const missingRequiredDocuments = driver.complianceSummary.missingRequiredDocumentTypes;
+  const missingRequiredDocuments =
+    driver.complianceSummary.missingRequiredDocumentTypes;
   const documentReviewBlocked =
     driver.complianceSummary.overallStatus !== "COMPLIANT";
 
@@ -328,7 +353,9 @@ export function DriverDetailsPage() {
             Driver Summary
           </Typography>
           <Typography variant="h3">
-            {driver.firstName} {driver.lastName}
+            {[driver.firstName, driver.middleName, driver.lastName]
+              .filter(Boolean)
+              .join(" ")}
           </Typography>
           <Stack
             direction={{ xs: "column", md: "row" }}
@@ -435,6 +462,18 @@ export function DriverDetailsPage() {
           <Stack spacing={1.25}>
             <Typography variant="h5">Contact and Address</Typography>
             <Typography color="text.secondary">
+              Date of Birth: {formatDate(driver.dateOfBirth)}
+            </Typography>
+            <Typography color="text.secondary">
+              Hire Date: {formatDate(driver.hireDate)}
+            </Typography>
+            <Typography color="text.secondary">
+              Start Date: {formatDate(driver.startDate)}
+            </Typography>
+            <Typography color="text.secondary">
+              Availability: {driver.availabilitySummary || "-"}
+            </Typography>
+            <Typography color="text.secondary">
               Email: {driver.email || "-"}
             </Typography>
             <Typography color="text.secondary">
@@ -471,6 +510,16 @@ export function DriverDetailsPage() {
             </Typography>
             <Typography color="text.secondary">
               License Expiry: {formatDate(driver.licenseExpiryDate)}
+            </Typography>
+            <Typography color="text.secondary">
+              Background Check Expiry:{" "}
+              {formatDate(driver.backgroundCheckExpiryDate)}
+            </Typography>
+            <Typography color="text.secondary">
+              Drug Test Expiry: {formatDate(driver.drugTestExpiryDate)}
+            </Typography>
+            <Typography color="text.secondary">
+              Training Completed: {formatDate(driver.trainingCompletionDate)}
             </Typography>
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
               <StatusChip value={driver.backgroundCheckStatus} />
@@ -536,6 +585,9 @@ export function DriverDetailsPage() {
               Notes: {driver.notes || "-"}
             </Typography>
             <Typography color="text.secondary">
+              Created: {driver.createdBy} on {formatDateTime(driver.createdAt)}
+            </Typography>
+            <Typography color="text.secondary">
               Last Updated: {driver.updatedBy} on{" "}
               {formatDateTime(driver.updatedAt)}
             </Typography>
@@ -549,7 +601,14 @@ export function DriverDetailsPage() {
       />
 
       <PageCard sx={{ p: 0, overflow: "hidden" }}>
-        {documents.length === 0 ? (
+        {documentLoadError ? (
+          <Alert
+            severity="error"
+            action={<Button onClick={() => void loadPage()}>Retry</Button>}
+          >
+            {documentLoadError}
+          </Alert>
+        ) : documents.length === 0 ? (
           <EmptyState
             title="No driver documents"
             description="Documents submitted by this driver will appear here for review."
@@ -607,76 +666,98 @@ export function DriverDetailsPage() {
                         <Typography variant="caption" color="text.secondary">
                           {formatDateTime(document.uploadedAt)}
                         </Typography>
+                        <Typography variant="caption" display="block">
+                          Created: {document.createdBy} ·{" "}
+                          {formatDateTime(document.createdAt)}
+                        </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
+                        <Stack
+                          direction="row"
+                          spacing={0.5}
+                          justifyContent="flex-end"
+                          alignItems="center"
+                        >
                           {document.storagePath ? (
                             <Button
-                            size="small"
-                            variant="text"
-                            startIcon={<DownloadRoundedIcon />}
-                            onClick={async () => {
-                              try {
-                                const blob = await driversApi.downloadDocument(document.id);
-                                const url = URL.createObjectURL(blob);
-                                window.open(url, "_blank", "noopener,noreferrer");
-                                window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-                              } catch (_caughtError) {
-                                showError(_caughtError, "Unable to open the uploaded document.");
-                              }
-                            }}
-                          >
+                              size="small"
+                              variant="text"
+                              startIcon={<DownloadRoundedIcon />}
+                              onClick={async () => {
+                                try {
+                                  const blob =
+                                    await driversApi.downloadDocument(
+                                      document.id,
+                                    );
+                                  const url = URL.createObjectURL(blob);
+                                  window.open(
+                                    url,
+                                    "_blank",
+                                    "noopener,noreferrer",
+                                  );
+                                  window.setTimeout(
+                                    () => URL.revokeObjectURL(url),
+                                    60_000,
+                                  );
+                                } catch (_caughtError) {
+                                  showError(
+                                    _caughtError,
+                                    "Unable to open the uploaded document.",
+                                  );
+                                }
+                              }}
+                            >
                               Review file
                             </Button>
                           ) : null}
-                        {document.status !== "ARCHIVED" ? (
-                          <TableActionButton
-                            title="Edit Metadata"
-                            onClick={() => {
-                              setSelectedDocument(document);
-                              setDocumentDialogOpen(true);
-                            }}
-                          >
-                            <EditRoundedIcon />
-                          </TableActionButton>
-                        ) : null}
-                        {document.status === "ACTIVE" &&
-                        document.verificationStatus !== "VERIFIED" &&
-                        document.verificationStatus !== "EXPIRED" ? (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="success"
-                            onClick={() =>
-                              setReviewState({ mode: "verify", document })
-                            }
-                          >
+                          {document.status !== "ARCHIVED" ? (
+                            <TableActionButton
+                              title="Edit Metadata"
+                              onClick={() => {
+                                setSelectedDocument(document);
+                                setDocumentDialogOpen(true);
+                              }}
+                            >
+                              <EditRoundedIcon />
+                            </TableActionButton>
+                          ) : null}
+                          {document.status === "ACTIVE" &&
+                          document.verificationStatus !== "VERIFIED" &&
+                          document.verificationStatus !== "EXPIRED" ? (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="success"
+                              onClick={() =>
+                                setReviewState({ mode: "verify", document })
+                              }
+                            >
                               Approve
-                          </Button>
-                        ) : null}
-                        {document.status === "ACTIVE" &&
-                        document.verificationStatus !== "REJECTED" ? (
-                          <Button
-                            size="small"
-                            variant="text"
-                            color="error"
-                            onClick={() =>
-                              setReviewState({ mode: "reject", document })
-                            }
-                          >
+                            </Button>
+                          ) : null}
+                          {document.status === "ACTIVE" &&
+                          document.verificationStatus !== "REJECTED" ? (
+                            <Button
+                              size="small"
+                              variant="text"
+                              color="error"
+                              onClick={() =>
+                                setReviewState({ mode: "reject", document })
+                              }
+                            >
                               Reject
-                          </Button>
-                        ) : null}
-                        {document.status === "ARCHIVED" ? null : (
-                          <TableActionButton
-                            title="Archive Document"
-                            onClick={() =>
-                              setDocumentAction({ type: "archive", document })
-                            }
-                          >
-                            <ArchiveRoundedIcon />
-                          </TableActionButton>
-                        )}
+                            </Button>
+                          ) : null}
+                          {document.status === "ARCHIVED" ? null : (
+                            <TableActionButton
+                              title="Archive Document"
+                              onClick={() =>
+                                setDocumentAction({ type: "archive", document })
+                              }
+                            >
+                              <ArchiveRoundedIcon />
+                            </TableActionButton>
+                          )}
                         </Stack>
                       </TableCell>
                     </TableRow>
@@ -687,6 +768,12 @@ export function DriverDetailsPage() {
           </>
         )}
       </PageCard>
+
+      <RecordHistoryPanel
+        entityType="DRIVER"
+        entityId={driver.id}
+        updatedAt={JSON.stringify([driver.updatedAt, documents])}
+      />
 
       <DriverUpsertDialog
         open={driverDialogOpen}

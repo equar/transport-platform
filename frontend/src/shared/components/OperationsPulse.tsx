@@ -16,9 +16,9 @@ export function OperationsPulse({ title, description, items }: { title: string; 
           </Stack>
           <Box sx={{ width: 34, height: 34, borderRadius: 1.5, display: "grid", placeItems: "center", bgcolor: "rgba(49,91,125,.1)", color: "primary.main", flexShrink: 0 }}><AutoGraphRoundedIcon fontSize="small" /></Box>
         </Stack>
-        <Stack spacing={1.5}>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
           {items.map((item) => (
-            <Stack key={item.label} spacing={0.75}>
+            <Stack key={item.label} spacing={0.75} sx={{ flex: 1, minWidth: 0 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography variant="body2" fontWeight={700}>{item.label}</Typography>
                 <Chip size="small" label={item.value.toLocaleString()} color={item.color ?? "primary"} sx={{ minWidth: 48 }} />

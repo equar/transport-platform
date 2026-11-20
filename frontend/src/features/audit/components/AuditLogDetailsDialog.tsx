@@ -1,4 +1,7 @@
+import { formatDateTime } from "../../../shared/utils/format";
 import {
+  Button,
+  DialogActions,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -36,12 +39,24 @@ export function AuditLogDetailsDialog({
       <DialogContent>
         {record ? (
           <Stack spacing={2} sx={{ pt: 1 }}>
+            <Typography>
+              {formatDateTime(record.createdAt)} ·{" "}
+              {record.actorName || record.actorEmail || "System"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {record.module} / {record.action} · {record.entityType} #
+              {record.entityId}
+            </Typography>
             <Stack spacing={0.5}>
               <Typography variant="body2" color="text.secondary">
                 Summary
               </Typography>
               <Typography>{record.summary}</Typography>
             </Stack>
+            <Typography variant="body2" color="text.secondary">
+              Actor email: {record.actorEmail || "-"} · User ID:{" "}
+              {record.actorUserId ?? "System"} · Audit record: #{record.id}
+            </Typography>
             <Divider />
             <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
               <Stack spacing={0.5} sx={{ flex: 1 }}>
@@ -50,7 +65,13 @@ export function AuditLogDetailsDialog({
                 </Typography>
                 <Typography
                   component="pre"
-                  sx={{ m: 0, whiteSpace: "pre-wrap", fontFamily: "monospace" }}
+                  sx={{
+                    m: 0,
+                    whiteSpace: "pre-wrap",
+                    overflowWrap: "anywhere",
+                    minWidth: 0,
+                    fontFamily: "monospace",
+                  }}
                 >
                   {formatJson(record.oldValueJson)}
                 </Typography>
@@ -61,7 +82,13 @@ export function AuditLogDetailsDialog({
                 </Typography>
                 <Typography
                   component="pre"
-                  sx={{ m: 0, whiteSpace: "pre-wrap", fontFamily: "monospace" }}
+                  sx={{
+                    m: 0,
+                    whiteSpace: "pre-wrap",
+                    overflowWrap: "anywhere",
+                    minWidth: 0,
+                    fontFamily: "monospace",
+                  }}
                 >
                   {formatJson(record.newValueJson)}
                 </Typography>
@@ -70,6 +97,9 @@ export function AuditLogDetailsDialog({
           </Stack>
         ) : null}
       </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
     </Dialog>
   );
 }

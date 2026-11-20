@@ -1,3 +1,4 @@
+import { RecordHistoryPanel } from "../../../shared/components/RecordHistoryPanel";
 import {
   Alert,
   Box,
@@ -53,7 +54,7 @@ function formatDate(value?: string | null) {
     return "-";
   }
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-    new Date(value),
+    new Date(value.length === 10 ? `${value}T12:00:00` : value),
   );
 }
 
@@ -268,7 +269,9 @@ export function RiderDetailsPage() {
             Rider Summary
           </Typography>
           <Typography variant="h3">
-            {rider.firstName} {rider.lastName}
+            {[rider.firstName, rider.middleName, rider.lastName]
+              .filter(Boolean)
+              .join(" ")}
           </Typography>
           <Stack
             direction={{ xs: "column", md: "row" }}
@@ -456,6 +459,15 @@ export function RiderDetailsPage() {
               Date of Birth: {formatDate(rider.dateOfBirth)}
             </Typography>
             <Typography color="text.secondary">
+              Gender: {rider.gender?.replaceAll("_", " ") || "-"}
+            </Typography>
+            <Typography color="text.secondary">
+              Linked Guardians: {rider.guardianCount}
+            </Typography>
+            <Typography color="text.secondary">
+              Organization ID: {rider.organizationId ?? "Not linked"}
+            </Typography>
+            <Typography color="text.secondary">
               Created by {rider.createdBy} on {formatDateTime(rider.createdAt)}
             </Typography>
             <Typography color="text.secondary">
@@ -579,6 +591,12 @@ export function RiderDetailsPage() {
           </Paper>
         )}
       </PageCard>
+
+      <RecordHistoryPanel
+        entityType="RIDER"
+        entityId={rider.id}
+        updatedAt={JSON.stringify([rider.updatedAt, rider.guardians])}
+      />
 
       <RiderUpsertDialog
         open={riderDialogOpen}

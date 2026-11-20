@@ -53,6 +53,7 @@ public class CompanyDashboardService {
         private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
         private final AuditLogService auditLogService;
         private final RiderRepository riderRepository;
+        private final com.transportplatform.tms.features.rider.domain.GuardianRepository guardianRepository;
         private final OrganizationRepository organizationRepository;
         private final ContractRepository contractRepository;
         private final ServiceAreaRepository serviceAreaRepository;
@@ -75,6 +76,7 @@ public class CompanyDashboardService {
                         CurrentAuthenticatedUserService currentAuthenticatedUserService,
                         AuditLogService auditLogService,
                         RiderRepository riderRepository,
+                        com.transportplatform.tms.features.rider.domain.GuardianRepository guardianRepository,
                         OrganizationRepository organizationRepository,
                         ContractRepository contractRepository,
                         ServiceAreaRepository serviceAreaRepository,
@@ -96,6 +98,7 @@ public class CompanyDashboardService {
                 this.currentAuthenticatedUserService = currentAuthenticatedUserService;
                 this.auditLogService = auditLogService;
                 this.riderRepository = riderRepository;
+                this.guardianRepository = guardianRepository;
                 this.organizationRepository = organizationRepository;
                 this.contractRepository = contractRepository;
                 this.serviceAreaRepository = serviceAreaRepository;
@@ -156,6 +159,9 @@ public class CompanyDashboardService {
                                 appUserRepository.countByTenantIdAndStatus(tenantId, UserStatus.ACTIVE),
                                 appUserRepository.countByTenantIdAndStatus(tenantId, UserStatus.SUSPENDED),
                                 appUserRepository.countByTenantIdAndStatus(tenantId, UserStatus.INVITED),
+                                guardianRepository.countByTenantId(tenantId),
+                                guardianRepository.countByTenantIdAndStatus(tenantId, com.transportplatform.tms.features.rider.domain.GuardianStatus.ACTIVE),
+                                guardianRepository.countByTenantIdAndStatus(tenantId, com.transportplatform.tms.features.rider.domain.GuardianStatus.SUSPENDED),
                                 riderRepository.countByTenantId(tenantId),
                                 riderRepository.countByTenantIdAndStatus(tenantId, RiderStatus.ACTIVE),
                                 riderRepository.countByTenantIdAndStatus(tenantId, RiderStatus.SUSPENDED),

@@ -28,10 +28,12 @@ public class AuditLogController {
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) String module,
             @RequestParam(required = false) String action,
+            @RequestParam(required = false) String entityType,
+            @RequestParam(required = false) String entityId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdTo,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.success(auditLogService.search(keyword, module, action, createdFrom, createdTo, page, size));
+        return ApiResponse.success(auditLogService.search(keyword, module, action, createdFrom, createdTo, page, size, entityType, entityId));
     }
 }
