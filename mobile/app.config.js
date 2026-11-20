@@ -1,5 +1,6 @@
 const { expo } = require('./app.json');
 const withIosAutomaticSigning = require('./plugins/withIosAutomaticSigning');
+const withOptionalAndroidHardware = require('./plugins/withOptionalAndroidHardware');
 const fs = require('fs');
 const path = require('path');
 
@@ -131,6 +132,7 @@ module.exports = () => {
           ]]
         : []),
       withIosAutomaticSigning,
+      withOptionalAndroidHardware,
     ],
     extra: {
       ...(expo.extra || {}),

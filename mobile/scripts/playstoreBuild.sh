@@ -94,8 +94,12 @@ curl -fsS --max-time 20 "${AWS_API_BASE_URL%/}/actuator/health" >/dev/null || {
 export EXPO_PUBLIC_API_BASE_URL="$AWS_API_BASE_URL"
 export NODE_ENV="production"
 
+node "$SCRIPT_DIR/sync-android-hardware-features.cjs"
+
 cd "$PROJECT_ROOT/android"
 ./gradlew bundleRelease --no-daemon -PtransportVersionCode="$BUILD_NUMBER" -PreactNativeArchitectures="arm64-v8a"
+
+node "$SCRIPT_DIR/sync-android-hardware-features.cjs" --check "$PROJECT_ROOT/android/app/build/intermediates/bundle_manifest/release/processApplicationManifestReleaseForBundle/AndroidManifest.xml"
 
 ARTIFACT_DIR="$PROJECT_ROOT/artifacts"
 mkdir -p "$ARTIFACT_DIR"

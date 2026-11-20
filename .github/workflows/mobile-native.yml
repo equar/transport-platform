@@ -41,7 +41,10 @@ jobs:
       - name: Compile release native code and JavaScript (artifact is not published)
         env:
           EXPO_PUBLIC_API_BASE_URL: https://example.invalid/api
-        run: cd android && ./gradlew :app:assembleRelease --no-daemon
+        run: |
+          cd android && ./gradlew :app:assembleRelease --no-daemon
+          cd ..
+          node scripts/sync-android-hardware-features.cjs --check android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml
   ios:
     runs-on: macos-latest
     timeout-minutes: 45
