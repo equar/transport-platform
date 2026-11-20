@@ -81,6 +81,14 @@ public class DriverLocationSnapshotService {
                 .orElse(null);
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<DriverLocationSnapshotResponse> getDriverRideHistory(Long rideId) {
+        Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
+        if (!TRACKABLE_RIDE_STATUSES.contains(ride.getStatus()) || ride.getDriverId() == null) return java.util.List.of();
+        return repository.findTop1000ByTenantIdAndRide_IdAndDriver_IdOrderByCapturedAtDescIdDesc(
+                ride.getTenantId(), ride.getId(), ride.getDriverId()).stream().map(mapper::toResponse).toList();
+    }
+
     private void ensureTrackable(Ride ride) {
         if (!TRACKABLE_RIDE_STATUSES.contains(ride.getStatus())) {
             throw new ApiException(

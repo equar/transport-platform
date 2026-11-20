@@ -26,3 +26,5 @@ export function Marker({ title }: MockMarkerProps) {
 export function UrlTile() {
   return null;
 }
+
+export function Polyline() { return <View testID="travelled-path" />; }

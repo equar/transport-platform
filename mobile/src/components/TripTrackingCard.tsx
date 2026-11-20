@@ -1,13 +1,16 @@
+import { travelledPathSegments, travelledPathRegion, type TravelledPoint } from '@utils/travelledPath';
 import React, { useState } from 'react';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import { StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { AppButton } from '@components/ui';
 import { Spacing, Typography } from '@theme/tokens';
 
 interface TripTrackingCardProps {
   title?: string;
+  history?: TravelledPoint[];
+  historyError?: boolean;
   snapshot: {
     latitude: number;
     longitude: number;
@@ -40,6 +43,8 @@ function formatSpeed(speedMps?: number | null) {
 
 export function TripTrackingCard({
   title = 'Route Tracking',
+  history = [],
+  historyError = false,
   snapshot,
   pickupAddress,
   dropoffAddress,
@@ -56,12 +61,9 @@ export function TripTrackingCard({
   const validLocation = snapshot != null && isValidLocation(snapshot);
   const mapVisible = autoShowMap || showMap;
   const riderPickedUp = rideStatus === 'PICKED_UP';
-  const mapRegion = validLocation ? {
-    latitude: snapshot.latitude,
-    longitude: snapshot.longitude,
-    latitudeDelta: 0.012,
-    longitudeDelta: 0.012,
-  } : { latitude: 0, longitude: 0, latitudeDelta: 120, longitudeDelta: 180 };
+  const segments = travelledPathSegments(history);
+  const pathPoints = segments.flat();
+  const mapRegion = travelledPathRegion([...pathPoints, ...(validLocation && snapshot ? [snapshot] : [])]);
 
   const refreshControl = onRefresh ? (
     <AppButton
@@ -94,8 +96,14 @@ export function TripTrackingCard({
             zoomEnabled
             scrollEnabled
           >
+            {segments.map((segment, index) => <Polyline
+              key={`travelled-${index}`}
+              coordinates={segment.map(point => ({ latitude: point.latitude, longitude: point.longitude }))}
+              strokeColor={styles.path.color}
+              strokeWidth={4}
+            />)}
             {validLocation && snapshot ? <Marker
-              coordinate={{ latitude: mapRegion.latitude, longitude: mapRegion.longitude }}
+              coordinate={{ latitude: snapshot.latitude, longitude: snapshot.longitude }}
               title={riderPickedUp ? 'Rider and assigned driver' : 'Assigned driver'}
               description={riderPickedUp
                 ? 'The rider is traveling with the driver.'
@@ -105,6 +113,11 @@ export function TripTrackingCard({
           {onRefresh ? <View style={styles.mapRefresh}>{refreshControl}</View> : null}
           </View>
         ) : null}
+        {mapVisible ? <Text style={styles.emptyText}>
+          {historyError ? 'The recorded path could not be loaded. Press Refresh to try again.'
+            : segments.length ? 'Recorded path travelled (up to the latest 1,000 GPS reports). Gaps indicate missing location reports.'
+            : 'The travelled path will appear once enough reliable GPS reports are recorded.'}
+        </Text> : null}
         {error ? <Text accessibilityRole="alert" style={styles.emptyText}>Location updates could not be loaded. Check your connection and refresh tracking.</Text> : null}
         {snapshot ? (
           <>
@@ -164,6 +177,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     borderBottomColor: colors.divider,
     backgroundColor: colors.surfaceMuted,
   },
+  path: { color: colors.primary },
   mapContainer: { position: 'relative' },
   mapRefresh: { position: 'absolute', top: Spacing.sm, right: Spacing.sm },
   sectionTitle: {

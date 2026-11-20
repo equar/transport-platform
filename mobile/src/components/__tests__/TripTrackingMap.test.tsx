@@ -1,9 +1,9 @@
 import React from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react-native';
-import MapView, { Marker, UrlTile } from 'react-native-maps';
+import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
 import { TripTrackingCard } from '../TripTrackingCard';
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); jest.restoreAllMocks(); });
 
 it('uses the native street map without third-party tile overlays and keeps the driver pin accurate', () => {
   const snapshot = { latitude: 35.4088, longitude: -80.5795, capturedAt: new Date().toISOString() };
@@ -15,7 +15,8 @@ it('uses the native street map without third-party tile overlays and keeps the d
   const updated = { ...snapshot, latitude: 35.41, longitude: -80.58 };
   rerender(<TripTrackingCard autoShowMap rideStatus="PICKED_UP" snapshot={updated} />);
   expect(screen.UNSAFE_getByType(Marker).props.coordinate).toEqual({ latitude: updated.latitude, longitude: updated.longitude });
-  expect(screen.UNSAFE_getByType(MapView).props.region).toEqual(expect.objectContaining({ latitude: updated.latitude, longitude: updated.longitude }));
+  expect(screen.UNSAFE_getByType(MapView).props.region.latitude).toBeCloseTo(updated.latitude, 6);
+  expect(screen.UNSAFE_getByType(MapView).props.region.longitude).toBeCloseTo(updated.longitude, 6);
 });
 
 it('does not invent a driver pin while waiting for a valid location', () => {
@@ -39,4 +40,23 @@ it('keeps a single compact refresh control beside the map and prevents repeat ta
   expect(screen.getByRole('button', { name: 'Refresh Tracking' })).toBeDisabled();
   fireEvent.press(screen.getByRole('button', { name: 'Refresh Tracking' }));
   expect(onRefresh).toHaveBeenCalledTimes(1);
+});
+
+it('draws the recorded travelled path inside the map without changing the driver marker', () => {
+  const history = [
+    { latitude: 35.401, longitude: -80.501, capturedAt: '2026-11-20T00:00:30Z' },
+    { latitude: 35.4, longitude: -80.5, capturedAt: '2026-11-20T00:00:00Z' },
+  ];
+  render(<TripTrackingCard autoShowMap snapshot={history[0]} history={history} />);
+  expect(screen.UNSAFE_getByType(Polyline).props.coordinates).toEqual([
+    { latitude: 35.4, longitude: -80.5 }, { latitude: 35.401, longitude: -80.501 },
+  ]);
+  expect(screen.UNSAFE_getByType(Marker).props.coordinate).toEqual({ latitude: 35.401, longitude: -80.501 });
+  expect(screen.getByText(/Recorded path travelled/)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Route to pickup' })).toBeNull();
+});
+it('shows a useful message instead of inventing a route if history is unavailable', () => {
+  render(<TripTrackingCard autoShowMap snapshot={null} historyError />);
+  expect(screen.UNSAFE_queryAllByType(Polyline)).toHaveLength(0);
+  expect(screen.getByText(/recorded path could not be loaded/)).toBeTruthy();
 });

@@ -1,3 +1,4 @@
+import { useTripScreenVisible, manualTripRefreshOptions } from '@hooks/useTripScreenVisible';
 import { FormScrollView } from '@components/FormScrollView';
 import { isTrackableTrip } from '@utils/tripPresentation';
 import { useBrandingColors } from '@theme/BrandingContext';
@@ -50,6 +51,7 @@ const SECONDARY_STATUS_ACTIONS: Record<string, { action: DriverRideAction; label
 
 export default function DriverRideDetailPage() {
   const styles = useThemedStyles(createStyles);
+  const screenVisible = useTripScreenVisible();
   const colors = useBrandingColors();
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
   const router = useRouter();
@@ -62,9 +64,9 @@ export default function DriverRideDetailPage() {
 
   const { data: serverRide, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-ride', rideId],
-    refetchInterval: query => query.state.data && !['COMPLETED', 'CANCELLED', 'FAILED', 'RIDER_NO_SHOW', 'MISSED'].includes(query.state.data.status) ? 15000 : false,
+    ...manualTripRefreshOptions,
     queryFn: () => driverPortalApi.getRide(Number(rideId)),
-    enabled: !!rideId,
+    enabled: screenVisible && !!rideId,
   });
 
   const ride = serverRide && session?.identity.tenantId ? { ...serverRide,
@@ -87,9 +89,24 @@ export default function DriverRideDetailPage() {
   } = useQuery({
     queryKey: ['driver-ride-location', rideId],
     queryFn: () => driverPortalApi.getRideLocationSnapshot(Number(rideId)),
-    enabled: !!ride && !isError && isTrackableTrip(ride.status),
-    refetchInterval: ride && isTrackableTrip(ride.status) ? 30000 : false,
+    enabled: screenVisible && !!ride && !isError && isTrackableTrip(ride.status),
+    ...manualTripRefreshOptions,
   });
+
+  const { data: locationHistory, refetch: refetchHistory, isFetching: historyRefreshing, isError: historyError } = useQuery({
+    queryKey: ['driver-ride-location-history', rideId],
+    queryFn: () => driverPortalApi.getRideLocationHistory(Number(rideId)),
+    enabled: screenVisible && !!ride && !isError && isTrackableTrip(ride.status),
+    ...manualTripRefreshOptions,
+  });
+
+  async function refreshTrip() {
+    if (!screenVisible) return;
+    const result = await refetch();
+    if (result.data && isTrackableTrip(result.data.status)) {
+      await Promise.all([refetchLocationSnapshot(), refetchHistory()]);
+    }
+  }
 
   const { mutate: performAction, isPending: actionPending } = useMutation({
     mutationFn: ({ action, idempotencyKey }: { action: DriverRideAction; idempotencyKey: string }) =>
@@ -200,7 +217,7 @@ export default function DriverRideDetailPage() {
     <FormScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refreshTrip()} />}
     >
       <View style={styles.heroCard}>
         <View style={styles.heroTopRow}>
@@ -318,15 +335,15 @@ export default function DriverRideDetailPage() {
       {isTrackableTrip(ride.status) && (
 <TripTrackingCard
         title="Live Route"
+        history={locationHistory ?? []}
+        historyError={historyError}
         snapshot={locationSnapshot ?? null}
   rideStatus={ride.status}
         error={locationError}
         pickupAddress={ride.pickupAddress}
         dropoffAddress={ride.dropoffAddress}
-        onRefresh={() => {
-          void refetchLocationSnapshot();
-        }}
-        refreshing={locationRefreshing}
+        onRefresh={() => void refreshTrip()}
+        refreshing={locationRefreshing || historyRefreshing || isRefetching}
       />
       )}
 

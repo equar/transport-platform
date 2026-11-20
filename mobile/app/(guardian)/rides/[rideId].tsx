@@ -1,4 +1,5 @@
-import { isFinishedTrip, isTrackableTrip } from '@utils/tripPresentation';
+import { useTripScreenVisible, manualTripRefreshOptions } from '@hooks/useTripScreenVisible';
+import { isTrackableTrip } from '@utils/tripPresentation';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import { SupportContact } from '@components/SupportContact';
@@ -16,6 +17,7 @@ import { formatShortDateTime } from '@utils/formatDate';
 
 export default function GuardianRideDetailPage() {
   const styles = useThemedStyles(createStyles);
+  const screenVisible = useTripScreenVisible();
 	const router = useRouter();
 	const { rideId, track } = useLocalSearchParams<{ rideId: string; track?: string }>();
   const [trackingRideId, setTrackingRideId] = React.useState<string | null>(null);
@@ -23,9 +25,9 @@ export default function GuardianRideDetailPage() {
 
 	const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
 		queryKey: ['guardian-ride-detail', rideId],
-    refetchInterval: query => query.state.data && !isFinishedTrip(query.state.data.status) ? 15000 : false,
+    ...manualTripRefreshOptions,
 		queryFn: () => riderPortalApi.getRide(Number(rideId)),
-		enabled: Boolean(rideId),
+		enabled: screenVisible && Boolean(rideId),
 	});
 
   const trackingActive = !!ride && !isError && isTrackableTrip(ride.status) && trackingRequested;
@@ -38,11 +40,24 @@ export default function GuardianRideDetailPage() {
 	} = useQuery({
 		queryKey: ['guardian-ride-location', rideId],
 		queryFn: () => riderPortalApi.getRideLocationSnapshot(Number(rideId)),
-		enabled: trackingActive,
-    refetchInterval: trackingActive ? 15000 : false,
-    refetchIntervalInBackground: false,
-    staleTime: 10000,
+		enabled: screenVisible && trackingActive,
+    ...manualTripRefreshOptions,
 	});
+
+  const { data: locationHistory, refetch: refetchHistory, isFetching: historyRefreshing, isError: historyError } = useQuery({
+    queryKey: ['guardian-ride-location-history', rideId],
+    queryFn: () => riderPortalApi.getRideLocationHistory(Number(rideId)),
+    enabled: screenVisible && trackingActive,
+    ...manualTripRefreshOptions,
+  });
+
+  async function refreshTrip() {
+    if (!screenVisible) return;
+    const result = await refetch();
+    if (result.data && isTrackableTrip(result.data.status) && trackingRequested) {
+      await Promise.all([refetchLocationSnapshot(), refetchHistory()]);
+    }
+  }
 
 	if (isLoading) return <LoadingState />;
   if (isError || !ride) return <RequestError onRetry={() => void refetch()} />;
@@ -51,7 +66,7 @@ export default function GuardianRideDetailPage() {
 		<ScrollView
 			style={styles.container}
 			contentContainerStyle={styles.content}
-			refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+			refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refreshTrip()} />}
 		>
 			<View style={styles.heroCard}>
 				<Text style={styles.heroTitle}>Trip details</Text>
@@ -64,15 +79,17 @@ export default function GuardianRideDetailPage() {
 			</View>
 
       {trackingActive ? <TripTrackingCard
-        title="Live driver location"
+        title="Driver location"
+        history={locationHistory ?? []}
+        historyError={historyError}
         snapshot={locationSnapshot ?? null}
         autoShowMap
         rideStatus={ride.status}
         error={locationError}
         pickupAddress={ride.pickupAddress}
         dropoffAddress={ride.dropoffAddress}
-        onRefresh={() => { if (trackingActive) void refetchLocationSnapshot(); }}
-        refreshing={locationRefreshing}
+        onRefresh={() => void refreshTrip()}
+        refreshing={locationRefreshing || historyRefreshing || isRefetching}
       /> : isTrackableTrip(ride.status) ? <AppButton
         label="Track"
         leftIcon="map-marker-radius-outline"
@@ -99,7 +116,7 @@ export default function GuardianRideDetailPage() {
 
 			<View style={styles.actionRow}>
 				<View style={styles.actionSlot}>
-					<AppButton label="Refresh" variant="outlined" onPress={() => refetch()} fullWidth />
+					<AppButton label="Refresh" variant="outlined" onPress={() => void refreshTrip()} fullWidth />
 				</View>
 				<View style={styles.actionSlot}>
 					<AppButton label="Riders" onPress={() => router.push('/(guardian)/riders')} fullWidth />
