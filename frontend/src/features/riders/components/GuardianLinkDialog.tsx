@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -14,7 +15,10 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import { Link as RouterLink } from "react-router-dom";
-import type { GuardianRecord } from "../../guardians/api/guardiansApi";
+import {
+  guardiansApi,
+  type GuardianRecord,
+} from "../../guardians/api/guardiansApi";
 import type {
   RiderGuardianPayload,
   RiderGuardianRecord,
@@ -24,6 +28,7 @@ import { riderGuardianRelationshipTypeOptions } from "../api/ridersApi";
 
 interface GuardianLinkDialogProps {
   open: boolean;
+  searchEnabled?: boolean;
   guardians: GuardianRecord[];
   linkedGuardianIds: number[];
   relationship: RiderGuardianRecord | null;
@@ -45,6 +50,7 @@ function emptyForm(): RiderGuardianPayload {
 
 export function GuardianLinkDialog({
   open,
+  searchEnabled = false,
   guardians,
   linkedGuardianIds,
   relationship,
@@ -54,6 +60,67 @@ export function GuardianLinkDialog({
 }: GuardianLinkDialogProps) {
   const [form, setForm] = useState<RiderGuardianPayload>(emptyForm());
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(0);
+  const [pages, setPages] = useState(0);
+  const [results, setResults] = useState<GuardianRecord[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const [chosenGuardian, setChosenGuardian] = useState<GuardianRecord | null>(
+    null,
+  );
+  useEffect(() => {
+    if (open) {
+      setKeyword("");
+      setPage(0);
+      setResults([]);
+      setChosenGuardian(null);
+    }
+  }, [open]);
+  useEffect(() => {
+    if (!open || !searchEnabled || relationship) return;
+    let cancelled = false;
+    setSearching(true);
+    setSearchError(false);
+    const timer = setTimeout(() => {
+      void guardiansApi
+        .search({
+          keyword,
+          page,
+          size: 25,
+          status: "",
+          authorizedForPickup: "",
+          billingContact: "",
+          sortBy: "lastName",
+          sortDirection: "ASC",
+        })
+        .then((response) => {
+          if (!cancelled) {
+            setResults(response.items);
+            setPages(response.totalPages);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setResults([]);
+            setSearchError(true);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [open, searchEnabled, relationship, keyword, page, retry]);
+  const options = searchEnabled && !relationship ? results : guardians;
+  const displayOptions =
+    chosenGuardian && !options.some((item) => item.id === chosenGuardian.id)
+      ? [chosenGuardian, ...options]
+      : options;
 
   useEffect(() => {
     if (!open) {
@@ -75,8 +142,10 @@ export function GuardianLinkDialog({
   }, [open, relationship]);
 
   const selectedGuardian = useMemo(
-    () => guardians.find((guardian) => guardian.id === form.guardianId) ?? null,
-    [form.guardianId, guardians],
+    () =>
+      displayOptions.find((guardian) => guardian.id === form.guardianId) ??
+      null,
+    [form.guardianId, displayOptions],
   );
 
   function updateField<Key extends keyof RiderGuardianPayload>(
@@ -137,27 +206,100 @@ export function GuardianLinkDialog({
           variant="outlined"
           size="small"
           onClick={onClose}
+          disabled={loading}
         >
           Create Guardian
         </Button>
       </DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
+          {searchEnabled && !relationship ? (
+            <>
+              <TextField
+                label="Search guardians"
+                value={keyword}
+                disabled={loading}
+                onChange={(event) => {
+                  setKeyword(event.target.value);
+                  setPage(0);
+                }}
+                helperText="Search by name, email, or phone."
+                fullWidth
+              />
+              {searchError ? (
+                <Alert
+                  severity="error"
+                  action={
+                    <Button onClick={() => setRetry((value) => value + 1)}>
+                      Retry
+                    </Button>
+                  }
+                >
+                  Guardians could not be loaded.
+                </Alert>
+              ) : null}
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Button
+                  disabled={loading || searching || page === 0}
+                  onClick={() => setPage((value) => value - 1)}
+                >
+                  Previous
+                </Button>
+                <Typography variant="body2">
+                  Page {page + 1} of {Math.max(pages, 1)}
+                </Typography>
+                <Button
+                  disabled={loading || searching || page + 1 >= pages}
+                  onClick={() => setPage((value) => value + 1)}
+                >
+                  Next
+                </Button>
+              </Stack>
+            </>
+          ) : null}
           <TextField
             label="Guardian"
             select
             value={form.guardianId || ""}
-            onChange={(event) =>
-              updateField("guardianId", Number(event.target.value))
-            }
+            onChange={(event) => {
+              updateField("guardianId", Number(event.target.value));
+              setChosenGuardian(
+                displayOptions.find(
+                  (item) => item.id === Number(event.target.value),
+                ) ?? null,
+              );
+            }}
             error={Boolean(errors.guardianId)}
-            helperText={errors.guardianId}
-            disabled={Boolean(relationship)}
+            helperText={
+              errors.guardianId ||
+              (searching
+                ? "Loading guardians…"
+                : searchEnabled && !relationship && !results.length
+                  ? "No guardians found. Try another search."
+                  : undefined)
+            }
+            disabled={loading || searching || Boolean(relationship)}
             fullWidth
           >
             <MenuItem value="">Select guardian</MenuItem>
-            {guardians.map((guardian) => (
-              <MenuItem key={guardian.id} value={guardian.id}>
+            {relationship &&
+            !displayOptions.some(
+              (item) => item.id === relationship.guardianId,
+            ) ? (
+              <MenuItem value={relationship.guardianId}>
+                {relationship.guardianDisplayName}
+              </MenuItem>
+            ) : null}
+            {displayOptions.map((guardian) => (
+              <MenuItem
+                key={guardian.id}
+                value={guardian.id}
+                disabled={
+                  searchEnabled &&
+                  !relationship &&
+                  linkedGuardianIds.includes(guardian.id)
+                }
+              >
                 {guardian.firstName} {guardian.lastName}
                 {guardian.email ? ` • ${guardian.email}` : ""}
               </MenuItem>
@@ -172,6 +314,7 @@ export function GuardianLinkDialog({
             </Typography>
           ) : null}
           <TextField
+            disabled={loading}
             label="Relationship Type"
             select
             value={form.relationshipType}
@@ -189,10 +332,16 @@ export function GuardianLinkDialog({
               </MenuItem>
             ))}
           </TextField>
+          <Typography variant="body2" color="text.secondary">
+            Linking grants this guardian access to the rider in the guardian
+            portal. Setting a primary guardian replaces the rider’s current
+            primary guardian; the first guardian is automatically primary.
+          </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             <FormControlLabel
               control={
                 <Switch
+                  disabled={loading}
                   checked={form.primaryGuardian}
                   onChange={(event) =>
                     updateField("primaryGuardian", event.target.checked)
@@ -204,6 +353,7 @@ export function GuardianLinkDialog({
             <FormControlLabel
               control={
                 <Switch
+                  disabled={loading}
                   checked={form.authorizedForPickup}
                   onChange={(event) =>
                     updateField("authorizedForPickup", event.target.checked)
@@ -215,6 +365,7 @@ export function GuardianLinkDialog({
             <FormControlLabel
               control={
                 <Switch
+                  disabled={loading}
                   checked={form.billingContact}
                   onChange={(event) =>
                     updateField("billingContact", event.target.checked)
@@ -225,6 +376,8 @@ export function GuardianLinkDialog({
             />
           </Stack>
           <TextField
+            disabled={loading}
+            inputProps={{ maxLength: 2000 }}
             label="Notes"
             value={form.notes ?? ""}
             onChange={(event) => updateField("notes", event.target.value)}

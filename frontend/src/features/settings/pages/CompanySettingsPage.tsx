@@ -120,7 +120,7 @@ function emptySettings(): CompanySettingsRecord {
     customFooterText: "",
     primaryColor: "#1266d6",
     secondaryColor: "#084aa8",
-    accentColor: "#4d94ee",
+    accentColor: "#00796b",
     profileCompletenessPercent: 0,
     createdBy: null,
     createdAt: null,

@@ -9,6 +9,9 @@ class TenantThemeContrastTest {
             assertTrue(contrastWithWhite(theme.secondaryColor()) >= 4.5, theme.name() + " navigation contrast");
         }
     }
+    @Test void defaultThemeUsesTheTealPlatformAccent() {
+        assertEquals("#00796b", TenantThemePreset.ALL.getFirst().accentColor());
+    }
     private double contrastWithWhite(String hex) {
         double[] weights = {.2126, .7152, .0722}; double luminance = 0;
         for (int channel = 0; channel < 3; channel++) {

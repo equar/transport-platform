@@ -1,3 +1,4 @@
+import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import {
   Alert,
   Button,
@@ -118,7 +119,10 @@ export function RiderManagementPage() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadRiders(), 250);
-    return () => { window.clearTimeout(timer); loadGeneration.current++; };
+    return () => {
+      window.clearTimeout(timer);
+      loadGeneration.current++;
+    };
   }, [
     keyword,
     status,
@@ -144,10 +148,8 @@ export function RiderManagementPage() {
       await loadRiders();
     } catch (saveError) {
       showError(
-        normalizeBusinessError(
-          saveError,
-          "Rider changes could not be saved.",
-        ).message,
+        normalizeBusinessError(saveError, "Rider changes could not be saved.")
+          .message,
       );
     } finally {
       setSaving(false);
@@ -200,6 +202,12 @@ export function RiderManagementPage() {
   function renderActions(rider: RiderRecord) {
     return (
       <>
+        <TableActionButton
+          title="Link Guardian"
+          onClick={() => navigate(`/company/riders/${rider.id}?link=1`)}
+        >
+          <LinkRoundedIcon />
+        </TableActionButton>
         <TableActionButton
           title="View Details"
           onClick={() => navigate(`/company/riders/${rider.id}`)}

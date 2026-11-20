@@ -1,4 +1,5 @@
 import { AccountActions } from '@components/AccountActions';
+import { AppearancePreferenceCard } from '@components/AppearancePreferenceCard';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import React from 'react';
@@ -86,6 +87,7 @@ export default function RiderProfilePage() {
           </AppCard>
         </>
       )}
+    <AppearancePreferenceCard />
     <AccountActions />
     </ScrollView>
   );

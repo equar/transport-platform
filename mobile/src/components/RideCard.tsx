@@ -3,7 +3,7 @@ import { useBrandingColors } from '@theme/BrandingContext';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { AppBadge } from './ui';
 import { Shadow, Spacing, Typography } from '@theme/tokens';
 import type { DriverPortalRideSummaryRecord } from '@api/driverPortalApi';
@@ -16,11 +16,13 @@ interface RideCardProps {
 
 export function RideCard({ ride, onPress }: RideCardProps) {
   const styles = useThemedStyles(createStyles);
+  const { width, fontScale } = useWindowDimensions();
+  const stackedHeader = width < 380 || fontScale > 1.25;
   const colors = useBrandingColors();
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
-      <View style={styles.row}>
-        <View style={styles.headerBlock}>
+    <TouchableOpacity accessibilityRole="button" accessibilityHint="Opens trip details" style={styles.card} onPress={onPress} activeOpacity={0.85}>
+      <View style={[styles.row, stackedHeader && styles.stackedRow]}>
+        <View style={[styles.headerBlock, stackedHeader && styles.stackedHeader]}>
           <Text style={styles.eyebrow}>Trip assignment</Text>
           <Text style={styles.rideNumber}>{ride.rideNumber}{ride.journeyLeg ? ` • ${ride.journeyLeg === "RETURN" ? "Return" : "Outbound"}` : ""}</Text>
         </View>
@@ -30,15 +32,15 @@ export function RideCard({ ride, onPress }: RideCardProps) {
       {ride.guardianName ? (
         <Text style={styles.meta}>Guardian: {ride.guardianName}</Text>
       ) : null}
-      <View style={styles.addressRow}>
-        <View style={styles.addressItem}>
+      <View style={[styles.addressRow, stackedHeader && styles.stackedAddresses]}>
+        <View style={[styles.addressItem, stackedHeader && styles.stackedAddress]}>
           <View style={styles.locationLabel}><MaterialCommunityIcons name="map-marker" size={18} color={colors.primary} /><Text style={styles.addressLabel}>FROM</Text></View>
-          <Text style={styles.addressText} numberOfLines={2}>{ride.pickupAddress ?? '—'}</Text>
+          <Text style={styles.addressText} numberOfLines={stackedHeader ? undefined : 2}>{ride.pickupAddress ?? '—'}</Text>
         </View>
-        <Text style={styles.arrow}>→</Text>
-        <View style={styles.addressItem}>
+        <Text style={[styles.arrow, stackedHeader && { alignSelf: 'center' }]}>{stackedHeader ? '↓' : '→'}</Text>
+        <View style={[styles.addressItem, stackedHeader && styles.stackedAddress]}>
           <View style={styles.locationLabel}><MaterialCommunityIcons name="map-marker" size={18} color={colors.accent} /><Text style={styles.addressLabel}>TO</Text></View>
-          <Text style={styles.addressText} numberOfLines={2}>{ride.dropoffAddress ?? '—'}</Text>
+          <Text style={styles.addressText} numberOfLines={stackedHeader ? undefined : 2}>{ride.dropoffAddress ?? '—'}</Text>
         </View>
       </View>
       <View style={styles.footerRow}>
@@ -61,10 +63,18 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  stackedRow: { flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch' },
+  stackedHeader: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: '100%' },
   headerBlock: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 160,
+    minWidth: 0,
     gap: 2,
   },
   eyebrow: { display: 'none',
@@ -98,7 +108,9 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   locationLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  addressItem: { flex: 1, gap: 2 },
+  addressItem: { flexGrow: 1, flexShrink: 1, flexBasis: 0, gap: 2 },
+  stackedAddresses: { flexDirection: 'column', alignItems: 'stretch' },
+  stackedAddress: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
   addressLabel: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeXs,
@@ -116,6 +128,8 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   },
   footerRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: Spacing.xs,

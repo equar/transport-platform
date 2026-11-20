@@ -1,10 +1,11 @@
+import { FormScrollView } from '@components/FormScrollView';
 import { runtimeApi } from '@api/runtimeApi';
 import { useBrandingColors } from '@theme/BrandingContext';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import { createIdempotencyKey } from '@utils/idempotencyKey';
 import React from 'react';
-import { Alert, StyleSheet, ScrollView, Text, View, Switch, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { Alert, StyleSheet, Text, View, Switch, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { AppButton, AppCard, AppInput } from '@components/ui';
@@ -127,7 +128,7 @@ export default function RiderSchedulePage() {
   }
 
   return (
-    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets
+    <FormScrollView
       style={styles.container}
       contentContainerStyle={[
         styles.content,
@@ -228,7 +229,7 @@ export default function RiderSchedulePage() {
 
       <AppButton label="Review ride request" fullWidth onPress={submit} loading={isPending} />
       <Text style={styles.note}>Your request is sent to dispatch for confirmation. Times follow your transport company’s local schedule.</Text>
-    </ScrollView>
+    </FormScrollView>
   );
 }
 

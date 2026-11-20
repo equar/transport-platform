@@ -1,6 +1,7 @@
-// Bakaroo mobile identity: deep navy, warm orange and soft blue surfaces.
+// Bakaroo mobile identity: deep navy, teal accents and soft blue surfaces.
 export const LightColors = {
   primary: '#004787',
+  onPrimary: '#ffffff',
   primaryDark: '#002d50',
   primaryLight: '#447cb5',
   primarySoft: '#e7f2ff',
@@ -9,6 +10,7 @@ export const LightColors = {
   onPrimaryBorder: 'rgba(255,255,255,0.32)',
   onPrimarySubtle: 'rgba(255,255,255,0.68)',
   secondary: '#002d50',
+  onSecondary: '#ffffff',
   secondaryDark: '#002542',
   secondaryLight: '#447cb5',
   secondarySoft: '#e7f2ff',
@@ -16,7 +18,8 @@ export const LightColors = {
   surface: '#ffffff',
   surfaceMuted: '#f8faff',
   surfaceStrong: '#002d50',
-  accent: '#ff6b00',
+  accent: '#00796b',
+  onAccent: '#ffffff',
   successSoft: '#e8f3ee',
   warningSoft: '#fbf2df',
   errorSoft: '#fceceb',
@@ -30,7 +33,8 @@ export const LightColors = {
   overlay: '#e7f2ff',
   scrim: 'rgba(0,0,0,0.38)',
   error: '#b42318',
-  warning: '#9e6612',
+  onError: '#ffffff',
+  warning: '#805000',
   success: '#197357',
   info: '#004787',
   white: '#ffffff',
@@ -39,10 +43,10 @@ export const LightColors = {
   // Status badge colours
   statusActive: '#197357',
   statusInactive: '#616161',
-  statusPending: '#9e6612',
+  statusPending: '#805000',
   statusSuspended: '#b42318',
   statusCompleted: '#002d50',
-  statusCancelled: '#757575',
+  statusCancelled: '#616161',
   statusEnRoute: '#004787',
 } as const;
 
@@ -50,6 +54,7 @@ type BasePalette = { [Token in keyof typeof LightColors]: string };
 
 export const DarkColors: BasePalette = {
   primary: '#7bbcff',
+  onPrimary: '#071a2d',
   primaryDark: '#add6ff',
   primaryLight: '#4f91cc',
   primarySoft: '#183b5e',
@@ -58,6 +63,7 @@ export const DarkColors: BasePalette = {
   onPrimaryBorder: 'rgba(255,255,255,0.38)',
   onPrimarySubtle: 'rgba(255,255,255,0.76)',
   secondary: '#a9d2fa',
+  onSecondary: '#071a2d',
   secondaryDark: '#071a2d',
   secondaryLight: '#4f91cc',
   secondarySoft: '#183b5e',
@@ -65,7 +71,8 @@ export const DarkColors: BasePalette = {
   surface: '#111d2e',
   surfaceMuted: '#17263a',
   surfaceStrong: '#071a2d',
-  accent: '#ff9a4d',
+  accent: '#4db6ac',
+  onAccent: '#071a2d',
   successSoft: '#123d32',
   warningSoft: '#493719',
   errorSoft: '#4b2429',
@@ -79,6 +86,7 @@ export const DarkColors: BasePalette = {
   overlay: '#183b5e',
   scrim: 'rgba(0,0,0,0.60)',
   error: '#ffb4ab',
+  onError: '#071a2d',
   warning: '#ffd180',
   success: '#7fdbb7',
   info: '#7bbcff',

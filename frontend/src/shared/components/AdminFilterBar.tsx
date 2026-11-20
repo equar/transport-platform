@@ -10,7 +10,7 @@ export function AdminFilterBar({ children, stackProps }: AdminFilterBarProps) {
   const { sx, ...layoutProps } = stackProps ?? {};
 
   return (
-    <PageCard sx={{ p: 2, bgcolor: "#f8fbfd", borderColor: "rgba(37,76,99,.1)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.74), 0 8px 22px rgba(16,30,38,.03)" }}>
+    <PageCard sx={{ p: 2, bgcolor: "background.paper", borderColor: "divider", boxShadow: "none" }}>
       <Stack
         spacing={1.5}
         useFlexGap

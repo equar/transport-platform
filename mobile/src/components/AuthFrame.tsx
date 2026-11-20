@@ -1,5 +1,6 @@
+import { FormScrollView } from '@components/FormScrollView';
 import { useCallback, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Spacing, Typography } from '@theme/tokens';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import { useBrandingColors } from '@theme/BrandingContext';
@@ -7,8 +8,8 @@ import { BrandWordmark } from './BrandWordmark';
 
 export function AuthFrame({ title, description, titleAlign = 'left', children, footer }: { title: string; description?: string; titleAlign?: 'left' | 'center'; children: ReactNode; footer?: ReactNode }) {
   const styles = useThemedStyles(useCallback(createStyles, []));
-  return <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+  return <View style={styles.screen}>
+    <FormScrollView contentContainerStyle={styles.scroll}>
       <View style={styles.content}>
         <BrandWordmark />
         <View style={styles.form}>
@@ -18,11 +19,11 @@ export function AuthFrame({ title, description, titleAlign = 'left', children, f
           <Text style={styles.note}>Your transport, connected.</Text>
         </View>
       </View>
-    </ScrollView>
+    </FormScrollView>
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.waveArea}>
       <View style={styles.orangeWave} /><View style={styles.navyWave} />
     </View>
-  </KeyboardAvoidingView>;
+  </View>;
 }
 const createStyles = (colors: ReturnType<typeof useBrandingColors>) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },

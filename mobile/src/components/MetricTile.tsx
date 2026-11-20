@@ -30,6 +30,7 @@ export function MetricTile({ label, value, accent, warning, icon }: MetricTilePr
 const createStyles = (colors: BrandColors) => StyleSheet.create({
   tile: {
     flex: 1,
+    flexBasis: 120,
     backgroundColor: colors.surface,
     padding: Spacing.lg,
     borderWidth: 1, borderColor: colors.border, borderRadius: 10,

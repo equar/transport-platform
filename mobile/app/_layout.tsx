@@ -7,7 +7,6 @@ import { mobileRoleGroup } from "@auth/access";
 import { LoadingState } from "@components/LoadingState";
 import { OfflineSyncStatus } from '@components/OfflineSyncStatus';
 import { useEffect, useMemo } from 'react';
-import { useColorScheme } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
@@ -25,6 +24,7 @@ import {
 } from '@expo-google-fonts/manrope';
 import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider } from '@theme/ThemeProvider';
+import { useAppearancePreference } from '@theme/ThemeProvider';
 import { AuthProvider, useAuth } from '@auth/AuthContext';
 import NetInfo from '@react-native-community/netinfo';
 import { AppState } from 'react-native';
@@ -151,10 +151,10 @@ function ThemedAppRoot() {
 function AppViewport({ children }: { children: React.ReactNode }) {
   const segments = useSegments() as readonly string[];
   const colors = useBrandingColors();
-  const scheme = useColorScheme();
+  const { resolvedScheme } = useAppearancePreference();
   const auth = segments[0] === '(auth)';
   return <SafeAreaView style={{ flex: 1, width: '100%', maxWidth: 1000, alignSelf: 'center', backgroundColor: auth ? colors.surface : colors.secondaryDark }} edges={['top', 'left', 'right', 'bottom']}>
-    <StatusBar style={auth && scheme !== 'dark' ? 'dark' : 'light'} />
+    <StatusBar style={auth && resolvedScheme !== 'dark' ? 'dark' : 'light'} />
     {children}
   </SafeAreaView>;
 }

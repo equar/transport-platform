@@ -2,6 +2,7 @@ import { DriverVehicles } from '@components/DriverVehicles';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import { AccountActions } from '@components/AccountActions';
+import { AppearancePreferenceCard } from '@components/AppearancePreferenceCard';
 import React from 'react';
 import {
   StyleSheet,
@@ -144,6 +145,7 @@ export default function DriverProfilePage() {
           <DriverVehicles />
         </>
       )}
+    <AppearancePreferenceCard />
     <AccountActions />
     </ScrollView>
   );
@@ -226,7 +228,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   tabLabelActive: {
-    color: colors.secondaryDark,
+    color: colors.onAccent,
   },
   section: { gap: Spacing.sm },
   sectionTitle: {

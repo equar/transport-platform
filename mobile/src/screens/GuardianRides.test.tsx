@@ -4,7 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import GuardianRidesPage from '../../app/(guardian)/rides/index';
 import { riderPortalApi } from '@api/riderPortalApi';
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock('@expo/vector-icons', () => ({ MaterialCommunityIcons: 'Icon' }));
 jest.mock('@api/riderPortalApi', () => ({ riderPortalApi: { searchRides: jest.fn() } }));
 
@@ -41,4 +42,11 @@ it('keeps actual request failures visible and allows retrying to an empty result
   fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
   await waitFor(() => expect(screen.getByText('No ride records')).toBeTruthy());
   expect(screen.queryByText('We couldn’t load this')).toBeNull();
+});
+
+it('opens an active linked rider trip directly in tracking mode', async () => {
+  jest.mocked(riderPortalApi.searchRides).mockResolvedValue({ items: [{ id: 10, rideNumber: 'TRIP-10', status: 'PICKED_UP', scheduledPickupAt: '2026-11-13T12:00:00' }], totalElements: 1, totalPages: 1, page: 0, size: 20 } as never);
+  renderRides();
+  fireEvent.press(await screen.findByRole('button', { name: 'Track trip TRIP-10' }));
+  expect(mockPush).toHaveBeenCalledWith('/(guardian)/rides/10?track=1');
 });

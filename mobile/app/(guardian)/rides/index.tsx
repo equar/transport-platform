@@ -1,4 +1,4 @@
-import { isFinishedTrip } from '@utils/tripPresentation';
+import { isFinishedTrip, isTrackableTrip } from '@utils/tripPresentation';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import { RequestError } from '@components/RequestError';
@@ -66,7 +66,7 @@ export default function GuardianRidesPage() {
 			<FlatList
 				data={filtered}
 				keyExtractor={(r) => String(r.id)}
-				renderItem={({ item }) => <RideCard item={item} onPress={() => router.push(`/(guardian)/rides/${item.id}`)} />}
+				renderItem={({ item }) => <RideCard item={item} onPress={() => router.push(`/(guardian)/rides/${item.id}`)} onTrack={() => router.push(`/(guardian)/rides/${item.id}?track=1` as never)} />}
 				ItemSeparatorComponent={() => <View style={styles.sep} />}
 				ListEmptyComponent={<EmptyState title="No ride records" description="No trips for your linked riders in this view. Pull down to refresh." />}
 				onEndReached={() => (hasNextPage ? fetchNextPage() : undefined)}
@@ -85,11 +85,11 @@ export default function GuardianRidesPage() {
 	);
 }
 
-function RideCard({ item, onPress }: { item: RiderPortalRideRecord; onPress: () => void }) {
+function RideCard({ item, onPress, onTrack }: { item: RiderPortalRideRecord; onPress: () => void; onTrack: () => void }) {
   const styles = useThemedStyles(createStyles);
 	return (
-		<TouchableOpacity onPress={onPress} activeOpacity={0.85}>
-			<AppCard style={styles.card}>
+		<AppCard style={styles.card}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`View trip ${item.rideNumber}`} onPress={onPress} activeOpacity={0.85} style={{ gap: Spacing.xs }}>
 				<View style={styles.row}>
 					<Text style={styles.rideNumber}>{item.rideNumber}</Text>
 					<AppBadge status={item.status} />
@@ -98,8 +98,9 @@ function RideCard({ item, onPress }: { item: RiderPortalRideRecord; onPress: () 
 				<Text style={styles.address}>{item.pickupAddress ?? 'Pickup TBD'}</Text>
 				<Text style={styles.address}>{item.dropoffAddress ?? 'Drop-off TBD'}</Text>
 				{item.riderName ? <Text style={styles.rider}>Rider: {item.riderName}</Text> : null}
-			</AppCard>
-		</TouchableOpacity>
+			</TouchableOpacity>
+      {isTrackableTrip(item.status) ? <AppButton label="Track" accessibilityLabel={`Track trip ${item.rideNumber}`} leftIcon="map-marker-radius-outline" onPress={onTrack} /> : null}
+    </AppCard>
 	);
 }
 
@@ -126,7 +127,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
 		fontSize: Typography.sizeSm,
 		color: colors.textSecondary,
 	},
-	segmentLabelSelected: { color: colors.secondaryDark },
+	segmentLabelSelected: { color: colors.onAccent },
 	listContent: { paddingTop: Spacing.sm },
 	card: { gap: Spacing.xs },
 	row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },

@@ -1,3 +1,4 @@
+import { FormScrollView } from '@components/FormScrollView';
 import { isTrackableTrip } from '@utils/tripPresentation';
 import { useBrandingColors } from '@theme/BrandingContext';
 import { useThemedStyles } from '@theme/ThemeProvider';
@@ -7,7 +8,6 @@ import { SupportContact } from '@components/SupportContact';
 import React from 'react';
 import {
   StyleSheet,
-  ScrollView,
   View,
   Text,
   Alert,
@@ -197,14 +197,14 @@ export default function DriverRideDetailPage() {
     : undefined;
 
   return (
-    <ScrollView
+    <FormScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
       <View style={styles.heroCard}>
         <View style={styles.heroTopRow}>
-          <Text style={styles.heroTitle}>{ride.journeyLeg === "RETURN" ? "Return journey" : ride.journeyLeg === "OUTBOUND" ? "Outbound journey" : "Current trip"}</Text>
+          <Text style={styles.heroTitle}>{ride.journeyLeg === "RETURN" ? "Return journey" : ride.journeyLeg === "OUTBOUND" ? "Outbound journey" : "Trip summary"}</Text>
           <Text style={[styles.onlineBadge, { backgroundColor: network.isConnected ? colors.success : colors.warning }]}>{network.isConnected ? "Online" : "Offline"}</Text>
         </View>
         <Text style={styles.rideNumberHero}>{ride.rideNumber}</Text>
@@ -242,7 +242,7 @@ export default function DriverRideDetailPage() {
       ) : null}
 
       {isTrackableTrip(ride.status) && (<Text accessibilityRole="text" style={{ fontFamily: Typography.fontBody, color: colors.textSecondary, lineHeight: 22 }}>{tracking.rideId === ride.id ? tracking.message : 'Tracking is off for this trip'}{tracking.rideId === ride.id && tracking.lastSyncedAt ? ` • Last synced ${new Date(tracking.lastSyncedAt).toLocaleTimeString()}` : ""}</Text>)}
-      <Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>← Dispatches</Text>
+      <Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>← Back to trips</Text>
 
       {ride.linkedRideId ? <Text style={styles.instructions}>This is the {ride.journeyLeg?.toLowerCase()} leg. The paired journey has a separate assignment and completion status. Contact dispatch for changes.</Text> : null}
       {/* Action */}
@@ -373,7 +373,7 @@ export default function DriverRideDetailPage() {
 
 
       <SupportContact />
-    </ScrollView>
+    </FormScrollView>
   );
 }
 
@@ -506,10 +506,12 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   },
   primaryActionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.sm,
   },
   primaryActionSlot: {
     flex: 1,
+    minWidth: 140,
   },
   secondaryActionGroup: {
     gap: Spacing.sm,

@@ -151,7 +151,7 @@ export function AppShell() {
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const drawer = (
-    <Stack sx={{ height: "100%", bgcolor: "secondary.main", color: "#ffffff", backgroundImage: "none" }}>
+    <Stack sx={{ height: "100%", bgcolor: "secondary.dark", color: "#ffffff", backgroundImage: "none" }}>
       <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: "rgba(255,255,255,.02)", borderBottom: `1px solid ${surfaceTokens.shellCardBorder}` }}>
         <BrandMark compact inverse />
       </Box>
@@ -194,7 +194,7 @@ export function AppShell() {
                           bgcolor: surfaceTokens.shellSelectedBg,
                           color: "#fff",
                           borderColor: surfaceTokens.shellCardBorder,
-                          boxShadow: `inset 3px 0 0 ${branding?.accentColor || "#e9a77c"}`,
+                          boxShadow: `inset 3px 0 0 ${branding?.accentColor || "#80cbc4"}`,
                         },
                         "&.Mui-selected:hover": { bgcolor: surfaceTokens.shellSelectedBgHover },
                         "&:hover": { bgcolor: surfaceTokens.shellHoverBg },
@@ -229,7 +229,7 @@ export function AppShell() {
       <Box sx={{ px: 1.6, py: 1.4 }}>
         <Stack spacing={1}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1 }}>
-            <CircleIcon sx={{ fontSize: 8, color: "#dfad89" }} />
+            <CircleIcon sx={{ fontSize: 8, color: "#80cbc4" }} />
             <Typography variant="caption" sx={{ color: "#94a8bd" }}>Workspace access</Typography>
           </Stack>
           <Button
@@ -309,7 +309,7 @@ export function AppShell() {
           ml: { md: `${drawerWidth}px` },
           borderBottom: "1px solid",
           borderColor: "divider",
-          backgroundColor: surfaceTokens.shellAppBar,
+          backgroundColor: "background.paper",
           backdropFilter: "blur(14px)",
           boxShadow: shadowTokens.appBar,
         }}
@@ -349,7 +349,7 @@ export function AppShell() {
               label={workspaceLabel}
               color="primary"
               variant="outlined"
-              sx={{ display: { xs: "none", lg: "inline-flex" }, bgcolor: "#f5f7fa", borderRadius: 1.5 }}
+              sx={{ display: { xs: "none", lg: "inline-flex" }, bgcolor: "action.hover", borderRadius: 1.5 }}
             />
             <Button
               color="inherit"

@@ -15,13 +15,13 @@ import { EmptyState } from '@components/EmptyState';
 import { AppButton, AppBadge, AppCard } from '@components/ui';
 import { Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
-import { isFinishedTrip } from '@utils/tripPresentation';
+import { isFinishedTrip, isTrackableTrip } from '@utils/tripPresentation';
 export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }) {
   const styles = useThemedStyles(createStyles);
   const role = guardian ? 'guardian' : 'rider'; const router = useRouter(); const { session } = useAuth();
   const dashboard = useQuery({ queryKey: [`${role}-dashboard`], queryFn: riderPortalApi.getDashboard });
   const trips = useQuery({ queryKey: [`${role}-next-rides`], queryFn: () => riderPortalApi.searchRides({ page: 0, size: 20, fromDate: new Date(Date.now()-86400000).toISOString().slice(0,10), sortBy: 'scheduledPickupAt', sortDirection: 'ASC' }) });
-  const next = trips.data?.items.find(ride => !isFinishedTrip(ride.status)); const data = dashboard.data;
+  const next = trips.data?.items.find(ride => isTrackableTrip(ride.status)) ?? trips.data?.items.find(ride => !isFinishedTrip(ride.status)); const data = dashboard.data;
   if (dashboard.isLoading) return <LoadingState />;
   if (dashboard.isError) return <RequestError onRetry={() => void dashboard.refetch()} />;
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={dashboard.isRefetching || trips.isRefetching} onRefresh={() => { void dashboard.refetch(); void trips.refetch(); }} />}>
@@ -39,6 +39,7 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
         {guardian && <Text style={styles.body}>{next.riderName}</Text>}
         <Text style={styles.caption}>PICKUP</Text><Text style={styles.body}>{next.pickupAddress || 'To be confirmed'}</Text>
         <Text style={styles.caption}>DROP-OFF</Text><Text style={styles.body}>{next.dropoffAddress || 'To be confirmed'}</Text>
+        {guardian && isTrackableTrip(next.status) ? <AppButton label="Track" leftIcon="map-marker-radius-outline" onPress={() => router.push(`/(guardian)/rides/${next.id}?track=1` as never)} /> : null}
         <AppButton label="View trip details" rightIcon="arrow-right" onPress={() => router.push(`/(${role})/rides/${next.id}` as never)} />
       </> : <EmptyState title="No upcoming trips" description="Trips assigned by your transport provider will appear here." />}
     </AppCard>

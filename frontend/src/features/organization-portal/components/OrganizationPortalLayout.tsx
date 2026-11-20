@@ -23,6 +23,7 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import {
   Link as RouterLink,
   Outlet,
@@ -193,8 +194,10 @@ export function OrganizationPortalLayout() {
     <Box
       sx={{
         minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top left, rgba(18, 102, 214, 0.10), transparent 28%), radial-gradient(circle at right, rgba(77, 148, 238, 0.10), transparent 24%), linear-gradient(180deg, #f6f8fc 0%, #edf3fb 48%, #f6f8fc 100%)",
+        background: (theme) =>
+          theme.palette.mode === "dark"
+            ? `radial-gradient(circle at top left, ${alpha(theme.palette.primary.main, 0.14)}, transparent 28%), radial-gradient(circle at right, ${alpha(theme.palette.secondary.main, 0.12)}, transparent 24%), linear-gradient(180deg, ${theme.palette.background.default} 0%, ${theme.palette.background.paper} 48%, ${theme.palette.background.default} 100%)`
+            : "radial-gradient(circle at top left, rgba(18, 102, 214, 0.10), transparent 28%), radial-gradient(circle at right, rgba(77, 148, 238, 0.10), transparent 24%), linear-gradient(180deg, #f6f8fc 0%, #edf3fb 48%, #f6f8fc 100%)",
         pb: { xs: 9, md: 0 },
       }}
     >
@@ -205,7 +208,7 @@ export function OrganizationPortalLayout() {
         sx={{
           borderBottom: "1px solid",
           borderColor: "divider",
-          backgroundColor: "rgba(246, 248, 252, 0.90)",
+          backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.9),
           backdropFilter: "blur(14px)",
         }}
       >
@@ -284,7 +287,7 @@ export function OrganizationPortalLayout() {
           display: { xs: "block", md: "none" },
           borderTop: "1px solid",
           borderColor: "divider",
-          backgroundColor: "rgba(252, 252, 250, 0.96)",
+          backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.96),
           backdropFilter: "blur(14px)",
           zIndex: (theme) => theme.zIndex.appBar,
         }}

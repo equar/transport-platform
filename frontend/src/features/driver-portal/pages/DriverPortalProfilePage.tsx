@@ -18,6 +18,7 @@ import {
 } from "../api/driverPortalApi";
 import { LoadingState } from "../../../shared/components/LoadingState";
 import { PageCard } from "../../../shared/components/PageCard";
+import { AppearancePreferenceCard } from "../../../shared/components/AppearancePreferenceCard";
 import { useToast } from "../../../shared/providers/ToastProvider";
 import { PasswordChangeCard } from "../../auth/components/PasswordChangeCard";
 
@@ -337,6 +338,7 @@ export function DriverPortalProfilePage() {
           </PageCard>
         </Box>
       ) : null}
+      <AppearancePreferenceCard />
       <DriverVehiclesCard />
       <PasswordChangeCard />
     </Stack>

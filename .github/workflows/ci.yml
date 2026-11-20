@@ -68,6 +68,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      - run: node --test plugins/withOptionalAndroidHardware.test.cjs
       - run: npm run security:patch-check
       - run: npm audit --audit-level=high
       - run: npm run test:ci

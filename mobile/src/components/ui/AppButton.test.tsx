@@ -7,6 +7,10 @@ import { DarkColors, LightColors } from '@theme/tokens';
 import { AppButton } from './AppButton';
 
 jest.mock('@expo/vector-icons', () => ({ MaterialCommunityIcons: () => null }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn().mockResolvedValue(null),
+  setItem: jest.fn().mockResolvedValue(undefined),
+}));
 
 const filledVariants = ['primary', 'secondary', 'destructive'] as const;
 

@@ -9,6 +9,7 @@ export default function RiderLayout() {
     <RoleShell role="rider"><Tabs
       screenOptions={{
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {

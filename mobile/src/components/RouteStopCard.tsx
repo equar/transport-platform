@@ -64,6 +64,8 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
     justifyContent: 'space-between',
     alignItems: 'center',
   },

@@ -35,7 +35,7 @@ const defaultBranding: RuntimeBranding = {
   faviconUrl: null,
   primaryColor: "#214e82",
   secondaryColor: "#12263e",
-  accentColor: "#d8662a",
+  accentColor: "#00796b",
   supportEmail: "support@bakaroo.com",
   supportPhone: null,
   website: null,

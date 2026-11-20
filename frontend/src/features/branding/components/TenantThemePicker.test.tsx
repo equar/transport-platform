@@ -5,7 +5,7 @@ import { TenantThemePicker } from './TenantThemePicker';
 import { brandingApi, type TenantThemeState } from '../api/brandingApi';
 vi.mock('../api/brandingApi', () => ({ brandingApi: { get: vi.fn(), apply: vi.fn() } }));
 const state: TenantThemeState = { tenantId: 'tenant-a', companyName: 'Acme Transit', selectedCode: 'DEFAULT', eligible: true, eligibilityMessage: null,
-  themes: [{ code: 'DEFAULT', name: 'Classic Blue', description: 'Default look', primaryColor: '#214e82', secondaryColor: '#12263e', accentColor: '#d8662a' },
+  themes: [{ code: 'DEFAULT', name: 'Classic Blue', description: 'Default look', primaryColor: '#214e82', secondaryColor: '#12263e', accentColor: '#00796b' },
     { code: 'FOREST', name: 'Forest Green', description: 'Green look', primaryColor: '#276442', secondaryColor: '#173c2b', accentColor: '#8b641c' }] };
 beforeEach(() => { vi.mocked(brandingApi.get).mockResolvedValue(state); vi.mocked(brandingApi.apply).mockResolvedValue({ ...state, selectedCode: 'FOREST' }); });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });

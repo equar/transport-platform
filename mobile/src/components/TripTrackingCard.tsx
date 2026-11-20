@@ -61,12 +61,39 @@ export function TripTrackingCard({
     longitude: snapshot.longitude,
     latitudeDelta: 0.012,
     longitudeDelta: 0.012,
-  } : null;
+  } : { latitude: 0, longitude: 0, latitudeDelta: 120, longitudeDelta: 180 };
 
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <View style={styles.body}>
+        {mapVisible ? (
+          <MapView
+            accessibilityLabel="Map showing the latest shared ride location"
+            testID="ride-location-map"
+            style={styles.map}
+            region={mapRegion}
+            mapType={Platform.OS === 'android' ? 'none' : 'standard'}
+            showsUserLocation={false}
+            showsCompass
+            zoomEnabled
+            scrollEnabled
+          >
+            <UrlTile
+              urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maximumZ={19}
+              shouldReplaceMapContent={Platform.OS === 'ios'}
+            />
+            {validLocation && snapshot ? <Marker
+              coordinate={{ latitude: mapRegion.latitude, longitude: mapRegion.longitude }}
+              title={riderPickedUp ? 'Rider and assigned driver' : 'Assigned driver'}
+              description={riderPickedUp
+                ? 'The rider is traveling with the driver.'
+                : 'Latest location reported by the assigned driver.'}
+            /> : null}
+          </MapView>
+        ) : null}
+        {mapVisible ? <Text style={styles.emptyText}>© OpenStreetMap contributors</Text> : null}
         {error ? <Text accessibilityRole="alert" style={styles.emptyText}>Location updates could not be loaded. Check your connection and refresh tracking.</Text> : null}
         {snapshot ? (
           <>
@@ -74,38 +101,11 @@ export function TripTrackingCard({
             {mapVisible && validLocation ? (
               <Text style={styles.emptyText}>
                 {riderPickedUp
-                  ? 'The pin shows the rider traveling with the assigned driver.'
+                  ? 'The rider is on board. The pin shows the assigned driver’s latest reported location.'
                   : 'The pin shows the assigned driver’s latest reported location.'}
               </Text>
             ) : null}
-            {mapVisible && mapRegion && snapshot ? (
-              <MapView
-                accessibilityLabel="Map showing the latest shared ride location"
-                testID="ride-location-map"
-                style={styles.map}
-                region={mapRegion}
-                mapType={Platform.OS === 'android' ? 'none' : 'standard'}
-                showsUserLocation={false}
-                showsCompass
-                zoomEnabled
-                scrollEnabled
-              >
-                <UrlTile
-                  urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  maximumZ={19}
-                  shouldReplaceMapContent={Platform.OS === 'ios'}
-                />
-                <Marker
-                  coordinate={{ latitude: mapRegion.latitude, longitude: mapRegion.longitude }}
-                  title={riderPickedUp ? 'Rider and assigned driver' : 'Assigned driver'}
-                  description={riderPickedUp
-                    ? 'The rider is traveling with the driver.'
-                    : 'Latest location reported by the assigned driver.'}
-                />
-              </MapView>
-            ) : null}
             {mapVisible && !validLocation ? <Text style={styles.emptyText}>The latest location cannot be shown on the map.</Text> : null}
-            {mapVisible ? <Text style={styles.emptyText}>© OpenStreetMap contributors</Text> : null}
             <Text style={styles.emptyText}>{ageMinutes != null && ageMinutes >= 2 ? `Location may be stale (${ageMinutes} minutes ago).` : 'Latest reported location'}</Text>
             {pickupAddress ? <Row label="Pickup" value={pickupAddress} /> : null}
             {dropoffAddress ? <Row label="Drop-off" value={dropoffAddress} /> : null}

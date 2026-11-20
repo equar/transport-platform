@@ -15,7 +15,7 @@ export function RoleShell({ role, children }: { role: 'driver' | 'rider' | 'guar
   const page = segments[1] ?? 'index';
   const home = page === 'index';
   const detail = segments.length > 2 && segments[2] !== 'index';
-  const titles: Record<string, string> = { rides: detail ? 'Trip Details' : role === 'guardian' ? 'Riders’ Trips' : role === 'driver' ? 'My Trips' : 'My Rides', routes: detail ? 'Route Manifest' : 'My Routes', profile: role === 'guardian' ? 'Guardian Profile' : 'Profile', notifications: 'Notifications', schedule: 'Schedule', compliance: 'Documents & Compliance', vehicle: 'My Vehicles', riders: 'Linked Riders', billing: 'Billing & Payments' };
+  const titles: Record<string, string> = { rides: detail ? 'Trip Details' : role === 'guardian' ? 'Riders’ Trips' : role === 'driver' ? 'My Trips' : 'My Rides', routes: detail ? 'Route Manifest' : 'My Routes', profile: role === 'guardian' ? 'Guardian Profile' : 'Profile', notifications: 'Notifications', schedule: 'Schedule', compliance: 'Documents & Compliance', vehicle: 'My Vehicles', riders: 'Linked Riders', billing: 'Billing & Payments', payments: 'Payments' };
   const back = () => {
     if (router.canGoBack()) router.back();
     else router.replace(`/(${role})` as never);
@@ -23,7 +23,7 @@ export function RoleShell({ role, children }: { role: 'driver' | 'rider' | 'guar
   return <View style={[styles.shell, { backgroundColor: colors.secondaryDark }]}>
     <View style={styles.header}>
       <Pressable accessibilityRole="button" accessibilityLabel={home ? 'Open account' : 'Go back'} hitSlop={4} style={styles.iconButton} onPress={home ? () => router.push(`/(${role})/profile` as never) : back}>
-        <MaterialCommunityIcons name={home ? 'menu' : 'arrow-left'} size={25} color={colors.white} />
+        <MaterialCommunityIcons name={home ? 'account-circle-outline' : 'arrow-left'} size={25} color={colors.white} />
       </Pressable>
       <View style={styles.center}><TenantHeader tenantId={session?.identity.tenantId} variant="appHeader" pageTitle={home ? undefined : titles[page]} /></View>
       {home ? <Pressable accessibilityRole="button" accessibilityLabel="Open notifications" style={styles.iconButton} onPress={() => router.push(`/(${role})/notifications` as never)}><MaterialCommunityIcons name="bell-outline" color={colors.white} size={23} /></Pressable> : <View style={styles.iconButton} />}
