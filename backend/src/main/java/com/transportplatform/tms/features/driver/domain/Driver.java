@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 
+@jakarta.persistence.EntityListeners(com.transportplatform.tms.features.subscriptionbilling.application.DriverMeteringListener.class)
 @Entity
 @Table(name = "drivers")
 public class Driver extends AuditableEntity {

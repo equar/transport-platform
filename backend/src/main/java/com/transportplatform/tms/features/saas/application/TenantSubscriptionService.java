@@ -109,6 +109,9 @@ public class TenantSubscriptionService {
     @Transactional
     public TenantSubscriptionDetailResponse update(Long tenantSubscriptionId, TenantSubscriptionUpsertRequest request) {
         TenantSubscription subscription = findById(tenantSubscriptionId);
+        if (!subscription.getTenant().getId().equals(request.tenantId())) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "A subscription cannot be moved to a different tenant. Create a new subscription instead.");
+        }
         Tenant tenant = findTenant(request.tenantId());
         SubscriptionPlan subscriptionPlan = findActiveOrInactivePlan(request.subscriptionPlanId());
         TenantSubscriptionStatusWorkflow.ensureValidForUpsert(request.status(), request.isTrial(),

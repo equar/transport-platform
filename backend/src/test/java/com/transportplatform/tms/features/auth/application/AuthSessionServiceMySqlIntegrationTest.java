@@ -119,7 +119,7 @@ class AuthSessionServiceMySqlIntegrationTest {
         applicationRepository.saveAndFlush(application);
         var audit = org.mockito.Mockito.mock(AuditLogService.class);
         var tenantService = new TenantService(tenantRepository, new TenantMapper(), audit,
-                new TenantResourceProvisioningService(settingsRepository, appUserRepository), authSessionService);
+                new TenantResourceProvisioningService(settingsRepository, appUserRepository), authSessionService, org.mockito.Mockito.mock(com.transportplatform.tms.features.subscriptionbilling.application.SubscriptionProvisioningService.class));
         var encoder = new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(4);
         var setup = new TenantEmailVerificationService(appUserRepository, applicationRepository, tenantRepository,
                 org.mockito.Mockito.mock(NotificationDispatchService.class), new AuthFlowProperties(), clock,

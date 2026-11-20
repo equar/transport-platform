@@ -115,6 +115,7 @@ const platformSections: AppShellNavSection[] = [
         to: "/platform/subscription-plans",
         icon: <AttachMoneyRoundedIcon fontSize="small" />,
       },
+      { label: "Subscription Billing", description: "Per-driver platform subscriptions, renewal invoices and receipts.", to: "/platform/subscription-billing", icon: <ReceiptLongRoundedIcon fontSize="small" /> },
       {
         label: "Tenant Subscriptions",
         description: "Assignments, trials, renewals, and lifecycle controls.",
@@ -252,6 +253,7 @@ const companySections: AppShellNavSection[] = [
         requiredModule: "billing",
         audiences: ["company-admin", "billing-admin"],
       },
+      { label: "Platform Subscription", description: "Bakaroo platform subscription invoices and payment history.", to: "/company/subscription-billing", icon: <ReceiptLongRoundedIcon fontSize="small" />, audiences: ["company-admin", "billing-admin"] },
       {
         label: "Invoices",
         description: "Drafts, issuance, balances, and billing workflow status.",

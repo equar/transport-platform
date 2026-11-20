@@ -32,6 +32,10 @@ class ApiContractGenerationTest {
             if(type.isRecord() || type.isEnum()) schemas.putAll(converters.readAll(type));
         }
         assertTrue(schemas.containsKey("RideResponse"));
+        assertTrue(schemas.containsKey("PlatformSubscriptionInvoiceDetail"));
+        assertTrue(schemas.get("PlatformSubscriptionInvoiceDetail").getProperties().containsKey("invoice"));
+        assertTrue(schemas.get("InvoiceDetail").getProperties().containsKey("invoiceNumber"),
+                "Platform subscription DTOs must not overwrite transport invoice schemas");
         assertTrue(schemas.containsKey("RiderGuardianPortalRideCreateRequest"));
         assertFalse(schemas.containsKey("LocalTime"), "LocalTime is serialized as a JSON string, not an object");
         for (String schema : List.of("RouteResponse", "RouteUpsertRequest", "DriverPortalRouteDetailResponse", "RiderUpsertRequest")) {
