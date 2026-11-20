@@ -7,10 +7,9 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { useMediaQuery } from "@mui/material";
 
-export type AppearancePreference = "system" | "light" | "dark";
-export type AppearanceMode = Exclude<AppearancePreference, "system">;
+export type AppearancePreference = "light" | "dark";
+export type AppearanceMode = AppearancePreference;
 
 interface AppearancePreferenceContextValue {
   preference: AppearancePreference;
@@ -23,7 +22,7 @@ const AppearancePreferenceContext =
   createContext<AppearancePreferenceContextValue | null>(null);
 
 function isAppearancePreference(value: string | null): value is AppearancePreference {
-  return value === "system" || value === "light" || value === "dark";
+  return value === "light" || value === "dark";
 }
 
 function readPreference(storageKey: string): AppearancePreference {
@@ -39,7 +38,6 @@ export function AppearancePreferenceProvider({
   storageKey,
   children,
 }: PropsWithChildren<{ storageKey: string }>) {
-  const systemPrefersDark = useMediaQuery("(prefers-color-scheme: dark)");
   const [preference, setPreferenceState] = useState<AppearancePreference>(
     () => readPreference(storageKey),
   );
@@ -65,12 +63,7 @@ export function AppearancePreferenceProvider({
     [preference, storageKey],
   );
 
-  const mode =
-    preference === "system"
-      ? systemPrefersDark
-        ? "dark"
-        : "light"
-      : preference;
+  const mode = preference;
   const value = useMemo(
     () => ({ preference, mode, error, setPreference }),
     [preference, mode, error, setPreference],

@@ -1,4 +1,3 @@
-import { alpha, useTheme } from "@mui/material/styles";
 import { WorkspaceSearch } from "./WorkspaceSearch";
 import { env } from "../../shared/config/env";
 import { Suspense, useEffect, useState } from "react";
@@ -68,16 +67,15 @@ function getInitials(label: string) {
 }
 
 export function AppShell() {
-  const theme = useTheme();
   const sidebar = {
-    background: theme.palette.background.paper,
-    text: theme.palette.text.primary,
-    muted: theme.palette.text.secondary,
-    border: theme.palette.divider,
-    card: theme.palette.action.hover,
-    selected: alpha(theme.palette.primary.main, 0.10),
-    selectedHover: alpha(theme.palette.primary.main, 0.16),
-    hover: theme.palette.action.hover,
+    background: "#14283f",
+    text: "#ffffff",
+    muted: "#ffffff",
+    border: "rgba(255,255,255,.14)",
+    card: "rgba(255,255,255,.06)",
+    selected: "rgba(255,255,255,.14)",
+    selectedHover: "rgba(255,255,255,.20)",
+    hover: "rgba(255,255,255,.09)",
   };
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationAnchorEl, setNotificationAnchorEl] =
@@ -165,7 +163,7 @@ export function AppShell() {
   const drawer = (
     <Stack sx={{ height: "100%", bgcolor: sidebar.background, color: sidebar.text, backgroundImage: "none" }}>
       <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: sidebar.background, borderBottom: `1px solid ${sidebar.border}` }}>
-        <BrandMark compact inverse={theme.palette.mode === "dark"} />
+        <BrandMark compact inverse />
       </Box>
       <Box sx={{ mx: 1.5, my: 1.5, px: 1.75, py: 1.5, bgcolor: sidebar.card, border: `1px solid ${sidebar.border}`, borderRadius: 1.5, boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)" }}>
         <Typography variant="caption" sx={{ color: sidebar.muted, display: "block", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 800 }}>
@@ -181,7 +179,7 @@ export function AppShell() {
             <Box key={section.title}>
               <Typography
                 variant="overline"
-                sx={{ px: 1.4, pb: 0.9, display: "block", color: sidebar.muted, fontSize: ".59rem", letterSpacing: ".12em", lineHeight: 1.4 }}
+                sx={{ px: 1.4, pb: 0.9, display: "block", color: sidebar.muted, fontSize: ".59rem", letterSpacing: ".12em", lineHeight: 1.4, fontWeight: 700 }}
               >
                 {section.title}
               </Typography>
@@ -206,7 +204,7 @@ export function AppShell() {
                           bgcolor: sidebar.selected,
                           color: sidebar.text,
                           borderColor: sidebar.border,
-                          boxShadow: `inset 3px 0 0 ${theme.palette.primary.main}`,
+                          boxShadow: "inset 3px 0 0 #ffffff",
                         },
                         "&.Mui-selected:hover": { bgcolor: sidebar.selectedHover },
                         "&:hover": { bgcolor: sidebar.hover },
@@ -215,7 +213,7 @@ export function AppShell() {
                       <ListItemIcon
                         sx={{
                           minWidth: 30,
-                          color: selected ? theme.palette.primary.main : sidebar.muted,
+                          color: sidebar.text,
                         }}
                       >
                         {item.icon}
@@ -223,7 +221,7 @@ export function AppShell() {
                       <ListItemText
                         primary={item.label}
                         primaryTypographyProps={{
-                          fontWeight: selected ? 600 : 500,
+                          fontWeight: 700,
                           fontSize: ".8rem",
                           color: "inherit",
                         }}
@@ -242,12 +240,12 @@ export function AppShell() {
         <Stack spacing={1}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1 }}>
             <CircleIcon sx={{ fontSize: 8, color: "#80cbc4" }} />
-            <Typography variant="caption" sx={{ color: sidebar.muted }}>Workspace access</Typography>
+            <Typography variant="caption" sx={{ color: sidebar.muted, fontWeight: 700 }}>Workspace access</Typography>
           </Stack>
           <Button
             component="a"
             href={env.publicSiteUrl}
-            sx={{ color: sidebar.text, justifyContent: "flex-start", fontSize: ".75rem" }}
+            sx={{ color: sidebar.text, justifyContent: "flex-start", fontSize: ".75rem", fontWeight: 700 }}
             endIcon={<LaunchRoundedIcon />}
           >
             Open public site
