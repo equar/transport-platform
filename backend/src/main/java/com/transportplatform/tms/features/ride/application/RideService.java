@@ -107,6 +107,32 @@ public class RideService {
     }
 
     @Transactional(readOnly = true)
+    public PageResponse<RideResponse> searchSubjectRides(String subjectType, Long subjectId, int page, int size) {
+        String tenantId = rideAccessService.requireCompanyTenantId();
+        if (subjectId == null || subjectId <= 0) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "A valid subject ID is required.");
+        String field = switch (subjectType.toUpperCase(java.util.Locale.ROOT)) {
+            case "DRIVER" -> "driverId";
+            case "RIDER" -> "rider";
+            case "GUARDIAN" -> "guardian";
+            default -> throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Unsupported ride history subject.");
+        };
+        org.springframework.data.jpa.domain.Specification<Ride> spec = (root, query, cb) -> {
+            var association = cb.equal(field.endsWith("Id") ? root.get(field) : root.get(field).get("id"), subjectId);
+            if ("guardian".equals(field)) {
+                var linkedRiders = query.subquery(Long.class);
+                var link = linkedRiders.from(com.transportplatform.tms.features.rider.domain.RiderGuardian.class);
+                linkedRiders.select(link.get("rider").get("id")).where(
+                        cb.equal(link.get("tenantId"), tenantId), cb.equal(link.get("guardian").get("id"), subjectId),
+                        cb.equal(link.get("status"), com.transportplatform.tms.features.rider.domain.RiderGuardianStatus.ACTIVE));
+                association = cb.or(association, root.get("rider").get("id").in(linkedRiders));
+            }
+            return cb.and(cb.equal(root.get("tenantId"), tenantId), association);
+        };
+        return PageResponse.from(rideRepository.findAll(spec,
+                PageRequest.of(Math.max(0, page), Math.min(100, Math.max(1, size)), Sort.by(Sort.Direction.DESC, "scheduledPickupAt", "id"))).map(rideMapper::toResponse));
+    }
+
+    @Transactional(readOnly = true)
     public RideResponse getCompanyRide(Long rideId) {
         return rideMapper.toResponse(rideAccessService.findRideForCompanyScope(rideId));
     }
@@ -418,6 +444,35 @@ public class RideService {
         values.put("returnDropoffAt", ride.getReturnDropoffAt());
         values.put("status", ride.getStatus() == null ? null : ride.getStatus().name());
         values.put("cancellationReason", ride.getCancellationReason());
+        values.put("guardianId", ride.getGuardian() == null ? null : ride.getGuardian().getId());
+        values.put("driverId", ride.getDriverId());
+        values.put("vehicleId", ride.getVehicleId());
+        values.put("quotedPrice", ride.getQuotedPrice());
+        values.put("operationalNotes", ride.getOperationalNotes());
+        values.put("internalNotes", ride.getInternalNotes());
+        values.put("specialInstructions", ride.getSpecialInstructions());
+        values.put("pickupAddressLine1", ride.getPickupAddressLine1());
+        values.put("pickupAddressLine2", ride.getPickupAddressLine2());
+        values.put("pickupCity", ride.getPickupCity());
+        values.put("pickupState", ride.getPickupState());
+        values.put("pickupZipCode", ride.getPickupZipCode());
+        values.put("pickupCountry", ride.getPickupCountry());
+        values.put("dropoffAddressLine1", ride.getDropoffAddressLine1());
+        values.put("dropoffAddressLine2", ride.getDropoffAddressLine2());
+        values.put("dropoffCity", ride.getDropoffCity());
+        values.put("dropoffState", ride.getDropoffState());
+        values.put("dropoffZipCode", ride.getDropoffZipCode());
+        values.put("dropoffCountry", ride.getDropoffCountry());
+        values.put("wheelchairRequired", ride.isWheelchairRequired());
+        values.put("escortRequired", ride.isEscortRequired());
+        values.put("companionCount", ride.getCompanionCount());
+        values.put("billingType", ride.getBillingType());
+        values.put("priorityLevel", ride.getPriorityLevel());
+        values.put("cancelledAt", ride.getCancelledAt());
+        values.put("cancelledBy", ride.getCancelledBy());
+        values.put("linkedRideId", ride.getLinkedRideId());
+        values.put("journeyLeg", ride.getJourneyLeg());
+        values.put("routeId", ride.getRouteId());
         return values;
     }
 

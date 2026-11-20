@@ -36,7 +36,7 @@ export function RecentActivityList({
   items,
 }: RecentActivityListProps) {
   return (
-    <PageCard sx={{ height: "100%" }}>
+    <PageCard>
       <Stack spacing={2}>
         <Stack spacing={0.5}>
           <Typography variant="h5">{title}</Typography>

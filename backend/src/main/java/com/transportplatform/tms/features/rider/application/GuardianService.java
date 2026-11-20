@@ -200,6 +200,17 @@ public class GuardianService {
         values.put("authorizedForPickup", guardian.isAuthorizedForPickup());
         values.put("billingContact", guardian.isBillingContact());
         values.put("status", guardian.getStatus() == null ? null : guardian.getStatus().name());
+        values.put("middleName", guardian.getMiddleName());
+        values.put("relationToRiderDefault", guardian.getRelationToRiderDefault());
+        values.put("alternatePhone", guardian.getAlternatePhone());
+        values.put("addressLine1", guardian.getAddressLine1());
+        values.put("addressLine2", guardian.getAddressLine2());
+        values.put("city", guardian.getCity());
+        values.put("state", guardian.getState());
+        values.put("zipCode", guardian.getZipCode());
+        values.put("country", guardian.getCountry());
+        values.put("notes", guardian.getNotes());
+        values.put("preferredCommunicationMethod", guardian.getPreferredCommunicationMethod());
         return values;
     }
 

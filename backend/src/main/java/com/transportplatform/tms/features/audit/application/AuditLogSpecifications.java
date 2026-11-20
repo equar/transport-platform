@@ -9,6 +9,27 @@ public final class AuditLogSpecifications {
     private AuditLogSpecifications() {
     }
 
+    public static Specification<AuditLog> entityHistory(String entityType, String entityId) {
+        if (entityType == null || entityType.isBlank() || entityId == null || entityId.isBlank()) return Specification.allOf();
+        String type = entityType.trim().toUpperCase();
+        String field = switch (type) {
+            case "DRIVER" -> "driverId";
+            case "RIDER" -> "riderId";
+            case "GUARDIAN" -> "guardianId";
+            case "RIDE" -> "rideId";
+            default -> null;
+        };
+        return (root, query, cb) -> {
+            var direct = cb.and(cb.equal(root.get("entityType"), type), cb.equal(root.get("entityId"), entityId.trim()));
+            if (field == null) return direct;
+            var oldOwner = cb.function("JSON_UNQUOTE", String.class,
+                    cb.function("JSON_EXTRACT", String.class, cb.<String>selectCase().when(cb.equal(cb.function("JSON_VALID", Integer.class, root.get("oldValueJson")), 1), root.get("oldValueJson")).otherwise("{}"), cb.literal("$." + field)));
+            var newOwner = cb.function("JSON_UNQUOTE", String.class,
+                    cb.function("JSON_EXTRACT", String.class, cb.<String>selectCase().when(cb.equal(cb.function("JSON_VALID", Integer.class, root.get("newValueJson")), 1), root.get("newValueJson")).otherwise("{}"), cb.literal("$." + field)));
+            return cb.or(direct, cb.equal(oldOwner, entityId.trim()), cb.equal(newOwner, entityId.trim()));
+        };
+    }
+
     public static Specification<AuditLog> keyword(String keyword) {
         if (keyword == null || keyword.isBlank()) {
             return Specification.allOf();

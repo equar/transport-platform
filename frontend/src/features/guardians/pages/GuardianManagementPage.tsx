@@ -283,7 +283,10 @@ export function GuardianManagementPage() {
         ) : (
           <>
             <Paper sx={{ overflowX: "auto" }}>
-              <Table>
+              <Table sx={{
+                "& th, & td": { whiteSpace: "nowrap" },
+                "& th:last-child, & td:last-child": { position: { xs: "static", md: "sticky" }, right: 0, zIndex: 1, backgroundColor: "background.paper", borderLeft: { md: "1px solid" }, borderLeftColor: "divider" },
+              }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Guardian</TableCell>
@@ -355,7 +358,7 @@ export function GuardianManagementPage() {
                           {formatDateTime(guardian.updatedAt)}
                         </Typography>
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell align="right"><Stack direction="row" spacing={0.5} sx={{ width: "max-content", ml: "auto" }}>
                         <TableActionButton
                           title="Link Rider"
                           onClick={() =>
@@ -416,7 +419,7 @@ export function GuardianManagementPage() {
                             <PersonOffRoundedIcon />
                           </TableActionButton>
                         ) : null}
-                      </TableCell>
+                      </Stack></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

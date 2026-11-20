@@ -1,6 +1,18 @@
-import { OnboardingChecklist } from '../components/OnboardingChecklist';
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import { dashboardMetricGroup } from "../components/dashboardMetricGroups";
+import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import { useEffect, useState, type ReactNode } from "react";
-import { Alert, Box, Button, Skeleton, Stack, Typography } from "@mui/material";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Alert,
+  Box,
+  Button,
+  Skeleton,
+  Stack,
+  Typography,
+} from "@mui/material";
 import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
 import AccessibleRoundedIcon from "@mui/icons-material/AccessibleRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
@@ -24,7 +36,7 @@ import ShieldRoundedIcon from "@mui/icons-material/ShieldRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { Link as RouterLink } from "react-router-dom";
-import { isPlatformAdmin } from "../../auth/access";
+import { isCompanyAdmin, isPlatformAdmin } from "../../auth/access";
 import { useAuth } from "../../auth/context/AuthContext";
 import { MetricCard } from "../../../shared/components/MetricCard";
 import { PageCard } from "../../../shared/components/PageCard";
@@ -449,6 +461,40 @@ export function DashboardPage() {
     },
   ];
 
+  // Keep every summary metric reachable; no silent slice limit.
+  companyCards.push(
+    ...[
+      "totalGuardians",
+      "activeGuardians",
+      "suspendedGuardians",
+      "suspendedRiders",
+      "totalOrganizations",
+      "activeOrganizations",
+      "suspendedOrganizations",
+      "totalContracts",
+      "activeContracts",
+      "expiringContractsSoon",
+      "totalServiceAreas",
+      "activeServiceAreas",
+      "suspendedDrivers",
+      "suspendedVehicles",
+      "totalBilledAmount",
+      "currentReceivablesAmount",
+      "aging1To30Amount",
+      "aging31To60Amount",
+      "aging61To90Amount",
+      "aging90PlusAmount",
+    ].map((key) => ({
+      key,
+      label: key
+        .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+        .replace(/^./, (value) => value.toUpperCase()),
+      icon: <GroupsRoundedIcon color="primary" />,
+      caption:
+        "Current tenant summary. Open the corresponding management page for full records.",
+    })),
+  );
+
   function formatSummaryValue(card: SummaryCard, value: unknown) {
     if (
       card.key === "outstandingBalance" ||
@@ -507,7 +553,25 @@ export function DashboardPage() {
     };
   }, [platformAdmin]);
 
-  const summaryCards = platformAdmin ? platformCards : companyCards;
+  const priorities = [
+    "totalRides",
+    "ridesInProgress",
+    "activeDrivers",
+    "activeRiders",
+  ];
+  const summaryCards = platformAdmin
+    ? platformCards
+    : [
+        ...priorities.map((key) =>
+          companyCards.find((card) => card.key === key)!,
+        ),
+        ...companyCards.filter((card) => !priorities.includes(card.key)),
+      ];
+  const metricGroups = [
+    ...new Set(
+      summaryCards.slice(4).map((card) => dashboardMetricGroup(card.key)),
+    ),
+  ];
   const summary = platformAdmin ? platformSummary : companySummary;
   const recentActivity = summary?.recentActivity ?? [];
   const metricValue = (key: string) => {
@@ -516,79 +580,144 @@ export function DashboardPage() {
   };
   const pulseItems = platformAdmin
     ? [
-        { label: "Active tenants", value: metricValue("activeTenants"), color: "success" as const },
-        { label: "Pending applications", value: metricValue("pendingApplications"), color: "warning" as const },
-        { label: "Active subscriptions", value: metricValue("activeSubscriptions"), color: "primary" as const },
-        { label: "Suspended tenants", value: metricValue("suspendedTenants"), color: "error" as const },
+        {
+          label: "Active tenants",
+          value: metricValue("activeTenants"),
+          color: "success" as const,
+        },
+        {
+          label: "Pending applications",
+          value: metricValue("pendingApplications"),
+          color: "warning" as const,
+        },
+        {
+          label: "Active subscriptions",
+          value: metricValue("activeSubscriptions"),
+          color: "primary" as const,
+        },
+        {
+          label: "Suspended tenants",
+          value: metricValue("suspendedTenants"),
+          color: "error" as const,
+        },
       ]
     : [
-        { label: "Active riders", value: metricValue("activeRiders"), color: "primary" as const },
-        { label: "Active drivers", value: metricValue("activeDrivers"), color: "success" as const },
-        { label: "Active vehicles", value: metricValue("activeVehicles"), color: "secondary" as const },
-        { label: "Open compliance issues", value: metricValue("openComplianceIssues"), color: "warning" as const },
+        {
+          label: "Active riders",
+          value: metricValue("activeRiders"),
+          color: "primary" as const,
+        },
+        {
+          label: "Active drivers",
+          value: metricValue("activeDrivers"),
+          color: "success" as const,
+        },
+        {
+          label: "Active vehicles",
+          value: metricValue("activeVehicles"),
+          color: "secondary" as const,
+        },
+        {
+          label: "Open compliance issues",
+          value: metricValue("openComplianceIssues"),
+          color: "warning" as const,
+        },
       ];
 
   return (
     <Stack spacing={3}>
-      {!platformAdmin ? <OnboardingChecklist /> : null}
       <PageHero
-        eyebrow={platformAdmin ? "Platform command center" : "Operations command center"}
-        title={platformAdmin ? "Run every tenant from one clear control surface." : "Keep today’s transportation operation moving."}
-        description={platformAdmin ? "Monitor tenant health, subscriptions, onboarding demand, and access governance across the whole platform." : "See dispatch readiness, compliance risk, billing posture, and the people who need attention—all in one place."}
+        eyebrow={
+          platformAdmin
+            ? "Platform administration"
+            : "Back office"
+        }
+        title={
+          platformAdmin
+            ? "Run every tenant from one clear control surface."
+            : "Operations overview"
+        }
+        description={
+          platformAdmin
+            ? "Monitor tenant health, subscriptions, onboarding demand, and access governance across the whole platform."
+            : "See dispatch readiness, compliance risk, billing posture, and the people who need attention—all in one place."
+        }
       >
-            {platformAdmin ? (
-              <>
-                <Button
-                  component={RouterLink}
-                  to="/platform/company-applications"
-                  variant="contained"
-                >
-                  Review Company Applications
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/platform/users"
-                  variant="outlined"
-                >
-                  Manage Users
-                </Button>
-                <Button component={RouterLink} to="/platform/tenants" variant="outlined">View tenants</Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  component={RouterLink}
-                  to="/company/users"
-                  variant="contained"
-                >
-                  Manage Users
-                </Button>
-                <Button component={RouterLink} to="/company/drivers" variant="outlined">
-                  Manage Drivers
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/company/dispatch"
-                  variant="outlined"
-                >
-                  Open Dispatch Board
-                </Button>
-                <Button component={RouterLink} to="/company/rides" variant="outlined">Manage rides</Button>
-                <Button component={RouterLink} to="/company/incidents" variant="outlined">Review incidents</Button>
-              </>
-            )}
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 1.25,
+            maxWidth: { lg: 540 },
+          }}
+        >
+          {platformAdmin ? (
+            <>
+              <Button
+                component={RouterLink}
+                to="/platform/company-applications"
+                variant="contained"
+              >
+                Review Company Applications
+              </Button>
+              <Button
+                component={RouterLink}
+                to="/platform/users"
+                variant="outlined"
+              >
+                Manage Users
+              </Button>
+              <Button
+                component={RouterLink}
+                to="/platform/tenants"
+                variant="outlined"
+              >
+                View tenants
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                component={RouterLink}
+                to="/company/users"
+                variant="contained"
+              >
+                Manage Users
+              </Button>
+              <Button
+                component={RouterLink}
+                to="/company/drivers"
+                variant="outlined"
+              >
+                Manage Drivers
+              </Button>
+              <Button
+                component={RouterLink}
+                to="/company/dispatch"
+                variant="outlined"
+              >
+                Open Dispatch Board
+              </Button>
+              <Button
+                component={RouterLink}
+                to="/company/rides"
+                variant="outlined"
+              >
+                Manage rides
+              </Button>
+              <Button
+                component={RouterLink}
+                to="/company/incidents"
+                variant="outlined"
+              >
+                Review incidents
+              </Button>
+            </>
+          )}
+        </Box>
       </PageHero>
 
       {error ? <Alert severity="error">{error}</Alert> : null}
-
-      <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", lg: "minmax(0,1.35fr) minmax(340px,.65fr)" } }}>
-        <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "repeat(2,minmax(0,1fr))", md: "repeat(4,minmax(0,1fr))" } }}>
-          {summaryCards.slice(0, 4).map((card) => (
-            <MetricCard key={`primary-${card.key}`} icon={card.icon} label={card.label} caption={card.caption} value={summary ? formatSummaryValue(card, summary[card.key as keyof typeof summary]) : <Skeleton width={56} />} />
-          ))}
-        </Box>
-        <OperationsPulse title={platformAdmin ? "Platform health" : "Operational pulse"} description={platformAdmin ? "Live distribution across core governance signals." : "A quick comparison of today’s service capacity."} items={pulseItems} />
-      </Box>
 
       <Box
         sx={{
@@ -596,34 +725,118 @@ export function DashboardPage() {
           gap: 3,
           gridTemplateColumns: {
             xs: "1fr",
-            sm: "repeat(2, minmax(0, 1fr))",
-            xl: "repeat(5, minmax(0, 1fr))",
+            lg: "1fr",
           },
         }}
       >
-        {summaryCards.slice(4, platformAdmin ? 10 : 12).map((card) => (
-          <MetricCard
-            key={card.key}
-            icon={card.icon}
-            label={card.label}
-            caption={card.caption}
-            value={
-              summary ? (
-                formatSummaryValue(
-                  card,
-                  summary[card.key as keyof typeof summary],
+        <Box
+          sx={{
+            display: "grid",
+            gap: 2,
+            gridTemplateColumns: {
+              xs: "repeat(2,minmax(0,1fr))",
+              md: "repeat(4,minmax(0,1fr))",
+            },
+          }}
+        >
+          {summaryCards.slice(0, 4).map((card) => (
+            <MetricCard
+              key={`primary-${card.key}`}
+              icon={card.icon}
+              label={card.label}
+              value={
+                summary ? (
+                  formatSummaryValue(
+                    card,
+                    summary[card.key as keyof typeof summary],
+                  )
+                ) : (
+                  <Skeleton width={56} />
                 )
-              ) : (
-                <Skeleton width={56} />
-              )
-            }
-          />
-        ))}
+              }
+            />
+          ))}
+        </Box>
+        <OperationsPulse
+          title={platformAdmin ? "Platform health" : "Capacity and alerts"}
+          description={
+            platformAdmin
+              ? "Live distribution across core governance signals."
+              : "Current staff, vehicle and compliance counts."
+          }
+          items={pulseItems}
+        />
       </Box>
 
+      {!platformAdmin ? <OnboardingChecklist /> : null}
+      <Stack spacing={2}>
+        {(platformAdmin ? ["Platform metrics"] : metricGroups).map((group) => (
+          <Accordion
+            key={group}
+            defaultExpanded={
+              platformAdmin ||
+              group === "Riders and guardians" ||
+              group === "Drivers and fleet"
+            }
+          >
+            <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+              <Typography variant="h5">{group}</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box
+                sx={{
+                  display: "grid",
+                  gap: 2,
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2,minmax(0,1fr))",
+                    lg: "repeat(3,minmax(0,1fr))",
+                  },
+                }}
+              >
+                {summaryCards
+                  .slice(4)
+                  .filter(
+                    (card) =>
+                      platformAdmin || dashboardMetricGroup(card.key) === group,
+                  )
+                  .map((card) => (
+                    <MetricCard
+                      key={card.key}
+                      icon={card.icon}
+                      label={card.label}
+                      caption={card.caption}
+                      value={
+                        summary ? (
+                          formatSummaryValue(
+                            card,
+                            summary[card.key as keyof typeof summary],
+                          )
+                        ) : (
+                          <Skeleton width={56} />
+                        )
+                      }
+                    />
+                  ))}
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+        ))}
+      </Stack>
+
+      {platformAdmin || isCompanyAdmin(session) ? (
+        <Button
+          component={RouterLink}
+          to={platformAdmin ? "/platform/audit-logs" : "/company/audit-logs"}
+          sx={{ alignSelf: "flex-start" }}
+        >
+          View all historical activity
+        </Button>
+      ) : null}
       <Box
         sx={{
           display: "grid",
+          alignItems: "start",
           gap: 3,
           gridTemplateColumns: {
             xs: "1fr",
@@ -640,21 +853,21 @@ export function DashboardPage() {
           description={
             platformAdmin
               ? "Recent tenant, user, and application governance changes across the platform."
-              : "Recent tenant-scoped user, role, and onboarding activity captured for your company."
+              : "Recent tenant-scoped operational, relationship, financial and administrative activity. Open all historical activity for the complete recorded trail."
           }
           items={recentActivity}
         />
         <PageCard>
           <Stack spacing={2.5}>
             <Stack spacing={0.5}>
-              <Typography variant="h5">Control Priorities</Typography>
+              <Typography variant="h5">Quick actions</Typography>
               <Typography color="text.secondary">
                 {platformAdmin
                   ? "Use the highest-signal work queues to keep onboarding, access, and compliance moving."
                   : "Use the highest-signal work queues to keep rider, fleet, and tenant governance current."}
               </Typography>
             </Stack>
-            <Stack spacing={1.5}>
+            <Stack sx={{ display: "grid", gap: 1, gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" }, "& > .MuiButton-root": { justifyContent: "flex-start", textAlign: "left", fontSize: ".78rem" }, "& > .MuiButton-root:first-of-type": { gridColumn: "1 / -1" } }}>
               {platformAdmin ? (
                 <>
                   <Button
@@ -706,7 +919,7 @@ export function DashboardPage() {
                     variant="outlined"
                     startIcon={<AccessibleRoundedIcon />}
                   >
-                    Create Rider
+                    Manage Riders
                   </Button>
                   <Button
                     component={RouterLink}
@@ -738,7 +951,7 @@ export function DashboardPage() {
                     variant="outlined"
                     startIcon={<AttachMoneyRoundedIcon />}
                   >
-                    Create Pricing Rule
+                    Manage Pricing Rules
                   </Button>
                   <Button
                     component={RouterLink}
@@ -754,7 +967,7 @@ export function DashboardPage() {
                     variant="outlined"
                     startIcon={<DirectionsCarFilledRoundedIcon />}
                   >
-                    Create Vehicle
+                    Manage Vehicles
                   </Button>
                   <Button
                     component={RouterLink}

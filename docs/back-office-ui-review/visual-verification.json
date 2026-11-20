@@ -1,0 +1,186 @@
+{
+  "method": "Playwright; operating system set to dark; no saved theme preference; synthetic data and mocked APIs; no production access",
+  "results": [
+    {
+      "name": "dashboard",
+      "width": 1440,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "driver",
+      "width": 1440,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "rider",
+      "width": 1440,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "guardian",
+      "width": 1440,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "ride",
+      "width": 1440,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "drivers-list",
+      "width": 1440,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "riders-list",
+      "width": 1440,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "guardians-list",
+      "width": 1440,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "rides-list",
+      "width": 1440,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "dashboard",
+      "width": 390,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "driver",
+      "width": 390,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "rider",
+      "width": 390,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "guardian",
+      "width": 390,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "ride",
+      "width": 390,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "drivers-list",
+      "width": 390,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "riders-list",
+      "width": 390,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "guardians-list",
+      "width": 390,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "rides-list",
+      "width": 390,
+      "overflow": false,
+      "palette": {
+        "background": "rgb(246, 247, 250)",
+        "text": "rgb(23, 43, 64)",
+        "sidebar": "rgb(255, 255, 255)"
+      }
+    }
+  ],
+  "errors": []
+}

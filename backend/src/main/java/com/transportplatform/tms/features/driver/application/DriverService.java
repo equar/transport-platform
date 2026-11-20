@@ -287,6 +287,28 @@ public class DriverService {
         values.put("licenseNumber", driver.getLicenseNumber());
         values.put("licenseExpiryDate", driver.getLicenseExpiryDate());
         values.put("trainingStatus", driver.getTrainingStatus() == null ? null : driver.getTrainingStatus().name());
+        values.put("middleName", driver.getMiddleName());
+        values.put("dateOfBirth", driver.getDateOfBirth());
+        values.put("alternatePhone", driver.getAlternatePhone());
+        values.put("addressLine1", driver.getAddressLine1());
+        values.put("addressLine2", driver.getAddressLine2());
+        values.put("city", driver.getCity());
+        values.put("state", driver.getState());
+        values.put("zipCode", driver.getZipCode());
+        values.put("country", driver.getCountry());
+        values.put("hireDate", driver.getHireDate());
+        values.put("startDate", driver.getStartDate());
+        values.put("availabilitySummary", driver.getAvailabilitySummary());
+        values.put("licenseState", driver.getLicenseState());
+        values.put("backgroundCheckExpiryDate", driver.getBackgroundCheckExpiryDate());
+        values.put("drugTestExpiryDate", driver.getDrugTestExpiryDate());
+        values.put("trainingCompletionDate", driver.getTrainingCompletionDate());
+        values.put("emergencyContactName", driver.getEmergencyContactName());
+        values.put("emergencyContactPhone", driver.getEmergencyContactPhone());
+        values.put("emergencyContactRelationship", driver.getEmergencyContactRelationship());
+        values.put("notes", driver.getNotes());
+        values.put("backgroundCheckStatus", driver.getBackgroundCheckStatus());
+        values.put("drugTestStatus", driver.getDrugTestStatus());
         return values;
     }
 

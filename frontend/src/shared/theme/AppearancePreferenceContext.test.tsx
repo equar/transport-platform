@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppearancePreferenceProvider, useAppearancePreference } from "./AppearancePreferenceContext";
 import { createAppTheme } from "./theme";
@@ -35,23 +35,44 @@ describe("appearance preferences", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
   });
 
-  it("uses the system theme until the account selects and saves an override", async () => {
+  it("defaults to light until the account selects and saves an override", async () => {
     render(
       <AppearancePreferenceProvider storageKey="test-appearance">
         <PreferenceProbe />
       </AppearancePreferenceProvider>,
     );
 
-    expect(screen.getByText("system|light")).toBeTruthy();
+    expect(screen.getByText("light|light")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Select dark" }));
 
     await waitFor(() => {
       expect(screen.getByText("dark|dark")).toBeTruthy();
       expect(window.localStorage.getItem("test-appearance")).toBe("dark");
     });
+  });
+
+  it("defaults to light even when the operating system prefers dark", () => {
+    systemPrefersDark = true;
+    render(<AppearancePreferenceProvider storageKey="test-appearance"><PreferenceProbe /></AppearancePreferenceProvider>);
+    expect(screen.getByText("light|light")).toBeTruthy();
+  });
+
+  it.each(["dark", "system"] as const)("honors an explicitly saved %s preference", preference => {
+    systemPrefersDark = true;
+    window.localStorage.setItem("test-appearance", preference);
+    render(<AppearancePreferenceProvider storageKey="test-appearance"><PreferenceProbe /></AppearancePreferenceProvider>);
+    expect(screen.getByText(`${preference}|dark`)).toBeTruthy();
+  });
+
+  it("uses light if browser preference storage is unavailable", () => {
+    systemPrefersDark = true;
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("Storage blocked"); });
+    render(<AppearancePreferenceProvider storageKey="test-appearance"><PreferenceProbe /></AppearancePreferenceProvider>);
+    expect(screen.getByText("light|light")).toBeTruthy();
   });
 
   it("creates a dark palette when dark appearance is selected", () => {

@@ -264,6 +264,32 @@ public class RiderService {
         values.put("escortRequired", rider.isEscortRequired());
         values.put("organizationId", rider.getOrganizationId());
         values.put("status", rider.getStatus() == null ? null : rider.getStatus().name());
+        values.put("middleName", rider.getMiddleName());
+        values.put("dateOfBirth", rider.getDateOfBirth());
+        values.put("email", rider.getEmail());
+        values.put("alternatePhone", rider.getAlternatePhone());
+        values.put("homeAddressLine1", rider.getHomeAddressLine1());
+        values.put("homeAddressLine2", rider.getHomeAddressLine2());
+        values.put("city", rider.getCity());
+        values.put("state", rider.getState());
+        values.put("zipCode", rider.getZipCode());
+        values.put("country", rider.getCountry());
+        values.put("defaultPickupAddress", rider.getDefaultPickupAddress());
+        values.put("defaultDropoffAddress", rider.getDefaultDropoffAddress());
+        values.put("pickupNotes", rider.getPickupNotes());
+        values.put("dropoffNotes", rider.getDropoffNotes());
+        values.put("preferredPickupWindowStart", rider.getPreferredPickupWindowStart());
+        values.put("preferredPickupWindowEnd", rider.getPreferredPickupWindowEnd());
+        values.put("preferredDropoffWindowStart", rider.getPreferredDropoffWindowStart());
+        values.put("preferredDropoffWindowEnd", rider.getPreferredDropoffWindowEnd());
+        values.put("specialInstructions", rider.getSpecialInstructions());
+        values.put("careNotesSummary", rider.getCareNotesSummary());
+        values.put("emergencyContactName", rider.getEmergencyContactName());
+        values.put("emergencyContactPhone", rider.getEmergencyContactPhone());
+        values.put("emergencyContactRelationship", rider.getEmergencyContactRelationship());
+        values.put("notes", rider.getNotes());
+        values.put("gender", rider.getGender());
+        values.put("mobilityNeeds", new java.util.LinkedHashSet<>(rider.getMobilityNeeds()));
         return values;
     }
 

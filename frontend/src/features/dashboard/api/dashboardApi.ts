@@ -33,6 +33,9 @@ export interface PlatformDashboardSummary {
 }
 
 export interface CompanyDashboardSummary {
+  totalGuardians: number;
+  activeGuardians: number;
+  suspendedGuardians: number;
   totalUsers: number;
   activeUsers: number;
   suspendedUsers: number;

@@ -15,7 +15,7 @@ export function OnboardingChecklist() {
   const { session } = useAuth();
   const key = `onboarding:${session?.identity.tenantId}:${session?.identity.id}`;
   const [done, setDone] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem(key) ?? '[]'); } catch { return []; } });
-  const [expanded, setExpanded] = useState(done.length !== steps.length);
+  const [expanded, setExpanded] = useState(false);
   function toggle(title: string) {
     const next = done.includes(title) ? done.filter(value => value !== title) : [...done, title];
     setDone(next); try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* completion is still usable for this session */ }

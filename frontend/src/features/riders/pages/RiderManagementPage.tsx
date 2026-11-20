@@ -379,7 +379,10 @@ export function RiderManagementPage() {
         ) : (
           <>
             <Paper sx={{ overflowX: "auto" }}>
-              <Table>
+              <Table sx={{
+                "& th, & td": { whiteSpace: "nowrap" },
+                "& th:last-child, & td:last-child": { position: { xs: "static", md: "sticky" }, right: 0, zIndex: 1, backgroundColor: "background.paper", borderLeft: { md: "1px solid" }, borderLeftColor: "divider" },
+              }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Rider Code</TableCell>
@@ -459,9 +462,9 @@ export function RiderManagementPage() {
                           {formatDateTime(rider.updatedAt)}
                         </Typography>
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell align="right"><Stack direction="row" spacing={0.5} sx={{ width: "max-content", ml: "auto" }}>
                         {renderActions(rider)}
-                      </TableCell>
+                      </Stack></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import {
+  Button,
+  Autocomplete,
   Alert,
-  MenuItem,
   Paper,
   Stack,
   Table,
@@ -41,6 +42,31 @@ const moduleOptions = [
   "DRIVER_DOCUMENT",
   "VEHICLE",
   "VEHICLE_DOCUMENT",
+  "RIDE",
+  "RECURRING_RIDE",
+  "ROUTE",
+  "ROUTE_STOP",
+  "DRIVER_PORTAL",
+  "DRIVER_EARNINGS",
+  "ORGANIZATION",
+  "ORGANIZATION_CONTACT",
+  "CONTRACT",
+  "SERVICE_AREA",
+  "COMPLIANCE",
+  "INCIDENT",
+  "INVOICE",
+  "PAYMENT",
+  "PRICING_RULE",
+  "RECEIVABLES",
+  "NOTIFICATION",
+  "NOTIFICATION_TEMPLATE",
+  "REPORT",
+  "SETTINGS",
+  "AUTH",
+  "ORGANIZATION_PORTAL",
+  "SAAS_FEATURE_FLAG",
+  "SAAS_SUBSCRIPTION_PLAN",
+  "SAAS_TENANT_SUBSCRIPTION",
 ];
 const actionOptions = [
   "",
@@ -64,6 +90,21 @@ const actionOptions = [
   "LINKED",
   "UNLINKED",
   "ARCHIVED",
+  "DOCUMENT_SUBMITTED",
+  "PROFILE_UPDATED",
+  "COLLECTION_NOTE_ADDED",
+  "GENERATED",
+  "MARKED_ALL_READ",
+  "OVERRIDE_UPDATED",
+  "RATE_UPDATED",
+  "RETURN_LEG_CREATED",
+  "RUN",
+  "PASSWORD_CHANGED",
+  "PASSWORD_RESET_BY_ADMIN",
+  "PASSWORD_RESET_COMPLETED",
+  "PASSWORD_RESET_REQUESTED",
+  "TENANT_OWNER_SETUP_COMPLETED",
+  "THEME_APPLIED",
 ];
 
 export function AuditLogsPage() {
@@ -75,6 +116,7 @@ export function AuditLogsPage() {
   const [action, setAction] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
+  const [retry, setRetry] = useState(0);
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
   const [total, setTotal] = useState(0);
@@ -85,6 +127,7 @@ export function AuditLogsPage() {
   );
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
     setError(null);
     auditLogsApi
@@ -98,16 +141,28 @@ export function AuditLogsPage() {
         size,
       })
       .then((response) => {
+        if (!active) return;
         setItems(response.items);
         setTotal(response.totalElements);
       })
       .catch((_caughtError) => {
-        setError(getApiErrorMessage(_caughtError, "Audit log records could not be loaded."));
+        if (!active) return;
+        setItems([]);
+        setTotal(0);
+        setError(
+          getApiErrorMessage(
+            _caughtError,
+            "Audit log records could not be loaded.",
+          ),
+        );
       })
       .finally(() => {
-        setLoading(false);
+        if (active) setLoading(false);
       });
-  }, [keyword, module, action, createdFrom, createdTo, page, size]);
+    return () => {
+      active = false;
+    };
+  }, [keyword, module, action, createdFrom, createdTo, page, size, retry]);
 
   return (
     <Stack spacing={3}>
@@ -119,7 +174,7 @@ export function AuditLogsPage() {
         description={
           platformAdmin
             ? "Review cross-platform administrative activity for tenants, users, roles, and company application actions."
-            : "Review tenant-scoped administrative activity for users, roles, and onboarding changes relevant to your company."
+            : "Review tenant-scoped operational, financial, relationship and administrative history across your company."
         }
       />
 
@@ -132,40 +187,34 @@ export function AuditLogsPage() {
             setKeyword(event.target.value);
           }}
         />
-        <TextField
-          label="Module"
-          select
-          value={module}
-          onChange={(event) => {
+        <Autocomplete
+          freeSolo
+          options={moduleOptions.filter(Boolean)}
+          inputValue={module}
+          onInputChange={(_, value) => {
             setPage(0);
-            setModule(event.target.value);
-          }}
-          sx={{ minWidth: 180 }}
-        >
-          {moduleOptions.map((option) => (
-            <MenuItem key={option || "all-modules"} value={option}>
-              {option ? formatStatusLabel(option) : "All modules"}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          label="Action"
-          select
-          value={action}
-          onChange={(event) => {
-            setPage(0);
-            setAction(event.target.value);
+            setModule(value);
           }}
           sx={{ minWidth: 200 }}
-        >
-          {actionOptions.map((option) => (
-            <MenuItem key={option || "all-actions"} value={option}>
-              {option ? formatStatusLabel(option) : "All actions"}
-            </MenuItem>
-          ))}
-        </TextField>
+          renderInput={(params) => (
+            <TextField {...params} label="Module" placeholder="All modules" />
+          )}
+        />
+        <Autocomplete
+          freeSolo
+          options={actionOptions.filter(Boolean)}
+          inputValue={action}
+          onInputChange={(_, value) => {
+            setPage(0);
+            setAction(value);
+          }}
+          sx={{ minWidth: 200 }}
+          renderInput={(params) => (
+            <TextField {...params} label="Action" placeholder="All actions" />
+          )}
+        />
         <TextField
-          label="From"
+          label="From (UTC)"
           type="date"
           value={createdFrom}
           onChange={(event) => {
@@ -175,7 +224,7 @@ export function AuditLogsPage() {
           InputLabelProps={{ shrink: true }}
         />
         <TextField
-          label="To"
+          label="To (UTC)"
           type="date"
           value={createdTo}
           onChange={(event) => {
@@ -186,11 +235,27 @@ export function AuditLogsPage() {
         />
       </AdminFilterBar>
 
-      {error ? <Alert severity="error">{error}</Alert> : null}
+      {error ? (
+        <Alert
+          severity="error"
+          action={
+            <Button onClick={() => setRetry((value) => value + 1)}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      ) : null}
 
       <PageCard sx={{ p: 0, overflow: "hidden" }}>
         {loading ? (
           <LoadingState />
+        ) : error ? (
+          <EmptyState
+            title="History unavailable"
+            description="Retry loading the audit records."
+          />
         ) : items.length === 0 ? (
           <EmptyState
             title="No records found"

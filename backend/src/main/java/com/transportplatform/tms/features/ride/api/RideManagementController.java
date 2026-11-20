@@ -71,6 +71,13 @@ public class RideManagementController {
                 sortDirection));
     }
 
+    @GetMapping("/company/ride-history")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
+    public ApiResponse<PageResponse<RideResponse>> subjectRideHistory(@RequestParam String subjectType,
+            @RequestParam Long subjectId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success(rideService.searchSubjectRides(subjectType, subjectId, page, size));
+    }
+
     @GetMapping("/company/rides/{rideId}")
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER')")
     public ApiResponse<RideResponse> getCompanyRide(@PathVariable Long rideId) {

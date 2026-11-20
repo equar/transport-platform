@@ -438,7 +438,10 @@ export function DriverManagementPage() {
         ) : (
           <>
             <Paper sx={{ overflowX: "auto" }}>
-              <Table>
+              <Table sx={{
+                "& th, & td": { whiteSpace: "nowrap" },
+                "& th:last-child, & td:last-child": { position: { xs: "static", md: "sticky" }, right: 0, zIndex: 1, backgroundColor: "background.paper", borderLeft: { md: "1px solid" }, borderLeftColor: "divider" },
+              }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Driver Code</TableCell>
@@ -500,9 +503,9 @@ export function DriverManagementPage() {
                           {formatDateTime(driver.updatedAt)}
                         </Typography>
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell align="right"><Stack direction="row" spacing={0.5} sx={{ width: "max-content", ml: "auto" }}>
                         {renderActions(driver)}
-                      </TableCell>
+                      </Stack></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

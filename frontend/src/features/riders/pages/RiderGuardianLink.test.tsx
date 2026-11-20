@@ -1,3 +1,4 @@
+vi.mock("../../../shared/components/RecordHistoryPanel", () => ({ RecordHistoryPanel: () => null }));
 import {
   act,
   cleanup,
