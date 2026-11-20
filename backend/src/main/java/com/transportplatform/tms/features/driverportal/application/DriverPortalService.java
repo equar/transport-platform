@@ -67,6 +67,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class DriverPortalService {
+    private final com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence;
 
     private static final Set<ComplianceIssueStatus> UNRESOLVED_COMPLIANCE_STATUSES = Set.of(
             ComplianceIssueStatus.OPEN,
@@ -122,7 +123,8 @@ public class DriverPortalService {
             Clock clock,
             DispatchAssignmentValidationService dispatchValidation,
             TenantTimeService tenantTime,
-            com.transportplatform.tms.features.driverearnings.application.DriverEarningsService driverEarningsService) {
+            com.transportplatform.tms.features.driverearnings.application.DriverEarningsService driverEarningsService, com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence) {
+        this.evidence=evidence;
         this.driverPortalAccessService = driverPortalAccessService;
         this.currentAuthenticatedUserService = currentAuthenticatedUserService;
         this.driverRepository = driverRepository;
@@ -353,6 +355,7 @@ public class DriverPortalService {
         if (ride.getTripType() == com.transportplatform.tms.features.ride.domain.RideTripType.ROUND_TRIP) throw new ApiException(
                 ErrorCode.RESOURCE_CONFLICT,HttpStatus.CONFLICT,"Dispatch must split this existing round trip into outbound and return journeys before departure.");
         RideStatusWorkflow.ensureCanMarkDriverEnRoute(ride.getStatus());
+        evidence.requireDepartureReady(ride);
         if (ride.getDriverId() == null || ride.getVehicleId() == null) {
             throw validationFailure("Both driver and vehicle are required before departure. Contact dispatch.");
         }
@@ -370,6 +373,7 @@ public class DriverPortalService {
     public DriverPortalRideDetailResponse markRideArrived(Long rideId) {
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         RideStatusWorkflow.ensureCanMarkArrived(ride.getStatus());
+        evidence.requireMilestone(ride,"ARRIVED");
         return driverPortalMapper.toRideDetailResponse(updateRideStatus(
                 ride,
                 RideStatus.ARRIVED,
@@ -382,6 +386,7 @@ public class DriverPortalService {
     public DriverPortalRideDetailResponse markRidePickedUp(Long rideId) {
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         RideStatusWorkflow.ensureCanMarkPickedUp(ride.getStatus());
+        evidence.requireMilestone(ride,"PICKED_UP");
         return driverPortalMapper.toRideDetailResponse(updateRideStatus(
                 ride,
                 RideStatus.PICKED_UP,
@@ -394,6 +399,7 @@ public class DriverPortalService {
     public DriverPortalRideDetailResponse markRideDroppedOff(Long rideId) {
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         RideStatusWorkflow.ensureCanMarkDroppedOff(ride.getStatus());
+        evidence.requireMilestone(ride,"DROPPED_OFF");
         return driverPortalMapper.toRideDetailResponse(updateRideStatus(
                 ride,
                 RideStatus.DROPPED_OFF,
@@ -406,6 +412,7 @@ public class DriverPortalService {
     public DriverPortalRideDetailResponse completeRide(Long rideId) {
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         RideStatusWorkflow.ensureCanMarkCompleted(ride.getStatus());
+        evidence.requireComplete(ride);
         Ride completed = updateRideStatus(ride, RideStatus.COMPLETED, RideEventType.COMPLETED, "COMPLETED", "Driver completed the ride.");
         driverEarningsService.createForCompletedRide(completed);
         return driverPortalMapper.toRideDetailResponse(completed);

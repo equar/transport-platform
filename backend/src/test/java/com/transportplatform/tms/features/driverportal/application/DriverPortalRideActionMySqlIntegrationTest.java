@@ -105,6 +105,7 @@ class DriverPortalRideActionMySqlIntegrationTest {
     @Autowired private DriverPortalService driverPortalService;
     @Autowired private DriverActionIdempotencyService idempotencyService;
 
+    @MockBean private com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence;
     @MockBean private com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService dispatchValidation;
     @Autowired private com.transportplatform.tms.features.vehicle.domain.VehicleRepository vehicles;
     @MockBean private GuardianRepository guardianRepository;

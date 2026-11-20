@@ -268,6 +268,12 @@ public class InvoiceService {
         if (lineItems.isEmpty()) {
             throw validationFailure("At least one line item is required before issuing an invoice.");
         }
+        for (InvoiceLineItem item : lineItems) {
+            if (item.getChargeSourceType() == ChargeSourceType.RIDE) {
+                if (item.getSourceReferenceId() == null) throw validationFailure("Ride charges require an identified ride with verified delivery.");
+                billingReferenceValidationService.resolveBillableRide(invoice.getTenantId(), item.getSourceReferenceId());
+            }
+        }
         Object oldSnapshot = snapshot(invoice);
         invoice.setStatus(InvoiceStatus.ISSUED);
         Invoice saved = invoiceRepository.save(invoice);

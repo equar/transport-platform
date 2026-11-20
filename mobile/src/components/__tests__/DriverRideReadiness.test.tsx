@@ -1,3 +1,4 @@
+jest.mock('@components/TripDeliveryEvidence', () => ({TripDeliveryEvidence: () => null}));
 jest.mock('@hooks/useTripScreenVisible', () => ({ useTripScreenVisible: () => true, manualTripRefreshOptions: { refetchInterval: false, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: false } }));
 import React from 'react';
 import { Alert } from 'react-native';
@@ -6,10 +7,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DriverRideDetailPage from '../../../app/(driver)/rides/[rideId]';
 import { driverPortalApi, type DriverPortalRideDetailRecord } from '@api/driverPortalApi';
 import { stopTripTracking } from '../../tracking/activeTrip';
+import {tripEvidenceApi} from '@api/tripEvidenceApi';
+import * as Location from 'expo-location';
 let mockConnected = true;
 let mockRide: DriverPortalRideDetailRecord;
 const mockEnqueue = jest.fn();
 const clients: QueryClient[] = [];
+jest.mock('@api/tripEvidenceApi',()=>({tripEvidenceApi:{capture:jest.fn()}}));
+jest.mock('expo-location',()=>({requestForegroundPermissionsAsync:jest.fn().mockResolvedValue({status:'granted'}),getCurrentPositionAsync:jest.fn().mockResolvedValue({coords:{latitude:42,longitude:-71,accuracy:5},timestamp:Date.now(),mocked:false}),Accuracy:{High:4}}));
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => ({ rideId: '10' }), useRouter: () => ({ back: jest.fn(), push: jest.fn() }) }));
 jest.mock('@auth/AuthContext', () => ({ useAuth: () => ({ session: { identity: { id: 7, tenantId: 'tenant-a' } } }) }));
 jest.mock('@components/SupportContact', () => ({ SupportContact: () => null }));
@@ -19,7 +24,7 @@ jest.mock('expo-linking', () => ({ openURL: jest.fn().mockResolvedValue(undefine
 jest.mock('@react-native-community/netinfo', () => ({ __esModule: true, default: { fetch: async () => ({ isConnected: mockConnected, isInternetReachable: mockConnected }) }, useNetInfo: () => ({ isConnected: mockConnected, isInternetReachable: mockConnected }) }));
 jest.mock('../../tracking/activeTrip', () => ({ startTripTracking: jest.fn().mockResolvedValue(undefined), stopTripTracking: jest.fn().mockResolvedValue(undefined), useTrackingState: () => ({ active: false, rideId: null, message: 'Tracking is off', lastSyncedAt: null }) }));
 jest.mock('@stores/offlineQueueStore', () => ({ pendingTripStatus: (status: string) => status, useOfflineQueue: () => ({ enqueue: mockEnqueue, queue: [], conflicts: [], dismissConflict: jest.fn(), retry: jest.fn(), cancelTripActions: jest.fn() }) }));
-jest.mock('@api/driverPortalApi', () => ({ driverPortalApi: { getRide: jest.fn(), getRideActions: jest.fn(), getRideLocationHistory: jest.fn().mockResolvedValue([]), getRideLocationSnapshot: jest.fn(), postRideAction: jest.fn(), addRideNote: jest.fn() } }));
+jest.mock('@api/driverPortalApi', () => ({ driverPortalApi: { getRide: jest.fn(), getRideActions: jest.fn(), getRideLocationHistory: jest.fn().mockResolvedValue([]), getRideLocationSnapshot: jest.fn(), captureRideLocationSnapshot: jest.fn().mockResolvedValue({}), postRideAction: jest.fn(), addRideNote: jest.fn() } }));
 beforeEach(() => {
   jest.clearAllMocks(); mockConnected = true;
   jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
@@ -74,15 +79,12 @@ it('stops only this trip after drop-off', async () => {
   expect(stopTripTracking).toHaveBeenCalledWith({ rideId: 10, tenantId: 'tenant-a', userId: 7 });
 });
 
-it('stops sharing immediately after confirming an offline drop-off', async () => {
+it('blocks an offline drop-off without queuing an unverified milestone', async () => {
   mockConnected = false; mockRide = { ...mockRide, status: 'PICKED_UP' };
   await openTrip();
   fireEvent.press(screen.getByRole('button', { name: 'Confirm Drop Off' }));
-  await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
-  const buttons = jest.mocked(Alert.alert).mock.calls[jest.mocked(Alert.alert).mock.calls.length - 1][2]!;
-  await act(async () => { buttons.find(button => button.text === 'Confirm')!.onPress!(); });
-  expect(mockEnqueue).toHaveBeenCalledWith(10, 'dropped-off', { tenantId: 'tenant-a', userId: 7 }, 'PICKED_UP');
-  expect(stopTripTracking).toHaveBeenCalledWith({ rideId: 10, tenantId: 'tenant-a', userId: 7 });
+  await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith('Online verification required', expect.any(String)));
+  expect(mockEnqueue).not.toHaveBeenCalled();
   expect(driverPortalApi.postRideAction).not.toHaveBeenCalled();
 });
 
@@ -98,4 +100,18 @@ it('keeps refresh tracking available during an active trip', async () => {
   await openTrip();
   expect(screen.getByRole('button', { name: 'Refresh Tracking' })).toBeTruthy();
   await waitFor(() => expect(driverPortalApi.getRideLocationSnapshot).toHaveBeenCalledWith(10));
+});
+
+it('captures fresh location and milestone evidence before an online arrival action', async () => {
+ mockRide={...mockRide,status:'DRIVER_EN_ROUTE'};await openTrip();
+ fireEvent.press(screen.getByRole('button',{name:'Mark Arrived'}));
+ await waitFor(()=>expect(Alert.alert).toHaveBeenCalled());
+ expect(Location.getCurrentPositionAsync).not.toHaveBeenCalled();
+ const buttons=jest.mocked(Alert.alert).mock.calls[jest.mocked(Alert.alert).mock.calls.length-1][2]!;
+ await act(async()=>{buttons.find(b=>b.text==='Confirm')!.onPress!();});
+ await waitFor(()=>expect(driverPortalApi.postRideAction).toHaveBeenCalled());
+ expect(driverPortalApi.captureRideLocationSnapshot).toHaveBeenCalledWith(10,expect.objectContaining({latitude:42,longitude:-71,accuracyMeters:5}));
+ expect(tripEvidenceApi.capture).toHaveBeenCalledWith(10,'ARRIVED',undefined,false);
+ expect(jest.mocked(driverPortalApi.captureRideLocationSnapshot).mock.invocationCallOrder[0]).toBeLessThan(jest.mocked(tripEvidenceApi.capture).mock.invocationCallOrder[0]);
+ expect(jest.mocked(tripEvidenceApi.capture).mock.invocationCallOrder[0]).toBeLessThan(jest.mocked(driverPortalApi.postRideAction).mock.invocationCallOrder[0]);
 });

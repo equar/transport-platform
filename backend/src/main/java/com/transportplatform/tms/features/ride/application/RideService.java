@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RideService {
+    private final com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence;
     @org.springframework.beans.factory.annotation.Autowired
     private RideJourneyService journeys;
 
@@ -57,7 +58,8 @@ public class RideService {
             NotificationEventService notificationEventService,
             Clock clock, com.transportplatform.tms.features.tenant.domain.TenantRepository dispatchTenants,
             com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService dispatchValidation,
-            com.transportplatform.tms.features.driverearnings.application.DriverEarningsService driverEarningsService) {
+            com.transportplatform.tms.features.driverearnings.application.DriverEarningsService driverEarningsService, com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence) {
+        this.evidence=evidence;
         this.dispatchTenants=dispatchTenants;this.dispatchValidation=dispatchValidation;this.driverEarningsService=driverEarningsService;
         this.rideRepository = rideRepository;
         this.rideAccessService = rideAccessService;
@@ -257,6 +259,7 @@ public class RideService {
         if (ride.getTripType() == com.transportplatform.tms.features.ride.domain.RideTripType.ROUND_TRIP) throw new ApiException(
                 ErrorCode.RESOURCE_CONFLICT,HttpStatus.CONFLICT,"Dispatch must split this existing round trip into outbound and return journeys before departure.");
         RideStatusWorkflow.ensureCanMarkDriverEnRoute(ride.getStatus());
+        evidence.requireDepartureReady(ride);
         if (ride.getDriverId() == null || ride.getVehicleId() == null) {
             throw validationFailure("Both driver and vehicle are required before departure.");
         }
@@ -270,6 +273,7 @@ public class RideService {
     public RideResponse markCompanyRideArrived(Long rideId) {
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkArrived(ride.getStatus());
+        evidence.requireMilestone(ride,"ARRIVED");
         return updateStatus(ride, RideStatus.ARRIVED, "ARRIVED",
                 "Driver arrived for ride " + ride.getRideNumber() + ".");
     }
@@ -278,6 +282,7 @@ public class RideService {
     public RideResponse markCompanyRidePickedUp(Long rideId) {
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkPickedUp(ride.getStatus());
+        evidence.requireMilestone(ride,"PICKED_UP");
         return updateStatus(ride, RideStatus.PICKED_UP, "PICKED_UP",
                 "Rider was picked up for ride " + ride.getRideNumber() + ".");
     }
@@ -286,6 +291,7 @@ public class RideService {
     public RideResponse markCompanyRideDroppedOff(Long rideId) {
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkDroppedOff(ride.getStatus());
+        evidence.requireMilestone(ride,"DROPPED_OFF");
         return updateStatus(ride, RideStatus.DROPPED_OFF, "DROPPED_OFF",
                 "Rider was dropped off for ride " + ride.getRideNumber() + ".");
     }
@@ -294,6 +300,7 @@ public class RideService {
     public RideResponse completeCompanyRide(Long rideId) {
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkCompleted(ride.getStatus());
+        evidence.requireComplete(ride);
         RideResponse response = updateStatus(ride, RideStatus.COMPLETED, "COMPLETED",
                 "Ride " + ride.getRideNumber() + " was completed.");
         driverEarningsService.createForCompletedRide(ride);

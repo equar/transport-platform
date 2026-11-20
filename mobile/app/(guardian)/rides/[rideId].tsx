@@ -1,3 +1,4 @@
+import {TripDeliveryEvidence} from '@components/TripDeliveryEvidence';
 import { useTripScreenVisible, manualTripRefreshOptions } from '@hooks/useTripScreenVisible';
 import { isTrackableTrip } from '@utils/tripPresentation';
 import { useThemedStyles } from '@theme/ThemeProvider';
@@ -78,6 +79,7 @@ export default function GuardianRideDetailPage() {
 				</View>
 			</View>
 
+      <TripDeliveryEvidence rideId={ride.id} status={ride.status} destination={ride.dropoffAddress ?? undefined} />
       {trackingActive ? <TripTrackingCard
         title="Driver location"
         history={locationHistory ?? []}

@@ -76,7 +76,7 @@ class RideServiceTest {
                                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC),
                                 org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class),
                                 org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class),
-                                driverEarningsService);
+                                driverEarningsService, org.mockito.Mockito.mock(com.transportplatform.tms.features.tripevidence.application.TripEvidenceService.class));
 
                 Rider rider = buildRider();
 
@@ -110,7 +110,7 @@ class RideServiceTest {
                                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC),
                                 org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class),
                                 org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class),
-                                driverEarningsService);
+                                driverEarningsService, org.mockito.Mockito.mock(com.transportplatform.tms.features.tripevidence.application.TripEvidenceService.class));
 
                 Rider rider = buildRider();
 
@@ -140,7 +140,7 @@ class RideServiceTest {
                                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC),
                                 org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class),
                                 org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class),
-                                driverEarningsService);
+                                driverEarningsService, org.mockito.Mockito.mock(com.transportplatform.tms.features.tripevidence.application.TripEvidenceService.class));
 
                 Ride ride = new Ride();
                 ride.setTenantId("tenant-123");
