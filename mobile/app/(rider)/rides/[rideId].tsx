@@ -1,10 +1,11 @@
+import { FormScrollView } from '@components/FormScrollView';
 import { isFinishedTrip, isTrackableTrip } from '@utils/tripPresentation';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import { SupportContact } from '@components/SupportContact';
 import { RequestError } from '@components/RequestError';
 import React from 'react';
-import { StyleSheet, ScrollView, View, Text, Alert, RefreshControl } from 'react-native';
+import { StyleSheet, View, Text, Alert, RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { riderPortalApi } from '@api/riderPortalApi';
@@ -64,13 +65,13 @@ export default function RiderRideDetailPage() {
   const canCancel = CANCELLABLE.has(ride.status);
 
   return (
-    <ScrollView
+    <FormScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
       <View style={styles.heroCard}>
-        <Text style={styles.heroTitle}>Trip Tracking</Text>
+        <Text style={styles.heroTitle}>Trip summary</Text>
         <Text style={styles.heroRide}>{ride.rideNumber}</Text>
         {ride.linkedRideId ? <AppButton label={`View ${ride.journeyLeg === 'RETURN' ? 'outbound' : 'return'} journey`} variant="outlined" onPress={() => router.push(`/(rider)/rides/${ride.linkedRideId}` as never)} /> : null}
         <View style={styles.heroMetaRow}>
@@ -133,7 +134,7 @@ export default function RiderRideDetailPage() {
         </View>
       )}
       <SupportContact />
-    </ScrollView>
+    </FormScrollView>
   );
 }
 

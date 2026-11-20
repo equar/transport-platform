@@ -17,7 +17,9 @@ import { formatShortDateTime } from '@utils/formatDate';
 export default function GuardianRideDetailPage() {
   const styles = useThemedStyles(createStyles);
 	const router = useRouter();
-	const { rideId } = useLocalSearchParams<{ rideId: string }>();
+	const { rideId, track } = useLocalSearchParams<{ rideId: string; track?: string }>();
+  const [trackingRideId, setTrackingRideId] = React.useState<string | null>(null);
+  const trackingRequested = track === '1' || trackingRideId === rideId;
 
 	const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
 		queryKey: ['guardian-ride-detail', rideId],
@@ -25,6 +27,8 @@ export default function GuardianRideDetailPage() {
 		queryFn: () => riderPortalApi.getRide(Number(rideId)),
 		enabled: Boolean(rideId),
 	});
+
+  const trackingActive = !!ride && !isError && isTrackableTrip(ride.status) && trackingRequested;
 
 	const {
 		data: locationSnapshot,
@@ -34,7 +38,10 @@ export default function GuardianRideDetailPage() {
 	} = useQuery({
 		queryKey: ['guardian-ride-location', rideId],
 		queryFn: () => riderPortalApi.getRideLocationSnapshot(Number(rideId)),
-		enabled: false,
+		enabled: trackingActive,
+    refetchInterval: trackingActive ? 15000 : false,
+    refetchIntervalInBackground: false,
+    staleTime: 10000,
 	});
 
 	if (isLoading) return <LoadingState />;
@@ -56,6 +63,23 @@ export default function GuardianRideDetailPage() {
 				</View>
 			</View>
 
+      {trackingActive ? <TripTrackingCard
+        title="Live driver location"
+        snapshot={locationSnapshot ?? null}
+        autoShowMap
+        rideStatus={ride.status}
+        error={locationError}
+        pickupAddress={ride.pickupAddress}
+        dropoffAddress={ride.dropoffAddress}
+        onRefresh={() => { if (trackingActive) void refetchLocationSnapshot(); }}
+        refreshing={locationRefreshing}
+      /> : isTrackableTrip(ride.status) ? <AppButton
+        label="Track"
+        leftIcon="map-marker-radius-outline"
+        accessibilityHint="Shows the assigned driver's location on an embedded map"
+        onPress={() => setTrackingRideId(rideId)}
+      /> : null}
+
 			<Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>
 				← Riders’ Trips
 			</Text>
@@ -72,21 +96,6 @@ export default function GuardianRideDetailPage() {
 				<Text style={styles.routeText}>{ride.dropoffAddress ?? 'Drop-off TBD'}</Text>
 			</AppCard>
 
-			{isTrackableTrip(ride.status) && (
-<TripTrackingCard
-				title="Driver Location"
-				snapshot={isTrackableTrip(ride.status) ? locationSnapshot ?? null : null}
-        autoShowMap
-        rideStatus={ride.status}
-        error={locationError && isTrackableTrip(ride.status)}
-				pickupAddress={ride.pickupAddress}
-				dropoffAddress={ride.dropoffAddress}
-				onRefresh={() => {
-					void refetchLocationSnapshot();
-				}}
-				refreshing={locationRefreshing}
-			/>
-      )}
 
 			<View style={styles.actionRow}>
 				<View style={styles.actionSlot}>

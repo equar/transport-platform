@@ -24,7 +24,7 @@ jest.mock('@tanstack/react-query', () => ({ useInfiniteQuery: () => ({
   data: { pages: [{ items: mockRides }] },
 }), useQuery: ({ queryKey }: { queryKey: string[] }) => ({
   isLoading: false, isError: false, isRefetching: false, refetch: jest.fn(),
-  data: queryKey[0] === 'driver-dashboard' ? { ridesToday: 7, assignedRides: 3, activeRoutesToday: 2, unresolvedComplianceIssues: 1 } : queryKey[0].endsWith('-dashboard') ? { upcomingRideCount: 4, activeRideCount: 1, openInvoiceCount: 2, linkedRiderCount: 3, unreadNotifications: 0 } : { items: [] },
+  data: queryKey[0] === 'guardian-next-rides' ? { items: mockRides } : queryKey[0] === 'driver-dashboard' ? { ridesToday: 7, assignedRides: 3, activeRoutesToday: 2, unresolvedComplianceIssues: 1 } : queryKey[0].endsWith('-dashboard') ? { upcomingRideCount: 4, activeRideCount: 1, openInvoiceCount: 2, linkedRiderCount: 3, unreadNotifications: 0 } : { items: [] },
 }) }));
 beforeEach(() => { jest.clearAllMocks(); mockRides = mockRiderItems; });
 it('centers the login heading and omits the sign-in description', () => {
@@ -103,4 +103,16 @@ it('shows assigned travel and existing billing actions without a service catalog
   expect(mockPush).toHaveBeenCalledWith('/(rider)/rides');
   fireEvent.press(screen.getByRole('button', { name: 'Billing & payments' }));
   expect(mockPush).toHaveBeenCalledWith('/(rider)/billing');
+});
+
+it('opens the live map from the guardian home Track action, prioritizing a trip in progress', () => {
+  mockRides = [{ ...mockRiderItems[0], id: 3, rideNumber: 'UPCOMING', status: 'SCHEDULED' }, ...mockRiderItems];
+  render(<PassengerHomeScreen guardian />);
+  fireEvent.press(screen.getByRole('button', { name: 'Track' }));
+  expect(mockPush).toHaveBeenCalledWith('/(guardian)/rides/1?track=1');
+});
+it('does not offer guardian tracking for finished trips', () => {
+  mockRides = [mockRiderItems[1]];
+  render(<PassengerHomeScreen guardian />);
+  expect(screen.queryByRole('button', { name: 'Track' })).toBeNull();
 });

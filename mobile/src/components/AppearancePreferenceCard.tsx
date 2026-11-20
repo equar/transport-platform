@@ -1,6 +1,7 @@
 import React from 'react';
+import { useWindowDimensions } from 'react-native';
 import { AppCard } from '@components/ui';
-import { HelperText, SegmentedButtons, Text } from 'react-native-paper';
+import { HelperText, RadioButton, SegmentedButtons, Text } from 'react-native-paper';
 import { Spacing } from '@theme/tokens';
 import {
   useAppearancePreference,
@@ -14,6 +15,8 @@ const options: Array<{ value: AppearancePreference; label: string; icon: string 
 ];
 
 export function AppearancePreferenceCard() {
+  const { width, fontScale } = useWindowDimensions();
+  const stacked = width < 380 || fontScale > 1.25;
   const { preference, isLoading, error, setPreference } = useAppearancePreference();
 
   async function handlePreferenceChange(value: string) {
@@ -32,14 +35,16 @@ export function AppearancePreferenceCard() {
       <Text variant="bodySmall">
         Choose light or dark, or follow your device setting with System.
       </Text>
-      <SegmentedButtons
+      {stacked ? <RadioButton.Group value={preference} onValueChange={value => void handlePreferenceChange(value)}>
+        {options.map(option => <RadioButton.Item key={option.value} label={option.label} value={option.value} disabled={isLoading} style={{ minHeight: 48 }} />)}
+      </RadioButton.Group> : <SegmentedButtons
         value={preference}
         onValueChange={(value) => void handlePreferenceChange(value)}
         buttons={options.map((option) => ({
           ...option,
           disabled: isLoading,
         }))}
-      />
+      />}
       <HelperText type={error ? 'error' : 'info'} visible>
         {error ?? 'Saved on this device.'}
       </HelperText>

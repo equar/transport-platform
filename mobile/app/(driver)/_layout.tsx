@@ -9,6 +9,7 @@ export default function DriverLayout() {
     <RoleShell role="driver"><Tabs
       screenOptions={{
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {

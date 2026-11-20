@@ -1,5 +1,6 @@
+import { FormScrollView } from '@components/FormScrollView';
 import React, { useState } from 'react';
-import { Platform, ScrollView, Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { AppButton, AppInput } from './ui';
 import { useBrandingColors } from '@theme/BrandingContext';
@@ -49,7 +50,7 @@ export function DriverDocumentUploadForm({ fileName, documentType, uploading, on
     const problem = documentMetadataError(metadata); setError(problem);
     if (!problem) await onSubmit(metadata);
   }
-  return <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets
+  return <FormScrollView
     contentContainerStyle={{ padding: Spacing.lg, paddingTop: 56, paddingBottom: 48, gap: Spacing.md }}
     style={{ backgroundColor: colors.background }}>
     <Text accessibilityRole="header" style={{ fontSize: 22, color: colors.textPrimary }}>Document details</Text>
@@ -62,5 +63,5 @@ export function DriverDocumentUploadForm({ fileName, documentType, uploading, on
     {error ? <Text accessibilityRole="alert" style={{ color: colors.error }}>{error}</Text> : null}
     <AppButton label="Submit for review" onPress={() => void submit()} loading={uploading} disabled={uploading} />
     <AppButton label="Cancel" variant="outlined" onPress={onCancel} disabled={uploading} />
-  </ScrollView>;
+  </FormScrollView>;
 }

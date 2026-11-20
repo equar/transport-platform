@@ -9,6 +9,7 @@ export default function GuardianLayout() {
     <RoleShell role="guardian"><Tabs
       screenOptions={{
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {

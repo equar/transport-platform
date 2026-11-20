@@ -159,7 +159,7 @@ export default function DriverCompliancePage() {
       </Modal>
       <Modal transparent visible={documentPickerOpen} animationType="fade" onRequestClose={() => !uploading && setDocumentPickerOpen(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <ScrollView style={styles.modalScroller} contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
             <Text style={styles.uploadTitle}>Choose document type</Text>
             <View style={styles.documentOptions}>
               <AppButton label="Driver license" variant="outlined" onPress={() => chooseDocumentType('DRIVER_LICENSE')} disabled={uploading} />
@@ -169,7 +169,7 @@ export default function DriverCompliancePage() {
               <AppButton label="Other document" variant="outlined" onPress={() => chooseDocumentType('OTHER')} disabled={uploading} />
               <AppButton label="Cancel" variant="ghost" onPress={() => setDocumentPickerOpen(false)} disabled={uploading} />
             </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
       <Modal transparent visible={submittedDocumentName !== null} animationType="fade" onRequestClose={() => setSubmittedDocumentName(null)}>
@@ -188,13 +188,14 @@ export default function DriverCompliancePage() {
 const createStyles = (colors: BrandColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  metricRow: { flexDirection: 'row', gap: Spacing.sm },
+  metricRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   metricRowCompact: { flexDirection: 'column' },
   uploadCard: { borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Spacing.md, gap: Spacing.sm },
   uploadTitle: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeLg, color: colors.textPrimary },
   uploadText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textSecondary, lineHeight: 18 },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.scrim, padding: Spacing.md },
   confirmationOverlay: { flex: 1, justifyContent: 'center', backgroundColor: colors.scrim, padding: Spacing.lg },
+  modalScroller: { maxHeight: '90%', flexGrow: 0, backgroundColor: colors.surface, borderRadius: Radius.lg },
   modalContent: { backgroundColor: colors.surface, borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },
   documentOptions: { gap: Spacing.sm },
   confirmationTitle: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeXl, color: colors.textPrimary },

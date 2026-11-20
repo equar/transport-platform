@@ -5,7 +5,7 @@ import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle, type Te
 import { Radius, Spacing, Typography } from '@theme/tokens';
 import { useThemedStyles } from '@theme/ThemeProvider';
 
-interface AppInputProps {
+interface AppInputProps extends Omit<TextInputProps, 'style' | 'value' | 'onChangeText'> {
   label?: string;
   hideLabel?: boolean;
   leftIcon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -15,7 +15,6 @@ interface AppInputProps {
   secureTextEntry?: boolean;
   autoComplete?: TextInputProps['autoComplete'];
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   error?: string;
   success?: string;
   hintText?: string;
@@ -28,7 +27,7 @@ interface AppInputProps {
   showCount?: boolean;
 }
 
-export function AppInput({
+export const AppInput = React.forwardRef<TextInput, AppInputProps>(function AppInput({
   label,
   hideLabel = false,
   leftIcon,
@@ -49,7 +48,11 @@ export function AppInput({
   dense = false,
   maxLength,
   showCount = false,
-}: AppInputProps) {
+  autoCorrect,
+  onFocus,
+  onBlur,
+  ...inputProps
+}: AppInputProps, ref) {
   const colors = useBrandingColors();
   const styles = useThemedStyles(useCallback(createStyles, []));
   const [focused, setFocused] = useState(false);
@@ -81,12 +84,14 @@ export function AppInput({
       >
         {leftIcon ? <MaterialCommunityIcons name={leftIcon} size={22} color={colors.primaryDark} style={{ marginRight: Spacing.sm }} /> : null}
         <TextInput
+          {...inputProps}
+          ref={ref}
           style={[
             styles.input,
             dense && styles.inputDense,
-            multiline && { height: numberOfLines * 20, textAlignVertical: 'top' },
+            multiline && { minHeight: Math.max(96, numberOfLines * 24), textAlignVertical: 'top' },
           ]}
-          accessibilityLabel={label ?? placeholder}
+          accessibilityLabel={inputProps.accessibilityLabel ?? label ?? placeholder}
           accessibilityState={{ disabled: !editable }}
           selectionColor={colors.primary}
           value={value}
@@ -96,11 +101,11 @@ export function AppInput({
           secureTextEntry={secureTextEntry && !showPassword}
           autoCapitalize={autoCapitalize}
           autoComplete={autoComplete}
-          autoCorrect={!secureTextEntry && keyboardType !== 'email-address'}
+          autoCorrect={autoCorrect ?? (!secureTextEntry && keyboardType !== 'email-address')}
           accessibilityHint={helperText}
           keyboardType={keyboardType}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onFocus={event => { setFocused(true); onFocus?.(event); }}
+          onBlur={event => { setFocused(false); onBlur?.(event); }}
           multiline={multiline}
           numberOfLines={multiline ? numberOfLines : undefined}
           editable={editable}
@@ -124,7 +129,7 @@ export function AppInput({
       ) : null}
     </View>
   );
-}
+});
 
 const createStyles = (colors: ReturnType<typeof useBrandingColors>) => StyleSheet.create({
   wrapper: {
@@ -166,6 +171,7 @@ const createStyles = (colors: ReturnType<typeof useBrandingColors>) => StyleShee
   },
   input: {
     flex: 1,
+    minWidth: 0,
     fontFamily: Typography.fontBody,
     fontSize: Typography.sizeLg,
     color: colors.textPrimary,
@@ -192,6 +198,7 @@ const createStyles = (colors: ReturnType<typeof useBrandingColors>) => StyleShee
     gap: Spacing.sm,
   },
   helperBase: {
+    flexShrink: 1,
     fontFamily: Typography.fontBody,
     fontSize: Typography.sizeXs,
   },

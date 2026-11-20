@@ -13,4 +13,4 @@ export function Pagination({ page, pages, onChange, label }: { page: number; pag
     </View>
   </View>;
 }
-const createStyles = (colors: BrandColors) => StyleSheet.create({ section: { gap: Spacing.sm }, row: { flexDirection: 'row', gap: Spacing.md }, button: { flex: 1 }, caption: { fontFamily: Typography.fontBody, color: colors.textSecondary, fontSize: Typography.sizeSm } });
+const createStyles = (colors: BrandColors) => StyleSheet.create({ section: { gap: Spacing.sm }, row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md }, button: { flex: 1, minWidth: 110 }, caption: { fontFamily: Typography.fontBody, color: colors.textSecondary, fontSize: Typography.sizeSm } });

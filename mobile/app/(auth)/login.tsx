@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { mobileDefaultRoute } from '@auth/access';
 import { useAuth } from '@auth/AuthContext';
@@ -12,6 +12,8 @@ export default function LoginPage() {
   const styles = useThemedStyles(createStyles);
   const { signIn } = useAuth();
   const router = useRouter();
+  const passwordInput = useRef<TextInput>(null);
+  const codeInput = useRef<TextInput>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mfaCode, setMfaCode] = useState('');
@@ -30,9 +32,9 @@ export default function LoginPage() {
     footer={<AppButton label="Forgot your password?" variant="ghost" onPress={() => router.push('/(auth)/forgot-password')} />}>
     {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     <View style={styles.fields}>
-      <AppInput label="Email address" hideLabel leftIcon="account-outline" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoComplete="email" editable={!loading} error={submitted && !/^\S+@\S+\.\S+$/.test(email.trim()) ? 'Enter a valid email address.' : undefined} />
-      <AppInput label="Password" hideLabel leftIcon="lock-outline" value={password} onChangeText={setPassword} placeholder="Enter your password" secureTextEntry autoComplete="current-password" editable={!loading} error={submitted && !password ? 'Enter your password.' : undefined} />
-      <AppInput label="Authenticator or recovery code (if enabled)" value={mfaCode} onChangeText={setMfaCode} autoCapitalize="none" editable={!loading} />
+      <AppInput label="Email address" hideLabel leftIcon="account-outline" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoComplete="email" returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => passwordInput.current?.focus()} editable={!loading} error={submitted && !/^\S+@\S+\.\S+$/.test(email.trim()) ? 'Enter a valid email address.' : undefined} />
+      <AppInput ref={passwordInput} label="Password" hideLabel leftIcon="lock-outline" value={password} onChangeText={setPassword} placeholder="Enter your password" secureTextEntry autoComplete="current-password" returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => codeInput.current?.focus()} editable={!loading} error={submitted && !password ? 'Enter your password.' : undefined} />
+      <AppInput ref={codeInput} label="Authenticator or recovery code (if enabled)" value={mfaCode} onChangeText={setMfaCode} autoCapitalize="none" autoCorrect={false} autoComplete="one-time-code" returnKeyType="go" onSubmitEditing={() => void submit()} editable={!loading} />
     </View>
     <AppButton label="Sign in" onPress={() => void submit()} loading={loading} fullWidth size="lg" />
   </AuthFrame>;

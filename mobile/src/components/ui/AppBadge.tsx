@@ -61,6 +61,7 @@ export function AppBadge({ status, label, style }: AppBadgeProps) {
 
 const styles = StyleSheet.create({
   badge: {
+    maxWidth: '100%',
     paddingHorizontal: Spacing.md,
     paddingVertical: 4,
     alignSelf: 'flex-start',

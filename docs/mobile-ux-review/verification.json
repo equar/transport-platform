@@ -1,0 +1,83 @@
+{
+  "verifiedAtUtc": "2026-11-20T00:29:10.333388+00:00",
+  "scope": "Shared mobile form/layout review and isolated native Android component walkthrough using synthetic data. Review navigation buttons in screenshots belong to the temporary harness, not the shipped app.",
+  "findingsFixed": [
+    {
+      "issue": "Android edge-to-edge keyboard covered focused inputs despite adjustResize",
+      "change": "Measure keyboard overlap, reserve a 12-point gap, reveal the focused input, and restore height on dismissal",
+      "evidence": [
+        "android-320-dark-180-keyboard.png",
+        "FormKeyboard.test.tsx"
+      ]
+    },
+    {
+      "issue": "Auth forms combined native keyboard insets and KeyboardAvoidingView",
+      "change": "Use one shared FormScrollView with native iOS insets and measured Android overlap"
+    },
+    {
+      "issue": "Forms and detail sheets had inconsistent keyboard/tap handling",
+      "change": "Shared keyboard handling for auth, trip notes, rider cancellation, document upload, detail sheets and the dormant booking component"
+    },
+    {
+      "issue": "Input component blocked native focus/submit props; multiline input height was fixed",
+      "change": "Forward the native input ref and props, support sign-in keyboard navigation, disable MFA autocorrection, and use flexible multiline minimum height"
+    },
+    {
+      "issue": "Large-text appearance selector crowded three options into a row",
+      "change": "Stack radio options below 380 points or above 125% font scale"
+    },
+    {
+      "issue": "Trip ID squeezed into a one-character column next to status at large font size",
+      "change": "Stack trip header and addresses at narrow widths/large font sizes; keep full addresses available in this layout"
+    },
+    {
+      "issue": "Rows, metrics and modal actions could exceed narrow screens",
+      "change": "Allow pagination, route stops, driver actions, metrics and sheet headers to wrap; make document type chooser scrollable"
+    },
+    {
+      "issue": "Navigation labels and icon affordances were inconsistent",
+      "change": "Add driver Payments header; use an account icon for account navigation; use Trip summary for finished-trip headings and Back to trips for driver navigation"
+    }
+  ],
+  "observedAndroid": {
+    "apiLevel": 36,
+    "logicalWidths": [
+      320,
+      448
+    ],
+    "fontScales": [
+      1.0,
+      1.8
+    ],
+    "appearance": [
+      "light",
+      "dark"
+    ],
+    "focusedFieldAboveKeyboard": true,
+    "keyboardClearancePoints": 12,
+    "productionApiUsed": false,
+    "screenshots": [
+      "android-320-dark-180-trip-header.png",
+      "android-320-dark-180-addresses.png",
+      "android-320-dark-180-keyboard.png",
+      "android-320-dark-180-appearance.png",
+      "android-448-dark-100-trip.png"
+    ]
+  },
+  "automated": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "testSuites": 27,
+    "tests": 108,
+    "failures": 0,
+    "androidNativeCompilation": "passed",
+    "normalAndroidApplicationIdRestored": "com.bakaroo.transport.app",
+    "iosSharedComponentBundleExport": "passed"
+  },
+  "notVerified": [
+    "iOS native keyboard/device walkthrough",
+    "Full authenticated role-by-role production walkthrough",
+    "TalkBack/VoiceOver spoken navigation on physical devices"
+  ],
+  "cleanup": "Only the temporary review application/emulator and its server are removed. Existing emulators, app sessions and production services are preserved."
+}
