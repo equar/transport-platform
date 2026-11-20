@@ -38,32 +38,47 @@ function resolveProjectId(): string | undefined {
   return undefined;
 }
 
-async function registerForPushNotifications(): Promise<string | null> {
+export type PushRegistrationStage = 'channel' | 'permission' | 'project' | 'expo-token' | 'backend' | 'storage';
+export class PushRegistrationError extends Error {
+  constructor(public readonly stage: PushRegistrationStage, public readonly reason: string, public readonly retryable: boolean) {
+    super(`Push registration failed at ${stage}: ${reason}`);
+  }
+}
+
+async function registrationStep<T>(stage: PushRegistrationStage, operation: () => Promise<T>): Promise<T> {
+  try { return await operation(); }
+  catch (error) {
+    // Only fixed classifications leave the device; never log tokens or raw SDK errors.
+    const candidate = error as { message?: string; response?: { status?: number } } | null;
+    const message = typeof candidate?.message === 'string' ? candidate.message.toLowerCase() : '';
+    const status = candidate?.response?.status;
+    const configuration = /firebase|google-services|sender.?id|invalid project|project.?id/.test(message);
+    const reason = configuration ? 'configuration' : status === 401 || status === 403 ? 'access-denied'
+      : status === 429 ? 'rate-limited' : status && status >= 400 && status < 500 ? 'request-rejected' : 'unavailable';
+    throw new PushRegistrationError(stage, reason, !configuration && reason !== 'access-denied' && reason !== 'request-rejected');
+  }
+}
+
+export async function registerForPushNotifications(): Promise<string | null> {
   if (!Device.isDevice) return null;
 
-  const { status: existing } = await Notifications.getPermissionsAsync();
-  const finalStatus =
-    existing === 'granted'
-      ? existing
-      : (await Notifications.requestPermissionsAsync()).status;
-
-  if (finalStatus !== 'granted') return null;
-
+  // Android 13 needs a channel before the notification permission prompt.
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
+    await registrationStep('channel', () => Notifications.setNotificationChannelAsync('default', {
       name: 'Default',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-    });
+    }));
   }
+  const permission = await registrationStep('permission', async () => {
+    const existing = await Notifications.getPermissionsAsync();
+    return existing.status === 'granted' ? existing : Notifications.requestPermissionsAsync();
+  });
+  if (permission.status !== 'granted') return null;
 
-  const resolvedProjectId = resolveProjectId();
-  if (!resolvedProjectId) {
-    return null;
-  }
-  const token = await Notifications.getExpoPushTokenAsync(
-    { projectId: resolvedProjectId },
-  );
+  const projectId = resolveProjectId();
+  if (!projectId) throw new PushRegistrationError('project', 'missing-configuration', false);
+  const token = await registrationStep('expo-token', () => Notifications.getExpoPushTokenAsync({ projectId }));
   return token.data;
 }
 
@@ -116,25 +131,30 @@ export function usePushNotifications() {
       session?.identity.roles.includes('ROLE_RIDER') ||
       session?.identity.roles.includes('ROLE_GUARDIAN');
 
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     if (portalUser) {
-      registerForPushNotifications().then(async (token) => {
-        if (!active) return;
-        if (!token) {
-          logClientEvent('info', 'push.registration.skipped', {
-            reason: 'no-token-or-permission',
-          });
-          return;
+      const register = async (attempt: number) => {
+        try {
+          const token = await registerForPushNotifications();
+          if (!active) return;
+          if (!token) {
+            logClientEvent('info', 'push.registration.skipped', { reason: 'no-token-or-permission' });
+            return;
+          }
+          const platform = Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web' ? Platform.OS : 'web';
+          await registrationStep('backend', () => pushNotificationsApi.register({ token, platform }));
+          if (active) await registrationStep('storage', () => setSessionValue(PUSH_TOKEN_KEY, token));
+        } catch (cause) {
+          if (!active) return;
+          const error = cause instanceof PushRegistrationError ? cause : new PushRegistrationError('expo-token', 'unknown', false);
+          logClientEvent('warn', `push.registration.failed.${error.stage}.${error.reason}`);
+          // Retry transient failures twice, without blocking navigation or retrying permission denial.
+          if (error.retryable && attempt < 2) {
+            retryTimer = setTimeout(() => { if (active) void register(attempt + 1); }, attempt === 0 ? 15000 : 60000);
+          }
         }
-        const platform =
-          Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web'
-            ? Platform.OS
-            : 'web';
-        await pushNotificationsApi.register({ token, platform });
-        if (active) await setSessionValue(PUSH_TOKEN_KEY, token);
-      }).catch(() => {
-        logClientEvent('warn', 'push.registration.failed');
-        // Push registration should never break app navigation.
-      });
+      };
+      void register(0);
     }
 
     notificationListener.current = Notifications.addNotificationReceivedListener(() => {
@@ -157,10 +177,11 @@ export function usePushNotifications() {
       }
     };
     responseListener.current = Notifications.addNotificationResponseReceivedListener(handleResponse);
-    void Notifications.getLastNotificationResponseAsync().then(response => { if (response) handleResponse(response); });
+    void Notifications.getLastNotificationResponseAsync().then(response => { if (response) handleResponse(response); }).catch(() => { if (active) logClientEvent('warn', 'push.response.load.failed'); });
 
     return () => {
       active = false;
+      if (retryTimer) clearTimeout(retryTimer);
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };
