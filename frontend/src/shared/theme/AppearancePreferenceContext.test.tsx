@@ -61,11 +61,18 @@ describe("appearance preferences", () => {
     expect(screen.getByText("light|light")).toBeTruthy();
   });
 
-  it.each(["dark", "system"] as const)("honors an explicitly saved %s preference", preference => {
+  it.each(["light", "dark"] as const)("honors an explicitly saved %s preference", preference => {
     systemPrefersDark = true;
     window.localStorage.setItem("test-appearance", preference);
     render(<AppearancePreferenceProvider storageKey="test-appearance"><PreferenceProbe /></AppearancePreferenceProvider>);
-    expect(screen.getByText(`${preference}|dark`)).toBeTruthy();
+    expect(screen.getByText(`${preference}|${preference}`)).toBeTruthy();
+  });
+
+  it("resets a legacy system preference to light", () => {
+    systemPrefersDark = true;
+    window.localStorage.setItem("test-appearance", "system");
+    render(<AppearancePreferenceProvider storageKey="test-appearance"><PreferenceProbe /></AppearancePreferenceProvider>);
+    expect(screen.getByText("light|light")).toBeTruthy();
   });
 
   it("uses light if browser preference storage is unavailable", () => {

@@ -1,4 +1,4 @@
-import { TenantThemePicker } from "../../branding/components/TenantThemePicker";
+import { AppearancePreferenceCard } from "../../../shared/components/AppearancePreferenceCard";
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 import RuleRoundedIcon from "@mui/icons-material/RuleRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
@@ -610,13 +610,10 @@ export function CompanySettingsPage() {
             </Stack>
           </PageCard>
 
+          <AppearancePreferenceCard />
+
           <PageCard>
             <Stack spacing={2.5}>
-              <TenantThemePicker onApplied={async () => {
-                const refreshed = await settingsApi.getCompanySettings();
-                setSettings(current => ({ ...current, primaryColor: refreshed.primaryColor, secondaryColor: refreshed.secondaryColor, accentColor: refreshed.accentColor }));
-                await reloadCapabilities();
-              }} />
               <Typography variant="h5">Company identity</Typography>
               <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                 <TextField

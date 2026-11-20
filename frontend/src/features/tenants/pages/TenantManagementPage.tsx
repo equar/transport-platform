@@ -1,6 +1,4 @@
-import { TenantThemePicker } from "../../branding/components/TenantThemePicker";
-import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
+import { Button } from "@mui/material";
 import {
   MenuItem,
   Table,
@@ -47,7 +45,6 @@ export function TenantManagementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<BusinessError | null>(null);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
-  const [brandingTenant, setBrandingTenant] = useState<Tenant | null>(null);
   const [tenantDialogOpen, setTenantDialogOpen] = useState(false);
   const [tenantSaveLoading, setTenantSaveLoading] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -220,7 +217,6 @@ export function TenantManagementPage() {
                         >
                           <VisibilityRoundedIcon />
                         </TableActionButton>
-                        <TableActionButton title="Tenant appearance" onClick={() => setBrandingTenant(tenant)}><PaletteRoundedIcon /></TableActionButton>
                         <TableActionButton title="Review transport compliance"
                           onClick={() => navigate(`/platform/tenants/${tenant.id}/transport-compliance`)}>
                           <FactCheckRoundedIcon />
@@ -256,11 +252,6 @@ export function TenantManagementPage() {
               </Table>
       </DataTableShell>
 
-      <Dialog open={Boolean(brandingTenant)} onClose={() => setBrandingTenant(null)} fullWidth maxWidth="lg">
-        <DialogTitle>{brandingTenant?.companyName} · Appearance</DialogTitle>
-        <DialogContent>{brandingTenant ? <TenantThemePicker key={brandingTenant.id} tenantId={brandingTenant.id} /> : null}</DialogContent>
-        <DialogActions><Button onClick={() => setBrandingTenant(null)}>Close</Button></DialogActions>
-      </Dialog>
       <TenantDialog
         open={tenantDialogOpen}
         initialValue={selectedTenant}
