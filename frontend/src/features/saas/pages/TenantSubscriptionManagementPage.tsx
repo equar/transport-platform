@@ -37,7 +37,7 @@ import { formatDateTime } from "../../../shared/utils/format";
 import { tenantsApi, type Tenant } from "../../tenants/api/tenantsApi";
 import {
   saasAdminApi,
-  type SubscriptionPlanRecord,
+  type SubscriptionPlanSummary,
   type TenantSubscriptionPayload,
   type TenantSubscriptionRecord,
 } from "../api/saasAdminApi";
@@ -72,7 +72,7 @@ export function TenantSubscriptionManagementPage() {
   const { showError, showSuccess } = useToast();
   const [items, setItems] = useState<TenantSubscriptionRecord[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [plans, setPlans] = useState<SubscriptionPlanRecord[]>([]);
+  const [plans, setPlans] = useState<SubscriptionPlanSummary[]>([]);
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("");
   const [planTier, setPlanTier] = useState("");

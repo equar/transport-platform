@@ -29,6 +29,10 @@ export interface SubscriptionPlanRecord {
   updatedAt?: string | null;
 }
 
+export type SubscriptionPlanSummary = Pick<SubscriptionPlanRecord,
+  "id" | "planCode" | "name" | "tier" | "monthlyPrice" | "annualPrice" | "currency" |
+  "maxUsers" | "maxDrivers" | "maxVehicles" | "status" | "createdAt" | "updatedAt">;
+
 export interface SubscriptionPlanPayload {
   planCode?: string | null;
   name: string;
@@ -121,7 +125,11 @@ export const saasAdminApi = {
         size: params.size,
       },
     });
-    return unwrapResponse<PageResponse<SubscriptionPlanRecord>>(response.data);
+    return unwrapResponse<PageResponse<SubscriptionPlanSummary>>(response.data);
+  },
+  async getSubscriptionPlan(id: number) {
+    const response = await apiClient.get(`/platform/subscription-plans/${id}`);
+    return unwrapResponse<SubscriptionPlanRecord>(response.data);
   },
   async createSubscriptionPlan(payload: SubscriptionPlanPayload) {
     const response = await apiClient.post("/platform/subscription-plans", payload);
