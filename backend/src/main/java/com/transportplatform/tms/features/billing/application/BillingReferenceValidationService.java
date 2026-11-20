@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class BillingReferenceValidationService {
+    private final com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence;
 
     private final RiderRepository riderRepository;
     private final GuardianRepository guardianRepository;
@@ -33,7 +34,8 @@ public class BillingReferenceValidationService {
             OrganizationRepository organizationRepository,
             ContractRepository contractRepository,
             RideRepository rideRepository,
-            RouteRepository routeRepository) {
+            RouteRepository routeRepository, com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence) {
+        this.evidence=evidence;
         this.riderRepository = riderRepository;
         this.guardianRepository = guardianRepository;
         this.organizationRepository = organizationRepository;
@@ -98,6 +100,12 @@ public class BillingReferenceValidationService {
     public Ride resolveRide(String tenantId, Long rideId) {
         return rideRepository.findByIdAndTenantId(rideId, tenantId)
                 .orElseThrow(() -> notFound("Ride was not found."));
+    }
+
+    public Ride resolveBillableRide(String tenantId, Long rideId) {
+        Ride ride = resolveRide(tenantId, rideId);
+        evidence.requireBillable(ride);
+        return ride;
     }
 
     public Route resolveRoute(String tenantId, Long routeId) {

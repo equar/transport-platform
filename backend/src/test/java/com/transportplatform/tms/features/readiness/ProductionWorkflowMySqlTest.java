@@ -125,6 +125,7 @@ class ProductionWorkflowMySqlTest {
         var payload=mapper.convertValue(source,new com.fasterxml.jackson.core.type.TypeReference<Map<String,Object>>(){});
         String day=LocalDate.now().plusDays(20).toString();
         payload.put("tripType","ROUND_TRIP");payload.put("status","SCHEDULED");
+        payload.put("riderId", jdbc.queryForObject("SELECT id FROM riders WHERE email='rider@demo.test'",Long.class));
         payload.put("scheduledPickupAt",day+"T12:00:00");payload.put("scheduledDropoffAt",day+"T13:00:00");
         payload.put("returnPickupAt",day+"T15:00:00");payload.put("returnDropoffAt",day+"T16:00:00");
         var created=call(HttpMethod.POST,"/company/rides",payload,token,Map.of());assertEquals(201,created.getStatusCode().value(),created.toString());
@@ -139,13 +140,36 @@ class ProductionWorkflowMySqlTest {
         payload.put("internalNotes","Stale operator B");
         assertEquals(409,call(HttpMethod.PUT,"/company/rides/"+id,payload,token,Map.of("If-Match",version)).getStatusCode().value());
         assertEquals("SCHEDULED",call(HttpMethod.GET,"/company/rides/"+backId,null,token,Map.of()).getBody().path("data").path("status").asText());
+        String driverToken=login("driver"),riderToken=login("rider");
         for (long leg : new long[]{id,backId}) {
             var assigned=call(HttpMethod.POST,"/company/rides/"+leg+"/assign-resources",Map.of("driverId",1,"vehicleId",1),token,Map.of());
             assertEquals(200,assigned.getStatusCode().value(),assigned.toString());
-            for(String action:List.of("driver-en-route","arrived","picked-up","dropped-off","complete")) {
+            var stops=call(HttpMethod.PUT,"/company/rides/"+leg+"/delivery-evidence/stops",Map.of("pickupLatitude",42,"pickupLongitude",-71,"dropoffLatitude",42.01,"dropoffLongitude",-71.01),token,Map.of());
+            assertEquals(200,stops.getStatusCode().value(),stops.toString());
+            assertEquals(200,call(HttpMethod.POST,"/company/rides/"+leg+"/driver-en-route",Map.of(),token,Map.of()).getStatusCode().value());
+            for(String action:List.of("arrived","picked-up","dropped-off")) {
+                // Existing company endpoints must reject a status-only milestone.
+                assertEquals(400,call(HttpMethod.POST,"/company/rides/"+leg+"/"+action,Map.of(),token,Map.of()).getStatusCode().value());
+                boolean drop=action.equals("dropped-off");
+                var gps=call(HttpMethod.POST,"/portal/driver/rides/"+leg+"/location-snapshots",Map.of("latitude",drop?42.01:42.0,"longitude",drop?-71.01:-71.0,"accuracyMeters",5,"capturedAt",java.time.Instant.now().toString()),driverToken,Map.of());
+                assertEquals(200,gps.getStatusCode().value(),gps.toString());
+                var proof=call(HttpMethod.POST,"/portal/driver/rides/"+leg+"/delivery-evidence/milestones",Map.of("milestone",action.toUpperCase().replace('-','_'),"odometerMiles",drop?105:100,"mockedLocation",false),driverToken,Map.of());
+                assertEquals(200,proof.getStatusCode().value(),proof.toString());
                 var milestone=call(HttpMethod.POST,"/company/rides/"+leg+"/"+action,Map.of(),token,Map.of());
                 assertEquals(200,milestone.getStatusCode().value(),action+": "+milestone);
             }
+            assertEquals(400,call(HttpMethod.POST,"/company/rides/"+leg+"/complete",Map.of(),token,Map.of()).getStatusCode().value());
+            assertEquals(400,call(HttpMethod.POST,"/portal/driver/rides/"+leg+"/actions/complete",Map.of(),driverToken,Map.of()).getStatusCode().value());
+            var evidence=call(HttpMethod.GET,"/portal/rider/rides/"+leg+"/delivery-evidence",null,riderToken,Map.of()).getBody().path("data");
+            long dropEvidence=0;for(var m:evidence.path("milestones"))if(m.path("milestone").asText().equals("DROPPED_OFF"))dropEvidence=m.path("id").asLong();
+            assertTrue(dropEvidence>0,evidence.toString());
+            assertEquals(403,call(HttpMethod.POST,"/portal/rider/rides/"+leg+"/delivery-evidence/confirm",Map.of("dropoffEvidenceId",dropEvidence,"delivered",true),driverToken,Map.of()).getStatusCode().value());
+            var confirmation=call(HttpMethod.POST,"/portal/rider/rides/"+leg+"/delivery-evidence/confirm",Map.of("dropoffEvidenceId",dropEvidence,"delivered",true),riderToken,Map.of());
+            assertEquals(200,confirmation.getStatusCode().value(),confirmation.toString());
+            var completed=leg==id
+                ? call(HttpMethod.POST,"/portal/driver/rides/"+leg+"/actions/complete",Map.of(),driverToken,Map.of())
+                : call(HttpMethod.POST,"/company/rides/"+leg+"/complete",Map.of(),token,Map.of());
+            assertEquals(200,completed.getStatusCode().value(),completed.toString());
             if(leg==id) assertEquals("SCHEDULED",call(HttpMethod.GET,"/company/rides/"+backId,null,token,Map.of()).getBody().path("data").path("status").asText());
         }
         assertEquals("COMPLETED",call(HttpMethod.GET,"/company/rides/"+backId,null,token,Map.of()).getBody().path("data").path("status").asText());

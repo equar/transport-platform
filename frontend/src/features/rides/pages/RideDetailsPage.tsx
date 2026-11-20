@@ -1,3 +1,4 @@
+import {TripEvidencePanel} from "./TripEvidencePanel";
 import { driversApi } from "../../drivers/api/driversApi";
 import { vehiclesApi } from "../../vehicles/api/vehiclesApi";
 import { RecordHistoryPanel } from "../../../shared/components/RecordHistoryPanel";
@@ -1179,6 +1180,7 @@ export function RideDetailsPage() {
         </Stack>
       </PageCard>
 
+      <TripEvidencePanel rideId={ride.id} status={ride.status} />
       <RecordHistoryPanel
         entityType="RIDE"
         entityId={ride.id}

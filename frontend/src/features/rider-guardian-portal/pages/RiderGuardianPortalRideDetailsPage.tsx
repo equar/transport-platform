@@ -1,3 +1,4 @@
+import {PortalDeliveryEvidence} from "../../rides/pages/PortalDeliveryEvidence";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
 import { Alert, Button, Chip, Stack, Typography } from "@mui/material";
@@ -70,6 +71,7 @@ export function RiderGuardianPortalRideDetailsPage() {
       {error ? <Alert severity="error" action={<Button onClick={() => setRetryCount(value => value + 1)}>Retry</Button>}>{error}</Alert> : null}
       {ride ? (
         <>
+          <PortalDeliveryEvidence rideId={ride.id} status={ride.status} destination={ride.dropoffAddress} />
           <PageCard>
             <Stack spacing={1.25}>
               <Typography variant="h4">Ride {ride.rideNumber}</Typography>

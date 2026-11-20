@@ -91,7 +91,7 @@ class AuditHistoryMySqlTest {
   var access=mock(RideAccessService.class);when(access.requireCompanyTenantId()).thenReturn("history-a");
   var mapper=mock(RideMapper.class);
   when(mapper.toResponse(any())).thenAnswer(invocation->{Ride r=invocation.getArgument(0);var response=mock(com.transportplatform.tms.features.ride.api.response.RideResponse.class);when(response.id()).thenReturn(r.getId());return response;});
-  var rideService=new RideService(rides,access,null,mapper,null,null,null,null,java.time.Clock.systemUTC(),null,null,null);
+  var rideService=new RideService(rides,access,null,mapper,null,null,null,null,java.time.Clock.systemUTC(),null,null,null,org.mockito.Mockito.mock(com.transportplatform.tms.features.tripevidence.application.TripEvidenceService.class));
   var page=rideService.searchSubjectRides("RIDER",a.getId(),0,1);
   assertThat(page.totalElements()).isEqualTo(2);
   assertThat(rideService.searchSubjectRides("RIDER",a.getId(),1,1).items().getFirst().id()).isNotEqualTo(page.items().getFirst().id());

@@ -1,3 +1,6 @@
+import * as Location from 'expo-location';
+import {tripEvidenceApi} from '@api/tripEvidenceApi';
+import {TripDeliveryEvidence} from '@components/TripDeliveryEvidence';
 import { useTripScreenVisible, manualTripRefreshOptions } from '@hooks/useTripScreenVisible';
 import { FormScrollView } from '@components/FormScrollView';
 import { isTrackableTrip } from '@utils/tripPresentation';
@@ -61,6 +64,8 @@ export default function DriverRideDetailPage() {
   const { session } = useAuth();
   const actionInFlightRef = React.useRef(false);
   const [note, setNote] = React.useState('');
+  const [odometerMiles, setOdometerMiles] = React.useState('');
+  const [deliveryReady,setDeliveryReady]=React.useState(false);
 
   const { data: serverRide, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['driver-ride', rideId],
@@ -109,9 +114,27 @@ export default function DriverRideDetailPage() {
   }
 
   const { mutate: performAction, isPending: actionPending } = useMutation({
-    mutationFn: ({ action, idempotencyKey }: { action: DriverRideAction; idempotencyKey: string }) =>
-      driverPortalApi.postRideAction(Number(rideId), action, idempotencyKey, ride?.status),
+    mutationFn: async ({ action, idempotencyKey }: { action: DriverRideAction; idempotencyKey: string }) => {
+      if (['arrived','picked-up','dropped-off'].includes(action)) {
+        if (action !== 'arrived' && !/^\d{1,8}(\.\d)?$/.test(odometerMiles)) throw new Error('Enter the vehicle odometer reading in miles, to at most one decimal place.');
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (permission.status !== 'granted') throw new Error('Location permission is required to verify this milestone.');
+        let locationTimeout: ReturnType<typeof setTimeout> | undefined;
+        let fix: Location.LocationObject;
+        try {
+          fix = await Promise.race([
+            Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}),
+            new Promise<never>((_resolve,reject)=>{ locationTimeout=setTimeout(()=>reject(new Error('Location timed out. Enable precise location, move to a clear area and retry.')),20000); }),
+          ]);
+        } finally { if (locationTimeout) clearTimeout(locationTimeout); }
+        if (fix.mocked) throw new Error('Mocked location cannot verify a trip milestone.');
+        await driverPortalApi.captureRideLocationSnapshot(Number(rideId), {latitude:fix.coords.latitude,longitude:fix.coords.longitude,accuracyMeters:fix.coords.accuracy,capturedAt:new Date(fix.timestamp).toISOString()});
+        await tripEvidenceApi.capture(Number(rideId),action.toUpperCase().replace(/-/g,'_'),action==='arrived'?undefined:Number(odometerMiles),false);
+      }
+      return driverPortalApi.postRideAction(Number(rideId), action, idempotencyKey, ride?.status);
+    },
     onSuccess: (updatedRide) => {
+      setOdometerMiles('');
       qc.setQueryData(['driver-ride', rideId], updatedRide);
       if (!isTrackableTrip(updatedRide.status) && session?.identity.tenantId) void stopTripTracking({ rideId: updatedRide.id, tenantId: session.identity.tenantId, userId: session.identity.id });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -143,6 +166,11 @@ export default function DriverRideDetailPage() {
       return;
     }
     if (!net.isConnected || net.isInternetReachable === false || pendingActions.length > 0) {
+      if (['arrived','picked-up','dropped-off','complete'].includes(action)) {
+        actionInFlightRef.current=false;
+        Alert.alert('Online verification required','Location milestones and completion require a connection so delivery evidence can be verified. Reconnect and refresh this trip.');
+        return;
+      }
       if (!session?.identity.tenantId || !ride) {
         actionInFlightRef.current = false;
         return;
@@ -263,6 +291,8 @@ export default function DriverRideDetailPage() {
 
       {ride.linkedRideId ? <Text style={styles.instructions}>This is the {ride.journeyLeg?.toLowerCase()} leg. The paired journey has a separate assignment and completion status. Contact dispatch for changes.</Text> : null}
       {/* Action */}
+      <TripDeliveryEvidence rideId={ride.id} status={ride.status} driver onReadinessChange={setDeliveryReady} destination={ride.dropoffAddress ?? undefined} />
+      {['ARRIVED','PICKED_UP'].includes(ride.status)?<AppInput label="Vehicle odometer (miles)" value={odometerMiles} onChangeText={setOdometerMiles} keyboardType="decimal-pad" placeholder="e.g. 43210.5" />:null}
       {(primaryAction || secondaryActions.length > 0) && (
         <Section title="Trip Actions">
           <View style={styles.primaryActionRow}>
@@ -284,7 +314,7 @@ export default function DriverRideDetailPage() {
                   label={primaryAction.label}
                   onPress={() => handleAction(primaryAction.action, primaryAction.label)}
                   loading={actionPending}
-                  disabled={blockedActions}
+                  disabled={blockedActions || (primaryAction.action === 'complete' && !deliveryReady)}
                   fullWidth
                   size="lg"
                 />

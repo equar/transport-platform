@@ -1,3 +1,4 @@
+jest.mock('@components/TripDeliveryEvidence', () => ({TripDeliveryEvidence: () => null}));
 import React from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

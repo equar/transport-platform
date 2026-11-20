@@ -39,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DriverEarningsService {
+    private final com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence;
 
     private final DriverEarningsLedgerRepository ledger;
     private final InvoiceLineItemRepository invoiceLineItems;
@@ -57,7 +58,8 @@ public class DriverEarningsService {
             CurrentAuthenticatedUserService currentUser,
             DriverRepository drivers,
             RideRepository rides,
-            AuditLogService audit) {
+            AuditLogService audit, com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence) {
+        this.evidence=evidence;
         this.ledger = ledger;
         this.invoiceLineItems = invoiceLineItems;
         this.settings = settings;
@@ -70,6 +72,7 @@ public class DriverEarningsService {
 
     @Transactional
     public void createForCompletedRide(Ride ride) {
+        evidence.requireBillable(ride);
         if (ride.getDriverId() == null
                 || ledger.existsByRideIdAndEntryType(ride.getId(), DriverEarningsEntryType.EARNED)) {
             return;
@@ -195,6 +198,7 @@ public class DriverEarningsService {
             throw invalidState("Only calculated earnings awaiting review can be approved.");
         }
 
+        if (entry.getRideId() != null) evidence.requireBillable(rides.findByIdAndTenantId(entry.getRideId(), tenantId).orElseThrow(() -> invalidState("Ride no longer exists.")));
         Object oldSnapshot = snapshot(entry);
         entry.setStatus(DriverEarningsStatus.APPROVED);
         DriverEarningsLedger saved = ledger.save(entry);

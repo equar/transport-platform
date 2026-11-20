@@ -1,3 +1,4 @@
+import {TripDeliveryEvidence} from '@components/TripDeliveryEvidence';
 import { useTripScreenVisible, manualTripRefreshOptions } from '@hooks/useTripScreenVisible';
 import { FormScrollView } from '@components/FormScrollView';
 import { isTrackableTrip } from '@utils/tripPresentation';
@@ -113,6 +114,7 @@ export default function RiderRideDetailPage() {
         <Row label="To" value={ride.dropoffAddress ?? '—'} />
       </View>
 
+      <TripDeliveryEvidence rideId={ride.id} status={ride.status} destination={ride.dropoffAddress ?? undefined} />
       {isTrackableTrip(ride.status) && (
 <TripTrackingCard
         title="Trip Tracking"

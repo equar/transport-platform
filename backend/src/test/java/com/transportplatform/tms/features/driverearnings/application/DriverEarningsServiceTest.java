@@ -45,7 +45,7 @@ class DriverEarningsServiceTest {
     private final RideRepository rides = mock(RideRepository.class);
     private final AuditLogService audit = mock(AuditLogService.class);
     private final DriverEarningsService service = new DriverEarningsService(
-            ledger, invoiceLineItems, settings, driverAccess, currentUser, drivers, rides, audit);
+            ledger, invoiceLineItems, settings, driverAccess, currentUser, drivers, rides, audit, org.mockito.Mockito.mock(com.transportplatform.tms.features.tripevidence.application.TripEvidenceService.class));
 
     @BeforeEach
     void returnSavedLedgerEntryFromRepository() {
@@ -118,6 +118,8 @@ class DriverEarningsServiceTest {
         assertEquals("Manually reviewed fare", submitted.reason());
         assertEquals(DriverEarningsStatus.PENDING_REVIEW.name(), submitted.status());
 
+        org.junit.jupiter.api.Assertions.assertThrows(com.transportplatform.tms.common.exception.ApiException.class, () -> service.approve(2L));
+        when(rides.findByIdAndTenantId(42L, "tenant-1")).thenReturn(Optional.of(mock(com.transportplatform.tms.features.ride.domain.Ride.class)));
         var approved = service.approve(2L);
         assertEquals(DriverEarningsStatus.APPROVED.name(), approved.status());
         verify(ledger, times(2)).save(entry);

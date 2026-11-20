@@ -1,3 +1,5 @@
+import {apiClient} from "../../../shared/api/client";
+import {PortalDeliveryEvidence} from "../../rides/pages/PortalDeliveryEvidence";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import DirectionsCarFilledRoundedIcon from "@mui/icons-material/DirectionsCarFilledRounded";
@@ -33,6 +35,7 @@ export function DriverPortalRideDetailsPage() {
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [odometerMiles,setOdometerMiles]=useState("");
   const [retryCount, setRetryCount] = useState(0);
   const actionInFlight = useRef(false);
   const previousRideId = useRef<number | null>(null);
@@ -82,6 +85,13 @@ export function DriverPortalRideDetailsPage() {
     actionInFlight.current = true;
     setActionLoading(true);
     try {
+      if (["arrived","picked-up","dropped-off"].includes(action)) {
+        if (action!=="arrived"&&!/^\d{1,8}(\.\d)?$/.test(odometerMiles)) throw new Error("Enter the vehicle odometer reading in miles, to at most one decimal place.");
+        if (!navigator.geolocation) throw new Error("Use the driver mobile app or a browser with location support to verify this milestone.");
+        const fix=await new Promise<GeolocationPosition>((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,maximumAge:0,timeout:15000}));
+        await apiClient.post(`/portal/driver/rides/${resolvedRideId}/location-snapshots`,{latitude:fix.coords.latitude,longitude:fix.coords.longitude,accuracyMeters:fix.coords.accuracy,capturedAt:new Date(fix.timestamp).toISOString()});
+        await apiClient.post(`/portal/driver/rides/${resolvedRideId}/delivery-evidence/milestones`,{milestone:action.toUpperCase().replaceAll('-','_'),odometerMiles:action==='arrived'?undefined:Number(odometerMiles),mockedLocation:false});
+      }
       const response = await driverPortalApi.postRideAction(
         resolvedRideId,
         action,
@@ -89,6 +99,7 @@ export function DriverPortalRideDetailsPage() {
       );
       if (activeRideId.current !== resolvedRideId) return;
       setRide(response);
+      setOdometerMiles("");
       showSuccess("Ride updated.");
     } catch (_caughtError) {
       if (activeRideId.current === resolvedRideId) { showError(_caughtError, "Ride action could not be completed. Refreshing the current assignment."); setRetryCount(value => value + 1); }
@@ -138,6 +149,8 @@ export function DriverPortalRideDetailsPage() {
       {error ? <Alert severity="error" action={<Button onClick={() => setRetryCount(value => value + 1)}>Retry</Button>}>{error}</Alert> : null}
       {ride ? (
         <>
+          {['ARRIVED','PICKED_UP'].includes(ride.status)?<TextField label="Vehicle odometer (miles)" value={odometerMiles} onChange={e=>setOdometerMiles(e.target.value)} inputProps={{inputMode:'decimal'}} helperText="Enter the actual dashboard reading before pickup or drop-off." />:null}
+          <PortalDeliveryEvidence rideId={ride.id} status={ride.status} driver destination={ride.dropoffAddress} />
           <PageCard>
             <Stack spacing={2}>
               <Stack
