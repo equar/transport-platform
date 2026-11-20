@@ -31,5 +31,6 @@ class GuardianRelationshipRevocationTest {
         when(rides.findByIdAndTenantId(9L, "tenant")).thenReturn(Optional.of(ride));
         assertThrows(ApiException.class, () -> portal.getRide(9L));
         assertThrows(ApiException.class, () -> portal.getRideLocationSnapshot(9L));
+        assertThrows(ApiException.class, () -> portal.getRideLocationHistory(9L));
     }
 }

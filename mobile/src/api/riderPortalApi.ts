@@ -162,6 +162,10 @@ export const riderPortalApi = {
     const r = await apiClient.post(`${base}/rides`, payload, { headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined });
     return unwrapResponse<RiderPortalRideDetailRecord>(r.data);
   },
+  async getRideLocationHistory(rideId: number) {
+    const r = await apiClient.get(`${base}/rides/${rideId}/location-history`);
+    return unwrapResponse<RiderRideLocationSnapshotRecord[]>(r.data);
+  },
   async getRideLocationSnapshot(rideId: number) {
     const r = await apiClient.get(`${base}/rides/${rideId}/location-snapshot`);
     return unwrapResponse<RiderRideLocationSnapshotRecord | null>(r.data);

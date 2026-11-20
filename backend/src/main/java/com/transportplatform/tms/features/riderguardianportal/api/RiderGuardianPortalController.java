@@ -108,6 +108,11 @@ public class RiderGuardianPortalController {
         return ApiResponse.success(service.cancelRide(rideId, request));
     }
 
+    @GetMapping("/portal/rider/rides/{rideId}/location-history")
+    public ApiResponse<java.util.List<DriverLocationSnapshotResponse>> getRideLocationHistory(@PathVariable Long rideId) {
+        return ApiResponse.success(service.getRideLocationHistory(rideId));
+    }
+
     @GetMapping("/portal/rider/rides/{rideId}/location-snapshot")
     public ApiResponse<DriverLocationSnapshotResponse> getRideLocationSnapshot(@PathVariable Long rideId) {
         return ApiResponse.success(service.getRideLocationSnapshot(rideId));

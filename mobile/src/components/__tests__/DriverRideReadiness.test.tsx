@@ -1,3 +1,4 @@
+jest.mock('@hooks/useTripScreenVisible', () => ({ useTripScreenVisible: () => true, manualTripRefreshOptions: { refetchInterval: false, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: false } }));
 import React from 'react';
 import { Alert } from 'react-native';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -18,7 +19,7 @@ jest.mock('expo-linking', () => ({ openURL: jest.fn().mockResolvedValue(undefine
 jest.mock('@react-native-community/netinfo', () => ({ __esModule: true, default: { fetch: async () => ({ isConnected: mockConnected, isInternetReachable: mockConnected }) }, useNetInfo: () => ({ isConnected: mockConnected, isInternetReachable: mockConnected }) }));
 jest.mock('../../tracking/activeTrip', () => ({ startTripTracking: jest.fn().mockResolvedValue(undefined), stopTripTracking: jest.fn().mockResolvedValue(undefined), useTrackingState: () => ({ active: false, rideId: null, message: 'Tracking is off', lastSyncedAt: null }) }));
 jest.mock('@stores/offlineQueueStore', () => ({ pendingTripStatus: (status: string) => status, useOfflineQueue: () => ({ enqueue: mockEnqueue, queue: [], conflicts: [], dismissConflict: jest.fn(), retry: jest.fn(), cancelTripActions: jest.fn() }) }));
-jest.mock('@api/driverPortalApi', () => ({ driverPortalApi: { getRide: jest.fn(), getRideActions: jest.fn(), getRideLocationSnapshot: jest.fn(), postRideAction: jest.fn(), addRideNote: jest.fn() } }));
+jest.mock('@api/driverPortalApi', () => ({ driverPortalApi: { getRide: jest.fn(), getRideActions: jest.fn(), getRideLocationHistory: jest.fn().mockResolvedValue([]), getRideLocationSnapshot: jest.fn(), postRideAction: jest.fn(), addRideNote: jest.fn() } }));
 beforeEach(() => {
   jest.clearAllMocks(); mockConnected = true;
   jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);

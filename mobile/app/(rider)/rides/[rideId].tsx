@@ -1,5 +1,6 @@
+import { useTripScreenVisible, manualTripRefreshOptions } from '@hooks/useTripScreenVisible';
 import { FormScrollView } from '@components/FormScrollView';
-import { isFinishedTrip, isTrackableTrip } from '@utils/tripPresentation';
+import { isTrackableTrip } from '@utils/tripPresentation';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import { SupportContact } from '@components/SupportContact';
@@ -19,6 +20,7 @@ const CANCELLABLE = new Set(['REQUESTED', 'PENDING_REVIEW', 'SCHEDULED', 'ASSIGN
 
 export default function RiderRideDetailPage() {
   const styles = useThemedStyles(createStyles);
+  const screenVisible = useTripScreenVisible();
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
   const router = useRouter();
   const qc = useQueryClient();
@@ -26,9 +28,9 @@ export default function RiderRideDetailPage() {
 
   const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['rider-ride', rideId],
-    refetchInterval: query => query.state.data && !isFinishedTrip(query.state.data.status) ? 15000 : false,
+    ...manualTripRefreshOptions,
     queryFn: () => riderPortalApi.getRide(Number(rideId)),
-    enabled: !!rideId,
+    enabled: screenVisible && !!rideId,
   });
 
   const {
@@ -39,9 +41,24 @@ export default function RiderRideDetailPage() {
   } = useQuery({
     queryKey: ['rider-ride-location', rideId],
     queryFn: () => riderPortalApi.getRideLocationSnapshot(Number(rideId)),
-    enabled: !!ride && !isError && isTrackableTrip(ride.status),
-    refetchInterval: ride && isTrackableTrip(ride.status) ? 30000 : false,
+    enabled: screenVisible && !!ride && !isError && isTrackableTrip(ride.status),
+    ...manualTripRefreshOptions,
   });
+
+  const { data: locationHistory, refetch: refetchHistory, isFetching: historyRefreshing, isError: historyError } = useQuery({
+    queryKey: ['rider-ride-location-history', rideId],
+    queryFn: () => riderPortalApi.getRideLocationHistory(Number(rideId)),
+    enabled: screenVisible && !!ride && !isError && isTrackableTrip(ride.status),
+    ...manualTripRefreshOptions,
+  });
+
+  async function refreshTrip() {
+    if (!screenVisible) return;
+    const result = await refetch();
+    if (result.data && isTrackableTrip(result.data.status)) {
+      await Promise.all([refetchLocationSnapshot(), refetchHistory()]);
+    }
+  }
 
   const { mutate: cancel, isPending } = useMutation({
     mutationFn: () => riderPortalApi.cancelRide(Number(rideId), reason.trim()),
@@ -68,7 +85,7 @@ export default function RiderRideDetailPage() {
     <FormScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refreshTrip()} />}
     >
       <View style={styles.heroCard}>
         <Text style={styles.heroTitle}>Trip summary</Text>
@@ -99,15 +116,15 @@ export default function RiderRideDetailPage() {
       {isTrackableTrip(ride.status) && (
 <TripTrackingCard
         title="Trip Tracking"
+        history={locationHistory ?? []}
+        historyError={historyError}
         snapshot={isTrackableTrip(ride.status) ? locationSnapshot ?? null : null}
         rideStatus={ride.status}
         error={locationError && isTrackableTrip(ride.status)}
         pickupAddress={ride.pickupAddress}
         dropoffAddress={ride.dropoffAddress}
-        onRefresh={() => {
-          void refetchLocationSnapshot();
-        }}
-        refreshing={locationRefreshing}
+        onRefresh={() => void refreshTrip()}
+        refreshing={locationRefreshing || historyRefreshing || isRefetching}
       />
       )}
 

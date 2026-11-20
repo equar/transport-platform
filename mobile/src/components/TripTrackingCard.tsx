@@ -1,13 +1,16 @@
+import { travelledPathSegments, travelledPathRegion, type TravelledPoint } from '@utils/travelledPath';
 import React, { useState } from 'react';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
-import { Platform, StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker, UrlTile } from 'react-native-maps';
+import { StyleSheet, Text, View } from 'react-native';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { AppButton } from '@components/ui';
 import { Spacing, Typography } from '@theme/tokens';
 
 interface TripTrackingCardProps {
   title?: string;
+  history?: TravelledPoint[];
+  historyError?: boolean;
   snapshot: {
     latitude: number;
     longitude: number;
@@ -40,6 +43,8 @@ function formatSpeed(speedMps?: number | null) {
 
 export function TripTrackingCard({
   title = 'Route Tracking',
+  history = [],
+  historyError = false,
   snapshot,
   pickupAddress,
   dropoffAddress,
@@ -56,44 +61,63 @@ export function TripTrackingCard({
   const validLocation = snapshot != null && isValidLocation(snapshot);
   const mapVisible = autoShowMap || showMap;
   const riderPickedUp = rideStatus === 'PICKED_UP';
-  const mapRegion = validLocation ? {
-    latitude: snapshot.latitude,
-    longitude: snapshot.longitude,
-    latitudeDelta: 0.012,
-    longitudeDelta: 0.012,
-  } : { latitude: 0, longitude: 0, latitudeDelta: 120, longitudeDelta: 180 };
+  const segments = travelledPathSegments(history);
+  const pathPoints = segments.flat();
+  const mapRegion = travelledPathRegion([...pathPoints, ...(validLocation && snapshot ? [snapshot] : [])]);
+
+  const refreshControl = onRefresh ? (
+    <AppButton
+      label="Refresh"
+      accessibilityLabel="Refresh Tracking"
+      onPress={onRefresh}
+      loading={refreshing}
+      variant="outlined"
+      size="sm"
+    />
+  ) : null;
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.header}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {!mapVisible ? refreshControl : null}
+      </View>
       <View style={styles.body}>
         {mapVisible ? (
+          <View style={styles.mapContainer}>
           <MapView
             accessibilityLabel="Map showing the latest shared ride location"
             testID="ride-location-map"
             style={styles.map}
             region={mapRegion}
-            mapType={Platform.OS === 'android' ? 'none' : 'standard'}
+            mapType="standard"
             showsUserLocation={false}
             showsCompass
             zoomEnabled
             scrollEnabled
           >
-            <UrlTile
-              urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-              maximumZ={19}
-              shouldReplaceMapContent={Platform.OS === 'ios'}
-            />
+            {segments.map((segment, index) => <Polyline
+              key={`travelled-${index}`}
+              coordinates={segment.map(point => ({ latitude: point.latitude, longitude: point.longitude }))}
+              strokeColor={styles.path.color}
+              strokeWidth={4}
+            />)}
             {validLocation && snapshot ? <Marker
-              coordinate={{ latitude: mapRegion.latitude, longitude: mapRegion.longitude }}
+              coordinate={{ latitude: snapshot.latitude, longitude: snapshot.longitude }}
               title={riderPickedUp ? 'Rider and assigned driver' : 'Assigned driver'}
               description={riderPickedUp
                 ? 'The rider is traveling with the driver.'
                 : 'Latest location reported by the assigned driver.'}
             /> : null}
           </MapView>
+          {onRefresh ? <View style={styles.mapRefresh}>{refreshControl}</View> : null}
+          </View>
         ) : null}
-        {mapVisible ? <Text style={styles.emptyText}>© OpenStreetMap contributors</Text> : null}
+        {mapVisible ? <Text style={styles.emptyText}>
+          {historyError ? 'The recorded path could not be loaded. Press Refresh to try again.'
+            : segments.length ? 'Recorded path travelled (up to the latest 1,000 GPS reports). Gaps indicate missing location reports.'
+            : 'The travelled path will appear once enough reliable GPS reports are recorded.'}
+        </Text> : null}
         {error ? <Text accessibilityRole="alert" style={styles.emptyText}>Location updates could not be loaded. Check your connection and refresh tracking.</Text> : null}
         {snapshot ? (
           <>
@@ -119,28 +143,12 @@ export function TripTrackingCard({
               value={`${snapshot.latitude.toFixed(6)}, ${snapshot.longitude.toFixed(6)}`}
             />
             </> : null}
-            {onRefresh ? (
-              <AppButton
-                label="Refresh Tracking"
-                onPress={onRefresh}
-                loading={refreshing}
-                fullWidth
-              />
-            ) : null}
           </>
         ) : (
           <>
             <Text style={styles.emptyText}>
               Waiting for the driver’s first location update. The map pin will appear when location sharing is active and the driver’s app has a connection.
             </Text>
-            {onRefresh ? (
-              <AppButton
-                label="Refresh Tracking"
-                onPress={onRefresh}
-                loading={refreshing}
-                fullWidth
-              />
-            ) : null}
           </>
         )}
       </View>
@@ -160,15 +168,24 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const createStyles = (colors: BrandColors) => StyleSheet.create({
   section: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.surface },
-  sectionTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: Typography.sizeXs,
-    color: colors.textSecondary,
-    letterSpacing: 0.5,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
     padding: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
     backgroundColor: colors.surfaceMuted,
+  },
+  path: { color: colors.primary },
+  mapContainer: { position: 'relative' },
+  mapRefresh: { position: 'absolute', top: Spacing.sm, right: Spacing.sm },
+  sectionTitle: {
+    flex: 1,
+    fontFamily: 'Inter_700Bold',
+    fontSize: Typography.sizeXs,
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   body: { padding: Spacing.md, gap: Spacing.sm },

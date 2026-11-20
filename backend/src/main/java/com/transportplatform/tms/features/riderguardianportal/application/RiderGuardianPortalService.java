@@ -328,6 +328,21 @@ public class RiderGuardianPortalService {
     }
 
     @Transactional(readOnly = true)
+    public List<DriverLocationSnapshotResponse> getRideLocationHistory(Long rideId) {
+        var scope = accessService.resolveCurrentScope();
+        Ride ride = rideRepository.findByIdAndTenantId(rideId, scope.user().tenantId())
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND,
+                        "Ride not found for the current portal scope."));
+        if (!canAccessRide(scope, ride)) {
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                    "The current rider or guardian portal account cannot access this ride.");
+        }
+        if (ride.getDriverId() == null || !Set.of(RideStatus.DRIVER_EN_ROUTE, RideStatus.ARRIVED, RideStatus.PICKED_UP).contains(ride.getStatus())) return List.of();
+        return driverLocationSnapshotRepository.findTop1000ByTenantIdAndRide_IdAndDriver_IdOrderByCapturedAtDescIdDesc(
+                ride.getTenantId(), ride.getId(), ride.getDriverId()).stream().map(driverLocationSnapshotMapper::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
     public DriverLocationSnapshotResponse getRideLocationSnapshot(Long rideId) {
         var scope = accessService.resolveCurrentScope();
         Ride ride = rideRepository.findByIdAndTenantId(rideId, scope.user().tenantId())

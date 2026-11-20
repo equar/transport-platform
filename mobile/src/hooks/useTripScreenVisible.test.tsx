@@ -1,0 +1,23 @@
+import { act, renderHook } from '@testing-library/react-native';
+import { AppState, type AppStateStatus } from 'react-native';
+import { useTripScreenVisible } from './useTripScreenVisible';
+let mockFocus: (() => void | (() => void)) | undefined;
+jest.mock('expo-router', () => ({ useFocusEffect: (callback: () => void | (() => void)) => { mockFocus = callback; } }));
+afterEach(() => jest.restoreAllMocks());
+it('enables fetching only while the route is focused and the app is active', () => {
+ let change!: (state: AppStateStatus) => void;
+ const remove = jest.fn();
+ jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => { change = listener; return { remove }; });
+ const view = renderHook(() => useTripScreenVisible());
+ expect(view.result.current).toBe(false);
+ let blur: void | (() => void);
+ act(() => { blur = mockFocus?.(); change('active'); });
+ expect(view.result.current).toBe(true);
+ act(() => change('background'));
+ expect(view.result.current).toBe(false);
+ act(() => change('active'));
+ expect(view.result.current).toBe(true);
+ act(() => { if (blur) blur(); });
+ expect(view.result.current).toBe(false);
+ view.unmount(); expect(remove).toHaveBeenCalled();
+});

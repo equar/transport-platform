@@ -165,6 +165,11 @@ public class DriverPortalController {
         return action(rideId, key, expectedStatus, "failed", () -> driverPortalService.markRideFailed(rideId));
     }
 
+    @GetMapping("/portal/driver/rides/{rideId}/location-history")
+    public ApiResponse<java.util.List<DriverLocationSnapshotResponse>> getRideLocationHistory(@PathVariable Long rideId) {
+        return ApiResponse.success(driverLocationSnapshotService.getDriverRideHistory(rideId));
+    }
+
     @GetMapping("/portal/driver/rides/{rideId}/location-snapshot")
     public ApiResponse<DriverLocationSnapshotResponse> getRideLocationSnapshot(@PathVariable Long rideId) {
         return ApiResponse.success(driverLocationSnapshotService.getLatestDriverRideSnapshot(rideId));

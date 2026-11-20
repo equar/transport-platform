@@ -284,6 +284,10 @@ export const driverPortalApi = {
     const r = await apiClient.get(`${base}/rides/${rideId}`);
     return unwrapResponse<DriverPortalRideDetailRecord>(r.data);
   },
+  async getRideLocationHistory(rideId: number) {
+    const r = await apiClient.get(`${base}/rides/${rideId}/location-history`);
+    return unwrapResponse<DriverRideLocationSnapshotRecord[]>(r.data);
+  },
   async getRideLocationSnapshot(rideId: number) {
     const r = await apiClient.get(`${base}/rides/${rideId}/location-snapshot`);
     return unwrapResponse<DriverRideLocationSnapshotRecord | null>(r.data);
