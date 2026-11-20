@@ -63,11 +63,26 @@ export function TripTrackingCard({
     longitudeDelta: 0.012,
   } : { latitude: 0, longitude: 0, latitudeDelta: 120, longitudeDelta: 180 };
 
+  const refreshControl = onRefresh ? (
+    <AppButton
+      label="Refresh"
+      accessibilityLabel="Refresh Tracking"
+      onPress={onRefresh}
+      loading={refreshing}
+      variant="outlined"
+      size="sm"
+    />
+  ) : null;
+
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.header}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {!mapVisible ? refreshControl : null}
+      </View>
       <View style={styles.body}>
         {mapVisible ? (
+          <View style={styles.mapContainer}>
           <MapView
             accessibilityLabel="Map showing the latest shared ride location"
             testID="ride-location-map"
@@ -87,6 +102,8 @@ export function TripTrackingCard({
                 : 'Latest location reported by the assigned driver.'}
             /> : null}
           </MapView>
+          {onRefresh ? <View style={styles.mapRefresh}>{refreshControl}</View> : null}
+          </View>
         ) : null}
         {error ? <Text accessibilityRole="alert" style={styles.emptyText}>Location updates could not be loaded. Check your connection and refresh tracking.</Text> : null}
         {snapshot ? (
@@ -113,28 +130,12 @@ export function TripTrackingCard({
               value={`${snapshot.latitude.toFixed(6)}, ${snapshot.longitude.toFixed(6)}`}
             />
             </> : null}
-            {onRefresh ? (
-              <AppButton
-                label="Refresh Tracking"
-                onPress={onRefresh}
-                loading={refreshing}
-                fullWidth
-              />
-            ) : null}
           </>
         ) : (
           <>
             <Text style={styles.emptyText}>
               Waiting for the driver’s first location update. The map pin will appear when location sharing is active and the driver’s app has a connection.
             </Text>
-            {onRefresh ? (
-              <AppButton
-                label="Refresh Tracking"
-                onPress={onRefresh}
-                loading={refreshing}
-                fullWidth
-              />
-            ) : null}
           </>
         )}
       </View>
@@ -154,15 +155,23 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const createStyles = (colors: BrandColors) => StyleSheet.create({
   section: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.surface },
-  sectionTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: Typography.sizeXs,
-    color: colors.textSecondary,
-    letterSpacing: 0.5,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
     padding: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
     backgroundColor: colors.surfaceMuted,
+  },
+  mapContainer: { position: 'relative' },
+  mapRefresh: { position: 'absolute', top: Spacing.sm, right: Spacing.sm },
+  sectionTitle: {
+    flex: 1,
+    fontFamily: 'Inter_700Bold',
+    fontSize: Typography.sizeXs,
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   body: { padding: Spacing.md, gap: Spacing.sm },

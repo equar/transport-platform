@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, render, screen } from '@testing-library/react-native';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import MapView, { Marker, UrlTile } from 'react-native-maps';
 import { TripTrackingCard } from '../TripTrackingCard';
 
@@ -25,4 +25,18 @@ it('does not invent a driver pin while waiting for a valid location', () => {
   rerender(<TripTrackingCard autoShowMap snapshot={{ latitude: 91, longitude: 0, capturedAt: new Date().toISOString() }} />);
   expect(screen.UNSAFE_queryAllByType(Marker)).toHaveLength(0);
   expect(screen.getByText('The latest location cannot be shown on the map.')).toBeTruthy();
+});
+
+it('keeps a single compact refresh control beside the map and prevents repeat taps while refreshing', () => {
+  const onRefresh = jest.fn();
+  const { rerender } = render(<TripTrackingCard autoShowMap snapshot={null} onRefresh={onRefresh} />);
+  expect(screen.getAllByRole('button', { name: 'Refresh Tracking' })).toHaveLength(1);
+  expect(screen.getByText('Refresh')).toBeTruthy();
+  expect(screen.queryByText('Refresh Tracking')).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Refresh Tracking' }));
+  expect(onRefresh).toHaveBeenCalledTimes(1);
+  rerender(<TripTrackingCard autoShowMap snapshot={null} onRefresh={onRefresh} refreshing />);
+  expect(screen.getByRole('button', { name: 'Refresh Tracking' })).toBeDisabled();
+  fireEvent.press(screen.getByRole('button', { name: 'Refresh Tracking' }));
+  expect(onRefresh).toHaveBeenCalledTimes(1);
 });
