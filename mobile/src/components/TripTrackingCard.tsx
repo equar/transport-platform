@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
-import { Platform, StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker, UrlTile } from 'react-native-maps';
+import { StyleSheet, Text, View } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { AppButton } from '@components/ui';
 import { Spacing, Typography } from '@theme/tokens';
 
@@ -73,17 +73,12 @@ export function TripTrackingCard({
             testID="ride-location-map"
             style={styles.map}
             region={mapRegion}
-            mapType={Platform.OS === 'android' ? 'none' : 'standard'}
+            mapType="standard"
             showsUserLocation={false}
             showsCompass
             zoomEnabled
             scrollEnabled
           >
-            <UrlTile
-              urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-              maximumZ={19}
-              shouldReplaceMapContent={Platform.OS === 'ios'}
-            />
             {validLocation && snapshot ? <Marker
               coordinate={{ latitude: mapRegion.latitude, longitude: mapRegion.longitude }}
               title={riderPickedUp ? 'Rider and assigned driver' : 'Assigned driver'}
@@ -93,7 +88,6 @@ export function TripTrackingCard({
             /> : null}
           </MapView>
         ) : null}
-        {mapVisible ? <Text style={styles.emptyText}>© OpenStreetMap contributors</Text> : null}
         {error ? <Text accessibilityRole="alert" style={styles.emptyText}>Location updates could not be loaded. Check your connection and refresh tracking.</Text> : null}
         {snapshot ? (
           <>
