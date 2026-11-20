@@ -13,13 +13,26 @@ import {
   Typography,
 } from "@mui/material";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
+import RemoveCircleOutlineRoundedIcon from "@mui/icons-material/RemoveCircleOutlineRounded";
+import { RiderLinkDialog } from "../components/RiderLinkDialog";
+import {
+  ridersApi,
+  type RiderGuardianPayload,
+} from "../../riders/api/ridersApi";
+import type { GuardianLinkedRiderRecord } from "../api/guardiansApi";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import PauseCircleRoundedIcon from "@mui/icons-material/PauseCircleRounded";
 import PersonOffRoundedIcon from "@mui/icons-material/PersonOffRounded";
 import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { useEffect, useState } from "react";
-import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
+import {
+  Link as RouterLink,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
 import { EmptyState } from "../../../shared/components/EmptyState";
 import { LoadingState } from "../../../shared/components/LoadingState";
@@ -41,6 +54,20 @@ type GuardianAction = "activate" | "suspend" | "deactivate";
 
 export function GuardianDetailsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [linkOpen, setLinkOpen] = useState(searchParams.get("link") === "1");
+  const [linkSaving, setLinkSaving] = useState(false);
+  const [unlink, setUnlink] = useState<GuardianLinkedRiderRecord | null>(null);
+  const [unlinkSaving, setUnlinkSaving] = useState(false);
+
+  function closeLink() {
+    setLinkOpen(false);
+    if (searchParams.has("link")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("link");
+      setSearchParams(next, { replace: true });
+    }
+  }
   const { guardianId } = useParams();
   const resolvedGuardianId = Number(guardianId);
   const { showError, showSuccess } = useToast();
@@ -59,7 +86,12 @@ export function GuardianDetailsPage() {
       const response = await guardiansApi.getById(resolvedGuardianId);
       setGuardian(response);
     } catch (_caughtError) {
-      setError(getApiErrorMessage(_caughtError, "Guardian details could not be loaded."));
+      setError(
+        getApiErrorMessage(
+          _caughtError,
+          "Guardian details could not be loaded.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -73,6 +105,35 @@ export function GuardianDetailsPage() {
     }
     void loadGuardian();
   }, [resolvedGuardianId]);
+
+  async function handleLink(riderId: number, payload: RiderGuardianPayload) {
+    setLinkSaving(true);
+    try {
+      await ridersApi.linkGuardian(riderId, payload);
+      closeLink();
+      showSuccess("Rider linked successfully.");
+      await loadGuardian();
+    } catch (cause) {
+      showError(cause, "The rider could not be linked.");
+    } finally {
+      setLinkSaving(false);
+    }
+  }
+
+  async function handleUnlink() {
+    if (!unlink) return;
+    setUnlinkSaving(true);
+    try {
+      await ridersApi.unlinkGuardian(unlink.relationshipId);
+      setUnlink(null);
+      showSuccess("Rider unlinked successfully.");
+      await loadGuardian();
+    } catch (cause) {
+      showError(cause, "The rider could not be unlinked.");
+    } finally {
+      setUnlinkSaving(false);
+    }
+  }
 
   async function handleSubmit(payload: GuardianPayload) {
     if (!guardian) {
@@ -161,6 +222,13 @@ export function GuardianDetailsPage() {
             onClick={() => setDialogOpen(true)}
           >
             Update Guardian
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<LinkRoundedIcon />}
+            onClick={() => setLinkOpen(true)}
+          >
+            Link Rider
           </Button>
         </Stack>
       </SectionHeader>
@@ -312,7 +380,7 @@ export function GuardianDetailsPage() {
         {guardian.riders.length === 0 ? (
           <EmptyState
             title="No records found"
-            description="This guardian is not currently linked to any riders."
+            description="This guardian is not currently linked to any riders. Select Link Rider to associate an existing rider."
           />
         ) : (
           <Paper sx={{ overflowX: "auto" }}>
@@ -416,6 +484,12 @@ export function GuardianDetailsPage() {
                       >
                         <VisibilityRoundedIcon />
                       </TableActionButton>
+                      <TableActionButton
+                        title="Unlink Rider"
+                        onClick={() => setUnlink(rider)}
+                      >
+                        <RemoveCircleOutlineRoundedIcon />
+                      </TableActionButton>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -424,6 +498,23 @@ export function GuardianDetailsPage() {
           </Paper>
         )}
       </PageCard>
+
+      <RiderLinkDialog
+        open={linkOpen}
+        guardian={guardian}
+        saving={linkSaving}
+        onClose={closeLink}
+        onSubmit={handleLink}
+      />
+      <ConfirmDialog
+        open={Boolean(unlink)}
+        title="Unlink Rider"
+        description={`Remove ${guardian.firstName} ${guardian.lastName}’s access to ${unlink?.riderDisplayName ?? "this rider"}? Their other rider links will remain active.`}
+        confirmLabel="Unlink Rider"
+        loading={unlinkSaving}
+        onCancel={() => setUnlink(null)}
+        onConfirm={() => void handleUnlink()}
+      />
 
       <GuardianUpsertDialog
         open={dialogOpen}

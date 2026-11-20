@@ -21,11 +21,11 @@ import PersonOffRoundedIcon from "@mui/icons-material/PersonOffRounded";
 import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import RemoveCircleOutlineRoundedIcon from "@mui/icons-material/RemoveCircleOutlineRounded";
 import { useEffect, useState } from "react";
-import { Link as RouterLink, useParams } from "react-router-dom";
 import {
-  guardiansApi,
-  type GuardianRecord,
-} from "../../guardians/api/guardiansApi";
+  Link as RouterLink,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { ConfirmDialog } from "../../../shared/components/ConfirmDialog";
 import { EmptyState } from "../../../shared/components/EmptyState";
 import { LoadingState } from "../../../shared/components/LoadingState";
@@ -63,17 +63,23 @@ function formatTime(value?: string | null) {
 
 export function RiderDetailsPage() {
   const { riderId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const resolvedRiderId = Number(riderId);
   const { showError, showSuccess } = useToast();
   const [rider, setRider] = useState<RiderRecord | null>(null);
-  const [availableGuardians, setAvailableGuardians] = useState<
-    GuardianRecord[]
-  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [riderDialogOpen, setRiderDialogOpen] = useState(false);
   const [riderSaving, setRiderSaving] = useState(false);
-  const [relationshipDialogOpen, setRelationshipDialogOpen] = useState(false);
+  const [relationshipDialogOpen, setRelationshipDialogOpen] = useState(
+    searchParams.get("link") === "1",
+  );
+  function closeRelationshipDialog() {
+    setRelationshipDialogOpen(false);
+    const next = new URLSearchParams(searchParams);
+    next.delete("link");
+    setSearchParams(next, { replace: true });
+  }
   const [selectedRelationship, setSelectedRelationship] =
     useState<RiderGuardianRecord | null>(null);
   const [relationshipSaving, setRelationshipSaving] = useState(false);
@@ -88,32 +94,13 @@ export function RiderDetailsPage() {
     setRider(response);
   }
 
-  async function loadGuardianOptions() {
-    const response = await guardiansApi.search({
-      keyword: "",
-      status: "",
-      authorizedForPickup: "",
-      billingContact: "",
-      page: 0,
-      size: 100,
-      sortBy: "lastName",
-      sortDirection: "ASC",
-    });
-    setAvailableGuardians(response.items);
-  }
-
   async function loadPage() {
     setLoading(true);
     setError(null);
     try {
-      await Promise.all([loadRider(), loadGuardianOptions()]);
+      await loadRider();
     } catch (error) {
-      setError(
-        getApiErrorMessage(
-          error,
-          "Rider details and available guardian contacts could not be loaded.",
-        ),
-      );
+      setError(getApiErrorMessage(error, "Rider details could not be loaded."));
     } finally {
       setLoading(false);
     }
@@ -158,7 +145,7 @@ export function RiderDetailsPage() {
         await ridersApi.linkGuardian(rider.id, payload);
         showSuccess("Guardian linked successfully.");
       }
-      setRelationshipDialogOpen(false);
+      closeRelationshipDialog();
       setSelectedRelationship(null);
       await loadRider();
     } catch (error) {
@@ -603,12 +590,15 @@ export function RiderDetailsPage() {
 
       <GuardianLinkDialog
         open={relationshipDialogOpen}
-        guardians={availableGuardians}
-        linkedGuardianIds={rider.guardians.map((guardian) => guardian.guardianId)}
+        searchEnabled
+        guardians={[]}
+        linkedGuardianIds={rider.guardians.map(
+          (guardian) => guardian.guardianId,
+        )}
         relationship={selectedRelationship}
         loading={relationshipSaving}
         onClose={() => {
-          setRelationshipDialogOpen(false);
+          closeRelationshipDialog();
           setSelectedRelationship(null);
         }}
         onSubmit={handleRelationshipSubmit}

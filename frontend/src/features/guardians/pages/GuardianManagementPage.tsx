@@ -1,3 +1,4 @@
+import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import {
   Alert,
   Button,
@@ -105,7 +106,9 @@ export function GuardianManagementPage() {
       setTotal(response.totalElements);
     } catch (_caughtError) {
       if (generation !== loadGeneration.current) return;
-      setError(getApiErrorMessage(_caughtError, "Guardians could not be loaded."));
+      setError(
+        getApiErrorMessage(_caughtError, "Guardians could not be loaded."),
+      );
     } finally {
       if (generation === loadGeneration.current) setLoading(false);
     }
@@ -113,7 +116,10 @@ export function GuardianManagementPage() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadGuardians(), 250);
-    return () => { window.clearTimeout(timer); loadGeneration.current++; };
+    return () => {
+      window.clearTimeout(timer);
+      loadGeneration.current++;
+    };
   }, [keyword, status, authorizedForPickup, billingContact, page, size]);
 
   useEffect(() => {
@@ -350,6 +356,14 @@ export function GuardianManagementPage() {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
+                        <TableActionButton
+                          title="Link Rider"
+                          onClick={() =>
+                            navigate(`/company/guardians/${guardian.id}?link=1`)
+                          }
+                        >
+                          <LinkRoundedIcon />
+                        </TableActionButton>
                         <TableActionButton
                           title="View Details"
                           onClick={() =>
