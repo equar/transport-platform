@@ -1,5 +1,5 @@
 import React from 'react';
-import { Keyboard, Platform, ScrollView, View, type KeyboardEvent } from 'react-native';
+import { Keyboard, Platform, ScrollView, TextInput, View, type KeyboardEvent } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { FormScrollView } from '../FormScrollView';
 import { AppInput } from '../ui/AppInput';
@@ -52,4 +52,37 @@ it('reserves measured Android keyboard overlap and restores the form on dismissa
   expect(frame.props.style).toMatchObject({ paddingBottom: 0 });
   view.unmount();
   expect(remove).toHaveBeenCalledTimes(2);
+});
+
+it.each(['dismissal', 'unmount'] as const)('cancels queued keyboard work on %s and ignores a late native frame', lifecycle => {
+  jest.spyOn(Keyboard, 'metrics').mockReturnValue(undefined);
+  const listeners: Record<string, (event: KeyboardEvent) => void> = {};
+  const subscribe = Keyboard.addListener.bind(Keyboard);
+  jest.spyOn(Keyboard, 'addListener').mockImplementation((name, callback) => {
+    listeners[name] = callback;
+    return subscribe(name, callback);
+  });
+  let nextFrame = 0;
+  const frames = new Map<number, Parameters<typeof requestAnimationFrame>[0]>();
+  jest.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+    frames.set(++nextFrame, callback);
+    return nextFrame;
+  });
+  const cancel = jest.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(id => { if (typeof id === 'number') frames.delete(id); });
+  const focused = jest.spyOn(TextInput.State, 'currentlyFocusedInput');
+  const view = render(<FormScrollView><View /></FormScrollView>);
+  const event = { endCoordinates: { screenY: 350, screenX: 0, width: 320, height: 290 }, duration: 250, easing: 'keyboard' } as KeyboardEvent;
+  act(() => listeners.keyboardDidShow(event));
+  fireEvent(view.UNSAFE_getByType(ScrollView), 'focus', {});
+  // Focus/layout events replace pending work instead of accumulating callbacks.
+  expect(frames.size).toBe(1);
+  const frame = nextFrame;
+  const lateCallback = frames.get(frame)!;
+  if (lifecycle === 'unmount') view.unmount();
+  else act(() => listeners.keyboardDidHide(event));
+  expect(cancel).toHaveBeenCalledWith(frame);
+  expect(frames.size).toBe(0);
+  // Even a callback already handed to native code must not access an expired view.
+  act(() => lateCallback(0));
+  expect(focused).not.toHaveBeenCalled();
 });

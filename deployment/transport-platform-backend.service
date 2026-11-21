@@ -12,7 +12,7 @@ User=transport
 Group=transport
 WorkingDirectory=/opt/transport-platform/runtime
 EnvironmentFile=/opt/transport-platform/.env
-ExecStartPre=/usr/bin/python3 -c "import os,socket; s=socket.create_connection((os.environ.get('APP_DOCUMENT_SCAN_HOST','127.0.0.1'),int(os.environ.get('APP_DOCUMENT_SCAN_PORT','3310'))),3); s.settimeout(3); s.sendall(b'zPING'+bytes([0])); assert s.makefile('rb').read(5)==b'PONG'+bytes([0]), 'Document scanner is unavailable'; s.close()"
+ExecStartPre=/usr/bin/python3 /opt/transport-platform/check-document-scanner.py
 ExecStart=/usr/bin/java -Xms512m -Xmx1g -XX:+UseG1GC -Djavax.net.ssl.trustStore=/etc/transport-platform/database-truststore.jks -Djavax.net.ssl.trustStorePassword=changeit -jar /opt/transport-platform/backend.jar --spring.profiles.active=prod --server.address=127.0.0.1 --server.port=8082 --server.servlet.context-path=/api --spring.jpa.hibernate.ddl-auto=validate --spring.flyway.locations=classpath:db/migration
 Restart=on-failure
 RestartSec=60

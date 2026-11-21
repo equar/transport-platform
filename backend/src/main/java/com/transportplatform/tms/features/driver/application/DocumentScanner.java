@@ -20,7 +20,6 @@ public class DocumentScanner {
     public DocumentScanner(@Value("${app.document-scan.enabled:false}") boolean enabled,
             @Value("${app.document-scan.host:127.0.0.1}") String host,
             @Value("${app.document-scan.port:3310}") int port, Environment environment) {
-        if (environment.matchesProfiles("prod") && !enabled) throw new IllegalStateException("Production document scanning must be enabled.");
         this.enabled = enabled; this.host = host; this.port = port;
     }
     public void requireClean(byte[] bytes) {

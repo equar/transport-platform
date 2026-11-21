@@ -1,3 +1,5 @@
+// Delivery evidence has its own interaction tests; keep page lifecycle tests offline.
+vi.mock('../../rides/pages/PortalDeliveryEvidence', () => ({ PortalDeliveryEvidence: () => null }));
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';

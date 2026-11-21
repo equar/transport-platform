@@ -173,11 +173,16 @@ it('keeps the Bakaroo logo on the authentication frame', async () => {
   expect(screen.queryByText('Blue Harbor Mobility')).toBeNull();
 });
 
-it('does not mount driver content for rider or guardian identities', () => {
+it('does not mount driver content for rider or guardian identities', async () => {
+  function GuardedApp() {
+    return <ThemeProvider><RoleShell role="driver"><Text testID="driver-content">Driver content</Text></RoleShell><AppearanceLoadedProbe /></ThemeProvider>;
+  }
   mockRoles = ['ROLE_GUARDIAN'];
-  const view = render(<App />);
-  expect(screen.queryByTestId('appearance-loaded')).toBeNull();
+  const view = render(<GuardedApp />);
+  // This probe remains outside the guarded subtree so async storage can settle.
+  await waitForAppearanceLoad();
+  expect(screen.queryByTestId('driver-content')).toBeNull();
   mockRoles = ['ROLE_RIDER'];
-  view.rerender(<App />);
-  expect(screen.queryByTestId('appearance-loaded')).toBeNull();
+  view.rerender(<GuardedApp />);
+  expect(screen.queryByTestId('driver-content')).toBeNull();
 });

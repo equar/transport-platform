@@ -1,3 +1,5 @@
+// Verified-stop requests are covered by TripEvidencePanel.test.tsx.
+vi.mock('../../features/rides/pages/TripEvidencePanel', () => ({ TripEvidencePanel: () => null }));
 import { vehiclesApi } from "../../features/vehicles/api/vehiclesApi";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
