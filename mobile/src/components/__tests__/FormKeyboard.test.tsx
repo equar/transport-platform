@@ -68,7 +68,7 @@ it.each(['dismissal', 'unmount'] as const)('cancels queued keyboard work on %s a
     frames.set(++nextFrame, callback);
     return nextFrame;
   });
-  const cancel = jest.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(id => { frames.delete(id); });
+  const cancel = jest.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(id => { if (typeof id === 'number') frames.delete(id); });
   const focused = jest.spyOn(TextInput.State, 'currentlyFocusedInput');
   const view = render(<FormScrollView><View /></FormScrollView>);
   const event = { endCoordinates: { screenY: 350, screenX: 0, width: 320, height: 290 }, duration: 250, easing: 'keyboard' } as KeyboardEvent;
