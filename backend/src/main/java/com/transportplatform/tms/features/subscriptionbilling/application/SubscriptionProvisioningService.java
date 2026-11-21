@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SubscriptionProvisioningService {
+  @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+  @org.springframework.beans.factory.annotation.Autowired private org.springframework.jdbc.core.JdbcTemplate db;
   private final SubscriptionPlanRepository plans;
   private final TenantSubscriptionRepository subscriptions;
   private final Clock clock;
@@ -23,7 +25,8 @@ public class SubscriptionProvisioningService {
 
   @Transactional
   public void provision(Tenant tenant) {
-    if (subscriptions.existsByTenant_Id(tenant.getId())) return;
+    entitlements.lockTenant(tenant.getId());
+    if (!db.queryForList("SELECT id FROM tenant_subscriptions WHERE tenant_id=? FOR SHARE", Long.class, tenant.getId()).isEmpty()) return;
     SubscriptionPlan plan =
         plans
             .findByPlanCodeIgnoreCase(tenant.getSubscriptionPlan())
@@ -38,6 +41,7 @@ public class SubscriptionProvisioningService {
     s.setTenant(tenant);
     s.setSubscriptionPlan(plan);
     s.setEffectiveStartDate(LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC));
+    s.setRenewalDate(s.getEffectiveStartDate().plusMonths(1));
     s.setTrial(false);
     s.setStatus(TenantSubscriptionStatus.ACTIVE);
     s.setNotes(

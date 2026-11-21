@@ -82,6 +82,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 })
 @Testcontainers
 class DriverPortalRideActionMySqlIntegrationTest {
+    @org.springframework.boot.test.mock.mockito.MockBean
+    com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+
 
     @TestConfiguration
     static class ClockTestConfiguration {

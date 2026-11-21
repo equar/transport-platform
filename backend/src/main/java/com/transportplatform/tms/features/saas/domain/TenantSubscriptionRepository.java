@@ -22,6 +22,10 @@ public interface TenantSubscriptionRepository
 
     boolean existsByTenant_Id(String tenantId);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select s from TenantSubscription s where s.id = :id")
+    Optional<TenantSubscription> lockById(@org.springframework.data.repository.query.Param("id") Long id);
+
     long countByStatus(TenantSubscriptionStatus status);
 
     List<TenantSubscription> findAllByStatusIn(Collection<TenantSubscriptionStatus> statuses);

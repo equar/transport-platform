@@ -28,6 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RuntimeCapabilitiesService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+
 
     private static final Map<String, Boolean> MODULE_DEFAULTS = Map.ofEntries(
             Map.entry("BILLING", true),
@@ -67,6 +70,7 @@ public class RuntimeCapabilitiesService {
             throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
                     "A tenant-scoped user is required for tenant capabilities.");
         }
+        entitlements.requireOperational(user.tenantId());
         Tenant tenant = requireTenant(user.tenantId());
         if (tenant.getStatus() != TenantStatus.ACTIVE) {
             throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,

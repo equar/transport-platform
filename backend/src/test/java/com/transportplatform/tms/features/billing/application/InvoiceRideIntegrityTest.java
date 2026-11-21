@@ -65,11 +65,7 @@ class InvoiceRideIntegrityTest {
         when(access.requireCompanyTenantId()).thenReturn("a");
         when(time.today("a")).thenReturn(LocalDate.of(2026, 11, 20));
         when(access.findInvoiceForCompanyScope(1L)).thenReturn(draft);
-        InvoiceLineItem claimed = mock(InvoiceLineItem.class);
-        when(claimed.getInvoice()).thenReturn(draft());
-        when(claimed.getId()).thenReturn(900L);
-        when(lines.findAllByTenantIdAndChargeSourceTypeAndSourceReferenceIdOrderByIdDesc("a", ChargeSourceType.RIDE, 8L))
-            .thenReturn(List.of(claimed));
+        when(lines.findConflictingRideIds(eq("a"), eq(Set.of(8L)), anyCollection())).thenReturn(Set.of(8L));
         assertThatThrownBy(() -> service.addLineItem(1L, line()))
             .isInstanceOf(ApiException.class).hasMessageContaining("already included");
         InvoiceLineItem edited = mapper.toLineItem(draft, line());
@@ -77,6 +73,17 @@ class InvoiceRideIntegrityTest {
         assertThatThrownBy(() -> service.updateLineItem(2L, line()))
             .isInstanceOf(ApiException.class).hasMessageContaining("already included");
         verify(lines, never()).save(any());
+    }
+
+    @Test void multiRidePreviewChecksClaimsInOneBatchWithoutLoadingHistoricalInvoices() {
+        when(access.requireCompanyTenantId()).thenReturn("a");
+        when(references.resolveBillTo("a", BillToType.RIDER, 1L)).thenReturn(
+            new BillingReferenceValidationService.ResolvedBillTo(BillToType.RIDER, 1L, "Test", null, null, null, null));
+        var second = new InvoiceLineItemUpsertRequest("Ride 9", ChargeSourceType.RIDE, 9L, null,
+            BigDecimal.ONE, BigDecimal.TEN, null, null, null);
+        service.previewManualGeneration(preview(null, List.of(line(), second)));
+        verify(lines).findConflictingRideIds("a", Set.of(8L, 9L), List.of(-1L));
+        verify(lines, never()).findAllByTenantIdAndChargeSourceTypeAndSourceReferenceIdOrderByIdDesc(any(), any(), any());
     }
 
     @Test void idempotentReplayReturnsOriginalWithoutGeneratingOrAuditingAgain() {

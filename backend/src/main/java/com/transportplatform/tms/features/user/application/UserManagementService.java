@@ -43,6 +43,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserManagementService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+
 
     private final AppUserRepository appUserRepository;
     private final TenantRepository tenantRepository;
@@ -196,6 +199,7 @@ public class UserManagementService {
         requireRole(RoleName.ROLE_PLATFORM_ADMIN);
         AppUser user = new AppUser();
         applyUserValues(user, request, AdminScope.PLATFORM, true);
+        if (user.getTenantId() != null) entitlements.requireCapacity(user.getTenantId(), com.transportplatform.tms.features.saas.application.TenantEntitlementService.Resource.USERS);
         AppUser saved = appUserRepository.save(user);
         syncPortalScope(saved, request, true);
         recordUserCreated(saved);
@@ -207,6 +211,7 @@ public class UserManagementService {
         requireCompanyAdminTenantId();
         AppUser user = new AppUser();
         applyUserValues(user, request, AdminScope.COMPANY, true);
+        if (user.getTenantId() != null) entitlements.requireCapacity(user.getTenantId(), com.transportplatform.tms.features.saas.application.TenantEntitlementService.Resource.USERS);
         AppUser saved = appUserRepository.save(user);
         syncPortalScope(saved, request, true);
         recordUserCreated(saved);

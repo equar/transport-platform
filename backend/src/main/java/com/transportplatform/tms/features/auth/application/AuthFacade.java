@@ -38,6 +38,9 @@ import com.transportplatform.tms.features.tenant.domain.TenantStatus;
 
 @Service
 public class AuthFacade {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+
 
     @org.springframework.beans.factory.annotation.Autowired
     private MfaService mfa;
@@ -347,6 +350,7 @@ public class AuthFacade {
         if (tenantRepository.findById(tenantId)
                 .map(tenant -> tenant.getStatus() == TenantStatus.ACTIVE)
                 .orElse(false)) {
+            entitlements.requireOperational(tenantId);
             return;
         }
         throw new ApiException(

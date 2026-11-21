@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class CurrentAuthenticatedUserService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+
 
     public AuthenticatedUser requireCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -18,6 +21,7 @@ public class CurrentAuthenticatedUserService {
                     HttpStatus.UNAUTHORIZED,
                     "An authenticated user is required to access this resource.");
         }
+        if (user.tenantId() != null) entitlements.requireOperational(user.tenantId());
         return user;
     }
 }

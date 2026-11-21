@@ -12,8 +12,8 @@ public final class TenantSubscriptionStatusWorkflow {
 
     public static void ensureValidForUpsert(TenantSubscriptionStatus status, boolean trial,
             java.time.LocalDate trialEndDate) {
-        if (trial && status != TenantSubscriptionStatus.TRIAL) {
-            throw invalidTransition("Trial subscriptions must use TRIAL status.");
+        if (trial && status == TenantSubscriptionStatus.ACTIVE) {
+            throw invalidTransition("An active trial must use TRIAL status.");
         }
         if (!trial && status == TenantSubscriptionStatus.TRIAL) {
             throw invalidTransition("TRIAL status requires the trial flag.");

@@ -32,7 +32,8 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
         boolean passwordChangeRequired = "Password change required".equals(accessDeniedException.getMessage());
         ApiResponse<Void> body = ApiResponse.failure(ApiErrorResponse.of(
                 ErrorCode.FORBIDDEN.name(),
-                passwordChangeRequired ? "A password change is required. Update it in the admin portal before continuing." : "Access is denied.",
+                passwordChangeRequired ? "A password change is required. Update it in the admin portal before continuing." : "Subscription unavailable".equals(accessDeniedException.getMessage())
+                    ? "Subscription access is unavailable. Contact the platform administrator to restore access." : "Access is denied.",
                 Map.of("path", request.getRequestURI())));
         objectMapper.writeValue(response.getOutputStream(), body);
     }

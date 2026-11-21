@@ -1,4 +1,4 @@
-import { apiClient, unwrapResponse } from "../../../shared/api/client";
+import { apiClient, unwrapResponse, captureTenantRequestScope } from "../../../shared/api/client";
 import type { PageResponse } from "../../../shared/api/types";
 import type { RideTripType, ServiceType } from "../../rides/api/ridesApi";
 
@@ -549,17 +549,18 @@ export const billingApi = {
     return unwrapResponse<BillingPreviewRecord>(response.data);
   },
   async generateInvoice(payload: InvoiceGenerationPayload) {
+    const scope = captureTenantRequestScope();
     const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(payload)));
     const digest = Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
-    const storageKey = `invoice-intent:${digest}`;
+    const storageKey = `invoice-intent:${scope.key}:${digest}`;
     let key = invoiceIntentFallback.get(storageKey);
     try { key = sessionStorage.getItem(storageKey) ?? key; } catch { /* Storage may be disabled. */ }
     if (!key) key = crypto.randomUUID();
     invoiceIntentFallback.set(storageKey, key);
     try { sessionStorage.setItem(storageKey, key); } catch { /* Keep identity in memory. */ }
-    const response = await apiClient.post("/company/invoices/generate", payload, { headers: { 'Idempotency-Key': key } });
-    invoiceIntentFallback.delete(storageKey);
-    try { sessionStorage.removeItem(storageKey); } catch { /* Storage is unavailable. */ }
+    const response = await apiClient.post("/company/invoices/generate", payload, { ...scope.config, headers: { 'Idempotency-Key': key } });
+    if (invoiceIntentFallback.get(storageKey) === key) invoiceIntentFallback.delete(storageKey);
+    try { if (sessionStorage.getItem(storageKey) === key) sessionStorage.removeItem(storageKey); } catch { /* Storage is unavailable. */ }
     return unwrapResponse<InvoiceRecord>(response.data);
   },
   async searchPayments(params: {
@@ -597,18 +598,19 @@ export const billingApi = {
     return unwrapResponse<PaymentPreviewRecord>(response.data);
   },
   async createPayment(payload: PaymentPayload) {
+    const scope = captureTenantRequestScope();
     // Persist only a digest and random intent key, never payer or payment details.
     const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(payload)));
     const digest = Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
-    const storageKey = `payment-intent:${digest}`;
+    const storageKey = `payment-intent:${scope.key}:${digest}`;
     let key = paymentIntentFallback.get(storageKey);
     try { key = sessionStorage.getItem(storageKey) ?? key; } catch { /* Browser storage may be disabled. */ }
     if (!key) key = crypto.randomUUID();
     paymentIntentFallback.set(storageKey, key);
     try { sessionStorage.setItem(storageKey, key); } catch { /* Retain retry identity in this tab's memory. */ }
-    const response = await apiClient.post("/company/payments", payload, { headers: { 'Idempotency-Key': key } });
-    paymentIntentFallback.delete(storageKey);
-    try { sessionStorage.removeItem(storageKey); } catch { /* Storage is unavailable. */ }
+    const response = await apiClient.post("/company/payments", payload, { ...scope.config, headers: { 'Idempotency-Key': key } });
+    if (paymentIntentFallback.get(storageKey) === key) paymentIntentFallback.delete(storageKey);
+    try { if (sessionStorage.getItem(storageKey) === key) sessionStorage.removeItem(storageKey); } catch { /* Storage is unavailable. */ }
     return unwrapResponse<PaymentRecord>(response.data);
   },
   async updatePayment(id: number, payload: PaymentPayload) {

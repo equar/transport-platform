@@ -29,6 +29,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 @Service
 public class ReportExportService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
     @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.common.privacy.PhiCipher privacy;
     public record Request(ReportType reportType, Map<String,String> filters) {}
     public record Job(String id, String status, int progress, String error, Instant expiresAt) {}
@@ -106,6 +108,7 @@ public class ReportExportService {
     private void authenticate(Map<String,Object> row) {
         var user=users.findById(((Number)row.get("user_id")).longValue()).orElseThrow(() -> invalid("Export owner unavailable."));
         String tenant=(String)row.get("tenant_id");
+        entitlements.requireOperational(tenant);
         if(!user.isActiveForLogin() || !Objects.equals(tenant,user.getTenantId()) || !user.getRoles().contains(RoleName.ROLE_TENANT_ADMIN)
             || tenants.findById(tenant).map(t->t.getStatus()!=TenantStatus.ACTIVE).orElse(true)) throw invalid("Export access is no longer available.");
         var authorities=user.getRoles().stream().map(role->new SimpleGrantedAuthority(role.name())).toList();

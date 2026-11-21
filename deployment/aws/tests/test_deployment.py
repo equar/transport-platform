@@ -138,6 +138,28 @@ class ConfigurationTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(ValueError) as failure: settings(env)
             self.assertNotIn('sentinel-secret', str(failure.exception))
 
+    def test_privacy_configuration_errors_identify_settings_without_exposing_values(self):
+        cases = [
+            ('APP_PRIVACY_ENCRYPTION_KEYS', '', 'APP_PRIVACY_ENCRYPTION_KEYS'),
+            ('APP_PRIVACY_ACTIVE_KEY_ID', '', 'APP_PRIVACY_ACTIVE_KEY_ID'),
+            ('APP_PRIVACY_LOOKUP_KEY', '', 'APP_PRIVACY_LOOKUP_KEY'),
+            ('APP_PRIVACY_ENCRYPTION_KEYS', 'sentinel-private-value', 'key-id:base64-key'),
+            ('APP_PRIVACY_ENCRYPTION_KEYS', 'v1:sentinel-private-value', 'invalid base64'),
+            ('APP_PRIVACY_ENCRYPTION_KEYS', 'v1:YQ==', '32 bytes'),
+            ('APP_PRIVACY_ACTIVE_KEY_ID', 'sentinel-private-value', 'must match'),
+            ('APP_PRIVACY_LOOKUP_KEY', 'sentinel-private-value', 'base64-encoded'),
+            ('APP_PRIVACY_LOOKUP_KEY', 'YQ==', '32 bytes'),
+            ('APP_PRIVACY_LOOKUP_KEY', environment()['APP_PRIVACY_ENCRYPTION_KEYS'].split(':')[1], 'different'),
+            ('APP_PRIVACY_LOOKUP_KEY', environment()['APP_SECURITY_MFA_ENCRYPTION_KEY'], 'MFA'),
+        ]
+        for key, value, expected in cases:
+            with self.subTest(key=key, expected=expected):
+                env = environment(); env[key] = value
+                with self.assertRaisesRegex(ValueError, expected) as error:
+                    settings(env)
+                self.assertNotIn('sentinel-private-value', str(error.exception))
+                self.assertNotIn(environment()['APP_SECURITY_MFA_ENCRYPTION_KEY'], str(error.exception))
+
     def test_manual_deployment_accepts_verified_existing_ssh_files(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); (root/'key').write_text('key'); (root/'hosts').write_text('verified')

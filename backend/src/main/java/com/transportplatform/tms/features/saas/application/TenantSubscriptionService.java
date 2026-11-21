@@ -30,6 +30,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TenantSubscriptionService {
+    @org.springframework.beans.factory.annotation.Autowired private TenantEntitlementService entitlements;
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.auth.application.AuthSessionService sessions;
+    @org.springframework.beans.factory.annotation.Autowired private org.springframework.jdbc.core.JdbcTemplate db;
+
 
     private static final Set<TenantSubscriptionStatus> CURRENT_STATUSES = Set.of(
             TenantSubscriptionStatus.ACTIVE,
@@ -86,14 +90,14 @@ public class TenantSubscriptionService {
 
     @Transactional
     public TenantSubscriptionDetailResponse create(TenantSubscriptionUpsertRequest request) {
+        entitlements.lockTenant(request.tenantId());
         Tenant tenant = findTenant(request.tenantId());
         SubscriptionPlan subscriptionPlan = findActiveOrInactivePlan(request.subscriptionPlanId());
         TenantSubscriptionStatusWorkflow.ensureValidForUpsert(request.status(), request.isTrial(),
                 request.trialEndDate());
-        if (tenantSubscriptionRepository.existsByTenant_IdAndStatusIn(tenant.getId(),
-                Set.of(TenantSubscriptionStatus.ACTIVE, TenantSubscriptionStatus.TRIAL))) {
+        if (hasOtherCurrent(tenant.getId(), null)) {
             throw new ApiException(ErrorCode.RESOURCE_CONFLICT, HttpStatus.CONFLICT,
-                    "The tenant already has an active or trial subscription. Update the current subscription instead.");
+                    "The tenant already has a current subscription. Update it or cancel it before creating a replacement.");
         }
         TenantSubscription subscription = new TenantSubscription();
         subscription.setTenant(tenant);
@@ -108,20 +112,20 @@ public class TenantSubscriptionService {
 
     @Transactional
     public TenantSubscriptionDetailResponse update(Long tenantSubscriptionId, TenantSubscriptionUpsertRequest request) {
-        TenantSubscription subscription = findById(tenantSubscriptionId);
+        TenantSubscription subscription = lockForChange(tenantSubscriptionId);
         if (!subscription.getTenant().getId().equals(request.tenantId())) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "A subscription cannot be moved to a different tenant. Create a new subscription instead.");
         }
+        entitlements.lockTenant(request.tenantId());
         Tenant tenant = findTenant(request.tenantId());
         SubscriptionPlan subscriptionPlan = findActiveOrInactivePlan(request.subscriptionPlanId());
         TenantSubscriptionStatusWorkflow.ensureValidForUpsert(request.status(), request.isTrial(),
                 request.trialEndDate());
-        if (tenantSubscriptionRepository.existsByTenant_IdAndStatusInAndIdNot(tenant.getId(),
-                Set.of(TenantSubscriptionStatus.ACTIVE, TenantSubscriptionStatus.TRIAL), subscription.getId())
+        if (hasOtherCurrent(tenant.getId(), subscription.getId())
                 && (request.status() == TenantSubscriptionStatus.ACTIVE
-                        || request.status() == TenantSubscriptionStatus.TRIAL)) {
+                        || request.status() == TenantSubscriptionStatus.TRIAL || request.status() == TenantSubscriptionStatus.SUSPENDED)) {
             throw new ApiException(ErrorCode.RESOURCE_CONFLICT, HttpStatus.CONFLICT,
-                    "The tenant already has another active or trial subscription.");
+                    "The tenant already has another current subscription.");
         }
         Object oldSnapshot = snapshot(subscription);
         subscription.setTenant(tenant);
@@ -130,25 +134,28 @@ public class TenantSubscriptionService {
         validateDates(subscription);
         syncTenantPlan(tenant, subscriptionPlan);
         TenantSubscription saved = tenantSubscriptionRepository.save(subscription);
+        if (!Set.of(TenantSubscriptionStatus.ACTIVE, TenantSubscriptionStatus.TRIAL).contains(saved.getStatus())) sessions.revokeAllForTenant(tenant.getId());
         recordAudit(saved, "UPDATED", "Tenant subscription was updated.", oldSnapshot, snapshot(saved));
         return tenantSubscriptionMapper.toDetail(saved);
     }
 
     @Transactional
     public TenantSubscriptionDetailResponse activate(Long tenantSubscriptionId) {
-        TenantSubscription subscription = findById(tenantSubscriptionId);
+        TenantSubscription subscription = lockForChange(tenantSubscriptionId);
         TenantSubscriptionStatusWorkflow.ensureCanActivate(subscription.getStatus());
-        if (tenantSubscriptionRepository.existsByTenant_IdAndStatusInAndIdNot(subscription.getTenant().getId(),
-                Set.of(TenantSubscriptionStatus.ACTIVE, TenantSubscriptionStatus.TRIAL), subscription.getId())) {
+        if (hasOtherCurrent(subscription.getTenant().getId(), subscription.getId())) {
             throw new ApiException(ErrorCode.RESOURCE_CONFLICT, HttpStatus.CONFLICT,
-                    "The tenant already has another active or trial subscription.");
+                    "The tenant already has another current subscription.");
         }
         Object oldSnapshot = snapshot(subscription);
         subscription
                 .setStatus(subscription.isTrial() ? TenantSubscriptionStatus.TRIAL : TenantSubscriptionStatus.ACTIVE);
         if (subscription.getEffectiveStartDate() == null) {
-            subscription.setEffectiveStartDate(LocalDate.now());
+            subscription.setEffectiveStartDate(entitlements.today());
         }
+        validateDates(subscription);
+        if (entitlements.hasOverdueBalance(subscription.getTenant().getId())) throw new ApiException(ErrorCode.RESOURCE_CONFLICT, HttpStatus.CONFLICT, "Settle overdue subscription invoices before activating access.");
+        db.update("UPDATE subscription_billing_accounts SET enabled=TRUE WHERE subscription_id=? AND monthly_driver_rate IS NOT NULL AND next_renewal_at IS NOT NULL", subscription.getId());
         syncTenantPlan(subscription.getTenant(), subscription.getSubscriptionPlan());
         TenantSubscription saved = tenantSubscriptionRepository.save(subscription);
         recordAudit(saved, "ACTIVATED", "Tenant subscription was activated.", oldSnapshot, snapshot(saved));
@@ -157,10 +164,11 @@ public class TenantSubscriptionService {
 
     @Transactional
     public TenantSubscriptionDetailResponse suspend(Long tenantSubscriptionId) {
-        TenantSubscription subscription = findById(tenantSubscriptionId);
+        TenantSubscription subscription = lockForChange(tenantSubscriptionId);
         TenantSubscriptionStatusWorkflow.ensureCanSuspend(subscription.getStatus());
         Object oldSnapshot = snapshot(subscription);
         subscription.setStatus(TenantSubscriptionStatus.SUSPENDED);
+        sessions.revokeAllForTenant(subscription.getTenant().getId());
         TenantSubscription saved = tenantSubscriptionRepository.save(subscription);
         recordAudit(saved, "SUSPENDED", "Tenant subscription was suspended.", oldSnapshot, snapshot(saved));
         return tenantSubscriptionMapper.toDetail(saved);
@@ -168,12 +176,13 @@ public class TenantSubscriptionService {
 
     @Transactional
     public TenantSubscriptionDetailResponse cancel(Long tenantSubscriptionId) {
-        TenantSubscription subscription = findById(tenantSubscriptionId);
+        TenantSubscription subscription = lockForChange(tenantSubscriptionId);
         TenantSubscriptionStatusWorkflow.ensureCanCancel(subscription.getStatus());
         Object oldSnapshot = snapshot(subscription);
         subscription.setStatus(TenantSubscriptionStatus.CANCELLED);
+        sessions.revokeAllForTenant(subscription.getTenant().getId());
         if (subscription.getEffectiveEndDate() == null) {
-            subscription.setEffectiveEndDate(LocalDate.now());
+            subscription.setEffectiveEndDate(entitlements.today());
         }
         TenantSubscription saved = tenantSubscriptionRepository.save(subscription);
         recordAudit(saved, "CANCELLED", "Tenant subscription was cancelled.", oldSnapshot, snapshot(saved));
@@ -186,6 +195,17 @@ public class TenantSubscriptionService {
                 .stream()
                 .map(tenantSubscriptionMapper::toSummary)
                 .toList();
+    }
+
+    private TenantSubscription lockForChange(Long id) {
+        var tenants = db.queryForList("SELECT tenant_id FROM tenant_subscriptions WHERE id=?", String.class, id);
+        if (tenants.isEmpty()) throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Tenant subscription was not found.");
+        entitlements.lockTenant(tenants.getFirst());
+        return tenantSubscriptionRepository.lockById(id).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Tenant subscription was not found."));
+    }
+
+    private boolean hasOtherCurrent(String tenant, Long excludedId) {
+        return !db.queryForList("SELECT id FROM tenant_subscriptions WHERE tenant_id=? AND status IN ('ACTIVE','TRIAL','SUSPENDED') AND id<>? FOR UPDATE", Long.class, tenant, excludedId == null ? -1L : excludedId).isEmpty();
     }
 
     private TenantSubscription findById(Long tenantSubscriptionId) {
@@ -208,6 +228,15 @@ public class TenantSubscriptionService {
     }
 
     private void validateDates(TenantSubscription subscription) {
+        if (Set.of(TenantSubscriptionStatus.ACTIVE, TenantSubscriptionStatus.TRIAL).contains(subscription.getStatus())) {
+            if (subscription.getEffectiveEndDate() != null && !subscription.getEffectiveEndDate().isAfter(entitlements.today())) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "An active subscription term must end after today.");
+            if (subscription.getRenewalDate() != null && subscription.getRenewalDate().isBefore(entitlements.today())) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Renew the subscription before activating access.");
+            if (subscription.isTrial() && subscription.getTrialEndDate() != null && subscription.getTrialEndDate().isBefore(entitlements.today())) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "The trial end date has passed.");
+        }
+        if (subscription.getStatus() == TenantSubscriptionStatus.ACTIVE && subscription.getRenewalDate() == null && subscription.getEffectiveEndDate() == null) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Active subscriptions require a renewal or effective end date.");
+        }
+        if (subscription.getRenewalDate() != null && subscription.getRenewalDate().isBefore(subscription.getEffectiveStartDate())) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Renewal date must be on or after the effective start date.");
         if (subscription.getEffectiveEndDate() != null
                 && subscription.getEffectiveEndDate().isBefore(subscription.getEffectiveStartDate())) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,

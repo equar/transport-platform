@@ -26,6 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class VehicleService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+
 
     private static final Pattern VIN_PATTERN = Pattern.compile("^[A-HJ-NPR-Z0-9]{17}$");
     private static final Pattern PLATE_PATTERN = Pattern.compile("^[A-Z0-9 -]{2,30}$");
@@ -89,6 +92,7 @@ public class VehicleService {
     @Transactional
     public VehicleResponse createCompanyVehicle(VehicleUpsertRequest request) {
         String tenantId = vehicleAccessService.requireCompanyTenantId();
+        entitlements.requireCapacity(tenantId, com.transportplatform.tms.features.saas.application.TenantEntitlementService.Resource.VEHICLES);
         Vehicle vehicle = new Vehicle();
         vehicle.setTenantId(tenantId);
         vehicle.setVehicleCode(vehicleCodeGenerator.generate(tenantId));

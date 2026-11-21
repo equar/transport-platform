@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AppUserTenantOwnerProvisioningService implements TenantOwnerProvisioningService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+
 
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
@@ -33,6 +36,7 @@ public class AppUserTenantOwnerProvisioningService implements TenantOwnerProvisi
                     "An account already exists for the provided email.");
         }
 
+        entitlements.requireOwnerCapacity(tenantId);
         AppUser user = new AppUser();
         user.setTenantId(tenantId);
         user.setEmail(ownerEmail.trim().toLowerCase());

@@ -62,7 +62,8 @@ class DriverServiceTest {
                                 notificationEventService,
                                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
 
-                when(driverAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
+                org.springframework.test.util.ReflectionTestUtils.setField(driverService, "entitlements", org.mockito.Mockito.mock(com.transportplatform.tms.features.saas.application.TenantEntitlementService.class));
+        when(driverAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
                 when(driverCodeGenerator.generate("tenant-123")).thenReturn("DRV-000123");
                 when(driverRepository.save(any(Driver.class))).thenAnswer(invocation -> invocation.getArgument(0));
                 when(driverComplianceSummaryService.getSummary(any(), any(Driver.class))).thenReturn(

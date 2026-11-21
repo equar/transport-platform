@@ -12,6 +12,9 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 class PortalRideEventTest {
+    @org.springframework.boot.test.mock.mockito.MockBean
+    com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+
     @Test void authorizedPortalActorCanWriteCreationAuditWithoutStaffPrivileges() {
         for (String role : List.of("ROLE_RIDER", "ROLE_GUARDIAN")) {
             RideEventRepository events = mock(RideEventRepository.class);

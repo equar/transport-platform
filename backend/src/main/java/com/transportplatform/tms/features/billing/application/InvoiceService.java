@@ -434,29 +434,25 @@ public class InvoiceService {
     }
 
     private void validateRideSources(String tenantId, List<InvoiceLineItem> items) {
-        var seen = new java.util.HashSet<Long>();
+        var rideIds = new java.util.HashSet<Long>();
         for (var item : items) {
             if (item.getChargeSourceType() != ChargeSourceType.RIDE) continue;
-            if (!seen.add(item.getSourceReferenceId())) {
-                throw validationFailure("A ride may appear only once in an invoice.");
-            }
-            validateRideSource(tenantId, item);
+            if (item.getSourceReferenceId() == null) throw validationFailure("Ride charges require a ride reference.");
+            if (!rideIds.add(item.getSourceReferenceId())) throw validationFailure("A ride may appear only once in an invoice.");
+            billingReferenceValidationService.resolveRide(tenantId, item.getSourceReferenceId());
+        }
+        if (rideIds.isEmpty()) return;
+        var excludedIds = items.stream().map(InvoiceLineItem::getId).filter(Objects::nonNull).toList();
+        // SQL NOT IN must never receive an empty collection.
+        if (excludedIds.isEmpty()) excludedIds = List.of(-1L);
+        if (!invoiceLineItemRepository.findConflictingRideIds(tenantId, rideIds, excludedIds).isEmpty()) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.CONFLICT,
+                "This ride is already included in a non-void invoice. Void that invoice or remove its draft line before rebilling.");
         }
     }
 
     private void validateRideSource(String tenantId, InvoiceLineItem item) {
-        if (item.getChargeSourceType() != ChargeSourceType.RIDE) return;
-        if (item.getSourceReferenceId() == null) {
-            throw validationFailure("Ride charges require a ride reference.");
-        }
-        billingReferenceValidationService.resolveRide(tenantId, item.getSourceReferenceId());
-        boolean claimed = invoiceLineItemRepository
-            .findAllByTenantIdAndChargeSourceTypeAndSourceReferenceIdOrderByIdDesc(
-                tenantId, ChargeSourceType.RIDE, item.getSourceReferenceId()).stream()
-            .anyMatch(existing -> existing.getInvoice().getStatus() != InvoiceStatus.VOID
-                && !Objects.equals(existing.getId(), item.getId()));
-        if (claimed) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.CONFLICT,
-            "This ride is already included in a non-void invoice. Void that invoice or remove its draft line before rebilling.");
+        validateRideSources(tenantId, List.of(item));
     }
 
     private PricingRule resolvePricingRule(String tenantId,

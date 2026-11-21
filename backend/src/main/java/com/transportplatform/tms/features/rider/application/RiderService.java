@@ -31,6 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RiderService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+
     private final com.transportplatform.tms.common.privacy.PhiCipher privacy;
 
     private final RiderRepository riderRepository;
@@ -101,6 +104,7 @@ public class RiderService {
     @Transactional
     public RiderResponse createCompanyRider(RiderUpsertRequest request) {
         String tenantId = riderAccessService.requireCompanyTenantId();
+        entitlements.requireCapacity(tenantId, com.transportplatform.tms.features.saas.application.TenantEntitlementService.Resource.RIDERS);
         Rider rider = new Rider();
         rider.setTenantId(tenantId);
         rider.setRiderCode(riderCodeGenerator.generate(tenantId));
