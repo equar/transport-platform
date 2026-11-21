@@ -127,6 +127,35 @@ class PrivacyMySqlTest {
   }
 
   @Test
+  void coordinatesUseEncryptedVarcharColumnsAndRoundTripAsDoublesWithSchemaValidation() {
+    var sample = new DriverLocationSnapshot();
+    sample.setTenantId(tenant);
+    sample.setRide(ride);
+    sample.setDriver(driver);
+    sample.setLatitude(42.3601);
+    sample.setLongitude(-71.0589);
+    sample.setCapturedAt(java.time.Instant.now());
+    em.persist(sample);
+    em.flush();
+    long id = sample.getId();
+    var raw =
+        db.queryForMap("SELECT latitude,longitude FROM driver_location_snapshots WHERE id=?", id);
+    assertThat(raw.get("latitude").toString()).startsWith("phi1.");
+    assertThat(raw.get("longitude").toString()).startsWith("phi1.");
+    assertThat(
+            db.queryForList(
+                "SELECT data_type FROM information_schema.columns WHERE table_schema=DATABASE() AND"
+                    + " table_name='driver_location_snapshots' AND column_name IN"
+                    + " ('latitude','longitude')",
+                String.class))
+        .containsExactly("varchar", "varchar");
+    em.clear();
+    var loaded = em.find(DriverLocationSnapshot.class, id);
+    assertThat(loaded.getLatitude()).isEqualTo(42.3601);
+    assertThat(loaded.getLongitude()).isEqualTo(-71.0589);
+  }
+
+  @Test
   void encryptsClinicalFieldsAndPreservesPhoneAndAccessibilityFilteringAcrossUpdates() {
     var rider = ride.getRider();
     rider.setCareNotesSummary("Oxygen assistance required");

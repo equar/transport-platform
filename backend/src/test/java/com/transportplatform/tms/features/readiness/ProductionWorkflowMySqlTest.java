@@ -17,7 +17,9 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.*;
 
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT, properties={
-    "app.bootstrap.platform-admin.enabled=false", "app.dev-seed.enabled=true", "app.email.enabled=false", "app.push.enabled=false",
+    "app.bootstrap.platform-admin.enabled=false", "app.dev-seed.enabled=true",
+    // This fixture tests optional MFA enrollment/disable; mandatory MFA has its own HTTP regression suite.
+    "app.auth.require-mfa-for-privileged-accounts=false", "app.email.enabled=false", "app.push.enabled=false",
     "app.security.jwt.secret=isolated-workflow-tests-only-secret-12345678901234567890",
     "app.security.auth-rate-limit.login-max-requests=100",
     "app.security.mfa-encryption-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="})

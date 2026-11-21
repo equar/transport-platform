@@ -17,6 +17,17 @@ trap cleanup EXIT
 python3 "$ROOT/deployment/aws/validate-config.py" --target backend --write-env "$work/backend.env"
 jar="$ROOT/backend/target/transport-platform-backend-0.1.0-SNAPSHOT.jar"
 [[ -s "$jar" ]] || { echo 'Build and verify the backend before deployment.' >&2; exit 1; }
+# Verify the actual packaged classes before any upload or offline database maintenance.
+java -Dloader.main=com.transportplatform.tms.common.privacy.PrivacyMaintenanceCommand \
+  -cp "$jar" org.springframework.boot.loader.launch.PropertiesLauncher --verify-artifact
+python3 - "$jar" <<'PYHASH'
+import hashlib, sys
+with open(sys.argv[1], 'rb') as artifact:
+    digest = hashlib.sha256()
+    for block in iter(lambda: artifact.read(1024 * 1024), b''):
+        digest.update(block)
+print('Backend artifact SHA-256:', digest.hexdigest())
+PYHASH
 remote="$(new_remote_directory backend)"
 scp "${SSH_OPTIONS[@]}" "$jar" "$SERVER:$remote/backend.jar"
 scp "${SSH_OPTIONS[@]}" "$work/backend.env" "$ROOT/deployment/transport-platform-backend.service" \

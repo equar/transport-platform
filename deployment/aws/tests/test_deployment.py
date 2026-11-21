@@ -269,6 +269,18 @@ esac
             SSH_KEY=str(key), SSH_KNOWN_HOSTS_FILE=str(hosts))
         return root, env, log, payload
 
+    def test_incompatible_backend_artifact_is_rejected_before_any_server_write(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root, env, log, _ = self.fixture(directory)
+            shutil.copy(AWS/'deploy-backend.sh', root/'deployment/aws/deploy-backend.sh')
+            target=root/'backend/target'; target.mkdir(parents=True)
+            (target/'transport-platform-backend-0.1.0-SNAPSHOT.jar').write_text('incompatible fixture artifact')
+            java=root/'bin/java'; java.write_text('#!/bin/sh\necho "Incompatible encrypted coordinate mapping" >&2\nexit 9\n'); java.chmod(0o755)
+            result=subprocess.run(['bash',str(root/'deployment/aws/deploy-backend.sh')],env=env,text=True,capture_output=True)
+            self.assertEqual(result.returncode,9,result.stderr)
+            self.assertIn('Incompatible encrypted coordinate mapping',result.stderr)
+            self.assertFalse(log.exists(), 'Artifact rejection must happen before SSH or SCP.')
+
     def test_frontend_activation_and_verified_host_options(self):
         with tempfile.TemporaryDirectory() as directory:
             root, env, log, _ = self.fixture(directory)
