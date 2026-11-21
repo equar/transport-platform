@@ -11,13 +11,14 @@ ROOT = AWS.parents[1]
 
 
 class MaintenanceActivationTests(unittest.TestCase):
-    def activate(self, fail=False, running=False):
+    def activate(self, fail=False, running=False, scanner_fail=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             incoming = root/'incoming'; incoming.mkdir()
             binaries = root/'bin'; binaries.mkdir()
             for name in ('backend.jar', 'backend.env', 'transport-platform-backend.service', 'transport-platform-privacy-maintenance.service'):
                 (incoming/name).write_text('fixture')
+            (incoming/'check-document-scanner.py').write_text('import sys; sys.exit('+('1' if scanner_fail else '0')+')\n')
             (incoming/'setup-rds-truststore.sh').write_text('exit 0\n')
             (incoming/'sanitize-logs.py').write_text('print("sanitized maintenance diagnostics")\n')
             script = (AWS/'activate-backend.sh').read_text()
@@ -58,6 +59,13 @@ esac
             log=root/'commands'
             result=subprocess.run(['bash',str(root/'activate.sh'),str(incoming),'release-test'],env=dict(os.environ,PATH=str(binaries)+os.pathsep+os.environ['PATH'],TEST_COMMANDS=str(log),TEST_ACTIVE=str(root/'active'),FAIL_MAINTENANCE='1' if fail else '0',TEST_MAINTENANCE_STATE='activating' if running else 'inactive'),capture_output=True,text=True,timeout=15)
             return result,log.read_text(),(root/'active').exists()
+
+    def test_missing_scanner_aborts_before_backend_stop_or_database_maintenance(self):
+        result,commands,active=self.activate(scanner_fail=True)
+        self.assertNotEqual(result.returncode,0)
+        self.assertNotIn('stop transport-platform-backend.service',commands)
+        self.assertNotIn('start transport-platform-privacy-maintenance.service',commands)
+        self.assertNotIn('Automatic JAR rollback is unsafe',result.stderr)
 
     def test_maintenance_completes_before_backend_start(self):
         result,commands,active=self.activate()

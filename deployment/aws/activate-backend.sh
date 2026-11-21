@@ -25,6 +25,9 @@ if systemctl cat "$service" >/dev/null 2>&1 && [[ "$legacy_user" != transport ]]
   echo 'Existing transport service uses a different account. Follow the documented one-time dedicated-user cutover first.' >&2
   exit 1
 fi
+# Check the incoming release's scanner settings before stopping a healthy backend,
+# replacing its environment, or declaring that offline database work has begun.
+python3 "$incoming/check-document-scanner.py" --env-file "$incoming/backend.env"
 bash "$incoming/setup-rds-truststore.sh"
 id transport >/dev/null 2>&1 || useradd --system --home "$app" --shell /usr/sbin/nologin transport
 install -d -o root -g root -m 755 "$app" "$app/runtime"
@@ -80,6 +83,7 @@ if [[ -n "$(ss -H -ltn 'sport = :8082')" ]]; then
   echo 'Port 8082 is still in use after stopping Transport; refusing to kill another service.' >&2
   exit 1
 fi
+install -o root -g root -m 644 "$incoming/check-document-scanner.py" "$app/check-document-scanner.py"
 install -o root -g root -m 644 "$incoming/backend.jar" "$app/backend.jar"
 install -o root -g root -m 600 "$incoming/backend.env" "$app/.env"
 install -o root -g root -m 644 "$incoming/transport-platform-backend.service" "$unit"

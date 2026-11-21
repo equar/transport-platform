@@ -76,6 +76,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 async function openPage() {
@@ -96,6 +97,7 @@ async function openPage() {
   });
 }
 it("associates a guardian from the rider page and refreshes the relationship", async () => {
+  const warnings = vi.spyOn(console, "warn");
   await openPage();
   fireEvent.mouseDown(screen.getByRole("combobox", { name: "Guardian" }));
   fireEvent.click(screen.getByRole("option", { name: /Morgan Lee/ }));
@@ -135,6 +137,7 @@ it("associates a guardian from the rider page and refreshes the relationship", a
     30,
     expect.objectContaining({ guardianId: 20 }),
   );
+  expect(warnings.mock.calls.flat().some(message => String(message).includes("out-of-range"))).toBe(false);
 });
 it("searches and paginates guardians beyond the first 100 without duplicates", async () => {
   vi.mocked(ridersApi.getById).mockResolvedValue({

@@ -260,7 +260,12 @@ export function GuardianLinkDialog({
           <TextField
             label="Guardian"
             select
-            value={form.guardianId || ""}
+            value={
+              displayOptions.some((guardian) => guardian.id === form.guardianId) ||
+              relationship?.guardianId === form.guardianId
+                ? form.guardianId
+                : ""
+            }
             onChange={(event) => {
               updateField("guardianId", Number(event.target.value));
               setChosenGuardian(
