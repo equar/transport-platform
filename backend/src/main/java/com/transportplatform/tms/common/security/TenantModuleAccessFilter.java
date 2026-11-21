@@ -12,6 +12,9 @@ import java.io.IOException;
 import java.util.*;
 @Component
 public class TenantModuleAccessFilter extends OncePerRequestFilter {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+
     private final TenantModulePolicy policy;
     private final RestAccessDeniedHandler denied;
     public TenantModuleAccessFilter(TenantModulePolicy policy, RestAccessDeniedHandler denied) { this.policy = policy; this.denied = denied; }
@@ -20,6 +23,10 @@ public class TenantModuleAccessFilter extends OncePerRequestFilter {
         if (authentication != null && authentication.getPrincipal() instanceof AuthenticatedUser user && user.tenantId() != null) {
             // Decode paths the same way as MVC; encoded route segments must not bypass the policy.
             String path = UrlPathHelper.defaultInstance.getPathWithinApplication(request);
+            if (!path.equals("/v1/auth/logout")) {
+                try { entitlements.requireOperational(user.tenantId()); }
+                catch (ApiException unavailable) { denied.handle(request, response, new AccessDeniedException("Subscription unavailable")); return; }
+            }
             Set<String> modules = new LinkedHashSet<>();
             if (path.startsWith("/portal/driver/")) modules.add("PORTAL_DRIVER");
             if (path.startsWith("/portal/rider/")) modules.add("PORTAL_RIDER_GUARDIAN");

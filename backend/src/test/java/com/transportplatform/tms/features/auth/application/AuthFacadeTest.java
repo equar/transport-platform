@@ -137,12 +137,28 @@ class AuthFacadeTest {
     @Mock
     private MfaService mfa;
 
+    @Mock private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
     @InjectMocks
     private AuthFacade authFacade;
 
     @org.junit.jupiter.api.BeforeEach
     void injectMfaService() {
         ReflectionTestUtils.setField(authFacade, "mfa", mfa);
+        ReflectionTestUtils.setField(authFacade, "entitlements", entitlements);
+    }
+
+    @Test void unavailableSubscriptionBlocksLoginAndRefreshBeforeAccessTokenIssuance() {
+        var user = activeTenantUser(RoleName.ROLE_TENANT_ADMIN);
+        when(appUserRepository.findForAuthenticationByEmail("ops@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
+        org.mockito.Mockito.doThrow(new ApiException(com.transportplatform.tms.common.exception.ErrorCode.FORBIDDEN,
+            HttpStatus.FORBIDDEN, "Subscription expired")).when(entitlements).requireOperational("tenant-a");
+        assertThrows(ApiException.class, () -> authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB"));
+        verify(authSessionService, never()).issue(any(), any());
+        when(authSessionService.rotate("blocked-refresh", "WEB")).thenReturn(new AuthSessionService.RotatedRefreshToken(user,
+            new AuthSessionService.IssuedRefreshToken("replacement", Instant.now(), "WEB")));
+        assertThrows(ApiException.class, () -> authFacade.refresh("blocked-refresh", "WEB"));
+        verify(jwtService, never()).generateAccessToken(any());
     }
 
     @Test

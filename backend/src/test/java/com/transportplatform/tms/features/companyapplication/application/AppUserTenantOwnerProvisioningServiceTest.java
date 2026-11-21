@@ -23,6 +23,9 @@ class AppUserTenantOwnerProvisioningServiceTest {
     @Mock AppUserRepository appUserRepository;
     @Mock PasswordEncoder passwordEncoder;
     @InjectMocks AppUserTenantOwnerProvisioningService service;
+    @org.junit.jupiter.api.BeforeEach void injectPolicy() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "entitlements", org.mockito.Mockito.mock(com.transportplatform.tms.features.saas.application.TenantEntitlementService.class));
+    }
 
     @Test
     void provisionsOwnerWithoutAnAdminSuppliedPassword() {

@@ -49,6 +49,22 @@ class ProductionWorkflowMySqlTest {
                 Map.of("X-Client-Platform",Set.of("driver","rider","guardian").contains(role)?"mobile":"web"));
         assertEquals(200,r.getStatusCode().value(),r.toString());return r.getBody().path("data").path("accessToken").asText();
     }
+    @Test void committedSubscriptionChangesBlockLoginAndExistingAccessTokens() {
+        String token=login("tenant.admin");
+        String tenant="demo-metro-mobility-000000000001";
+        Long id=jdbc.queryForObject("SELECT id FROM tenant_subscriptions WHERE tenant_id=? ORDER BY effective_start_date DESC,id DESC LIMIT 1",Long.class,tenant);
+        var date=jdbc.queryForObject("SELECT renewal_date FROM tenant_subscriptions WHERE id=?",java.sql.Date.class,id);
+        assertEquals(200,call(HttpMethod.GET,"/company/drivers",null,token,Map.of()).getStatusCode().value());
+        try {
+            jdbc.update("UPDATE tenant_subscriptions SET status='SUSPENDED' WHERE id=?",id);
+            assertEquals(403,call(HttpMethod.GET,"/company/drivers",null,token,Map.of()).getStatusCode().value());
+            assertEquals(403,call(HttpMethod.POST,"/v1/auth/login",Map.of("email","tenant.admin@demo.test","password","Password123"),null,Map.of("X-Client-Platform","web")).getStatusCode().value());
+            jdbc.update("UPDATE tenant_subscriptions SET status='ACTIVE',renewal_date=DATE_SUB(UTC_DATE(),INTERVAL 1 DAY) WHERE id=?",id);
+            assertEquals(403,call(HttpMethod.GET,"/company/drivers",null,token,Map.of()).getStatusCode().value());
+        } finally { jdbc.update("UPDATE tenant_subscriptions SET status='ACTIVE',renewal_date=? WHERE id=?",date,id); }
+        assertEquals(200,call(HttpMethod.GET,"/company/drivers",null,token,Map.of()).getStatusCode().value());
+    }
+
     @Test void ledgerAggregatesAllInvoicesSeparatelyByCurrencyAndScope() {
         String tenant=jdbc.queryForObject("SELECT tenant_id FROM invoices WHERE id=1",String.class);
         var rows=new ArrayList<Object[]>();

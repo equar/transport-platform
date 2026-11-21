@@ -31,6 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OrganizationService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+
 
     private final OrganizationRepository organizationRepository;
     private final OrganizationContactRepository organizationContactRepository;
@@ -118,6 +121,7 @@ public class OrganizationService {
     @Transactional
     public OrganizationResponse createCompanyOrganization(OrganizationUpsertRequest request) {
         String tenantId = organizationAccessService.requireCompanyTenantId();
+        entitlements.requireCapacity(tenantId, com.transportplatform.tms.features.saas.application.TenantEntitlementService.Resource.ORGANIZATIONS);
         Organization organization = new Organization();
         organization.setTenantId(tenantId);
         organization.setOrganizationCode(organizationCodeGenerator.generate(tenantId));

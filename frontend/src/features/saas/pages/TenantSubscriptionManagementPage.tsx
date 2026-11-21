@@ -167,6 +167,10 @@ export function TenantSubscriptionManagementPage() {
   }
 
   async function handleSubmit() {
+    if (form.status === "ACTIVE" && !form.renewalDate && !form.effectiveEndDate) {
+      showError("Active subscriptions require a renewal or effective end date.");
+      return;
+    }
     try {
       const payload: TenantSubscriptionPayload = {
         ...form,
@@ -481,6 +485,7 @@ export function TenantSubscriptionManagementPage() {
               <TextField
                 type="date"
                 label="Effective end"
+                helperText="Access ends at the start of this date (UTC)."
                 InputLabelProps={{ shrink: true }}
                 value={form.effectiveEndDate ?? ""}
                 onChange={(event) =>
@@ -493,6 +498,7 @@ export function TenantSubscriptionManagementPage() {
               <TextField
                 type="date"
                 label="Renewal date"
+                helperText="Access is blocked after this date until renewal is processed."
                 InputLabelProps={{ shrink: true }}
                 value={form.renewalDate ?? ""}
                 onChange={(event) =>
@@ -505,6 +511,7 @@ export function TenantSubscriptionManagementPage() {
               <TextField
                 type="date"
                 label="Trial end"
+                helperText="The trial includes this date (UTC)."
                 InputLabelProps={{ shrink: true }}
                 value={form.trialEndDate ?? ""}
                 onChange={(event) =>

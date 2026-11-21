@@ -280,6 +280,7 @@ public class SubscriptionBillingService {
         request.collectionMode(),
         request.enabled(),
         id);
+    db.update("UPDATE tenant_subscriptions SET renewal_date=? WHERE id=?", current.nextRenewalDate(), id);
     Account saved = account(id, null);
     record(
         old.tenantId(),
@@ -591,45 +592,6 @@ public class SubscriptionBillingService {
     db.update(
         "UPDATE platform_subscription_invoices SET collection_state='SETTLED' WHERE id=?", id);
     return invoice(id, null);
-  }
-
-  public List<Long> expiredTrials(long afterId) {
-    return db.queryForList(
-        "SELECT s.id FROM tenant_subscriptions s JOIN subscription_billing_accounts a ON"
-            + " a.subscription_id=s.id WHERE s.status='TRIAL' AND s.trial_end_date<? AND"
-            + " a.enabled=FALSE AND s.id>? ORDER BY s.id LIMIT 100",
-        Long.class,
-        today(),
-        afterId);
-  }
-
-  @Transactional
-  public void expireTrial(long id) {
-    var rows =
-        db.queryForList(
-            "SELECT s.tenant_id,s.status,s.trial_end_date,a.enabled FROM tenant_subscriptions s"
-                + " JOIN subscription_billing_accounts a ON a.subscription_id=s.id WHERE s.id=? FOR"
-                + " UPDATE",
-            id);
-    if (rows.isEmpty()) return;
-    var row = rows.getFirst();
-    var end = (java.sql.Date) row.get("trial_end_date");
-    if (!"TRIAL".equals(row.get("status"))
-        || end == null
-        || !end.toLocalDate().isBefore(today())
-        || Boolean.TRUE.equals(row.get("enabled"))) return;
-    db.update(
-        "UPDATE tenant_subscriptions SET"
-            + " status='EXPIRED',updated_by='billing',updated_at=UTC_TIMESTAMP(6) WHERE id=?",
-        id);
-    record(
-        (String) row.get("tenant_id"),
-        "EXPIRED",
-        "TENANT_SUBSCRIPTION",
-        id,
-        "Unconverted subscription trial expired.",
-        null,
-        Map.of("subscriptionId", id, "status", "EXPIRED"));
   }
 
   public List<Long> dueAccounts(long afterId, int limit) {

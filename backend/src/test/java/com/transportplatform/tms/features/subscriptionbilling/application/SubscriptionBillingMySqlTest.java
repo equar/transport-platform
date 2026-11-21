@@ -37,6 +37,8 @@ import org.testcontainers.junit.jupiter.*;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({
   JpaAuditConfig.class,
+  com.transportplatform.tms.features.saas.application.SubscriptionLifecycleService.class,
+  com.transportplatform.tms.features.saas.application.TenantEntitlementService.class,
   SubscriptionBillingService.class,
   SubscriptionAutomaticCollectionService.class,
   SubscriptionProvisioningService.class,
@@ -98,6 +100,8 @@ class SubscriptionBillingMySqlTest {
   @Autowired DriverRepository drivers;
   @Autowired MutableClock clock;
   @Autowired JdbcTemplate db;
+  @Autowired com.transportplatform.tms.features.saas.application.SubscriptionLifecycleService lifecycle;
+  @MockitoBean com.transportplatform.tms.features.auth.application.AuthSessionService sessions;
   @MockitoBean SubscriptionPaymentCollector provider;
   Tenant tenant;
   TenantSubscription subscription;
@@ -361,7 +365,7 @@ class SubscriptionBillingMySqlTest {
     subscription.setStatus(TenantSubscriptionStatus.TRIAL);
     subscription.setTrialEndDate(today().minusDays(1));
     subscriptions.saveAndFlush(subscription);
-    billing.expireTrial(subscription.getId());
+    lifecycle.reconcile(subscription.getId());
     assertThat(billing.account(subscription.getId(), null).subscriptionStatus())
         .isEqualTo("EXPIRED");
     assertThat(billing.invoices(tenant.getId(), subscription.getId(), 0, 10).items()).isEmpty();

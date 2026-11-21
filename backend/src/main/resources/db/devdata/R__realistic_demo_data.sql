@@ -409,3 +409,18 @@ SELECT @tenant_id, CONCAT('DEMO-DISPATCH-', id), id, 'Unassigned ride needs atte
 FROM app_users WHERE email IN ('tenant.admin@demo.test', 'dispatcher@demo.test')
 ON DUPLICATE KEY UPDATE message = VALUES(message), notification_type = 'RIDE_STATUS_CHANGED',
     delivery_status = 'SENT', read_status = 'UNREAD', updated_at = @now;
+
+-- Development entitlement fixture: demo logins use a real subscription, never an authorization bypass.
+INSERT INTO subscription_plans
+    (plan_code,name,tier,monthly_price,annual_price,currency,max_users,max_drivers,max_vehicles,max_riders,max_organizations,status,created_by,created_at,updated_by,updated_at)
+VALUES ('DEMO-PROFESSIONAL','Demo Professional','CUSTOM',0,0,'USD',1000,200,200,1000,200,'ACTIVE','demo-seed',@now,'demo-seed',@now)
+ON DUPLICATE KEY UPDATE status='ACTIVE',max_users=1000,max_drivers=200,max_vehicles=200,max_riders=1000,max_organizations=200;
+SET @demo_plan_id = (SELECT id FROM subscription_plans WHERE plan_code='DEMO-PROFESSIONAL');
+UPDATE tenants SET subscription_plan='DEMO-PROFESSIONAL' WHERE id=@tenant_id;
+INSERT INTO tenant_subscriptions
+    (tenant_id,subscription_plan_id,effective_start_date,renewal_date,is_trial,status,created_by,created_at,updated_by,updated_at)
+SELECT @tenant_id,@demo_plan_id,UTC_DATE(),DATE_ADD(UTC_DATE(),INTERVAL 1 MONTH),FALSE,'ACTIVE','demo-seed',@now,'demo-seed',@now
+WHERE NOT EXISTS (SELECT 1 FROM tenant_subscriptions WHERE tenant_id=@tenant_id AND subscription_plan_id=@demo_plan_id);
+INSERT INTO subscription_billing_accounts(subscription_id,tenant_id)
+SELECT s.id,s.tenant_id FROM tenant_subscriptions s WHERE s.tenant_id=@tenant_id AND s.subscription_plan_id=@demo_plan_id
+AND NOT EXISTS (SELECT 1 FROM subscription_billing_accounts a WHERE a.subscription_id=s.id);

@@ -491,6 +491,7 @@ export function SubscriptionPlanManagementPage() {
               <TextField
                 type="number"
                 label="Max users"
+                helperText="Caps count all retained records, including inactive records. Zero allows none."
                 value={form.maxUsers}
                 onChange={(event) =>
                   setForm((current) => ({

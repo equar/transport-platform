@@ -33,6 +33,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 class UserManagementServiceTest {
+    @org.junit.jupiter.api.BeforeEach void injectPolicy() {
+        org.springframework.test.util.ReflectionTestUtils.setField(userManagementService, "entitlements", org.mockito.Mockito.mock(com.transportplatform.tms.features.saas.application.TenantEntitlementService.class));
+    }
 
     @Mock
     private AppUserRepository appUserRepository;

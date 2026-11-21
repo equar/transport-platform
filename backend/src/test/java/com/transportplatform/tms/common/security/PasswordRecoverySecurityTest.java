@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class PasswordRecoverySecurityTest {
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.transportplatform.tms.features.saas.application.TenantModulePolicy tenantModulePolicy;
+    @MockitoBean com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
     @Autowired MockMvc mvc;
     @MockitoBean AuthFacade auth;
     @MockitoBean JwtService jwt;

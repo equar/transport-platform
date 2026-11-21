@@ -55,6 +55,7 @@ class VehicleServiceTest {
                 auditLogService,
                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC), new VehicleOwnershipPolicy(org.mockito.Mockito.mock(com.transportplatform.tms.features.driver.domain.DriverRepository.class)));
 
+        org.springframework.test.util.ReflectionTestUtils.setField(vehicleService, "entitlements", org.mockito.Mockito.mock(com.transportplatform.tms.features.saas.application.TenantEntitlementService.class));
         when(vehicleAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
         when(vehicleCodeGenerator.generate("tenant-123")).thenReturn("VEH-000123");
         when(vehicleRepository.save(any(Vehicle.class))).thenAnswer(invocation -> invocation.getArgument(0));

@@ -27,6 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DriverService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
+
 
     private final DriverRepository driverRepository;
     private final DriverMapper driverMapper;
@@ -85,6 +88,7 @@ public class DriverService {
     @Transactional
     public DriverResponse createCompanyDriver(DriverUpsertRequest request) {
         String tenantId = driverAccessService.requireCompanyTenantId();
+        entitlements.requireCapacity(tenantId, com.transportplatform.tms.features.saas.application.TenantEntitlementService.Resource.DRIVERS);
         Driver driver = new Driver();
         driver.setTenantId(tenantId);
         driver.setDriverCode(driverCodeGenerator.generate(tenantId));

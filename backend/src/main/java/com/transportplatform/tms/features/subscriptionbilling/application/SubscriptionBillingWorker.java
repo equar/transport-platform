@@ -43,19 +43,6 @@ public class SubscriptionBillingWorker {
     }
     cursor = 0;
     while (true) {
-      var ids = billing.expiredTrials(cursor);
-      if (ids.isEmpty()) break;
-      for (long id : ids) {
-        cursor = id;
-        try {
-          billing.expireTrial(id);
-        } catch (RuntimeException e) {
-          LoggerFactory.getLogger(getClass()).warn("Trial expiration failed subscriptionId={}", id);
-        }
-      }
-    }
-    cursor = 0;
-    while (true) {
       var ids = billing.automaticInvoices(cursor);
       if (ids.isEmpty()) break;
       for (long id : ids) {
