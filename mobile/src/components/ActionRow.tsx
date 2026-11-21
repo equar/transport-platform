@@ -8,7 +8,7 @@ import { useThemedStyles } from '@theme/ThemeProvider';
 type ActionRowProps = {
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   title: string;
-  description: string;
+  description?: string;
   onPress: () => void;
   tone?: 'primary' | 'secondary';
   density?: 'compact' | 'comfortable';
@@ -53,7 +53,7 @@ export function ActionRow({ icon, title, description, onPress, tone = 'primary',
     <View style={[styles.icon, effectiveDensity === 'compact' && styles.iconCompact, { backgroundColor: tone === 'primary' ? colors.primarySoft : colors.secondarySoft }]}><MaterialCommunityIcons name={icon} size={iconSize} color={color} /></View>
     <View style={styles.copy}>
       <Text style={[styles.title, { fontSize: Typography.sizeMd }]}>{title}</Text>
-      <Text style={[styles.description, { fontSize: Typography.sizeSm }]}>{description}</Text>
+      {description ? <Text style={[styles.description, { fontSize: Typography.sizeSm }]}>{description}</Text> : null}
     </View>
     <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textSecondary} />
   </Pressable>;

@@ -200,6 +200,8 @@ npm run android:playstore -- 123
 
 ## iOS Simulator
 
+Simulator installs use local ad-hoc signing so Xcode embeds the Keychain identity required by SecureStore. No Apple developer account is required for this simulator build. If sign-in reports a missing Keychain entitlement from an older build, rebuild with `npm run ios` (or `npm run ios:dev`) and retry. Do not set `CODE_SIGNING_ALLOWED=NO`; this removes the simulator Keychain entitlement. Simulator plaintext session fallback is off by default. The installer and native CI check every executable architecture for its embedded Keychain identity and reject unsigned builds before installation.
+
 ```bash
 npm run ios
 ```

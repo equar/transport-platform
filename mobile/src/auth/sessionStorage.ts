@@ -10,14 +10,18 @@ function resolveSimulatorFallbackFlag() {
   return (extraFlag ?? envFlag ?? '').toLowerCase() === 'true';
 }
 
+function storageUnavailable(): Error {
+  return new Error('Secure sign-in storage is unavailable. Reinstall the app and try again. If this continues, contact your transport provider.');
+}
+
 const allowSimulatorFallback = __DEV__ && resolveSimulatorFallbackFlag();
 
 export async function getSessionValue(key: string): Promise<string | null> {
   try {
     const secureValue = await SecureStore.getItemAsync(key);
     if (secureValue || !allowSimulatorFallback) return secureValue;
-  } catch (error) {
-    if (!allowSimulatorFallback) throw error;
+  } catch {
+    if (!allowSimulatorFallback) throw storageUnavailable();
   }
   return AsyncStorage.getItem(key);
 }
@@ -27,8 +31,8 @@ async function writeValue(key: string, value: string): Promise<void> {
     await SecureStore.setItemAsync(key, value);
     if (allowSimulatorFallback) await AsyncStorage.removeItem(key);
     return;
-  } catch (error) {
-    if (!allowSimulatorFallback) throw error;
+  } catch {
+    if (!allowSimulatorFallback) throw storageUnavailable();
   }
   await AsyncStorage.setItem(key, value);
 }
@@ -36,8 +40,8 @@ async function writeValue(key: string, value: string): Promise<void> {
 async function removeValue(key: string): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(key);
-  } catch (error) {
-    if (!allowSimulatorFallback) throw error;
+  } catch {
+    if (!allowSimulatorFallback) throw storageUnavailable();
   }
   if (allowSimulatorFallback) await AsyncStorage.removeItem(key);
 }
