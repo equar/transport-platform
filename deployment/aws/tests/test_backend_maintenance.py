@@ -64,6 +64,8 @@ esac
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertLess(commands.index('start transport-platform-privacy-maintenance.service'),commands.index('restart transport-platform-backend.service'))
         self.assertTrue(active)
+        self.assertEqual(commands.count('reset-failed transport-platform-backend.service'),1)
+        self.assertLess(commands.index('reset-failed transport-platform-backend.service'),commands.index('restart transport-platform-backend.service'))
 
     def test_failure_keeps_backend_stopped_without_unsafe_jar_rollback(self):
         result,commands,active=self.activate(fail=True)
@@ -87,3 +89,12 @@ esac
         self.assertIn('PropertiesLauncher --ensure-ready',unit)
         self.assertIn('database-truststore.jks',unit)
         self.assertNotIn('/bin/bash',unit)
+
+    def test_backend_restart_budget_is_three_total_starts_one_minute_apart(self):
+        import configparser
+        config=configparser.ConfigParser(interpolation=None)
+        config.read(ROOT/'deployment/transport-platform-backend.service')
+        self.assertEqual(config['Unit']['StartLimitBurst'],'3')
+        self.assertEqual(config['Unit']['StartLimitIntervalSec'],'infinity')
+        self.assertEqual(config['Service']['Restart'],'on-failure')
+        self.assertEqual(config['Service']['RestartSec'],'60')

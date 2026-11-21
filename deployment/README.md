@@ -338,3 +338,18 @@ require the target host/configuration; no live release was performed during
 this adaptation.
 
 For the two email-delivered system administrator accounts, see [administrator bootstrap](aws/ADMIN_BOOTSTRAP.md).
+
+### Backend restart limit
+
+The backend unit permits **three total starts** (the initial attempt and at most two automatic retries), with a **60-second delay after failure**. Its start budget has no rolling expiry, so a broken release does not resume retrying later. After exhaustion, it stays failed until an operator resets it or a new deployment resets the budget. This also bounds subsequent process-failure restarts within that same budget.
+
+Backend activation resets the counter once before starting a release, then allows up to ten minutes for health verification. It does not reset the counter during health polling. An unsuccessful rollback is explicitly stopped to prevent further restart logs. Privacy-maintenance failures continue to leave the backend stopped.
+
+After correcting the underlying problem, an operator can grant a fresh budget manually:
+
+```bash
+sudo systemctl reset-failed transport-platform-backend.service
+sudo systemctl start transport-platform-backend.service
+```
+
+The policy is installed by the next backend deployment. See the [systemd start-limit documentation](https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#StartLimitIntervalSec=interval) for counter/reset semantics. Local verification covers the unit settings and activation order; a live server restart was not performed by this change.

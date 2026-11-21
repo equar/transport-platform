@@ -38,11 +38,12 @@ public class DriverLocationSnapshot extends AuditableEntity {
 
     @Column(name = "latitude", nullable = false, columnDefinition = "VARCHAR(512)")
     @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Coordinate.class)
-    private Double latitude;
+    // Persist a text-valued attribute so Hibernate cannot infer a floating-point JDBC column.
+    private String latitude;
 
     @Column(name = "longitude", nullable = false, columnDefinition = "VARCHAR(512)")
     @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Coordinate.class)
-    private Double longitude;
+    private String longitude;
 
     @Column(name = "accuracy_meters")
     private Double accuracyMeters;
@@ -93,19 +94,19 @@ public class DriverLocationSnapshot extends AuditableEntity {
     }
 
     public Double getLatitude() {
-        return latitude;
+        return latitude == null ? null : Double.valueOf(latitude);
     }
 
     public void setLatitude(Double latitude) {
-        this.latitude = latitude;
+        this.latitude = latitude == null ? null : latitude.toString();
     }
 
     public Double getLongitude() {
-        return longitude;
+        return longitude == null ? null : Double.valueOf(longitude);
     }
 
     public void setLongitude(Double longitude) {
-        this.longitude = longitude;
+        this.longitude = longitude == null ? null : longitude.toString();
     }
 
     public Double getAccuracyMeters() {

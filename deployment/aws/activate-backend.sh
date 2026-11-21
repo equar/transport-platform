@@ -56,6 +56,7 @@ rollback() {
       cp -p "$app/.env.previous" "$app/.env"
       cp -p "$app/service.previous" "$unit"
       systemctl daemon-reload
+      systemctl reset-failed "$service"
       systemctl restart "$service" || true
       restored=false
       for _ in $(seq 1 60); do
@@ -63,7 +64,10 @@ rollback() {
         sleep 2
       done
       if [[ "$restored" == true ]]; then echo 'Previous healthy JAR/environment/service restored.' >&2;
-      else echo 'Rollback did not recover health; operator attention required.' >&2; fi
+      else
+        systemctl stop "$service" || true
+        echo 'Rollback did not recover health; backend stopped; operator attention required.' >&2
+      fi
     else
       echo 'No healthy previous release to restore. The failed release is stopped.' >&2
     fi
@@ -90,8 +94,12 @@ if ! systemctl start transport-platform-privacy-maintenance.service; then
   echo 'Offline privacy maintenance failed. Backend remains stopped; inspect maintenance service logs.' >&2
   exit 1
 fi
+# Give this deployment a fresh three-start budget, exactly once before starting.
+systemctl reset-failed "$service"
 systemctl restart "$service"
-for _ in $(seq 1 90); do
+# Allow all three attempts and their one-minute delays within a bounded health window.
+health_deadline=$((SECONDS + 600))
+while (( SECONDS < health_deadline )); do
   if systemctl is-active --quiet "$service" && healthy; then
     printf '%s\n' "$release_id" > "$app/release-id"
     echo "Transport backend release $release_id is healthy."

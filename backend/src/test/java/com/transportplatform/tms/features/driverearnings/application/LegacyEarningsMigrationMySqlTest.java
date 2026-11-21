@@ -70,7 +70,7 @@ class LegacyEarningsMigrationMySqlTest {
                     + " audit_logs(tenant_id,module_name,action_name,entity_type,entity_id,summary,created_by,created_at,updated_by,updated_at)"
                     + " VALUES(?,'DRIVER_EARNINGS','EARNINGS_APPROVED','DRIVER_EARNINGS_LEDGER',?,'Human"
                     + " approval','fixture',NOW(),'fixture',NOW())",
-                tenant,
+                tenant.toUpperCase(java.util.Locale.ROOT),
                 Long.toString(reviewed));
         migrate(null);
         assertThat(

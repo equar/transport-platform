@@ -82,20 +82,19 @@ public final class PhiConverters {
   }
 
   @Converter
-  public static class Coordinate implements AttributeConverter<Double, String> {
+  public static class Coordinate implements AttributeConverter<String, String> {
     private final PhiCipher crypto;
 
     public Coordinate(PhiCipher crypto) {
       this.crypto = crypto;
     }
 
-    public String convertToDatabaseColumn(Double value) {
-      return crypto.encrypt(value == null ? null : value.toString(), "coordinate");
+    public String convertToDatabaseColumn(String value) {
+      return crypto.encrypt(value, "coordinate");
     }
 
-    public Double convertToEntityAttribute(String value) {
-      String plain = crypto.decrypt(value, "coordinate");
-      return plain == null ? null : Double.valueOf(plain);
+    public String convertToEntityAttribute(String value) {
+      return crypto.decrypt(value, "coordinate");
     }
   }
 }
