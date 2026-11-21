@@ -39,6 +39,6 @@ Worker intervals are configurable: `app.billing.aging.interval-ms` (900000), `ap
 - Web: **130 tests passed** across 42 files; public/admin production builds and build-isolation checks passed.
 - Mobile: type check and **nine offline-queue tests passed**. A native device build was not performed for this API-contract change.
 - Deployment configuration: **25 Python tests passed**.
-- Shared API contracts regenerated from the tested backend's OpenAPI response; final web/mobile type checks and `git diff --check` passed.
+- Shared API contracts regenerated from the database-free `ApiContractGenerationTest` schema export used by CI; runtime OpenAPI wrapper schemas are not the canonical source. Repeat generation produces identical web/mobile files. Final web/mobile type checks and `git diff --check` passed.
 
 Backend verification used an isolated source copy to avoid interference from editor compilation. These are local/disposable-database checks; production migration, key custody, log forwarding and immutable checkpoint retention still require deployment verification.

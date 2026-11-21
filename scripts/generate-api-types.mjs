@@ -1,6 +1,7 @@
-// Generate matching web/mobile contracts from a running local/dev OpenAPI endpoint or a saved specification.
+// Default to the same database-free schema export used by CI. A runtime OpenAPI
+// endpoint includes different wrapper schemas and must not replace this source.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-const source = process.argv[2] ?? 'http://localhost:8082/api/v3/api-docs';
+const source = process.argv[2] ?? 'backend/target/api-contracts.json';
 const spec = /^https?:/.test(source) ? await (await fetch(source)).json() : JSON.parse(await readFile(source, 'utf8'));
 function type(s = {}) {
   if (s.type === 'object' && !s.properties && !s.additionalProperties) return 'Record<string, unknown>';
