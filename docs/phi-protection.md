@@ -38,6 +38,16 @@ Incident keyword search uses incident codes rather than encrypted titles/narrati
 
 Generate independent keys with an approved secret manager or `openssl rand -base64 32`; store them outside the database and repository. Do not reuse the MFA key. Deployment validation rejects missing/malformed keys and MFA/lookup reuse. Test-only keys live exclusively on the test classpath and must never be copied into deployment configuration. A test-only environment postprocessor isolates fixtures from inherited deployment secrets. Automatic timers are disabled in tests; worker methods are exercised explicitly against their disposable databases.
 
+For GitHub Actions, use **Settings → Secrets and variables → Actions**:
+
+| Kind | Name | Format |
+| --- | --- | --- |
+| Repository secret | `APP_PRIVACY_ENCRYPTION_KEYS` | `v1:` followed by one generated base64 key |
+| Repository secret | `APP_PRIVACY_LOOKUP_KEY` | A separately generated base64 key |
+| Repository variable | `APP_PRIVACY_ACTIVE_KEY_ID` | `v1` (the ring entry's ID) |
+
+For a first-time setup, run `openssl rand -base64 32` twice locally and put each result directly in the appropriate secret. These are separate from the MFA key. Do not paste key values into chat, tickets or commits. Keep the ring on a single line; do not wrap keys in literal quotes. If protected data already exists, restore its original encryption ring and lookup key from secure storage instead of generating replacements. Use the same settings for the offline migration and running backend. The deployment validator names the missing or invalid setting without displaying its value.
+
 No production default key is supplied. `APP_PRIVACY_ALLOW_LEGACY_READS` defaults false, does not disable encryption of writes, and is rejected when true in the production profile. Its non-production use is limited to disposable fixtures or a controlled migration exercise.
 
 ## Audit and notification minimization

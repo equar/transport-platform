@@ -28,6 +28,18 @@ export function setApiSession(session: ClientSession | null) {
   currentSession = session;
 }
 
+// Capture before asynchronous request preparation; the interceptor rejects account switches.
+export function captureTenantRequestScope() {
+  const identity = currentSession?.identity;
+  if (!currentSession?.accessToken || identity?.id == null || !identity.tenantId) {
+    throw new axios.CanceledError('An authenticated company account is required.');
+  }
+  return {
+    key: JSON.stringify([identity.tenantId, identity.id]),
+    config: { _sessionGeneration: sessionGeneration } as import('axios').AxiosRequestConfig,
+  };
+}
+
 function readSession() { return currentSession; }
 
 let refreshPromise: Promise<string | null> | null = null;

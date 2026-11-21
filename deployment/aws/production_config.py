@@ -100,20 +100,36 @@ def settings(environ=None, target='all', require_ssh=True):
         raise ValueError('APP_SECURITY_MFA_ENCRYPTION_KEY must be base64-encoded 32 random bytes') from None
     if len(mfa_key) != 32:
         raise ValueError('APP_SECURITY_MFA_ENCRYPTION_KEY must be base64-encoded 32 random bytes')
+    ring = required(env, 'APP_PRIVACY_ENCRYPTION_KEYS')
+    active_id = required(env, 'APP_PRIVACY_ACTIVE_KEY_ID')
+    lookup_encoded = required(env, 'APP_PRIVACY_LOOKUP_KEY')
+    phi_keys = {}
+    for entry in ring.split(','):
+        parts = entry.strip().split(':', 1)
+        if len(parts) != 2 or not re.fullmatch(r'[A-Za-z0-9_-]{1,32}', parts[0]):
+            raise ValueError('APP_PRIVACY_ENCRYPTION_KEYS must use key-id:base64-key entries, separated by commas')
+        name, encoded = parts
+        if name in phi_keys:
+            raise ValueError('APP_PRIVACY_ENCRYPTION_KEYS contains a duplicate key ID')
+        try:
+            key = base64.b64decode(encoded, validate=True)
+        except (ValueError, binascii.Error):
+            raise ValueError('APP_PRIVACY_ENCRYPTION_KEYS contains an invalid base64 key') from None
+        if len(key) != 32:
+            raise ValueError('Each APP_PRIVACY_ENCRYPTION_KEYS entry must decode to exactly 32 bytes')
+        phi_keys[name] = key
+    if active_id not in phi_keys:
+        raise ValueError('APP_PRIVACY_ACTIVE_KEY_ID must match a key ID in APP_PRIVACY_ENCRYPTION_KEYS; configure it as a GitHub Actions variable')
     try:
-        phi_keys = {}
-        for entry in required(env, 'APP_PRIVACY_ENCRYPTION_KEYS').split(','):
-            name, encoded = entry.strip().split(':', 1)
-            if not re.fullmatch(r'[A-Za-z0-9_-]{1,32}', name) or name in phi_keys:
-                raise ValueError()
-            phi_keys[name] = base64.b64decode(encoded, validate=True)
-        lookup_key = base64.b64decode(required(env, 'APP_PRIVACY_LOOKUP_KEY'), validate=True)
-        if any(len(key) != 32 for key in phi_keys.values()) or len(lookup_key) != 32 or required(env, 'APP_PRIVACY_ACTIVE_KEY_ID') not in phi_keys:
-            raise ValueError()
-        if lookup_key in phi_keys.values() or mfa_key in phi_keys.values() or lookup_key == mfa_key:
-            raise ValueError()
+        lookup_key = base64.b64decode(lookup_encoded, validate=True)
     except (ValueError, binascii.Error):
-        raise ValueError('Privacy encryption requires a valid key ring, active key ID and independent base64-encoded 32-byte lookup key; do not reuse the MFA key') from None
+        raise ValueError('APP_PRIVACY_LOOKUP_KEY must be base64-encoded 32 random bytes') from None
+    if len(lookup_key) != 32:
+        raise ValueError('APP_PRIVACY_LOOKUP_KEY must decode to exactly 32 bytes')
+    if lookup_key in phi_keys.values():
+        raise ValueError('APP_PRIVACY_LOOKUP_KEY must be different from every APP_PRIVACY_ENCRYPTION_KEYS key')
+    if mfa_key in phi_keys.values() or lookup_key == mfa_key:
+        raise ValueError('Privacy keys must not reuse APP_SECURITY_MFA_ENCRYPTION_KEY')
     if env['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS'] not in ('true', 'false'):
         raise ValueError('APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS must be true or false')
     origins = env['APP_SECURITY_ALLOWED_ORIGINS'].split(',')

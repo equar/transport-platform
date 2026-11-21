@@ -1,6 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig, type AxiosAdapter } from 'axios';
 import { afterEach, expect, it, vi } from 'vitest';
-import { apiClient, setApiSession } from './client';
+import { apiClient, setApiSession, captureTenantRequestScope } from './client';
 const originalAdapter=apiClient.defaults.adapter;
 afterEach(()=>{apiClient.defaults.adapter=originalAdapter;setApiSession(null);vi.restoreAllMocks();});
 it.each(['/v1/auth/verify-email', '/v1/auth/resend-verification'])(
@@ -60,4 +60,19 @@ it('still serializes ordinary API object bodies as JSON', async () => {
   await apiClient.post('/company/drivers',{firstName:'Taylor'});
   expect(captured.data).toBe(JSON.stringify({firstName:'Taylor'}));
   expect(captured.headers.get('Content-Type')).toContain('application/json');
+});
+
+it('rejects a prepared financial request before attaching another account credentials', async () => {
+  setApiSession({ accessToken: 'a', identity: { id: 1, tenantId: 'tenant-a' } });
+  const scope = captureTenantRequestScope();
+  const adapter = vi.fn(); apiClient.defaults.adapter = adapter as AxiosAdapter;
+  setApiSession({ accessToken: 'b', identity: { id: 2, tenantId: 'tenant-b' } });
+  await expect(apiClient.post('/company/invoices/generate', {}, scope.config)).rejects.toThrow('The account changed.');
+  expect(adapter).not.toHaveBeenCalled();
+});
+it('requires a tenant and user before capturing a financial retry scope', () => {
+  setApiSession(null);
+  expect(() => captureTenantRequestScope()).toThrow('authenticated company account');
+  setApiSession({ accessToken: 'platform', identity: { id: 1, tenantId: null } });
+  expect(() => captureTenantRequestScope()).toThrow('authenticated company account');
 });

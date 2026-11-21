@@ -50,6 +50,7 @@ class InvoiceGenerationIdempotencyMySqlIntegrationTest {
     }
     @Autowired private InvoiceService service;
     @Autowired private InvoiceRepository invoices;
+    @Autowired private InvoiceLineItemRepository lines;
     @MockBean private BillingAccessService access;
     @MockBean private BillingReferenceValidationService references;
     @MockBean private BillingCalculationService calculations;
@@ -103,25 +104,29 @@ class InvoiceGenerationIdempotencyMySqlIntegrationTest {
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
 
         try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
-            Future<Integer> firstClaim = executor.submit(() -> transactionTemplate.execute(status -> {
-                int result = repository.claim(tenantId, user.getId(), "invoice-claim-concurrent", "request-hash",
-                        createdAt);
-                firstClaimed.countDown();
-                await(releaseFirstTransaction);
-                return result;
-            }));
+            try {
+                Future<Integer> firstClaim = executor.submit(() -> transactionTemplate.execute(status -> {
+                    int result = repository.claim(tenantId, user.getId(), "invoice-claim-concurrent", "request-hash",
+                            createdAt);
+                    firstClaimed.countDown();
+                    await(releaseFirstTransaction);
+                    return result;
+                }));
 
-            assertThat(firstClaimed.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
-            Future<Integer> secondClaim = executor.submit(() -> transactionTemplate.execute(status -> {
-                secondStarted.countDown();
-                return repository.claim(tenantId, user.getId(), "invoice-claim-concurrent", "request-hash", createdAt);
-            }));
+                assertThat(firstClaimed.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                Future<Integer> secondClaim = executor.submit(() -> transactionTemplate.execute(status -> {
+                    secondStarted.countDown();
+                    return repository.claim(tenantId, user.getId(), "invoice-claim-concurrent", "request-hash", createdAt);
+                }));
 
-            assertThat(secondStarted.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
-            releaseFirstTransaction.countDown();
+                assertThat(secondStarted.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                releaseFirstTransaction.countDown();
 
-            assertThat(firstClaim.get()).isEqualTo(1);
-            assertThat(secondClaim.get()).isZero();
+                assertThat(firstClaim.get(10, java.util.concurrent.TimeUnit.SECONDS)).isEqualTo(1);
+                assertThat(secondClaim.get(10, java.util.concurrent.TimeUnit.SECONDS)).isZero();
+            } finally {
+                releaseFirstTransaction.countDown();
+            }
         }
     }
 
@@ -222,6 +227,22 @@ class InvoiceGenerationIdempotencyMySqlIntegrationTest {
             "USD", java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO, null, null, null, java.util.List.of(item));
     }
 
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void batchClaimsIgnoreVoidsOtherTenantsAndCurrentLines() {
+        String tenant=UUID.randomUUID().toString(); saveUser(tenant,"batch@example.com");
+        long old=invoice(tenant), active=invoice(tenant);
+        line(tenant,old,1,"RIDE",10L);
+        db.update("UPDATE invoices SET status='VOID' WHERE id=?",old);
+        db.update("UPDATE invoice_line_items SET ride_claim_active=FALSE WHERE invoice_id=?",old);
+        line(tenant,active,1,"RIDE",10L); line(tenant,active,2,"RIDE",20L);
+        assertThat(lines.findConflictingRideIds(tenant,java.util.List.of(10L,20L,30L),java.util.List.of(-1L)))
+            .containsExactlyInAnyOrder(10L,20L);
+        var current=db.queryForList("SELECT id FROM invoice_line_items WHERE invoice_id=?",Long.class,active);
+        assertThat(lines.findConflictingRideIds(tenant,java.util.List.of(10L,20L),current)).isEmpty();
+        assertThat(lines.findConflictingRideIds("other",java.util.List.of(10L,20L),java.util.List.of(-1L))).isEmpty();
+    }
+
     private boolean tryLine(String tenant, long invoice, int number, long ride) {
         try { line(tenant, invoice, number, "RIDE", ride); return true; }
         catch (org.springframework.dao.DataIntegrityViolationException expected) { return false; }
@@ -239,7 +260,9 @@ class InvoiceGenerationIdempotencyMySqlIntegrationTest {
 
     private void await(CountDownLatch latch) {
         try {
-            latch.await();
+            if (!latch.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Timed out while coordinating concurrent claim test.");
+            }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while coordinating concurrent claim test.", exception);
