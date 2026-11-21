@@ -83,6 +83,16 @@ class SelectionTests(unittest.TestCase):
 
 
 class ConfigurationTests(unittest.TestCase):
+    def test_scanning_defaults_off_and_supports_an_explicit_production_opt_in(self):
+        values=environment()
+        self.assertEqual(runtime_settings(settings(values))['APP_DOCUMENT_SCAN_ENABLED'], 'false')
+        values['APP_DOCUMENT_SCAN_ENABLED']='true'
+        self.assertEqual(runtime_settings(settings(values))['APP_DOCUMENT_SCAN_ENABLED'], 'true')
+        values['APP_DOCUMENT_SCAN_ENABLED']='invalid'
+        with self.assertRaisesRegex(ValueError, 'must be true or false'):
+            settings(values)
+
+
     def test_email_bootstrap_requires_real_delivery_and_exclusive_mode(self):
         env = environment()
         env.update(APP_EMAIL_ENABLED='false', APP_EMAIL_PROVIDER='logging', APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL_ENABLED='true', APP_BOOTSTRAP_PLATFORM_ADMIN_EMAILS='apps@bakaroo.com,equarhishe@gmail.com')

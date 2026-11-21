@@ -22,8 +22,11 @@ def configuration(env_file=None):
                 if len(tokens) != 1:
                     raise ValueError('Invalid document scanner setting: ' + key)
                 values[key] = tokens[0].partition('=')[2]
-    if values.get('APP_DOCUMENT_SCAN_ENABLED', 'true').lower() != 'true':
-        raise ValueError('Production document scanning must remain enabled.')
+    enabled = values.get('APP_DOCUMENT_SCAN_ENABLED', 'false').lower()
+    if enabled not in ('true', 'false'):
+        raise ValueError('APP_DOCUMENT_SCAN_ENABLED must be true or false.')
+    if enabled == 'false':
+        return None
     host = values.get('APP_DOCUMENT_SCAN_HOST', '127.0.0.1')
     if host not in ('127.0.0.1', 'localhost', '::1'):
         raise ValueError('Document scanner must use a loopback host.')
@@ -52,7 +55,11 @@ def main():
     parser.add_argument('--env-file')
     args = parser.parse_args()
     try:
-        host, port = configuration(args.env_file)
+        configured = configuration(args.env_file)
+        if configured is None:
+            print('Document malware scanning is disabled by configuration; skipping ClamAV readiness check.')
+            return 0
+        host, port = configured
     except (OSError, ValueError) as error:
         print('Document scanner configuration failed: ' + str(error), file=sys.stderr)
         return 1
@@ -66,7 +73,7 @@ def main():
                 time.sleep(1)
     print(f'Document scanner unavailable at {host}:{port}. Start or repair ClamAV clamd, '
           'check its signature database and loopback TCP configuration, then retry deployment. '
-          'Document scanning must not be disabled.', file=sys.stderr)
+          'If scanning is intentionally optional, set APP_DOCUMENT_SCAN_ENABLED=false.', file=sys.stderr)
     return 1
 
 

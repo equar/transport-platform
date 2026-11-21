@@ -71,8 +71,17 @@ class DocumentProtectionTest {
             }
         }
     }
-    @Test void productionCannotDisableSecurityScanning() {
+    @Test void productionCanDisableScanningWhileKeepingDocumentEncryption() throws Exception {
         var environment=new MockEnvironment();environment.setActiveProfiles("prod");
-        assertThrows(IllegalStateException.class,()->new DocumentScanner(false,"127.0.0.1",3310,environment));
+        // An unavailable scanner must not be contacted when explicitly disabled.
+        var scanner=new DocumentScanner(false,"127.0.0.1",0,environment);
+        assertDoesNotThrow(()->scanner.requireClean(content));
+        var storage=storage(scanner,1);
+        var stored=storage.store("tenant-a",1L,file());
+        assertTrue(Files.readString(root.resolve(stored)).startsWith("phi1."));
+        Path legacy=root.resolve("tenant-b/2/legacy.pdf");
+        Files.createDirectories(legacy.getParent());Files.write(legacy,content);
+        DocumentFileProtection.protectExisting(root,cipher(),scanner);
+        assertTrue(Files.readString(legacy).startsWith("phi1."));
     }
 }

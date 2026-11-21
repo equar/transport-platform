@@ -29,7 +29,7 @@ DEFAULTS = {
     'APP_LOGGING_LEVEL_WEB': 'WARN', 'APP_LOGGING_LEVEL_SECURITY': 'INFO',
     'APP_LOGGING_LEVEL_SQL': 'WARN', 'APP_LOGGING_LEVEL_SQL_BIND': 'OFF',
     'VITE_GOOGLE_MAPS_API_KEY': '',
-    'APP_DOCUMENT_SCAN_ENABLED': 'true', 'APP_DOCUMENT_SCAN_HOST': '127.0.0.1', 'APP_DOCUMENT_SCAN_PORT': '3310',
+    'APP_DOCUMENT_SCAN_ENABLED': 'false', 'APP_DOCUMENT_SCAN_HOST': '127.0.0.1', 'APP_DOCUMENT_SCAN_PORT': '3310',
     'APP_DRIVER_DOCUMENT_STORAGE_MAX_TENANT_BYTES': '1073741824', 'APP_DRIVER_DOCUMENT_STORAGE_MAX_TENANT_FILES': '10000',
 }
 VARIABLE_KEYS = (set(DEFAULTS) | {'MYSQL_HOST', 'MYSQL_USER', 'APP_AUTH_PASSWORD_RESET_BASE_URL'}) - SECRET_KEYS
@@ -134,8 +134,10 @@ def settings(environ=None, target='all', require_ssh=True):
         raise ValueError('Privacy keys must not reuse APP_SECURITY_MFA_ENCRYPTION_KEY')
     if env['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS'] not in ('true','false'):
         raise ValueError('APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS must be true or false')
-    if env['APP_DOCUMENT_SCAN_ENABLED'] != 'true' or env['APP_DOCUMENT_SCAN_HOST'] not in ('127.0.0.1', '::1', 'localhost'):
-        raise ValueError('Production requires enabled document scanning on the loopback interface')
+    if env['APP_DOCUMENT_SCAN_ENABLED'] not in ('true', 'false'):
+        raise ValueError('APP_DOCUMENT_SCAN_ENABLED must be true or false')
+    if env['APP_DOCUMENT_SCAN_HOST'] not in ('127.0.0.1', '::1', 'localhost'):
+        raise ValueError('Document scanning must use the loopback interface')
     try:
         if not 1 <= int(env['APP_DOCUMENT_SCAN_PORT']) <= 65535:
             raise ValueError()

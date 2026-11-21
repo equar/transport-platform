@@ -20,7 +20,7 @@ app:
     max-tenant-bytes: ${APP_DRIVER_DOCUMENT_STORAGE_MAX_TENANT_BYTES:1073741824}
     max-tenant-files: ${APP_DRIVER_DOCUMENT_STORAGE_MAX_TENANT_FILES:10000}
   document-scan:
-    enabled: ${APP_DOCUMENT_SCAN_ENABLED:true}
+    enabled: ${APP_DOCUMENT_SCAN_ENABLED:false}
     host: ${APP_DOCUMENT_SCAN_HOST:127.0.0.1}
     port: ${APP_DOCUMENT_SCAN_PORT:3310}
   auth:

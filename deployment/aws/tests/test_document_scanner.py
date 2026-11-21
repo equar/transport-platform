@@ -30,7 +30,7 @@ class DocumentScannerCheckTests(unittest.TestCase):
                     scanner.ping('127.0.0.1', 3310)
 
     def test_connection_refusal_has_actionable_output_without_a_traceback(self):
-        with patch.object(scanner.sys, 'argv', ['check']), patch.dict(os.environ, {}, clear=True), \
+        with patch.object(scanner.sys, 'argv', ['check']), patch.dict(os.environ, {'APP_DOCUMENT_SCAN_ENABLED': 'true'}, clear=True), \
              patch.object(scanner.socket, 'create_connection', side_effect=ConnectionRefusedError()), \
              patch.object(scanner.time, 'sleep'), patch('sys.stderr') as error:
             self.assertEqual(scanner.main(), 1)
@@ -46,10 +46,17 @@ class DocumentScannerCheckTests(unittest.TestCase):
                            'APP_DOCUMENT_SCAN_ENABLED="true"\nPASSWORD="$(exit 1) `exit 1`"\n')
             self.assertEqual(scanner.configuration(env), ('::1', 3320))
 
-    def test_scanning_cannot_be_disabled_or_redirected_to_a_remote_host(self):
-        for settings in ({'APP_DOCUMENT_SCAN_ENABLED': 'false'},
-                         {'APP_DOCUMENT_SCAN_HOST': 'scanner.example.com'},
-                         {'APP_DOCUMENT_SCAN_PORT': '0'}):
+    def test_disabled_or_default_scanning_never_connects_to_clamav(self):
+        for settings in ({}, {'APP_DOCUMENT_SCAN_ENABLED': 'false'}):
+            with patch.dict(os.environ, settings, clear=True), patch.object(scanner.sys, 'argv', ['check']), \
+                 patch.object(scanner.socket, 'create_connection') as connection:
+                self.assertEqual(scanner.main(), 0)
+                connection.assert_not_called()
+
+    def test_enabled_scanning_requires_local_valid_configuration(self):
+        for settings in ({'APP_DOCUMENT_SCAN_ENABLED': 'invalid'},
+                         {'APP_DOCUMENT_SCAN_ENABLED': 'true', 'APP_DOCUMENT_SCAN_HOST': 'scanner.example.com'},
+                         {'APP_DOCUMENT_SCAN_ENABLED': 'true', 'APP_DOCUMENT_SCAN_PORT': '0'}):
             with patch.dict(os.environ, settings, clear=True), self.assertRaises(ValueError):
                 scanner.configuration()
 

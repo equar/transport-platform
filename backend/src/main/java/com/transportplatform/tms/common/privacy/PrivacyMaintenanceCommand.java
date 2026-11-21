@@ -75,7 +75,7 @@ public final class PrivacyMaintenanceCommand {
     if (apply) {
       var environment = new org.springframework.core.env.StandardEnvironment();
       var scanner = new com.transportplatform.tms.features.driver.application.DocumentScanner(
-          Boolean.parseBoolean(env.getOrDefault("APP_DOCUMENT_SCAN_ENABLED", "true")),
+          Boolean.parseBoolean(env.getOrDefault("APP_DOCUMENT_SCAN_ENABLED", "false")),
           env.getOrDefault("APP_DOCUMENT_SCAN_HOST", "127.0.0.1"),
           Integer.parseInt(env.getOrDefault("APP_DOCUMENT_SCAN_PORT", "3310")), environment);
       com.transportplatform.tms.features.driver.application.DocumentFileProtection.protectExisting(
