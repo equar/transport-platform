@@ -72,6 +72,10 @@ export function ProtectedRoute({
     return <Navigate to="/account/password" replace />;
   }
 
+  if (session?.identity.mfaEnrollmentRequired && !["/account/password", "/account/authenticator"].includes(location.pathname)) {
+    return <Navigate to="/account/authenticator" replace />;
+  }
+
   if (allowedRoles && !allowedRoles.some((role) => hasRole(role))) {
     return renderUnauthorizedRedirect();
   }

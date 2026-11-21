@@ -1,3 +1,4 @@
+import { FinancialAdjustmentsPanel } from "../components/FinancialAdjustmentsPanel";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
@@ -699,6 +700,7 @@ export function InvoiceDetailsPage() {
         </Stack>
       </PageCard>
 
+      <FinancialAdjustmentsPanel maximum={invoice.totalAmount} outstanding={invoice.balanceDue} allowCreate={!['DRAFT','VOID'].includes(invoice.status)} allowApply={invoice.balanceDue > 0 && !['DRAFT','VOID'].includes(invoice.status)} invoiceId={invoice.id} currency={invoice.currency} onChanged={() => void loadPage()} />
       <InvoiceUpsertDialog
         open={invoiceDialogOpen}
         invoice={invoice}

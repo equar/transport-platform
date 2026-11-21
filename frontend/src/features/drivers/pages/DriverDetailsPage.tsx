@@ -303,6 +303,7 @@ export function DriverDetailsPage() {
     );
   }
 
+  const qualificationIssues = driver?.complianceSummary.qualificationIssues ?? [];
   const missingRequiredDocuments =
     driver.complianceSummary.missingRequiredDocumentTypes;
   const documentReviewBlocked =
@@ -371,6 +372,7 @@ export function DriverDetailsPage() {
             <StatusChip value={driver.status} />
             <StatusChip value={driver.driverType} />
             <StatusChip value={driver.complianceSummary.overallStatus} />
+            {qualificationIssues.length > 0 ? <Alert severity="warning">Operational qualification review: {qualificationIssues.map(value => value.replaceAll('_',' ').toLowerCase()).join(', ')}.</Alert> : null}
           </Stack>
           <Stack
             direction={{ xs: "column", sm: "row" }}
@@ -556,6 +558,7 @@ export function DriverDetailsPage() {
             </Typography>
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
               <StatusChip value={driver.complianceSummary.overallStatus} />
+            {qualificationIssues.length > 0 ? <Alert severity="warning">Operational qualification review: {qualificationIssues.map(value => value.replaceAll('_',' ').toLowerCase()).join(', ')}.</Alert> : null}
               {driver.complianceSummary.missingRequiredDocumentTypes.map(
                 (item) => (
                   <Chip

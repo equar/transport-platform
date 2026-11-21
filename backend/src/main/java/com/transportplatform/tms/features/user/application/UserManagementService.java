@@ -386,6 +386,7 @@ public class UserManagementService {
             user.setPasswordHash(com.transportplatform.tms.common.security.PasswordEncoding.encode(passwordEncoder, request.password()));
             user.setPasswordChangedAt(clock.instant());
             user.setMustChangePassword(true);
+            user.setTemporaryPasswordExpiresAt(clock.instant().plusSeconds(86400));
         }
     }
 
@@ -393,6 +394,7 @@ public class UserManagementService {
         user.setPasswordHash(com.transportplatform.tms.common.security.PasswordEncoding.encode(passwordEncoder, password));
         user.setPasswordChangedAt(clock.instant());
         user.setMustChangePassword(true);
+            user.setTemporaryPasswordExpiresAt(clock.instant().plusSeconds(86400));
         user.setPasswordResetTokenHash(null);
         user.setPasswordResetRequestedAt(null);
         user.setPasswordResetTokenExpiresAt(null);

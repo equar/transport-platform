@@ -66,6 +66,18 @@ public class Payment extends AuditableEntity {
     @Column(name = "status", nullable = false, length = 30)
     private PaymentStatus status;
 
+    @Column(name="refunded_amount",nullable=false,precision=12,scale=2)
+    private BigDecimal refundedAmount=BigDecimal.ZERO;
+    @Column(name="source_credit_note_id") private Long sourceCreditNoteId;
+    public BigDecimal getRefundedAmount(){return refundedAmount==null?BigDecimal.ZERO:refundedAmount;}
+    public void setRefundedAmount(BigDecimal value){refundedAmount=value;}
+    public Long getSourceCreditNoteId(){return sourceCreditNoteId;}
+    public void setSourceCreditNoteId(Long value){sourceCreditNoteId=value;}
+    public BigDecimal getCollectedAmount(){
+        if(status==null || paymentMethod==PaymentMethod.CREDIT_NOTE || !java.util.Set.of(PaymentStatus.APPLIED,PaymentStatus.PARTIALLY_APPLIED,PaymentStatus.PARTIALLY_REFUNDED,PaymentStatus.REFUNDED).contains(status))return BigDecimal.ZERO;
+        return amount.subtract(getRefundedAmount());
+    }
+
     public Long getId() {
         return id;
     }

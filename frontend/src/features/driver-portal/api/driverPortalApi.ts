@@ -1,5 +1,7 @@
-import { apiClient, unwrapResponse } from "../../../shared/api/client";
+import { apiClient, unwrapResponse, captureTenantRequestScope } from "../../../shared/api/client";
 import type { PageResponse } from "../../../shared/api/types";
+
+const pendingActions = new Map<string,string>();
 
 export type DriverPortalRideStatus =
   | "DRAFT"
@@ -224,7 +226,16 @@ export const driverPortalApi = {
     return unwrapResponse<DriverPortalRideDetailRecord>(response.data);
   },
   async postRideAction(rideId: number, action: string, expectedStatus?: string) {
-    const response = await apiClient.post(`${basePath}/rides/${rideId}/actions/${action}`, undefined, { headers: expectedStatus ? { 'X-Expected-Ride-Status': expectedStatus } : undefined });
+    const scope = captureTenantRequestScope();
+    const intent = `driver-action-intent:${JSON.stringify([scope.key, rideId, action, expectedStatus])}`;
+    let key = pendingActions.get(intent);
+    try { key = sessionStorage.getItem(intent) ?? key; } catch { /* Memory fallback. */ }
+    key ??= crypto.randomUUID();
+    pendingActions.set(intent, key);
+    try { sessionStorage.setItem(intent, key); } catch { /* Memory fallback. */ }
+    const response = await apiClient.post(`${basePath}/rides/${rideId}/actions/${action}`, undefined, { ...scope.config, headers: { 'Idempotency-Key': key, ...(expectedStatus ? { 'X-Expected-Ride-Status': expectedStatus } : {}) } });
+    if (pendingActions.get(intent) === key) pendingActions.delete(intent);
+    try { if (sessionStorage.getItem(intent) === key) sessionStorage.removeItem(intent); } catch { /* Memory fallback. */ }
     return unwrapResponse<DriverPortalRideDetailRecord>(response.data);
   },
   async searchRoutes(params: Record<string, unknown>) {

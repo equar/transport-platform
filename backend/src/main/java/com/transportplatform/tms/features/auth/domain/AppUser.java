@@ -94,7 +94,7 @@ public class AppUser extends AuditableEntity {
     public Instant getTemporaryPasswordExpiresAt() { return temporaryPasswordExpiresAt; }
     public void setTemporaryPasswordExpiresAt(Instant value) { temporaryPasswordExpiresAt = value; }
     public boolean isTemporaryPasswordExpired(Instant now) {
-        return mustChangePassword && temporaryPasswordExpiresAt != null && !temporaryPasswordExpiresAt.isAfter(now);
+        return mustChangePassword && (temporaryPasswordExpiresAt == null || !temporaryPasswordExpiresAt.isAfter(now));
     }
 
     @Column(name = "password_changed_at")
@@ -170,7 +170,7 @@ public class AppUser extends AuditableEntity {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
-        this.temporaryPasswordExpiresAt = null;
+        this.temporaryPasswordExpiresAt = mustChangePassword ? Instant.now().plusSeconds(86400) : null;
     }
 
     public boolean isMustChangePassword() {
@@ -179,6 +179,8 @@ public class AppUser extends AuditableEntity {
 
     public void setMustChangePassword(boolean mustChangePassword) {
         this.mustChangePassword = mustChangePassword;
+        if (!mustChangePassword) temporaryPasswordExpiresAt = null;
+        else if (temporaryPasswordExpiresAt == null) temporaryPasswordExpiresAt = Instant.now().plusSeconds(86400);
     }
 
     public Instant getPasswordChangedAt() {

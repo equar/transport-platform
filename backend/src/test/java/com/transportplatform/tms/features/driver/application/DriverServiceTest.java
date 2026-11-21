@@ -69,7 +69,7 @@ class DriverServiceTest {
                 when(driverComplianceSummaryService.getSummary(any(), any(Driver.class))).thenReturn(
                                 new DriverComplianceSummaryResponse(4, 0, 0, 0, 4, DriverComplianceStatus.NON_COMPLIANT,
                                                 null,
-                                                Set.of()));
+                                                Set.of(), java.util.Set.of()));
 
                 driverService.createCompanyDriver(new DriverUpsertRequest(
                                 "Taylor",
@@ -133,7 +133,7 @@ class DriverServiceTest {
                 when(driverAccessService.findDriverForCompanyScope(10L)).thenReturn(driver);
                 when(driverComplianceSummaryService.getSummary("tenant-123", driver)).thenReturn(
                                 new DriverComplianceSummaryResponse(4, 3, 2, 1, 1, DriverComplianceStatus.NON_COMPLIANT,
-                                                15, Set.of()));
+                                                15, Set.of(), java.util.Set.of()));
 
                 ApiException exception = assertThrows(ApiException.class,
                                 () -> driverService.activateCompanyDriver(10L));
@@ -160,7 +160,7 @@ class DriverServiceTest {
                 when(driverAccessService.findDriverForCompanyScope(10L)).thenReturn(driver);
                 when(driverComplianceSummaryService.getSummary("tenant-123", driver)).thenReturn(
                                 new DriverComplianceSummaryResponse(4, 4, 3, 0, 0,
-                                                DriverComplianceStatus.ACTION_REQUIRED, 90, Set.of()));
+                                                DriverComplianceStatus.ACTION_REQUIRED, 90, Set.of(), java.util.Set.of()));
 
                 ApiException exception = assertThrows(ApiException.class,
                                 () -> driverService.completeCompanyDriverDocuments(10L));

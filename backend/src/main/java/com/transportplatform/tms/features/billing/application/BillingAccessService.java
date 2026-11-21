@@ -116,10 +116,12 @@ public class BillingAccessService {
         return paymentRepository.existsByInvoiceIdAndTenantIdAndStatusIn(
                 invoice.getId(),
                 invoice.getTenantId(),
-                List.of(PaymentStatus.RECORDED, PaymentStatus.APPLIED, PaymentStatus.PARTIALLY_APPLIED));
+                List.of(PaymentStatus.RECORDED, PaymentStatus.APPLIED, PaymentStatus.PARTIALLY_APPLIED, PaymentStatus.PARTIALLY_REFUNDED));
     }
 
     public List<Invoice> findAllInvoicesForTenant(String tenantId) {
-        return invoiceRepository.findAllByTenantId(tenantId);
+        String authorizedTenant = requireCompanyTenantId();
+        if (!java.util.Objects.equals(authorizedTenant, tenantId)) throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "Invoice access is restricted to your company.");
+        return invoiceRepository.findAllByTenantId(authorizedTenant);
     }
 }

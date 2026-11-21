@@ -12,5 +12,6 @@ public record DriverComplianceSummaryResponse(
         long missingRequiredDocumentCount,
         DriverComplianceStatus overallStatus,
         Integer daysUntilNextExpiringDocument,
-        Set<DriverDocumentType> missingRequiredDocumentTypes) {
+        Set<DriverDocumentType> missingRequiredDocumentTypes,
+        Set<String> qualificationIssues) {
 }

@@ -28,6 +28,12 @@ public class DriverActionIdempotency {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name="result_json",columnDefinition="LONGTEXT")
+    @jakarta.persistence.Convert(converter=com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
+    private String resultJson;
+    public String getResultJson(){return resultJson;}
+    public void setResultJson(String value){resultJson=value;}
+
     public void setTenantId(String value) { tenantId = value; }
     public void setUserId(Long value) { userId = value; }
     public void setIdempotencyKey(String value) { idempotencyKey = value; }

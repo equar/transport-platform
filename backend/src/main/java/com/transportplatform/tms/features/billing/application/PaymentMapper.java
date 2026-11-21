@@ -43,7 +43,7 @@ public class PaymentMapper {
                 payment.getCreatedBy(),
                 payment.getCreatedAt(),
                 payment.getUpdatedBy(),
-                payment.getUpdatedAt());
+                payment.getUpdatedAt(), payment.getRefundedAmount());
     }
 
     public PaymentDetailResponse toDetail(Payment payment, InvoiceStatus effectiveInvoiceStatus) {
@@ -71,7 +71,7 @@ public class PaymentMapper {
                 payment.getCreatedBy(),
                 payment.getCreatedAt(),
                 payment.getUpdatedBy(),
-                payment.getUpdatedAt());
+                payment.getUpdatedAt(), payment.getRefundedAmount(), payment.getInvoice().getCurrency());
     }
 
     public PaymentStatus resolveAppliedStatus(BigDecimal resultingBalance) {

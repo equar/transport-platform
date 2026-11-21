@@ -61,6 +61,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Import({
   JpaAuditConfig.class,
   PrivacyRetentionService.class,
+  com.transportplatform.tms.features.audit.application.AuditIntegrityService.class,
   PrivacyMySqlTest.Config.class,
   com.transportplatform.tms.features.subscriptionbilling.application.DriverMeteringListener.class
 })
@@ -78,6 +79,11 @@ class PrivacyMySqlTest {
 
   @TestConfiguration
   static class Config {
+    @Bean
+    com.fasterxml.jackson.databind.ObjectMapper mapper() {
+      return new com.fasterxml.jackson.databind.ObjectMapper();
+    }
+
     @Bean
     Clock clock() {
       return Clock.systemUTC();
@@ -171,6 +177,70 @@ class PrivacyMySqlTest {
 
   @Test
   @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  void deploymentCommandProtectsOutdatedInventoryAndSkipsAnAlreadyReadyRelease() throws Exception {
+    db.update("DELETE FROM privacy_protection_state WHERE id=1");
+    try {
+      assertThat(maintenanceProcess("--ensure-ready", 0)).contains("PROTECTED ");
+      var timestamp =
+          db.queryForObject(
+              "SELECT protected_at FROM privacy_protection_state WHERE id=1",
+              java.time.LocalDateTime.class);
+      assertThat(maintenanceProcess("--ensure-ready", 0))
+          .contains("Privacy inventory is ready")
+          .doesNotContain("PROTECTED ");
+      assertThat(
+              db.queryForObject(
+                  "SELECT protected_at FROM privacy_protection_state WHERE id=1",
+                  java.time.LocalDateTime.class))
+          .isEqualTo(timestamp);
+      assertThat(maintenanceProcess("--check-ready", 0)).contains("Privacy inventory is ready");
+      db.update("UPDATE privacy_protection_state SET inventory_hash='outdated' WHERE id=1");
+      assertThat(maintenanceProcess("--check-ready", 1)).contains("not ready");
+      assertThat(
+              db.queryForObject(
+                  "SELECT inventory_hash FROM privacy_protection_state WHERE id=1", String.class))
+          .isEqualTo("outdated");
+    } finally {
+      db.update("DELETE FROM privacy_protection_state WHERE id=1");
+    }
+  }
+
+  private String maintenanceProcess(String mode, int exit) throws Exception {
+    var output = java.nio.file.Files.createTempFile("privacy-command-test-", ".log");
+    var command =
+        new ProcessBuilder(
+                System.getProperty("java.home") + "/bin/java",
+                "-cp",
+                System.getProperty(
+                    "surefire.test.class.path", System.getProperty("java.class.path")),
+                PrivacyMaintenanceCommand.class.getName(),
+                mode)
+            .redirectErrorStream(true)
+            .redirectOutput(output.toFile());
+    var environment = command.environment();
+    environment.clear();
+    environment.put("TZ", "UTC");
+    environment.put("SPRING_DATASOURCE_URL", MYSQL.getJdbcUrl());
+    environment.put("SPRING_DATASOURCE_USERNAME", MYSQL.getUsername());
+    environment.put("SPRING_DATASOURCE_PASSWORD", MYSQL.getPassword());
+    environment.put(
+        "APP_PRIVACY_ENCRYPTION_KEYS", "test:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+    environment.put("APP_PRIVACY_ACTIVE_KEY_ID", "test");
+    environment.put("APP_PRIVACY_LOOKUP_KEY", "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=");
+    Process process = command.start();
+    try {
+      assertThat(process.waitFor(45, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+      String result = java.nio.file.Files.readString(output);
+      assertThat(process.exitValue()).withFailMessage(result).isEqualTo(exit);
+      return result;
+    } finally {
+      process.destroyForcibly();
+      java.nio.file.Files.deleteIfExists(output);
+    }
+  }
+
+  @Test
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   void offlineMaintenanceProtectsLegacyRowsAndMinimizesHistoricalAuditWithoutLosingStatus()
       throws Exception {
     long id = ride.getRider().getId();
@@ -197,7 +267,13 @@ class PrivacyMySqlTest {
         .isEqualTo("legacy oxygen note");
     try (var c = dataSource.getConnection()) {
       c.setAutoCommit(false);
+      assertThat(PrivacyMaintenanceCommand.ready(c)).isFalse();
       PrivacyMaintenanceCommand.run(c, crypto, true);
+      assertThat(PrivacyMaintenanceCommand.ready(c)).isTrue();
+      c.prepareStatement("UPDATE privacy_protection_state SET inventory_hash='outdated' WHERE id=1")
+          .executeUpdate();
+      assertThat(PrivacyMaintenanceCommand.ready(c)).isFalse();
+      c.rollback();
     }
     String encrypted =
         db.queryForObject("SELECT care_notes_summary FROM riders WHERE id=?", String.class, id);
@@ -214,16 +290,16 @@ class PrivacyMySqlTest {
 
   @Test
   void tenantOverridesInheritAndPlatformLegalHoldWins() {
-    retention.save("PLATFORM", new PrivacyRetentionRequest(365, 180, 30, false, false));
-    retention.save(tenant, new PrivacyRetentionRequest(null, 90, null, true, false));
+    retention.save("PLATFORM", new PrivacyRetentionRequest(365, 180, 30, false, false, null));
+    retention.save(tenant, new PrivacyRetentionRequest(null, 90, null, true, false, null));
     var policy = retention.view(tenant).effective();
     assertThat(policy.operationalReviewDays()).isEqualTo(365);
     assertThat(policy.auditDays()).isEqualTo(90);
     assertThat(policy.notificationDays()).isEqualTo(30);
     assertThat(policy.cleanupEnabled()).isTrue();
-    retention.save("PLATFORM", new PrivacyRetentionRequest(365, 180, 30, true, true));
+    retention.save("PLATFORM", new PrivacyRetentionRequest(365, 180, 30, true, true, null));
     assertThat(retention.view(tenant).effective().legalHold()).isTrue();
-    retention.save(tenant, new PrivacyRetentionRequest(null, 90, null, true, false));
+    retention.save(tenant, new PrivacyRetentionRequest(null, 90, null, true, false, null));
     assertThat(retention.view(tenant).effective().legalHold()).isTrue();
   }
 
@@ -238,14 +314,14 @@ class PrivacyMySqlTest {
               + " VALUES(?,'RIDER','UPDATED','RIDER','1','Update','test',UTC_TIMESTAMP(6)-INTERVAL"
               + " 100 DAY,'test',UTC_TIMESTAMP(6))",
           id);
-    retention.save("PLATFORM", new PrivacyRetentionRequest(null, 30, 30, true, true));
-    retention.save(tenant, new PrivacyRetentionRequest(null, null, null, true, false));
+    retention.save("PLATFORM", new PrivacyRetentionRequest(null, 30, 30, true, true, null));
+    retention.save(tenant, new PrivacyRetentionRequest(null, null, null, true, false, null));
     retention.clean(tenant);
     assertThat(
             db.queryForObject(
                 "SELECT COUNT(*) FROM audit_logs WHERE tenant_id=?", Integer.class, tenant))
         .isEqualTo(1);
-    retention.save("PLATFORM", new PrivacyRetentionRequest(null, 30, 30, true, false));
+    retention.save("PLATFORM", new PrivacyRetentionRequest(null, 30, 30, true, false, null));
     retention.clean(tenant);
     assertThat(
             db.queryForObject(
@@ -259,7 +335,7 @@ class PrivacyMySqlTest {
 
   @Test
   void recordReviewRetainsPrimaryRecordsAndRespectsReviewInterval() {
-    retention.save(tenant, new PrivacyRetentionRequest(30, null, null, false, false));
+    retention.save(tenant, new PrivacyRetentionRequest(30, null, null, false, false, null));
     long id = ride.getRider().getId();
     db.update(
         "UPDATE riders SET status='INACTIVE',updated_at=UTC_TIMESTAMP(6)-INTERVAL 60 DAY WHERE"
@@ -300,7 +376,7 @@ class PrivacyMySqlTest {
           account.getId(),
           crypto.encrypt("Update", "text"),
           status);
-    retention.save(tenant, new PrivacyRetentionRequest(null, null, 30, true, false));
+    retention.save(tenant, new PrivacyRetentionRequest(null, null, 30, true, false, null));
     retention.clean(tenant);
     assertThat(
             db.queryForList(

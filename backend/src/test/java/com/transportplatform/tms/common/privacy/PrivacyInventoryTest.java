@@ -52,7 +52,8 @@ class PrivacyInventoryTest {
             "trip_verified_stops.dropoff_latitude",
             "trip_verified_stops.dropoff_longitude",
             "report_export_jobs.result_csv",
-            "report_export_jobs.request_json"));
+            "report_export_jobs.request_json",
+            "payment_refunds.reason", "credit_notes.reason", "credit_notes.void_reason"));
     assertThat(actual.keySet()).containsExactlyInAnyOrderElementsOf(expected);
   }
 }

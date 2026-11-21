@@ -11,6 +11,8 @@ public interface DriverLocationSnapshotRepository extends JpaRepository<DriverLo
     List<DriverLocationSnapshot> findLatestForRides(@org.springframework.data.repository.query.Param("tenantId") String tenantId,
         @org.springframework.data.repository.query.Param("rideIds") Collection<Long> rideIds);
 
+    Optional<DriverLocationSnapshot> findTopByTenantIdAndDriver_IdOrderByCapturedAtDescIdDesc(String tenantId, Long driverId);
+
     List<DriverLocationSnapshot> findTop1000ByTenantIdAndRide_IdAndDriver_IdOrderByCapturedAtDescIdDesc(String tenantId, Long rideId, Long driverId);
 
     Optional<DriverLocationSnapshot> findTopByTenantIdAndRide_IdOrderByCapturedAtDescIdDesc(String tenantId, Long rideId);

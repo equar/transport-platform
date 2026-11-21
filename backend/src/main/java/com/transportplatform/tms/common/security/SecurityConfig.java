@@ -23,6 +23,7 @@ import com.transportplatform.tms.common.tenant.TenantContextFilter;
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
+    @org.springframework.beans.factory.annotation.Autowired private RejectedMutationTelemetryFilter rejectedMutations;
 
     private final SecurityProperties securityProperties;
         private final RequestCorrelationFilter requestCorrelationFilter;
@@ -85,7 +86,8 @@ public class SecurityConfig {
                 .addFilterBefore(authRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(tenantContextFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(tenantModuleAccessFilter, JwtAuthenticationFilter.class);
+                .addFilterAfter(tenantModuleAccessFilter, JwtAuthenticationFilter.class)
+                .addFilterBefore(rejectedMutations, JwtAuthenticationFilter.class);
 
         return http.build();
     }

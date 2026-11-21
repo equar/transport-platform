@@ -33,13 +33,14 @@ public final class InvoiceStatusWorkflow {
     }
 
     public static InvoiceStatus resolveEffectiveStatus(Invoice invoice, LocalDate today) {
-        if ((invoice.getStatus() == InvoiceStatus.ISSUED || invoice.getStatus() == InvoiceStatus.PARTIALLY_PAID)
+        if ((invoice.getStatus() == InvoiceStatus.ISSUED || invoice.getStatus() == InvoiceStatus.PARTIALLY_PAID || invoice.getStatus() == InvoiceStatus.OVERDUE)
                 && invoice.getBalanceDue() != null
                 && invoice.getBalanceDue().compareTo(BigDecimal.ZERO) > 0
                 && invoice.getDueDate() != null
                 && invoice.getDueDate().isBefore(today)) {
             return InvoiceStatus.OVERDUE;
         }
+        if (invoice.getStatus() == InvoiceStatus.OVERDUE) return invoice.getAmountPaid() != null && invoice.getAmountPaid().signum() > 0 ? InvoiceStatus.PARTIALLY_PAID : InvoiceStatus.ISSUED;
         return invoice.getStatus();
     }
 

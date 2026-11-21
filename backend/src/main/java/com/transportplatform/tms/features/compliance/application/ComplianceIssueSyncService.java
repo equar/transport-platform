@@ -6,8 +6,8 @@ import com.transportplatform.tms.features.compliance.domain.ComplianceIssueRepos
 import com.transportplatform.tms.features.compliance.domain.ComplianceIssueSeverity;
 import com.transportplatform.tms.features.compliance.domain.ComplianceIssueStatus;
 import com.transportplatform.tms.features.compliance.domain.ComplianceIssueType;
-import com.transportplatform.tms.features.driver.application.DriverDocumentStatusWorkflow;
 import com.transportplatform.tms.features.driver.application.DriverComplianceSummaryService;
+import com.transportplatform.tms.features.driver.application.DriverDocumentStatusWorkflow;
 import com.transportplatform.tms.features.driver.domain.Driver;
 import com.transportplatform.tms.features.driver.domain.DriverDocument;
 import com.transportplatform.tms.features.driver.domain.DriverDocumentRepository;
@@ -25,6 +25,10 @@ import com.transportplatform.tms.features.vehicle.domain.VehicleDocumentStatus;
 import com.transportplatform.tms.features.vehicle.domain.VehicleDocumentType;
 import com.transportplatform.tms.features.vehicle.domain.VehicleDocumentVerificationStatus;
 import com.transportplatform.tms.features.vehicle.domain.VehicleRepository;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -36,16 +40,18 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ComplianceIssueSyncService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate db;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.settings.application.TenantTimeService tenantTime;
 
     private static final int EXPIRING_SOON_WINDOW_DAYS = 30;
-    private static final Set<ComplianceIssueStatus> ACTIVE_STATUSES = Set.of(
-            ComplianceIssueStatus.OPEN,
-            ComplianceIssueStatus.ACKNOWLEDGED);
+    private static final Set<ComplianceIssueStatus> ACTIVE_STATUSES =
+            Set.of(ComplianceIssueStatus.OPEN, ComplianceIssueStatus.ACKNOWLEDGED);
 
     private final ComplianceIssueRepository complianceIssueRepository;
     private final DriverRepository driverRepository;
@@ -57,7 +63,8 @@ public class ComplianceIssueSyncService {
     private final NotificationEventService notificationEventService;
     private final Clock clock;
 
-    public ComplianceIssueSyncService(ComplianceIssueRepository complianceIssueRepository,
+    public ComplianceIssueSyncService(
+            ComplianceIssueRepository complianceIssueRepository,
             DriverRepository driverRepository,
             DriverDocumentRepository driverDocumentRepository,
             DriverComplianceSummaryService driverComplianceSummaryService,
@@ -79,38 +86,57 @@ public class ComplianceIssueSyncService {
 
     @Transactional
     public List<ComplianceIssue> synchronizeTenantIssues(String tenantId) {
-        LocalDate today = LocalDate.now(clock);
+        if (org.springframework.transaction.support.TransactionSynchronizationManager
+                .isCurrentTransactionReadOnly())
+            return complianceIssueRepository.findAllByTenantId(tenantId);
+        db.queryForList("SELECT id FROM tenants WHERE id=? FOR UPDATE", tenantId);
+        LocalDate today = tenantTime.today(tenantId);
         LocalDate expiringSoonDate = today.plusDays(EXPIRING_SOON_WINDOW_DAYS);
 
         List<Driver> drivers = driverRepository.findAllByTenantId(tenantId);
-        Map<Long, List<DriverDocument>> driverDocumentsByDriverId = driverDocumentRepository
-                .findAllByTenantIdAndDriver_IdIn(tenantId, drivers.stream().map(Driver::getId).toList())
-                .stream()
-                .sorted(Comparator.comparing(DriverDocument::getCreatedAt,
-                        Comparator.nullsLast(Comparator.naturalOrder())).reversed())
-                .collect(java.util.stream.Collectors.groupingBy(document -> document.getDriver().getId(),
-                        LinkedHashMap::new,
-                        java.util.stream.Collectors.toList()));
+        Map<Long, List<DriverDocument>> driverDocumentsByDriverId =
+                driverDocumentRepository
+                        .findAllByTenantIdAndDriver_IdIn(
+                                tenantId, drivers.stream().map(Driver::getId).toList())
+                        .stream()
+                        .sorted(
+                                Comparator.comparing(
+                                                DriverDocument::getCreatedAt,
+                                                Comparator.nullsLast(Comparator.naturalOrder()))
+                                        .reversed())
+                        .collect(
+                                java.util.stream.Collectors.groupingBy(
+                                        document -> document.getDriver().getId(),
+                                        LinkedHashMap::new,
+                                        java.util.stream.Collectors.toList()));
 
         List<Vehicle> vehicles = vehicleRepository.findAllByTenantId(tenantId);
-        Map<Long, List<VehicleDocument>> vehicleDocumentsByVehicleId = vehicleDocumentRepository
-                .findAllByTenantIdAndVehicle_IdIn(tenantId, vehicles.stream().map(Vehicle::getId).toList())
-                .stream()
-                .sorted(Comparator.comparing(VehicleDocument::getCreatedAt,
-                        Comparator.nullsLast(Comparator.naturalOrder())).reversed())
-                .collect(java.util.stream.Collectors.groupingBy(document -> document.getVehicle().getId(),
-                        LinkedHashMap::new,
-                        java.util.stream.Collectors.toList()));
+        Map<Long, List<VehicleDocument>> vehicleDocumentsByVehicleId =
+                vehicleDocumentRepository
+                        .findAllByTenantIdAndVehicle_IdIn(
+                                tenantId, vehicles.stream().map(Vehicle::getId).toList())
+                        .stream()
+                        .sorted(
+                                Comparator.comparing(
+                                                VehicleDocument::getCreatedAt,
+                                                Comparator.nullsLast(Comparator.naturalOrder()))
+                                        .reversed())
+                        .collect(
+                                java.util.stream.Collectors.groupingBy(
+                                        document -> document.getVehicle().getId(),
+                                        LinkedHashMap::new,
+                                        java.util.stream.Collectors.toList()));
 
         Set<String> activeSourceKeys = new LinkedHashSet<>();
         List<ComplianceIssue> synchronizedIssues = new ArrayList<>();
 
         for (Driver driver : drivers) {
-            List<ComplianceIssueCandidate> candidates = deriveDriverCandidates(
-                    driver,
-                    driverDocumentsByDriverId.getOrDefault(driver.getId(), List.of()),
-                    today,
-                    expiringSoonDate);
+            List<ComplianceIssueCandidate> candidates =
+                    deriveDriverCandidates(
+                            driver,
+                            driverDocumentsByDriverId.getOrDefault(driver.getId(), List.of()),
+                            today,
+                            expiringSoonDate);
             for (ComplianceIssueCandidate candidate : candidates) {
                 activeSourceKeys.add(candidate.sourceKey());
                 synchronizedIssues.add(upsertIssue(candidate));
@@ -118,20 +144,23 @@ public class ComplianceIssueSyncService {
         }
 
         for (Vehicle vehicle : vehicles) {
-            List<ComplianceIssueCandidate> candidates = deriveVehicleCandidates(
-                    vehicle,
-                    vehicleDocumentsByVehicleId.getOrDefault(vehicle.getId(), List.of()),
-                    today,
-                    expiringSoonDate);
+            List<ComplianceIssueCandidate> candidates =
+                    deriveVehicleCandidates(
+                            vehicle,
+                            vehicleDocumentsByVehicleId.getOrDefault(vehicle.getId(), List.of()),
+                            today,
+                            expiringSoonDate);
             for (ComplianceIssueCandidate candidate : candidates) {
                 activeSourceKeys.add(candidate.sourceKey());
                 synchronizedIssues.add(upsertIssue(candidate));
             }
         }
 
-        List<ComplianceIssue> existingIssues = complianceIssueRepository.findAllByTenantId(tenantId);
+        List<ComplianceIssue> existingIssues =
+                complianceIssueRepository.findAllByTenantId(tenantId);
         for (ComplianceIssue issue : existingIssues) {
-            if (!activeSourceKeys.contains(issue.getSourceKey()) && ACTIVE_STATUSES.contains(issue.getIssueStatus())) {
+            if (!activeSourceKeys.contains(issue.getSourceKey())
+                    && ACTIVE_STATUSES.contains(issue.getIssueStatus())) {
                 issue.setIssueStatus(ComplianceIssueStatus.RESOLVED);
                 synchronizedIssues.add(complianceIssueRepository.save(issue));
             }
@@ -141,15 +170,17 @@ public class ComplianceIssueSyncService {
     }
 
     private ComplianceIssue upsertIssue(ComplianceIssueCandidate candidate) {
-        ComplianceIssue issue = complianceIssueRepository
-                .findByTenantIdAndSourceKey(candidate.tenantId(), candidate.sourceKey())
-                .orElseGet(() -> {
-                    ComplianceIssue created = new ComplianceIssue();
-                    created.setTenantId(candidate.tenantId());
-                    created.setSourceKey(candidate.sourceKey());
-                    created.setIssueStatus(ComplianceIssueStatus.OPEN);
-                    return created;
-                });
+        ComplianceIssue issue =
+                complianceIssueRepository
+                        .findByTenantIdAndSourceKey(candidate.tenantId(), candidate.sourceKey())
+                        .orElseGet(
+                                () -> {
+                                    ComplianceIssue created = new ComplianceIssue();
+                                    created.setTenantId(candidate.tenantId());
+                                    created.setSourceKey(candidate.sourceKey());
+                                    created.setIssueStatus(ComplianceIssueStatus.OPEN);
+                                    return created;
+                                });
         ComplianceIssueStatus previousStatus = issue.getIssueStatus();
         boolean newIssue = issue.getId() == null;
 
@@ -163,189 +194,277 @@ public class ComplianceIssueSyncService {
         issue.setExpiryDate(candidate.expiryDate());
         issue.setSummary(candidate.summary());
         issue.setRecommendedAction(candidate.recommendedAction());
-        if (previousStatus == ComplianceIssueStatus.RESOLVED || previousStatus == ComplianceIssueStatus.DISMISSED) {
+        if (previousStatus == ComplianceIssueStatus.RESOLVED
+                || previousStatus == ComplianceIssueStatus.DISMISSED) {
             issue.setIssueStatus(ComplianceIssueStatus.OPEN);
         }
 
         ComplianceIssue saved = complianceIssueRepository.save(issue);
-        if (newIssue || previousStatus == ComplianceIssueStatus.RESOLVED
+        if (newIssue
+                || previousStatus == ComplianceIssueStatus.RESOLVED
                 || previousStatus == ComplianceIssueStatus.DISMISSED) {
             notificationEventService.publishComplianceIssueOpened(saved);
         }
         return saved;
     }
 
-    private List<ComplianceIssueCandidate> deriveDriverCandidates(Driver driver,
+    private List<ComplianceIssueCandidate> deriveDriverCandidates(
+            Driver driver,
             List<DriverDocument> documents,
             LocalDate today,
             LocalDate expiringSoonDate) {
-        List<DriverDocument> activeDocuments = documents.stream()
-                .filter(document -> document.getStatus() == DriverDocumentStatus.ACTIVE)
-                .toList();
+        List<DriverDocument> activeDocuments =
+                documents.stream()
+                        .filter(document -> document.getStatus() == DriverDocumentStatus.ACTIVE)
+                        .toList();
         Map<DriverDocumentType, List<DriverDocument>> documentsByType = new HashMap<>();
         for (DriverDocument document : activeDocuments) {
-            documentsByType.computeIfAbsent(document.getDocumentType(), ignored -> new ArrayList<>()).add(document);
+            documentsByType
+                    .computeIfAbsent(document.getDocumentType(), ignored -> new ArrayList<>())
+                    .add(document);
         }
 
         List<ComplianceIssueCandidate> candidates = new ArrayList<>();
-        for (DriverDocumentType requiredType : driverComplianceSummaryService.getRequiredDocumentTypes()) {
+        for (String issue :
+                driverComplianceSummaryService.qualificationIssues(driver, documents, today)) {
+            candidates.add(
+                    buildDriverCandidate(
+                            driver,
+                            ComplianceIssueType.BLOCKED_FOR_ASSIGNMENT,
+                            ComplianceIssueSeverity.CRITICAL,
+                            issue,
+                            null,
+                            "Driver qualification requires review: "
+                                    + issue.toLowerCase(java.util.Locale.ROOT).replace('_', ' ')
+                                    + ".",
+                            "Review the driver's qualification record and verified documents before"
+                                + " dispatch."));
+        }
+        for (DriverDocumentType requiredType :
+                driverComplianceSummaryService.getRequiredDocumentTypes()) {
             String documentLabel = documentLabel(requiredType);
-            List<DriverDocument> typedDocuments = documentsByType.getOrDefault(requiredType, List.of());
+            List<DriverDocument> typedDocuments =
+                    documentsByType.getOrDefault(requiredType, List.of());
             if (typedDocuments.isEmpty()) {
-                candidates.add(buildDriverCandidate(driver,
-                        ComplianceIssueType.MISSING_REQUIRED_DOCUMENT,
-                        ComplianceIssueSeverity.CRITICAL,
-                        requiredType.name(),
-                        null,
-                        documentLabel + " is missing.",
-                        "Upload and verify the " + documentLabel + " to restore compliance."));
+                candidates.add(
+                        buildDriverCandidate(
+                                driver,
+                                ComplianceIssueType.MISSING_REQUIRED_DOCUMENT,
+                                ComplianceIssueSeverity.CRITICAL,
+                                requiredType.name(),
+                                null,
+                                documentLabel + " is missing.",
+                                "Upload and verify the "
+                                        + documentLabel
+                                        + " to restore compliance."));
                 continue;
             }
-            boolean hasVerified = typedDocuments.stream()
-                    .anyMatch(document -> DriverDocumentStatusWorkflow.resolveEffectiveVerificationStatus(document,
-                            today) == DriverDocumentVerificationStatus.VERIFIED);
+            boolean hasVerified =
+                    typedDocuments.stream()
+                            .anyMatch(
+                                    document ->
+                                            DriverDocumentStatusWorkflow
+                                                            .resolveEffectiveVerificationStatus(
+                                                                    document, today)
+                                                    == DriverDocumentVerificationStatus.VERIFIED);
             if (!hasVerified) {
-                boolean hasPending = typedDocuments.stream()
-                        .anyMatch(document -> DriverDocumentStatusWorkflow.resolveEffectiveVerificationStatus(document,
-                                today) == DriverDocumentVerificationStatus.PENDING);
+                boolean hasPending =
+                        typedDocuments.stream()
+                                .anyMatch(
+                                        document ->
+                                                DriverDocumentStatusWorkflow
+                                                                .resolveEffectiveVerificationStatus(
+                                                                        document, today)
+                                                        == DriverDocumentVerificationStatus
+                                                                .PENDING);
                 if (hasPending) {
                     DriverDocument pendingDocument = typedDocuments.get(0);
-                    candidates.add(buildDriverCandidate(driver,
-                            ComplianceIssueType.UNVERIFIED_DOCUMENT,
-                            ComplianceIssueSeverity.MEDIUM,
-                            requiredType.name(),
-                            pendingDocument.getExpiryDate(),
-                            documentLabel + " is awaiting verification.",
-                            "The company administrator must verify or reject the " + documentLabel + "."));
+                    candidates.add(
+                            buildDriverCandidate(
+                                    driver,
+                                    ComplianceIssueType.UNVERIFIED_DOCUMENT,
+                                    ComplianceIssueSeverity.MEDIUM,
+                                    requiredType.name(),
+                                    pendingDocument.getExpiryDate(),
+                                    documentLabel + " is awaiting verification.",
+                                    "The company administrator must verify or reject the "
+                                            + documentLabel
+                                            + "."));
                 }
             }
         }
 
         for (DriverDocument document : activeDocuments) {
             String documentLabel = documentLabel(document.getDocumentType());
-            DriverDocumentVerificationStatus effectiveStatus = DriverDocumentStatusWorkflow
-                    .resolveEffectiveVerificationStatus(document,
-                            today);
+            DriverDocumentVerificationStatus effectiveStatus =
+                    DriverDocumentStatusWorkflow.resolveEffectiveVerificationStatus(
+                            document, today);
             if (effectiveStatus == DriverDocumentVerificationStatus.EXPIRED) {
-                candidates.add(buildDriverCandidate(driver,
-                        ComplianceIssueType.EXPIRED_DOCUMENT,
-                        isRequired(driverComplianceSummaryService.getRequiredDocumentTypes(),
-                                document.getDocumentType())
+                candidates.add(
+                        buildDriverCandidate(
+                                driver,
+                                ComplianceIssueType.EXPIRED_DOCUMENT,
+                                isRequired(
+                                                driverComplianceSummaryService
+                                                        .getRequiredDocumentTypes(),
+                                                document.getDocumentType())
                                         ? ComplianceIssueSeverity.CRITICAL
                                         : ComplianceIssueSeverity.HIGH,
-                        document.getDocumentType().name(),
-                        document.getExpiryDate(),
-                        documentLabel + " has expired.",
-                        "Upload a renewed " + documentLabel + " and complete verification."));
+                                document.getDocumentType().name(),
+                                document.getExpiryDate(),
+                                documentLabel + " has expired.",
+                                "Upload a renewed "
+                                        + documentLabel
+                                        + " and complete verification."));
             } else if (document.getExpiryDate() != null
                     && !document.getExpiryDate().isBefore(today)
                     && !document.getExpiryDate().isAfter(expiringSoonDate)) {
-                candidates.add(buildDriverCandidate(driver,
-                        ComplianceIssueType.EXPIRING_SOON,
-                        isRequired(driverComplianceSummaryService.getRequiredDocumentTypes(),
-                                document.getDocumentType())
+                candidates.add(
+                        buildDriverCandidate(
+                                driver,
+                                ComplianceIssueType.EXPIRING_SOON,
+                                isRequired(
+                                                driverComplianceSummaryService
+                                                        .getRequiredDocumentTypes(),
+                                                document.getDocumentType())
                                         ? ComplianceIssueSeverity.HIGH
                                         : ComplianceIssueSeverity.MEDIUM,
-                        document.getDocumentType().name(),
-                        document.getExpiryDate(),
-                        documentLabel + " is expiring soon.",
-                        "Upload a renewed " + documentLabel + " before the expiry date."));
+                                document.getDocumentType().name(),
+                                document.getExpiryDate(),
+                                documentLabel + " is expiring soon.",
+                                "Upload a renewed " + documentLabel + " before the expiry date."));
             }
             if (effectiveStatus == DriverDocumentVerificationStatus.REJECTED) {
-                candidates.add(buildDriverCandidate(driver,
-                        ComplianceIssueType.REJECTED_DOCUMENT,
-                        ComplianceIssueSeverity.HIGH,
-                        document.getDocumentType().name(),
-                        document.getExpiryDate(),
-                        documentLabel + " was rejected during review.",
-                        "Upload a corrected " + documentLabel + " for another review."));
+                candidates.add(
+                        buildDriverCandidate(
+                                driver,
+                                ComplianceIssueType.REJECTED_DOCUMENT,
+                                ComplianceIssueSeverity.HIGH,
+                                document.getDocumentType().name(),
+                                document.getExpiryDate(),
+                                documentLabel + " was rejected during review.",
+                                "Upload a corrected " + documentLabel + " for another review."));
             }
         }
         return deduplicate(candidates);
     }
 
-    private List<ComplianceIssueCandidate> deriveVehicleCandidates(Vehicle vehicle,
+    private List<ComplianceIssueCandidate> deriveVehicleCandidates(
+            Vehicle vehicle,
             List<VehicleDocument> documents,
             LocalDate today,
             LocalDate expiringSoonDate) {
-        List<VehicleDocument> activeDocuments = documents.stream()
-                .filter(document -> document.getStatus() == VehicleDocumentStatus.ACTIVE)
-                .toList();
+        List<VehicleDocument> activeDocuments =
+                documents.stream()
+                        .filter(document -> document.getStatus() == VehicleDocumentStatus.ACTIVE)
+                        .toList();
         Map<VehicleDocumentType, List<VehicleDocument>> documentsByType = new HashMap<>();
         for (VehicleDocument document : activeDocuments) {
-            documentsByType.computeIfAbsent(document.getDocumentType(), ignored -> new ArrayList<>()).add(document);
+            documentsByType
+                    .computeIfAbsent(document.getDocumentType(), ignored -> new ArrayList<>())
+                    .add(document);
         }
 
         List<ComplianceIssueCandidate> candidates = new ArrayList<>();
-        for (VehicleDocumentType requiredType : vehicleComplianceSummaryService.getRequiredDocumentTypes()) {
-            List<VehicleDocument> typedDocuments = documentsByType.getOrDefault(requiredType, List.of());
+        for (VehicleDocumentType requiredType :
+                vehicleComplianceSummaryService.getRequiredDocumentTypes()) {
+            List<VehicleDocument> typedDocuments =
+                    documentsByType.getOrDefault(requiredType, List.of());
             if (typedDocuments.isEmpty()) {
-                candidates.add(buildVehicleCandidate(vehicle,
-                        ComplianceIssueType.MISSING_REQUIRED_DOCUMENT,
-                        ComplianceIssueSeverity.CRITICAL,
-                        requiredType.name(),
-                        null,
-                        "Required vehicle document is missing.",
-                        "Upload and verify the missing vehicle document to restore compliance."));
+                candidates.add(
+                        buildVehicleCandidate(
+                                vehicle,
+                                ComplianceIssueType.MISSING_REQUIRED_DOCUMENT,
+                                ComplianceIssueSeverity.CRITICAL,
+                                requiredType.name(),
+                                null,
+                                "Required vehicle document is missing.",
+                                "Upload and verify the missing vehicle document to restore"
+                                    + " compliance."));
                 continue;
             }
-            boolean hasVerified = typedDocuments.stream()
-                    .anyMatch(document -> VehicleDocumentStatusWorkflow.resolveEffectiveVerificationStatus(document,
-                            today) == VehicleDocumentVerificationStatus.VERIFIED);
+            boolean hasVerified =
+                    typedDocuments.stream()
+                            .anyMatch(
+                                    document ->
+                                            VehicleDocumentStatusWorkflow
+                                                            .resolveEffectiveVerificationStatus(
+                                                                    document, today)
+                                                    == VehicleDocumentVerificationStatus.VERIFIED);
             if (!hasVerified) {
-                boolean hasPending = typedDocuments.stream()
-                        .anyMatch(document -> VehicleDocumentStatusWorkflow.resolveEffectiveVerificationStatus(document,
-                                today) == VehicleDocumentVerificationStatus.PENDING);
+                boolean hasPending =
+                        typedDocuments.stream()
+                                .anyMatch(
+                                        document ->
+                                                VehicleDocumentStatusWorkflow
+                                                                .resolveEffectiveVerificationStatus(
+                                                                        document, today)
+                                                        == VehicleDocumentVerificationStatus
+                                                                .PENDING);
                 if (hasPending) {
                     VehicleDocument pendingDocument = typedDocuments.get(0);
-                    candidates.add(buildVehicleCandidate(vehicle,
-                            ComplianceIssueType.UNVERIFIED_DOCUMENT,
-                            ComplianceIssueSeverity.MEDIUM,
-                            requiredType.name(),
-                            pendingDocument.getExpiryDate(),
-                            "Required vehicle document is awaiting verification.",
-                            "Review the pending vehicle document and verify or reject it."));
+                    candidates.add(
+                            buildVehicleCandidate(
+                                    vehicle,
+                                    ComplianceIssueType.UNVERIFIED_DOCUMENT,
+                                    ComplianceIssueSeverity.MEDIUM,
+                                    requiredType.name(),
+                                    pendingDocument.getExpiryDate(),
+                                    "Required vehicle document is awaiting verification.",
+                                    "Review the pending vehicle document and verify or reject"
+                                        + " it."));
                 }
             }
         }
 
         for (VehicleDocument document : activeDocuments) {
-            VehicleDocumentVerificationStatus effectiveStatus = VehicleDocumentStatusWorkflow
-                    .resolveEffectiveVerificationStatus(document,
-                            today);
+            VehicleDocumentVerificationStatus effectiveStatus =
+                    VehicleDocumentStatusWorkflow.resolveEffectiveVerificationStatus(
+                            document, today);
             if (effectiveStatus == VehicleDocumentVerificationStatus.EXPIRED) {
-                candidates.add(buildVehicleCandidate(vehicle,
-                        ComplianceIssueType.EXPIRED_DOCUMENT,
-                        isRequired(vehicleComplianceSummaryService.getRequiredDocumentTypes(),
-                                document.getDocumentType())
+                candidates.add(
+                        buildVehicleCandidate(
+                                vehicle,
+                                ComplianceIssueType.EXPIRED_DOCUMENT,
+                                isRequired(
+                                                vehicleComplianceSummaryService
+                                                        .getRequiredDocumentTypes(),
+                                                document.getDocumentType())
                                         ? ComplianceIssueSeverity.CRITICAL
                                         : ComplianceIssueSeverity.HIGH,
-                        document.getDocumentType().name(),
-                        document.getExpiryDate(),
-                        "Vehicle document has expired.",
-                        "Upload a renewed vehicle document and complete verification."));
+                                document.getDocumentType().name(),
+                                document.getExpiryDate(),
+                                "Vehicle document has expired.",
+                                "Upload a renewed vehicle document and complete verification."));
             } else if (document.getExpiryDate() != null
                     && !document.getExpiryDate().isBefore(today)
                     && !document.getExpiryDate().isAfter(expiringSoonDate)) {
-                candidates.add(buildVehicleCandidate(vehicle,
-                        ComplianceIssueType.EXPIRING_SOON,
-                        isRequired(vehicleComplianceSummaryService.getRequiredDocumentTypes(),
-                                document.getDocumentType())
+                candidates.add(
+                        buildVehicleCandidate(
+                                vehicle,
+                                ComplianceIssueType.EXPIRING_SOON,
+                                isRequired(
+                                                vehicleComplianceSummaryService
+                                                        .getRequiredDocumentTypes(),
+                                                document.getDocumentType())
                                         ? ComplianceIssueSeverity.HIGH
                                         : ComplianceIssueSeverity.MEDIUM,
-                        document.getDocumentType().name(),
-                        document.getExpiryDate(),
-                        "Vehicle document is expiring soon.",
-                        "Request a renewed vehicle document before the expiry date."));
+                                document.getDocumentType().name(),
+                                document.getExpiryDate(),
+                                "Vehicle document is expiring soon.",
+                                "Request a renewed vehicle document before the expiry date."));
             }
             if (effectiveStatus == VehicleDocumentVerificationStatus.REJECTED) {
-                candidates.add(buildVehicleCandidate(vehicle,
-                        ComplianceIssueType.REJECTED_DOCUMENT,
-                        ComplianceIssueSeverity.HIGH,
-                        document.getDocumentType().name(),
-                        document.getExpiryDate(),
-                        "Vehicle document was rejected during review.",
-                        "Obtain a corrected vehicle document submission and re-review it."));
+                candidates.add(
+                        buildVehicleCandidate(
+                                vehicle,
+                                ComplianceIssueType.REJECTED_DOCUMENT,
+                                ComplianceIssueSeverity.HIGH,
+                                document.getDocumentType().name(),
+                                document.getExpiryDate(),
+                                "Vehicle document was rejected during review.",
+                                "Obtain a corrected vehicle document submission and re-review"
+                                    + " it."));
             }
         }
         return deduplicate(candidates);
@@ -359,7 +478,8 @@ public class ComplianceIssueSyncService {
         return new ArrayList<>(unique.values());
     }
 
-    private ComplianceIssueCandidate buildDriverCandidate(Driver driver,
+    private ComplianceIssueCandidate buildDriverCandidate(
+            Driver driver,
             ComplianceIssueType issueType,
             ComplianceIssueSeverity severity,
             String relatedDocumentType,
@@ -367,12 +487,14 @@ public class ComplianceIssueSyncService {
             String summary,
             String recommendedAction) {
         String entityName = (driver.getFirstName() + " " + driver.getLastName()).trim();
-        String sourceKey = String.join(":",
-                driver.getTenantId(),
-                ComplianceEntityType.DRIVER.name(),
-                String.valueOf(driver.getId()),
-                issueType.name(),
-                relatedDocumentType == null ? "NA" : relatedDocumentType);
+        String sourceKey =
+                String.join(
+                        ":",
+                        driver.getTenantId(),
+                        ComplianceEntityType.DRIVER.name(),
+                        String.valueOf(driver.getId()),
+                        issueType.name(),
+                        relatedDocumentType == null ? "NA" : relatedDocumentType);
         return new ComplianceIssueCandidate(
                 driver.getTenantId(),
                 sourceKey,
@@ -388,21 +510,30 @@ public class ComplianceIssueSyncService {
                 recommendedAction);
     }
 
-    private ComplianceIssueCandidate buildVehicleCandidate(Vehicle vehicle,
+    private ComplianceIssueCandidate buildVehicleCandidate(
+            Vehicle vehicle,
             ComplianceIssueType issueType,
             ComplianceIssueSeverity severity,
             String relatedDocumentType,
             LocalDate expiryDate,
             String summary,
             String recommendedAction) {
-        String entityName = (vehicle.getYear() == null ? "" : vehicle.getYear() + " ") + vehicle.getMake() + " "
-                + vehicle.getModel() + " (" + vehicle.getPlateNumber() + ")";
-        String sourceKey = String.join(":",
-                vehicle.getTenantId(),
-                ComplianceEntityType.VEHICLE.name(),
-                String.valueOf(vehicle.getId()),
-                issueType.name(),
-                relatedDocumentType == null ? "NA" : relatedDocumentType);
+        String entityName =
+                (vehicle.getYear() == null ? "" : vehicle.getYear() + " ")
+                        + vehicle.getMake()
+                        + " "
+                        + vehicle.getModel()
+                        + " ("
+                        + vehicle.getPlateNumber()
+                        + ")";
+        String sourceKey =
+                String.join(
+                        ":",
+                        vehicle.getTenantId(),
+                        ComplianceEntityType.VEHICLE.name(),
+                        String.valueOf(vehicle.getId()),
+                        issueType.name(),
+                        relatedDocumentType == null ? "NA" : relatedDocumentType);
         return new ComplianceIssueCandidate(
                 vehicle.getTenantId(),
                 sourceKey,
@@ -419,11 +550,13 @@ public class ComplianceIssueSyncService {
     }
 
     private boolean isRequired(Collection<?> requiredTypes, Enum<?> candidateType) {
-        return requiredTypes.stream().anyMatch(requiredType -> requiredType.toString().equals(candidateType.name()));
+        return requiredTypes.stream()
+                .anyMatch(requiredType -> requiredType.toString().equals(candidateType.name()));
     }
 
     private String documentLabel(DriverDocumentType documentType) {
-        String normalized = documentType.name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+        String normalized =
+                documentType.name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
         return Character.toUpperCase(normalized.charAt(0)) + normalized.substring(1);
     }
 
@@ -439,6 +572,5 @@ public class ComplianceIssueSyncService {
             String relatedDocumentType,
             LocalDate expiryDate,
             String summary,
-            String recommendedAction) {
-    }
+            String recommendedAction) {}
 }

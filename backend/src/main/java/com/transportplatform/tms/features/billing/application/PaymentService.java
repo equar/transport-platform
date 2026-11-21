@@ -127,6 +127,7 @@ public class PaymentService {
     @Transactional
     public PaymentDetailResponse createCompanyPayment(PaymentUpsertRequest request, String idempotencyKey) {
         billingAccessService.lockFinancialWrites();
+        if(request.paymentMethod()==com.transportplatform.tms.features.billing.domain.PaymentMethod.CREDIT_NOTE)throw validationFailure("Apply an issued credit note through the credit-note workflow.");
         String tenantId = billingAccessService.requireCompanyTenantId();
         PaymentCreationIdempotencyService.Claim claim = paymentCreationIdempotencyService.claim(idempotencyKey, request);
         PaymentCreationIdempotency idempotency = claim == null ? null : claim.record();
@@ -175,6 +176,7 @@ public class PaymentService {
         billingAccessService.lockFinancialWrites();
         Payment payment = billingAccessService.findPaymentForCompanyScope(paymentId);
         PaymentStatusWorkflow.ensureCanUpdate(payment);
+        if(request.paymentMethod()==com.transportplatform.tms.features.billing.domain.PaymentMethod.CREDIT_NOTE)throw validationFailure("Apply an issued credit note through the credit-note workflow.");
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(request.invoiceId());
         validateInvoiceAcceptsPayment(invoice, request.amount(), tenantTime.today(billingAccessService.requireCompanyTenantId()));
         Object oldSnapshot = snapshot(payment);
@@ -242,13 +244,9 @@ public class PaymentService {
     }
 
     public BigDecimal calculateCollectedAmount(String tenantId) {
-        return paymentRepository.findAll(PaymentSpecifications.search(tenantId, "", null, null, null, null))
-                .stream()
-                .filter(payment -> payment.getStatus() != PaymentStatus.VOID
-                        && payment.getStatus() != PaymentStatus.FAILED)
-                .map(Payment::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
+        if(!java.util.Objects.equals(tenantId,billingAccessService.requireCompanyTenantId())) throw validationFailure("Payment totals are restricted to your company.");
+        return paymentRepository.findAll(PaymentSpecifications.search(tenantId,"",null,null,null,null)).stream()
+            .map(Payment::getCollectedAmount).reduce(BigDecimal.ZERO,BigDecimal::add).setScale(2,RoundingMode.HALF_UP);
     }
 
     private void validateInvoiceAcceptsPayment(Invoice invoice, BigDecimal amount, LocalDate today) {

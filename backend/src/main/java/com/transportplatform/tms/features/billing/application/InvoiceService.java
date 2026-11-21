@@ -54,6 +54,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class InvoiceService {
+    @org.springframework.beans.factory.annotation.Autowired private org.springframework.jdbc.core.JdbcTemplate adjustmentDb;
     @org.springframework.beans.factory.annotation.Autowired
     private com.transportplatform.tms.features.settings.domain.TenantSettingsRepository invoiceSettings;
     @org.springframework.beans.factory.annotation.Autowired
@@ -282,6 +283,7 @@ public class InvoiceService {
         validateRideSources(invoice.getTenantId(), lineItems);
         Object oldSnapshot = snapshot(invoice);
         invoice.setStatus(InvoiceStatus.ISSUED);
+        invoice.setStatus(InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, tenantTime.today(invoice.getTenantId())));
         Invoice saved = invoiceRepository.save(invoice);
         recordInvoiceAudit(saved, "ISSUED", "Invoice " + saved.getInvoiceNumber() + " was issued.", oldSnapshot,
                 snapshot(saved));
@@ -300,6 +302,7 @@ public class InvoiceService {
         billingAccessService.lockFinancialWrites();
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(invoiceId);
         InvoiceStatusWorkflow.ensureCanVoid(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
+        if (!adjustmentDb.queryForList("SELECT id FROM credit_notes WHERE tenant_id=? AND source_invoice_id=? AND status='ISSUED'",Long.class,invoice.getTenantId(),invoice.getId()).isEmpty()) throw validationFailure("Void unused source credit notes before voiding this invoice. Applied credit notes require financial review.");
         if (billingAccessService.invoiceHasActivePayments(invoice)) {
             throw validationFailure("Invoices with active payments cannot be voided until those payments are voided.");
         }
@@ -308,6 +311,9 @@ public class InvoiceService {
         invoice.setVoidReason(request.reason().trim());
         invoiceLineItemRepository.releaseRideClaims(invoice.getId(), invoice.getTenantId());
         Invoice saved = invoiceRepository.save(invoice);
+        invoiceLineItemRepository.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(saved.getId(), saved.getTenantId()).stream()
+            .filter(item -> item.getChargeSourceType()==ChargeSourceType.RIDE).map(InvoiceLineItem::getSourceReferenceId).filter(Objects::nonNull).distinct()
+            .forEach(rideId -> driverEarningsService.reconcileRide(saved.getTenantId(),rideId));
         recordInvoiceAudit(saved, "VOIDED", "Invoice " + saved.getInvoiceNumber() + " was voided.", oldSnapshot,
                 snapshot(saved));
         return toDetail(saved);
@@ -818,7 +824,7 @@ public class InvoiceService {
     public long countOverdueInvoices(String tenantId) {
         return invoiceRepository.countByTenantIdAndStatusInAndDueDateBeforeAndBalanceDueGreaterThan(
                 tenantId,
-                EnumSet.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID),
+                EnumSet.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE),
                 tenantTime.today(tenantId),
                 BigDecimal.ZERO);
     }

@@ -33,7 +33,7 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
         ApiResponse<Void> body = ApiResponse.failure(ApiErrorResponse.of(
                 ErrorCode.FORBIDDEN.name(),
                 passwordChangeRequired ? "A password change is required. Update it in the admin portal before continuing." : "Subscription unavailable".equals(accessDeniedException.getMessage())
-                    ? "Subscription access is unavailable. Contact the platform administrator to restore access." : "Access is denied.",
+                    ? "Subscription access is unavailable. Contact the platform administrator to restore access." : "MFA enrollment required".equals(accessDeniedException.getMessage()) ? "Set up an authenticator before accessing this workspace." : "Access is denied.",
                 Map.of("path", request.getRequestURI())));
         objectMapper.writeValue(response.getOutputStream(), body);
     }

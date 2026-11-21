@@ -61,6 +61,7 @@ export const paymentMethodOptions = [
 ] as const;
 
 export const paymentStatusOptions = [
+  "PARTIALLY_REFUNDED", "REFUNDED",
   "RECORDED",
   "APPLIED",
   "PARTIALLY_APPLIED",
@@ -122,7 +123,7 @@ export type ChargeSourceType = (typeof chargeSourceTypeOptions)[number];
 export type RiderType = (typeof riderTypeOptions)[number];
 export type OrganizationType = (typeof organizationTypeOptions)[number];
 export type ContractType = (typeof contractTypeOptions)[number];
-export type PaymentMethod = (typeof paymentMethodOptions)[number];
+export type PaymentMethod = (typeof paymentMethodOptions)[number] | "CREDIT_NOTE";
 export type PaymentStatus = (typeof paymentStatusOptions)[number];
 export type CollectionContactMethod =
   (typeof collectionContactMethodOptions)[number];
@@ -228,6 +229,8 @@ export interface InvoiceSummaryRecord {
 }
 
 export interface PaymentSummaryRecord {
+  currency: string;
+  refundedAmount?: number;
   id: number;
   tenantId: string;
   paymentNumber: string;

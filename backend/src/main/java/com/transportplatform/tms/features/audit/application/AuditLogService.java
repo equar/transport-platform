@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuditLogService {
+    @org.springframework.beans.factory.annotation.Autowired private AuditIntegrityService integrity;
 
     private final AuditLogRepository auditLogRepository;
     private final ObjectMapper objectMapper;
@@ -49,7 +50,8 @@ public class AuditLogService {
         auditLog.setSummary(com.transportplatform.tms.common.privacy.PrivacyMinimizer.summary(normalize(command.entityType()),normalize(command.action())));
         auditLog.setOldValueJson(writeJson(command.oldValue()));
         auditLog.setNewValueJson(command.newValue()==null?null:writeJson(com.transportplatform.tms.common.privacy.PrivacyMinimizer.auditWithChanges(objectMapper.valueToTree(command.oldValue()),objectMapper.valueToTree(command.newValue()))));
-        auditLogRepository.save(auditLog);
+        auditLogRepository.saveAndFlush(auditLog);
+        integrity.attest(auditLog);
     }
 
     @Transactional(readOnly = true)

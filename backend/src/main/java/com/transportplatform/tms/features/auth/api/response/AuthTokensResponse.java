@@ -17,6 +17,7 @@ public record AuthTokensResponse(
             String tenantId,
             String status,
             boolean mustChangePassword,
+            boolean mfaEnrollmentRequired,
             Set<String> roles) {
     }
 }

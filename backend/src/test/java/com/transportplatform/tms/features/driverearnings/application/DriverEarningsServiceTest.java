@@ -49,6 +49,7 @@ class DriverEarningsServiceTest {
 
     @BeforeEach
     void returnSavedLedgerEntryFromRepository() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"db",mock(org.springframework.jdbc.core.JdbcTemplate.class));
         when(ledger.save(any(DriverEarningsLedger.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -86,10 +87,9 @@ class DriverEarningsServiceTest {
         pendingEntry.setRideId(42L);
         pendingEntry.setEntryType(DriverEarningsEntryType.EARNED);
         pendingEntry.setStatus(DriverEarningsStatus.PENDING_CALCULATION);
-        when(ledger.findAllByTenantIdAndRideIdAndStatusAndEntryType(
+        when(ledger.findAllByTenantIdAndRideIdAndEntryType(
                 "tenant-1",
                 42L,
-                DriverEarningsStatus.PENDING_CALCULATION,
                 DriverEarningsEntryType.EARNED)).thenReturn(List.of(pendingEntry));
 
         service.calculatePendingForIssuedRide("tenant-1", 42L);
@@ -110,6 +110,9 @@ class DriverEarningsServiceTest {
         entry.setEntryType(DriverEarningsEntryType.EARNED);
         entry.setStatus(DriverEarningsStatus.PENDING_CALCULATION);
         entry.setCurrency("USD");
+        entry.setSourceInvoiceId(7L); entry.setBillableAmount(new BigDecimal("100.00"));
+        var originalLines=List.of(issuedRideLine(42L,"100.00","100.00"));
+        when(invoiceLineItems.findAllByTenantIdAndChargeSourceTypeAndSourceReferenceIdOrderByIdDesc("tenant-1",ChargeSourceType.RIDE,42L)).thenReturn(originalLines);
         when(ledger.findByIdAndTenantId(2L, "tenant-1")).thenReturn(Optional.of(entry));
 
         var submitted = service.updateEntry(
@@ -123,6 +126,26 @@ class DriverEarningsServiceTest {
         var approved = service.approve(2L);
         assertEquals(DriverEarningsStatus.APPROVED.name(), approved.status());
         verify(ledger, times(2)).save(entry);
+    }
+
+    @Test
+    void voidedInvoiceInvalidatesApprovedEarningsAndReplacementRequiresNewReview() {
+        var entry=new DriverEarningsLedger();entry.setTenantId("tenant-1");entry.setRideId(42L);
+        entry.setEntryType(DriverEarningsEntryType.EARNED);entry.setStatus(DriverEarningsStatus.APPROVED);
+        entry.setSourceInvoiceId(7L);entry.setBillableAmount(new BigDecimal("100.00"));
+        entry.setEarningsRate(new BigDecimal("20.00"));entry.setAmount(new BigDecimal("20.00"));entry.setCurrency("USD");
+        when(ledger.findAllByTenantIdAndRideIdAndEntryType("tenant-1",42L,DriverEarningsEntryType.EARNED)).thenReturn(List.of(entry));
+        when(settings.findById("tenant-1")).thenReturn(Optional.of(tenantSettings("20.00")));
+        when(invoiceLineItems.findAllByTenantIdAndChargeSourceTypeAndSourceReferenceIdOrderByIdDesc("tenant-1",ChargeSourceType.RIDE,42L)).thenReturn(List.of());
+        service.reconcileRide("tenant-1",42L);
+        assertEquals(DriverEarningsStatus.PENDING_CALCULATION,entry.getStatus());
+        org.junit.jupiter.api.Assertions.assertNull(entry.getAmount());
+        org.junit.jupiter.api.Assertions.assertNull(entry.getSourceInvoiceId());
+        var correctedLines=List.of(issuedRideLine(42L,"150.00","150.00"));
+        when(invoiceLineItems.findAllByTenantIdAndChargeSourceTypeAndSourceReferenceIdOrderByIdDesc("tenant-1",ChargeSourceType.RIDE,42L)).thenReturn(correctedLines);
+        service.reconcileRide("tenant-1",42L);
+        assertEquals(DriverEarningsStatus.PENDING_REVIEW,entry.getStatus());
+        assertEquals(new BigDecimal("30.00"),entry.getAmount());
     }
 
     private AuthenticatedUser tenantAdmin() {

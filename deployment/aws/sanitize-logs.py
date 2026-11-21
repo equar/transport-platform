@@ -17,7 +17,7 @@ for name in ('.env', '.env.previous'):
             parsed = shlex.split(value)
             if parsed and parsed[0]:
                 secrets.append(parsed[0])
-result = subprocess.run(['journalctl', '-u', 'transport-platform-backend.service', '-n', '100', '--no-pager', '-o', 'cat'], capture_output=True, text=True)
+result = subprocess.run(['journalctl', '-u', 'transport-platform-backend.service', '-u', 'transport-platform-privacy-maintenance.service', '-n', '100', '--no-pager', '-o', 'cat'], capture_output=True, text=True)
 output = result.stdout + result.stderr
 for value in sorted(secrets, key=len, reverse=True):
     output = output.replace(value, '[REDACTED]')

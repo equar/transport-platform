@@ -6,6 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DriverEarningsLedgerRepository extends JpaRepository<DriverEarningsLedger, Long> {
 
+    List<DriverEarningsLedger> findAllByTenantIdAndRideIdAndEntryType(String tenantId, Long rideId, DriverEarningsEntryType type);
+    List<DriverEarningsLedger> findAllByTenantIdAndEntryType(String tenantId, DriverEarningsEntryType type);
+
     boolean existsByRideIdAndEntryType(Long rideId, DriverEarningsEntryType type);
 
     Optional<DriverEarningsLedger> findByIdAndTenantId(Long id, String tenantId);

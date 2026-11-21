@@ -292,7 +292,7 @@ export const driverPortalApi = {
     const r = await apiClient.get(`${base}/rides/${rideId}/location-snapshot`);
     return unwrapResponse<DriverRideLocationSnapshotRecord | null>(r.data);
   },
-  async postRideAction(rideId: number, action: DriverRideAction, idempotencyKey?: string, expectedStatus?: string, occurredAt?: string) {
+  async postRideAction(rideId: number, action: DriverRideAction, idempotencyKey: string, expectedStatus?: string, occurredAt?: string) {
     const r = await apiClient.post(`${base}/rides/${rideId}/actions/${action}`, undefined, {
       headers: { ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}), ...(expectedStatus ? { 'X-Expected-Ride-Status': expectedStatus } : {}), ...(occurredAt ? { 'X-Occurred-At': occurredAt } : {}) },
     });

@@ -186,6 +186,13 @@ public class DriverDocumentService {
         DriverDocumentStatusWorkflow.ensureCanVerify(document, LocalDate.now(clock));
         Object oldSnapshot = snapshot(document);
         document.setVerificationStatus(DriverDocumentVerificationStatus.VERIFIED);
+        var driver=document.getDriver();
+        switch(document.getDocumentType()) {
+            case DRIVER_LICENSE -> driver.setLicenseExpiryDate(document.getExpiryDate());
+            case BACKGROUND_CHECK -> { driver.setBackgroundCheckStatus(com.transportplatform.tms.features.driver.domain.DriverQualificationStatus.CLEAR); driver.setBackgroundCheckExpiryDate(document.getExpiryDate()); }
+            case DRUG_TEST -> { driver.setDrugTestStatus(com.transportplatform.tms.features.driver.domain.DriverQualificationStatus.CLEAR); driver.setDrugTestExpiryDate(document.getExpiryDate()); }
+            default -> { }
+        }
         if (request.notes() != null && !request.notes().isBlank()) {
             document.setNotes(request.notes().trim());
         }

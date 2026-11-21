@@ -111,6 +111,16 @@ public final class PhiCipher {
     }
   }
 
+  /** Domain-separated integrity key derived from the independent, stable lookup secret. */
+  public String auditSignature(String message) {
+    try {
+      Mac derive=Mac.getInstance("HmacSHA256");derive.init(new SecretKeySpec(searchKey,"HmacSHA256"));
+      byte[] auditKey=derive.doFinal("bakaroo:audit-integrity:v1".getBytes(StandardCharsets.UTF_8));
+      Mac mac=Mac.getInstance("HmacSHA256");mac.init(new SecretKeySpec(auditKey,"HmacSHA256"));
+      return HexFormat.of().formatHex(mac.doFinal(message.getBytes(StandardCharsets.UTF_8)));
+    } catch(GeneralSecurityException e) { throw failure(); }
+  }
+
   public Set<String> phoneTokens(String tenant, String... phones) {
     Set<String> tokens = new LinkedHashSet<>();
     for (String phone : phones) {

@@ -15,6 +15,7 @@ interface AuthTokensResponse {
     tenantId: string | null;
     status: string;
     mustChangePassword: boolean;
+  mfaEnrollmentRequired?: boolean;
     roles: string[];
   };
 }

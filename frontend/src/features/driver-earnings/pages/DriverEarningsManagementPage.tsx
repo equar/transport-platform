@@ -120,6 +120,13 @@ export function DriverEarningsManagementPage() {
     }
   };
 
+  const recalculate = async (id: number) => {
+    setError(null); setBusyEntryId(id);
+    try { await driverEarningsApi.recalculate(id); if (await load()) setNotice("Earnings recalculated. Review the current amount before approval."); }
+    catch (e) { setError(getApiErrorMessage(e, "Earnings could not be recalculated.")); }
+    finally { setBusyEntryId(null); }
+  };
+
   const approve = async (entryId: number) => {
     setError(null);
     setBusyEntryId(entryId);
@@ -254,6 +261,7 @@ export function DriverEarningsManagementPage() {
                     </Stack>
                   ) : (
                     <Stack spacing={0.75} alignItems="flex-start">
+                      {entry.entryType === 'EARNED' ? <Button size="small" disabled={busyEntryId !== null} onClick={() => void recalculate(entry.id)}>Recalculate from invoice</Button> : null}
                       <Button size="small" disabled={busyEntryId !== null} onClick={() => beginEdit(entry)}>
                         {entry.status === "PENDING_CALCULATION" ? "Set amount" : "Edit"}
                       </Button>

@@ -56,7 +56,7 @@ export function RuntimeCapabilitiesProvider({ children, session = null }: PropsW
 
   async function loadCapabilities(silent = false) {
     const version = ++requestVersion.current;
-    if (!isAuthenticated || !session || isPlatformAdmin(session)) {
+    if (!isAuthenticated || !session || session.identity.mfaEnrollmentRequired || session.identity.mustChangePassword || isPlatformAdmin(session)) {
       setServiceTimezone(null);
       setCapabilities(null);
       setBranding(defaultBranding);

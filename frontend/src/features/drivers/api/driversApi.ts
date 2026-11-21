@@ -53,6 +53,7 @@ export interface DriverComplianceSummary {
   missingRequiredDocumentCount: number;
   overallStatus: DriverComplianceStatus;
   daysUntilNextExpiringDocument: number | null;
+  qualificationIssues?: string[];
   missingRequiredDocumentTypes: DriverDocumentType[];
 }
 

@@ -42,6 +42,8 @@ import jakarta.servlet.http.HttpServletResponse;
         GlobalExceptionHandler.class,
 })
 class ApiSecurityEnforcementWebMvcTest {
+    @org.springframework.test.context.bean.override.mockito.MockitoBean com.transportplatform.tms.features.auth.application.MfaService mfa;
+
 
     @Configuration
     @EnableMethodSecurity

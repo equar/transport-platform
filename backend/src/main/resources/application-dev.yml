@@ -1,15 +1,15 @@
 spring:
   flyway:
-    locations: classpath:db/migration,classpath:db/devdata
+    locations: classpath:db/migration
   jpa:
     show-sql: false
 
 app:
   bootstrap:
     platform-admin:
-      enabled: true
-      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:samuelweld2018@gmail.com}
-      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:Password123}
+      enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:false}
+      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:}
+      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:}
   security:
     api-docs-enabled: true
     allowed-origins: ${APP_SECURITY_ALLOWED_ORIGINS:http://localhost:3007,http://127.0.0.1:3007,http://localhost:3008,http://127.0.0.1:3008}
@@ -18,7 +18,7 @@ app:
       path: ${APP_SECURITY_REFRESH_COOKIE_PATH:/api/v1/auth}
       secure: ${APP_SECURITY_REFRESH_COOKIE_SECURE:false}
     jwt:
-      secret: ${APP_SECURITY_JWT_SECRET:dev-jwt-secret-change-before-deployment-1234567890}
+      secret: ${APP_SECURITY_JWT_SECRET:}
 
 logging:
   level:

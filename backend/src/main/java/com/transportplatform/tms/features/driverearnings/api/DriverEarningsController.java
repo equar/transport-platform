@@ -59,6 +59,10 @@ public class DriverEarningsController {
         return ApiResponse.success(service.updateEntry(entryId, request));
     }
 
+    @PostMapping("/company/driver-earnings/{entryId}/recalculate")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ApiResponse<DriverEarningsEntryResponse> recalculate(@PathVariable Long entryId) {return ApiResponse.success(service.recalculate(entryId));}
+
     @PostMapping("/company/driver-earnings/{entryId}/approve")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ApiResponse<DriverEarningsEntryResponse> approve(@PathVariable Long entryId) {

@@ -34,6 +34,7 @@ interface Policy {
   notificationDays: number | null;
   cleanupEnabled: boolean | null;
   legalHold: boolean;
+  locationDays?: number | null;
 }
 interface PolicyView {
   platform: Policy;
@@ -58,6 +59,7 @@ export function PrivacyRetentionPage() {
     [revision, setRevision] = useState(0);
   const [reviewDays, setReviewDays] = useState(""),
     [auditDays, setAuditDays] = useState(""),
+    [locationDays, setLocationDays] = useState(""),
     [notificationDays, setNotificationDays] = useState(""),
     [enabled, setEnabled] = useState("inherit"),
     [hold, setHold] = useState(false),
@@ -81,6 +83,7 @@ export function PrivacyRetentionPage() {
         setData(p);
         setReviewDays(p.override.operationalReviewDays?.toString() ?? "");
         setAuditDays(p.override.auditDays?.toString() ?? "");
+        setLocationDays(p.override.locationDays?.toString() ?? "");
         setNotificationDays(p.override.notificationDays?.toString() ?? "");
         setEnabled(
           p.override.cleanupEnabled == null
@@ -110,7 +113,7 @@ export function PrivacyRetentionPage() {
   }, [base, platform, revision]);
   function prepare() {
     if (
-      [reviewDays, auditDays, notificationDays].some(
+      [reviewDays, auditDays, notificationDays, locationDays].some(
         (s) =>
           s !== "" && (!/^\d+$/.test(s) || Number(s) < 1 || Number(s) > 36500),
       )
@@ -129,6 +132,7 @@ export function PrivacyRetentionPage() {
         operationalReviewDays: reviewDays ? Number(reviewDays) : null,
         auditDays: auditDays ? Number(auditDays) : null,
         notificationDays: notificationDays ? Number(notificationDays) : null,
+        locationDays: locationDays ? Number(locationDays) : null,
         cleanupEnabled: enabled === "inherit" ? null : enabled === "enabled",
         legalHold: hold,
       });
@@ -204,8 +208,7 @@ export function PrivacyRetentionPage() {
             <Stack spacing={2}>
               <Typography variant="h5">Effective policy</Typography>
               <Typography>
-                Rider/trip record review:{" "}
-                {days(data.effective.operationalReviewDays)} · Audit logs:{" "}
+                GPS trail: {days(data.effective.locationDays ?? 30)} · Rider/trip review: {days(data.effective.operationalReviewDays)} · Audit logs:{" "}
                 {days(data.effective.auditDays)} · Notifications:{" "}
                 {days(data.effective.notificationDays)}
               </Typography>
@@ -214,8 +217,9 @@ export function PrivacyRetentionPage() {
                   ? "Legal hold is active. Automated cleanup is blocked. A platform legal hold cannot be overridden by a tenant."
                   : data.effective.cleanupEnabled
                     ? "Approved audit/notification cleanup is enabled. Pending deliveries are retained."
-                    : "Automated cleanup is disabled."}
+                    : "Audit/notification cleanup is disabled. Raw GPS trail cleanup remains active unless on legal hold."}
               </Alert>
+              <Alert severity="info">Raw GPS trails expire after the configured duration (30 days by default). Samples linked to delivery evidence are retained with that evidence.</Alert>
               <Typography variant="body2">
                 Rider and trip records are reviewed for care, legal and
                 financial recordkeeping needs. They are not automatically
@@ -255,6 +259,7 @@ export function PrivacyRetentionPage() {
                     "Rider/trip review interval (days)",
                   ],
                   [auditDays, setAuditDays, "Audit log retention (days)"],
+                  [locationDays, setLocationDays, "GPS trail retention (days; default 30)"],
                   [
                     notificationDays,
                     setNotificationDays,
