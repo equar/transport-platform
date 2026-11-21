@@ -3,6 +3,8 @@ import * as Native from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { AppearancePreferenceCard } from '../AppearancePreferenceCard';
 jest.mock('@expo/vector-icons', () => ({ MaterialCommunityIcons: 'Icon' }));
+// Paper imports the icon through its subpath; font loading is outside layout coverage.
+jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => ({ __esModule: true, default: 'Icon' }));
 const mockSetPreference = jest.fn().mockResolvedValue(undefined);
 jest.mock('@theme/ThemeProvider', () => ({
   ...jest.requireActual('@theme/ThemeProvider'),
