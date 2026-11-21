@@ -17,5 +17,10 @@ public interface InvoiceLineItemRepository extends JpaRepository<InvoiceLineItem
 
     List<InvoiceLineItem> findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(Long invoiceId, String tenantId);
 
+    @org.springframework.data.jpa.repository.Modifying(flushAutomatically = true)
+    @org.springframework.data.jpa.repository.Query(value = "UPDATE invoice_line_items SET ride_claim_active = FALSE WHERE invoice_id = :invoiceId AND tenant_id = :tenantId", nativeQuery = true)
+    int releaseRideClaims(@org.springframework.data.repository.query.Param("invoiceId") Long invoiceId,
+        @org.springframework.data.repository.query.Param("tenantId") String tenantId);
+
     long countByInvoiceIdAndTenantId(Long invoiceId, String tenantId);
 }
