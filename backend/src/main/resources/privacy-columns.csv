@@ -1,0 +1,122 @@
+table,column,context,nullable
+riders,date_of_birth,date,NULL
+riders,primary_phone,text,NOT NULL
+riders,alternate_phone,text,NULL
+riders,home_address_line1,text,NULL
+riders,home_address_line2,text,NULL
+riders,city,text,NULL
+riders,state,text,NULL
+riders,zip_code,text,NULL
+riders,country,text,NULL
+riders,default_pickup_address,text,NULL
+riders,default_dropoff_address,text,NULL
+riders,pickup_notes,text,NULL
+riders,dropoff_notes,text,NULL
+riders,wheelchair_required,flag,NOT NULL
+riders,escort_required,flag,NOT NULL
+riders,special_instructions,text,NULL
+riders,care_notes_summary,text,NULL
+riders,emergency_contact_name,text,NULL
+riders,emergency_contact_phone,text,NULL
+riders,emergency_contact_relationship,text,NULL
+riders,notes,text,NULL
+rider_mobility_needs,mobility_need,mobility,NOT NULL
+rides,pickup_address_line1,text,NOT NULL
+rides,pickup_address_line2,text,NULL
+rides,pickup_city,text,NOT NULL
+rides,pickup_state,text,NOT NULL
+rides,pickup_zip_code,text,NOT NULL
+rides,pickup_country,text,NOT NULL
+rides,dropoff_address_line1,text,NOT NULL
+rides,dropoff_address_line2,text,NULL
+rides,dropoff_city,text,NOT NULL
+rides,dropoff_state,text,NOT NULL
+rides,dropoff_zip_code,text,NOT NULL
+rides,dropoff_country,text,NOT NULL
+rides,wheelchair_required,flag,NOT NULL
+rides,escort_required,flag,NOT NULL
+rides,special_instructions,text,NULL
+rides,internal_notes,text,NULL
+rides,operational_notes,text,NULL
+rides,cancellation_reason,text,NULL
+recurring_ride_schedules,pickup_address_line1,text,NOT NULL
+recurring_ride_schedules,pickup_address_line2,text,NULL
+recurring_ride_schedules,pickup_city,text,NOT NULL
+recurring_ride_schedules,pickup_state,text,NOT NULL
+recurring_ride_schedules,pickup_zip_code,text,NOT NULL
+recurring_ride_schedules,pickup_country,text,NOT NULL
+recurring_ride_schedules,dropoff_address_line1,text,NOT NULL
+recurring_ride_schedules,dropoff_address_line2,text,NULL
+recurring_ride_schedules,dropoff_city,text,NOT NULL
+recurring_ride_schedules,dropoff_state,text,NOT NULL
+recurring_ride_schedules,dropoff_zip_code,text,NOT NULL
+recurring_ride_schedules,dropoff_country,text,NOT NULL
+recurring_ride_schedules,wheelchair_required,flag,NOT NULL
+recurring_ride_schedules,escort_required,flag,NOT NULL
+recurring_ride_schedules,special_instructions,text,NULL
+recurring_ride_schedules,internal_notes,text,NULL
+ride_events,notes,text,NULL
+drivers,date_of_birth,date,NULL
+drivers,address_line1,text,NULL
+drivers,address_line2,text,NULL
+drivers,city,text,NULL
+drivers,state,text,NULL
+drivers,zip_code,text,NULL
+drivers,country,text,NULL
+drivers,emergency_contact_name,text,NULL
+drivers,emergency_contact_phone,text,NULL
+drivers,emergency_contact_relationship,text,NULL
+drivers,notes,text,NULL
+drivers,availability_summary,text,NULL
+guardians,address_line1,text,NULL
+guardians,address_line2,text,NULL
+guardians,city,text,NULL
+guardians,state,text,NULL
+guardians,zip_code,text,NULL
+guardians,country,text,NULL
+guardians,notes,text,NULL
+rider_guardians,notes,text,NULL
+notifications,message,text,NOT NULL
+notifications,metadata_json,text,NULL
+notifications,error_message,text,NULL
+driver_location_snapshots,latitude,coordinate,NOT NULL
+driver_location_snapshots,longitude,coordinate,NOT NULL
+trip_verified_stops,pickup_latitude,coordinate,NOT NULL
+trip_verified_stops,pickup_longitude,coordinate,NOT NULL
+trip_verified_stops,dropoff_latitude,coordinate,NOT NULL
+trip_verified_stops,dropoff_longitude,coordinate,NOT NULL
+report_export_jobs,result_csv,text,NULL
+contracts,notes,text,NULL
+contracts,service_window_notes,text,NULL
+contracts,rate_notes,text,NULL
+organization_contacts,notes,text,NULL
+organizations,notes,text,NULL
+service_areas,notes,text,NULL
+tenants,notes,text,NULL
+routes,notes,text,NULL
+routes,manifest_notes,text,NULL
+route_stops,notes,text,NULL
+vehicles,notes,text,NULL
+vehicle_documents,notes,text,NULL
+driver_documents,notes,text,NULL
+company_applications,review_notes,text,NULL
+company_applications,notes,text,NULL
+company_application_review_events,notes,text,NULL
+incidents,notes,text,NULL
+incidents,corrective_action_summary,text,NULL
+incidents,root_cause_summary,text,NULL
+incidents,resolution_summary,text,NULL
+incidents,reported_by_name_snapshot,text,NOT NULL
+incidents,description,text,NOT NULL
+incidents,title,text,NOT NULL
+tenant_feature_overrides,notes,text,NULL
+subscription_plans,notes,text,NULL
+tenant_subscriptions,notes,text,NULL
+feature_flags,notes,text,NULL
+invoices,notes,text,NULL
+payments,notes,text,NULL
+pricing_rules,notes,text,NULL
+invoice_line_items,notes,text,NULL
+driver_earnings_ledger,reason,text,NULL
+tenant_transport_compliance,verification_notes,text,NULL
+report_export_jobs,request_json,text,NOT NULL

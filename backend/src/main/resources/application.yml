@@ -49,6 +49,11 @@ management:
         enabled: true
 
 app:
+  privacy:
+    encryption-keys: ${APP_PRIVACY_ENCRYPTION_KEYS:}
+    active-key-id: ${APP_PRIVACY_ACTIVE_KEY_ID:}
+    lookup-key: ${APP_PRIVACY_LOOKUP_KEY:}
+    allow-legacy-reads: ${APP_PRIVACY_ALLOW_LEGACY_READS:false}
   auth:
     password-reset-base-url: ${APP_AUTH_PASSWORD_RESET_BASE_URL:http://localhost:3008/reset-password}
     password-reset-ttl: PT2H

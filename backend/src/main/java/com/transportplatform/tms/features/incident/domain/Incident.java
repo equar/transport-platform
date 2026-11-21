@@ -33,10 +33,12 @@ public class Incident extends AuditableEntity {
     @Column(name = "severity", nullable = false, length = 30)
     private IncidentSeverity severity;
 
-    @Column(name = "title", nullable = false, length = 200)
+    @Column(name = "title", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String title;
 
-    @Column(name = "description", nullable = false, length = 4000)
+    @Column(name = "description", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String description;
 
     @Column(name = "reported_at", nullable = false)
@@ -45,7 +47,8 @@ public class Incident extends AuditableEntity {
     @Column(name = "reported_by_user_id")
     private Long reportedByUserId;
 
-    @Column(name = "reported_by_name_snapshot", nullable = false, length = 150)
+    @Column(name = "reported_by_name_snapshot", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String reportedByNameSnapshot;
 
     @Column(name = "related_ride_id")
@@ -69,16 +72,20 @@ public class Incident extends AuditableEntity {
     @Column(name = "assigned_to_user_id")
     private Long assignedToUserId;
 
-    @Column(name = "resolution_summary", length = 2000)
+    @Column(name = "resolution_summary", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String resolutionSummary;
 
-    @Column(name = "root_cause_summary", length = 2000)
+    @Column(name = "root_cause_summary", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String rootCauseSummary;
 
-    @Column(name = "corrective_action_summary", length = 2000)
+    @Column(name = "corrective_action_summary", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String correctiveActionSummary;
 
-    @Column(name = "notes", length = 4000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Enumerated(EnumType.STRING)

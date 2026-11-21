@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TripEvidenceService {
+  private final com.transportplatform.tms.common.privacy.PhiCipher privacy;
   private final JdbcTemplate db;
   private final Clock clock;
   private final RideAccessService company;
@@ -39,7 +40,8 @@ public class TripEvidenceService {
       RiderGuardianPortalAccessService passenger,
       RideRepository rides,
       CurrentAuthenticatedUserService users,
-      AuditLogService audit) {
+      AuditLogService audit, com.transportplatform.tms.common.privacy.PhiCipher privacy) {
+    this.privacy=privacy;
     this.db = db;
     this.clock = clock;
     this.company = company;
@@ -50,6 +52,7 @@ public class TripEvidenceService {
     this.audit = audit;
   }
 
+  private double coordinate(Object value){return Double.parseDouble(privacy.decrypt(value.toString(),"coordinate"));}
   private ApiException invalid(String message) {
     return new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, message);
   }
@@ -132,13 +135,7 @@ public class TripEvidenceService {
       throw invalid(
           "Verified stops cannot change after milestone evidence is captured. Cancel and rebook an"
               + " incorrect journey.");
-    for (double n :
-        new double[] {
-          request.pickupLatitude(),
-          request.pickupLongitude(),
-          request.dropoffLatitude(),
-          request.dropoffLongitude()
-        }) if (!Double.isFinite(n)) throw invalid("Stop coordinates must be finite.");
+    for (double n : new double[]{request.pickupLatitude(),request.pickupLongitude(),request.dropoffLatitude(),request.dropoffLongitude()}) if (!Double.isFinite(n)) throw invalid("Stop coordinates must be finite.");
     var old = db.queryForList("SELECT * FROM trip_verified_stops WHERE ride_id=?", id);
     db.update(
         "INSERT INTO"
@@ -148,10 +145,10 @@ public class TripEvidenceService {
         id,
         r.getTenantId(),
         hash(r),
-        request.pickupLatitude(),
-        request.pickupLongitude(),
-        request.dropoffLatitude(),
-        request.dropoffLongitude(),
+        privacy.encrypt(request.pickupLatitude().toString(),"coordinate"),
+        privacy.encrypt(request.pickupLongitude().toString(),"coordinate"),
+        privacy.encrypt(request.dropoffLatitude().toString(),"coordinate"),
+        privacy.encrypt(request.dropoffLongitude().toString(),"coordinate"),
         users.requireCurrentUser().id(),
         now());
     record(r, "STOPS_VERIFIED", old, request);
@@ -212,15 +209,15 @@ public class TripEvidenceService {
         || accuracy.doubleValue() < 0
         || accuracy.doubleValue() > 50)
       throw invalid("GPS accuracy must be within 50 meters. Move to a clear area and retry.");
-    double lat = ((Number) gps.get("latitude")).doubleValue(),
-        lon = ((Number) gps.get("longitude")).doubleValue();
+    double lat = coordinate(gps.get("latitude")),
+        lon = coordinate(gps.get("longitude"));
     String prefix = request.milestone().equals("DROPPED_OFF") ? "dropoff" : "pickup";
     double meters =
         distance(
             lat,
             lon,
-            ((Number) stop.get(prefix + "_latitude")).doubleValue(),
-            ((Number) stop.get(prefix + "_longitude")).doubleValue());
+            coordinate(stop.get(prefix + "_latitude")),
+            coordinate(stop.get(prefix + "_longitude")));
     if (!Double.isFinite(lat)
         || !Double.isFinite(lon)
         || lat < -90
@@ -423,10 +420,10 @@ public class TripEvidenceService {
       var s = stops(r);
       stop =
           new Stops(
-              ((Number) s.get("pickup_latitude")).doubleValue(),
-              ((Number) s.get("pickup_longitude")).doubleValue(),
-              ((Number) s.get("dropoff_latitude")).doubleValue(),
-              ((Number) s.get("dropoff_longitude")).doubleValue());
+              coordinate(s.get("pickup_latitude")),
+              coordinate(s.get("pickup_longitude")),
+              coordinate(s.get("dropoff_latitude")),
+              coordinate(s.get("dropoff_longitude")));
     } catch (ApiException ignored) {
     }
     var milestones =

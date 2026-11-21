@@ -15,7 +15,7 @@ public final class RiderSpecifications {
             RiderStatus status,
             RiderType riderType,
             Boolean wheelchairRequired,
-            Boolean escortRequired) {
+            Boolean escortRequired, com.transportplatform.tms.common.privacy.PhiCipher privacy) {
         return (root, query, builder) -> {
             var predicate = builder.conjunction();
             if (tenantId != null && !tenantId.isBlank()) {
@@ -28,8 +28,9 @@ public final class RiderSpecifications {
                         builder.like(builder.lower(root.get("firstName")), pattern),
                         builder.like(builder.lower(root.get("lastName")), pattern),
                         builder.like(builder.lower(root.get("email")), pattern),
-                        builder.like(builder.lower(root.get("primaryPhone")), pattern),
-                        builder.like(builder.lower(root.get("alternatePhone")), pattern)));
+                        keyword.replaceAll("[^0-9]", "").length() >= 3
+                            ? builder.isMember(privacy.lookup(tenantId,"phone",keyword.replaceAll("[^0-9]", "")),root.get("privatePhoneTokens"))
+                            : builder.disjunction()));
             }
             if (status != null) {
                 predicate = builder.and(predicate, builder.equal(root.get("status"), status));
@@ -38,10 +39,10 @@ public final class RiderSpecifications {
                 predicate = builder.and(predicate, builder.equal(root.get("riderType"), riderType));
             }
             if (wheelchairRequired != null) {
-                predicate = builder.and(predicate, builder.equal(root.get("wheelchairRequired"), wheelchairRequired));
+                predicate = builder.and(predicate, builder.equal(root.get("wheelchairLookup"), privacy.lookup(tenantId,"wheelchair",wheelchairRequired.toString())));
             }
             if (escortRequired != null) {
-                predicate = builder.and(predicate, builder.equal(root.get("escortRequired"), escortRequired));
+                predicate = builder.and(predicate, builder.equal(root.get("escortLookup"), privacy.lookup(tenantId,"escort",escortRequired.toString())));
             }
             return predicate;
         };

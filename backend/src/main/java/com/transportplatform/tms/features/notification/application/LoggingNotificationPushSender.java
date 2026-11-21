@@ -13,8 +13,7 @@ public class LoggingNotificationPushSender implements NotificationPushSender {
 
     @Override
     public DeliveryResult send(PushNotificationCommand command) {
-        LOGGER.info("Push notification hook queued for token {} with title '{}'",
-                redact(command.token()), command.title());
+        LOGGER.info("Push notification delivery is disabled.");
         return new DeliveryResult(false, "DELIVERY_DISABLED");
     }
 

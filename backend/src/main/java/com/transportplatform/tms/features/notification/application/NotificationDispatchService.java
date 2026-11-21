@@ -98,7 +98,7 @@ public class NotificationDispatchService {
                 fallbackSubject,
                 fallbackTitle,
                 fallbackMessage);
-        String message = rendered.body();
+        String message = notificationType == NotificationType.COMPANY_USER_CREATED ? fallbackMessage : rendered.body();
         if (notificationType == NotificationType.COMPANY_APPLICATION_APPROVED && context != null
                 && context.get("verificationUrl") instanceof String verificationUrl
                 && (message == null || !message.contains(verificationUrl))) {
@@ -109,7 +109,7 @@ public class NotificationDispatchService {
         Notification notification = createBaseNotification(tenantId, recipientUserId, notificationType,
                 NotificationChannel.EMAIL,
                 relatedEntityType, relatedEntityId, rendered.title(), message, context);
-        notification.setEmailSubject(rendered.subject());
+        notification.setEmailSubject(com.transportplatform.tms.common.privacy.PrivacyMinimizer.accountSetup(notificationType.name()) ? fallbackSubject : com.transportplatform.tms.common.privacy.PrivacyMinimizer.notificationTitle(notificationType.name()));
         notification.setDeliveryStatus(NotificationDeliveryStatus.PENDING);
         notification.setNextDeliveryAttemptAt(Instant.now(clock));
         return notificationRepository.save(notification);
@@ -124,6 +124,12 @@ public class NotificationDispatchService {
             String title,
             String message,
             Map<String, Object> context) {
+        boolean setup = com.transportplatform.tms.common.privacy.PrivacyMinimizer.accountSetup(notificationType.name());
+        if (!setup) {
+            title=com.transportplatform.tms.common.privacy.PrivacyMinimizer.notificationTitle(notificationType.name());
+            message=com.transportplatform.tms.common.privacy.PrivacyMinimizer.NOTICE;
+            context=com.transportplatform.tms.common.privacy.PrivacyMinimizer.notificationMetadata(context);
+        }
         Notification notification = new Notification();
         notification.setTenantId(tenantId);
         notification.setNotificationCode(notificationCodeGenerator.generate(tenantId));

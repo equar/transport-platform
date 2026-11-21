@@ -81,6 +81,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ReportService {
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.common.privacy.PhiCipher privacy;
 
     private static final List<String> EXPORT_FORMATS = List.of("CSV", "PDF");
 
@@ -224,7 +225,7 @@ public class ReportService {
             LocalDate toDate) {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
         List<Rider> riders = ReportQueryLimits.load(riderRepository,
-                RiderSpecifications.search(tenantId, keyword, status, riderType, wheelchairRequired, escortRequired).and(createdBetween(fromDate, toDate, tenantId)),
+                RiderSpecifications.search(tenantId, keyword, status, riderType, wheelchairRequired, escortRequired, privacy).and(createdBetween(fromDate, toDate, tenantId)),
                 Sort.by(Sort.Direction.DESC, "updatedAt")).stream()
                 .filter(rider -> organizationId == null || organizationId.equals(rider.getOrganizationId()))
                 .filter(rider -> withinRange(rider.getCreatedAt(), fromDate, toDate, tenantId))

@@ -55,7 +55,8 @@ public class Payment extends AuditableEntity {
     @Column(name = "external_transaction_id", length = 150)
     private String externalTransactionId;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Column(name = "void_reason", length = 1000)

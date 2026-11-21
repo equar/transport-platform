@@ -55,7 +55,7 @@ class RiderServiceTest {
                 riderCodeGenerator,
                 organizationValidationService,
                 auditLogService,
-                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC));
+                Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC), org.mockito.Mockito.mock(com.transportplatform.tms.common.privacy.PhiCipher.class));
 
         when(riderAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
         when(riderCodeGenerator.generate("tenant-123")).thenReturn("RID-000123");

@@ -357,7 +357,7 @@ export function IncidentManagementPage() {
       <AdminFilterBar>
         <TextField
           label="Search"
-          placeholder="Search by code, title, or assignee"
+          placeholder="Search by incident code (narratives are encrypted)"
           value={keyword}
           onChange={(event) => {
             setPage(0);

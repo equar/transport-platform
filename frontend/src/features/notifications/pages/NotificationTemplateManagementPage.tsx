@@ -160,7 +160,7 @@ export function NotificationTemplateManagementPage() {
       <SectionHeader
         eyebrow="Communications"
         title="Notification Templates"
-        description="Manage the in-app and email templates used across user, dispatch, compliance, and billing workflows."
+        description="Operational notifications use privacy-minimized messages. Templates cannot override those protections. Company approval templates retain the required verification link."
       >
         <Button
           variant="contained"
@@ -243,7 +243,7 @@ export function NotificationTemplateManagementPage() {
         ) : items.length === 0 ? (
           <EmptyState
             title="No templates found"
-            description="Create a tenant template to override the default rendered content for operational notifications."
+            description="Templates are retained for supported account-setup workflows. Operational delivery always uses privacy-minimized content."
           />
         ) : (
           <>

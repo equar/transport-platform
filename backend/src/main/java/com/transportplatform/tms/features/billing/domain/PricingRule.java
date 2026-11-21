@@ -80,7 +80,8 @@ public class PricingRule extends AuditableEntity {
     @Column(name = "priority_order", nullable = false)
     private Integer priorityOrder;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Enumerated(EnumType.STRING)

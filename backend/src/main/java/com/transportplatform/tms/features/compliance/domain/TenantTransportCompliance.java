@@ -33,7 +33,7 @@ public class TenantTransportCompliance extends AuditableEntity {
     @Column(name = "attested_at") private Instant attestedAt;
     @Column(name = "verified_by", length = 150) private String verifiedBy;
     @Column(name = "verified_at") private Instant verifiedAt;
-    @Column(name = "verification_notes", length = 2000) private String verificationNotes;
+    @Column(name = "verification_notes", columnDefinition="TEXT") @jakarta.persistence.Convert(converter=com.transportplatform.tms.common.privacy.PhiConverters.Text.class) private String verificationNotes;
 
     public String getTenantId() { return tenantId; } public void setTenantId(String v) { tenantId = v; }
     public TransportOperatingScope getOperatingScope() { return operatingScope; } public void setOperatingScope(TransportOperatingScope v) { operatingScope = v; }

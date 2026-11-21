@@ -66,7 +66,8 @@ public class VehicleDocument extends AuditableEntity {
     @Column(name = "status", nullable = false, length = 30)
     private VehicleDocumentStatus status;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Column(name = "uploaded_by", nullable = false, length = 100, updatable = false)

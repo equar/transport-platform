@@ -26,6 +26,9 @@ def environment():
         LIGHTSAIL_SSH_KEY_B64='dummy-key', LIGHTSAIL_KNOWN_HOSTS='host.example.invalid ssh-ed25519 dummy',
         MYSQL_HOST='db.example.invalid', MYSQL_USER='transport', MYSQL_PASSWORD='private-db-value',
         APP_SECURITY_JWT_SECRET='random-signing-secret-value-32-bytes-long',
+        APP_PRIVACY_ENCRYPTION_KEYS='v1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+        APP_PRIVACY_ACTIVE_KEY_ID='v1',
+        APP_PRIVACY_LOOKUP_KEY='AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=',
         APP_SECURITY_MFA_ENCRYPTION_KEY='MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
         APP_EMAIL_ENABLED='true', APP_EMAIL_PROVIDER='microsoft-graph', APP_EMAIL_FROM='sender@example.invalid',
         MICROSOFT_GRAPH_CLIENT_ID='client', MICROSOFT_GRAPH_TENANT_ID='tenant', MICROSOFT_GRAPH_CLIENT_SECRET='synthetic',
@@ -124,7 +127,10 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_invalid_production_settings_are_rejected_without_values(self):
         for key, value in [('APP_PUBLIC_URL', 'http://localhost:3007'), ('VITE_API_BASE_URL', 'https://unrelated.invalid'),
-            ('APP_SECURITY_MFA_ENCRYPTION_KEY', 'invalid-key'), ('APP_EMAIL_ENABLED', 'false'), ('APP_PUSH_ENABLED', 'false'),
+            ('APP_SECURITY_MFA_ENCRYPTION_KEY', 'invalid-key'),
+            ('APP_PRIVACY_ENCRYPTION_KEYS', 'v1:sentinel-invalid-key'),
+            ('APP_PRIVACY_ACTIVE_KEY_ID', 'unknown-active-version'),
+            ('APP_PRIVACY_LOOKUP_KEY', 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='), ('APP_EMAIL_ENABLED', 'false'), ('APP_PUSH_ENABLED', 'false'),
             ('MYSQL_DATABASE', 'bingo'), ('MYSQL_PORT', '70000'), ('APP_SECURITY_JWT_SECRET', 'short'),
             ('APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED', 'true'), ('APP_LOGGING_LEVEL_SQL_BIND', 'TRACE'),
             ('APP_LOGGING_LEVEL_APP', 'DEBUG'), ('MYSQL_PASSWORD', 'sentinel-secret\nSERVER_PORT=1234')]:
@@ -162,6 +168,8 @@ class ConfigurationTests(unittest.TestCase):
     def test_mfa_secret_and_policy_are_forwarded_by_deployment_workflow(self):
         workflow = (ROOT/'.github/workflows/deploy.yml').read_text()
         self.assertIn('APP_SECURITY_MFA_ENCRYPTION_KEY: ${{ secrets.APP_SECURITY_MFA_ENCRYPTION_KEY }}', workflow)
+        self.assertIn('APP_PRIVACY_ENCRYPTION_KEYS: ${{ secrets.APP_PRIVACY_ENCRYPTION_KEYS }}', workflow)
+        self.assertIn('APP_PRIVACY_LOOKUP_KEY: ${{ secrets.APP_PRIVACY_LOOKUP_KEY }}', workflow)
         self.assertIn('APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS: ${{ vars.APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS', workflow)
 
     def test_example_importer_keys_match_supported_configuration(self):

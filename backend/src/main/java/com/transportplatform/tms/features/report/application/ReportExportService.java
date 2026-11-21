@@ -29,6 +29,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 @Service
 public class ReportExportService {
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.common.privacy.PhiCipher privacy;
     public record Request(ReportType reportType, Map<String,String> filters) {}
     public record Job(String id, String status, int progress, String error, Instant expiresAt) {}
     private final JdbcTemplate jdbc;
@@ -50,7 +51,7 @@ public class ReportExportService {
         Long pending=jdbc.queryForObject("SELECT COUNT(*) FROM report_export_jobs WHERE tenant_id=? AND user_id=? AND status IN ('PENDING','RUNNING')",Long.class,owner.tenantId(),owner.id());
         if(pending!=null && pending>=3) throw invalid("Wait for an existing export or cancel it before starting another.");
         String id=UUID.randomUUID().toString();
-        try { jdbc.update("INSERT INTO report_export_jobs(id,tenant_id,user_id,request_json,expires_at) VALUES (?,?,?,?,?)", id,owner.tenantId(),owner.id(),mapper.writeValueAsString(request),Timestamp.from(clock.instant().plusSeconds(86400))); }
+        try { jdbc.update("INSERT INTO report_export_jobs(id,tenant_id,user_id,request_json,expires_at) VALUES (?,?,?,?,?)", id,owner.tenantId(),owner.id(),privacy.encrypt(mapper.writeValueAsString(request),"text"),Timestamp.from(clock.instant().plusSeconds(86400))); }
         catch(com.fasterxml.jackson.core.JsonProcessingException ex) { throw invalid("Export request could not be read."); }
         return status(id);
     }
@@ -64,7 +65,7 @@ public class ReportExportService {
     public void cancel(String id) { owned(id);jdbc.update("UPDATE report_export_jobs SET status='CANCELLED',result_csv=NULL WHERE id=? AND status IN ('PENDING','RUNNING')",id); }
     public String download(String id) {
         var r=owned(id); if(!"COMPLETED".equals(r.get("status"))) throw invalid("The export is not ready.");
-        return jdbc.queryForObject("SELECT result_csv FROM report_export_jobs WHERE id=?",String.class,id);
+        return privacy.decrypt(jdbc.queryForObject("SELECT result_csv FROM report_export_jobs WHERE id=?",String.class,id),"text");
     }
     @Scheduled(fixedDelayString="${app.report-export.fixed-delay:PT15S}")
     public void runDue() {
@@ -77,7 +78,7 @@ public class ReportExportService {
             var previous=SecurityContextHolder.getContext();
             try {
                 authenticate(row);
-                Request request=mapper.readValue((String)row.get("request_json"),Request.class);
+                Request request=mapper.readValue(privacy.decrypt((String)row.get("request_json"),"text"),Request.class);
                 var filters=new HashMap<>(request.filters());
                 LocalDate from=date(filters,"fromDate"),to=date(filters,"toDate");
                 StringBuilder csv=new StringBuilder(); boolean header=false;int records=0;
@@ -96,7 +97,7 @@ public class ReportExportService {
                     int progress=(int)(100*(java.time.temporal.ChronoUnit.DAYS.between(from,day)+1)/days);
                     jdbc.update("UPDATE report_export_jobs SET progress=?,lease_until=? WHERE id=? AND status='RUNNING'",progress,Timestamp.from(clock.instant().plusSeconds(300)),id);
                 }
-                jdbc.update("UPDATE report_export_jobs SET status='COMPLETED',progress=100,result_csv=?,lease_until=NULL WHERE id=? AND status='RUNNING'",csv.toString(),id);
+                jdbc.update("UPDATE report_export_jobs SET status='COMPLETED',progress=100,result_csv=?,lease_until=NULL WHERE id=? AND status='RUNNING'",privacy.encrypt(csv.toString(),"text"),id);
             } catch(Exception ex) {
                 jdbc.update("UPDATE report_export_jobs SET status='FAILED',error_message=?,lease_until=NULL WHERE id=? AND status='RUNNING'",ex instanceof ApiException ? ex.getMessage() : "Export failed. Please retry or contact support.",id);
             } finally { SecurityContextHolder.setContext(previous); }

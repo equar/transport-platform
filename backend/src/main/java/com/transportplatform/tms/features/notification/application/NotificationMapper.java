@@ -12,12 +12,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class NotificationMapper {
 
+    private String visibleTitle(Notification n){return com.transportplatform.tms.common.privacy.PrivacyMinimizer.accountSetup(n.getNotificationType().name())?"Account setup":com.transportplatform.tms.common.privacy.PrivacyMinimizer.notificationTitle(n.getNotificationType().name());}
+    private String visibleMessage(Notification n){return com.transportplatform.tms.common.privacy.PrivacyMinimizer.accountSetup(n.getNotificationType().name())?"Account setup instructions were sent by email.":com.transportplatform.tms.common.privacy.PrivacyMinimizer.NOTICE;}
+    private String visibleMetadata(Notification n){if(n.getMetadataJson()==null)return null;try{var mapper=new com.fasterxml.jackson.databind.ObjectMapper();return mapper.writeValueAsString(com.transportplatform.tms.common.privacy.PrivacyMinimizer.notificationMetadata(mapper.readValue(n.getMetadataJson(),java.util.Map.class)));}catch(Exception e){return null;}}
+
     public NotificationSummaryResponse toSummary(Notification notification) {
         return new NotificationSummaryResponse(
                 notification.getId(),
                 notification.getNotificationCode(),
-                notification.getTitle(),
-                notification.getMessage(),
+                visibleTitle(notification),
+                visibleMessage(notification),
                 notification.getNotificationType(),
                 notification.getChannel(),
                 notification.getRelatedEntityType(),
@@ -36,8 +40,8 @@ public class NotificationMapper {
                 notification.getTenantId(),
                 notification.getNotificationCode(),
                 notification.getRecipientUserId(),
-                notification.getTitle(),
-                notification.getMessage(),
+                visibleTitle(notification),
+                visibleMessage(notification),
                 notification.getNotificationType(),
                 notification.getChannel(),
                 notification.getRelatedEntityType(),
@@ -46,8 +50,8 @@ public class NotificationMapper {
                 notification.getReadStatus(),
                 notification.getSentAt(),
                 notification.getReadAt(),
-                notification.getErrorMessage(),
-                notification.getMetadataJson(),
+                notification.getErrorMessage()==null?null:"Delivery failed. Review delivery status or contact support.",
+                visibleMetadata(notification),
                 notification.getStatus(),
                 notification.getCreatedBy(),
                 notification.getCreatedAt(),

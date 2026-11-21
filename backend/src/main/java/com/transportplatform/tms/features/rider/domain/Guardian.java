@@ -42,22 +42,28 @@ public class Guardian extends AuditableEntity {
     @Column(name = "alternate_phone", length = 50)
     private String alternatePhone;
 
-    @Column(name = "address_line1", length = 200)
+    @Column(name = "address_line1", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String addressLine1;
 
-    @Column(name = "address_line2", length = 200)
+    @Column(name = "address_line2", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String addressLine2;
 
-    @Column(name = "city", length = 100)
+    @Column(name = "city", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String city;
 
-    @Column(name = "state", length = 100)
+    @Column(name = "state", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String state;
 
-    @Column(name = "zip_code", length = 30)
+    @Column(name = "zip_code", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String zipCode;
 
-    @Column(name = "country", length = 100)
+    @Column(name = "country", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String country;
 
     @Enumerated(EnumType.STRING)
@@ -70,7 +76,8 @@ public class Guardian extends AuditableEntity {
     @Column(name = "authorized_for_pickup", nullable = false)
     private boolean authorizedForPickup;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Enumerated(EnumType.STRING)

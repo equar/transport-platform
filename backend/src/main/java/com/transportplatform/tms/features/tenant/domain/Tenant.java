@@ -66,7 +66,8 @@ public class Tenant extends AuditableEntity {
     @Column(name = "service_type", nullable = false, length = 80)
     private Set<String> serviceTypesEnabled = new LinkedHashSet<>();
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Enumerated(EnumType.STRING)
