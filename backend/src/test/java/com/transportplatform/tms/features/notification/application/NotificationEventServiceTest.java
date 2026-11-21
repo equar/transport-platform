@@ -41,7 +41,9 @@ class NotificationEventServiceTest {
             Map<String, Object> metadata = invocation.getArgument(7);
             String expected = "309 Willow Court, " + (line2 == null || line2.isBlank() ? "" : "Suite 2, ")
                     + "Boston, MA, 02110";
-            assertEquals(expected, metadata.get("pickupAddress"));
+            assertNull(metadata.get("pickupAddress"));
+            assertNull(metadata.get("riderName"));
+            assertNull(metadata.get("guardianName"));
             assertNull(metadata.get("dropoffAddress"));
             assertEquals("DRIVER_EN_ROUTE", metadata.get("currentStatus"));
             return null;

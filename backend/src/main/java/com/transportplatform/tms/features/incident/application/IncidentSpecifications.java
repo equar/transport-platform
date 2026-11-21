@@ -25,11 +25,7 @@ public final class IncidentSpecifications {
             predicate = builder.and(predicate, builder.equal(root.get("tenantId"), tenantId));
             if (keyword != null && !keyword.isBlank()) {
                 String pattern = "%" + keyword.trim().toLowerCase() + "%";
-                predicate = builder.and(predicate, builder.or(
-                        builder.like(builder.lower(root.get("incidentCode")), pattern),
-                        builder.like(builder.lower(root.get("title")), pattern),
-                        builder.like(builder.lower(root.get("description")), pattern),
-                        builder.like(builder.lower(root.get("reportedByNameSnapshot")), pattern)));
+                predicate = builder.and(predicate, builder.like(builder.lower(root.get("incidentCode")), pattern));
             }
             if (status != null) {
                 predicate = builder.and(predicate, builder.equal(root.get("status"), status));

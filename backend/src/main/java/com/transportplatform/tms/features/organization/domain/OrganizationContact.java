@@ -56,7 +56,8 @@ public class OrganizationContact extends AuditableEntity {
     @Column(name = "is_primary", nullable = false)
     private boolean primary;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Enumerated(EnumType.STRING)

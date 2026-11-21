@@ -53,10 +53,12 @@ public class Route extends AuditableEntity {
     @Column(name = "end_time")
     private LocalTime endTime;
 
-    @Column(name = "manifest_notes", length = 2000)
+    @Column(name = "manifest_notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String manifestNotes;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Enumerated(EnumType.STRING)

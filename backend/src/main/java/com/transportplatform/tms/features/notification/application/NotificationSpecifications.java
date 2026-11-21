@@ -30,7 +30,6 @@ public final class NotificationSpecifications {
                 String pattern = "%" + keyword.trim().toLowerCase() + "%";
                 predicate = builder.and(predicate, builder.or(
                         builder.like(builder.lower(root.get("title")), pattern),
-                        builder.like(builder.lower(root.get("message")), pattern),
                         builder.like(builder.lower(root.get("notificationCode")), pattern)));
             }
             if (readStatus != null) {

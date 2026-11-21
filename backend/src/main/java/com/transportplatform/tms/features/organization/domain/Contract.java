@@ -65,20 +65,23 @@ public class Contract extends AuditableEntity {
     @Column(name = "billing_model", length = 40)
     private BillingModel billingModel;
 
-    @Column(name = "rate_notes", length = 2000)
+    @Column(name = "rate_notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String rateNotes;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "invoice_frequency", length = 40)
     private InvoiceFrequency invoiceFrequency;
 
-    @Column(name = "service_window_notes", length = 2000)
+    @Column(name = "service_window_notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String serviceWindowNotes;
 
     @Column(name = "terms_and_conditions_summary", length = 4000)
     private String termsAndConditionsSummary;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Enumerated(EnumType.STRING)

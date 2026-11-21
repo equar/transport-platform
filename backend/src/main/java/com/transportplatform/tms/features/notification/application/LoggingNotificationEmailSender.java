@@ -13,8 +13,7 @@ public class LoggingNotificationEmailSender implements NotificationEmailSender {
 
     @Override
     public DeliveryResult send(NotificationEmailCommand command) {
-        LOGGER.info("Email notification hook queued for {} with subject '{}'", command.recipientEmail(),
-                command.subject());
+        LOGGER.info("Email notification delivery is disabled.");
         return new DeliveryResult(false, "DELIVERY_DISABLED");
     }
 }

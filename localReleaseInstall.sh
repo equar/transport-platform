@@ -8,10 +8,10 @@ IOS_BUNDLE_ID="com.bakaroo.transport.app"
 IOS_WORKSPACE="TransportPlatform.xcworkspace"
 IOS_SCHEME="TransportPlatform"
 IOS_APP_NAME="TransportPlatform.app"
-TARGET_PLATFORM="${1:-both}"
+TARGET_PLATFORM="${1:-auto}"
 
 usage() {
-  echo "Usage: $(basename "$0") {android|ios|both}" >&2
+  echo "Usage: $(basename "$0") {android|ios|both|auto} (default: auto)" >&2
 }
 
 if (( $# > 1 )); then
@@ -28,7 +28,7 @@ case "$TARGET_PLATFORM" in
     install_android=false
     install_ios=true
     ;;
-  both)
+  both|auto)
     install_android=true
     install_ios=true
     ;;
@@ -49,25 +49,40 @@ export EXPO_PUBLIC_API_BASE_URL="$(resolve_api_base_url aws android-emulator)"
 export NODE_ENV=production
 
 android_devices=()
+android_device_types=()
 ios_devices=()
 android_device_count=0
 ios_device_count=0
 
+if [[ "$install_android" == true ]] && ! resolve_android_sdk; then
+  if [[ "$TARGET_PLATFORM" != auto ]]; then exit 1; fi
+  install_android=false
+fi
 if [[ "$install_android" == true ]]; then
-  resolve_android_sdk
-  resolve_android_java
   export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
   require_command adb
   adb start-server >/dev/null
-
-  while IFS= read -r serial; do
-    if [[ "$(adb -s "$serial" shell getprop ro.kernel.qemu </dev/null 2>/dev/null | tr -d '\r')" == "1" ]]; then
-      android_devices+=("$serial")
-      ((android_device_count += 1))
+  adb_devices_output="$(adb devices)"
+  while read -r serial state _rest; do
+    [[ -n "$serial" && "$serial" != List && "$serial" != '*' ]] || continue
+    if [[ "$state" != device ]]; then
+      echo "Skipping Android $serial ($state). Unlock the phone, enable USB debugging and authorize this computer if needed." >&2
+      continue
     fi
-  done < <(adb devices | awk '$2 == "device" { print $1 }')
+    device_type=physical
+    if [[ "$serial" == emulator-* ]] || [[ "$(adb -s "$serial" shell getprop ro.kernel.qemu </dev/null 2>/dev/null | tr -d '\r' || true)" == 1 ]]; then
+      device_type=emulator
+    fi
+    android_devices+=("$serial")
+    android_device_types+=("$device_type")
+    ((android_device_count += 1))
+  done <<<"$adb_devices_output"
 fi
 
+if [[ "$install_ios" == true && "$TARGET_PLATFORM" == auto ]] &&
+  { ! command -v xcodebuild >/dev/null 2>&1 || ! command -v xcrun >/dev/null 2>&1; }; then
+  install_ios=false
+fi
 if [[ "$install_ios" == true ]]; then
   require_command xcodebuild
   require_command xcrun
@@ -82,18 +97,30 @@ if [[ "$install_ios" == true ]]; then
 fi
 
 if [[ "$install_android" == true && $android_device_count -eq 0 ]]; then
-  echo "ERROR: No booted Android emulators were found." >&2
-  exit 1
+  if [[ "$TARGET_PLATFORM" == auto ]]; then
+    install_android=false
+  else
+    echo "ERROR: No ready Android devices found. Connect a phone with USB debugging authorized, or boot an emulator." >&2
+    exit 1
+  fi
 fi
 if [[ "$install_ios" == true && $ios_device_count -eq 0 ]]; then
-  echo "ERROR: No booted iOS simulators were found." >&2
-  exit 1
+  if [[ "$TARGET_PLATFORM" == auto ]]; then
+    install_ios=false
+  else
+    echo "ERROR: No booted iOS simulators were found." >&2
+    exit 1
+  fi
 fi
 
-echo "Installing for $TARGET_PLATFORM: discovered $android_device_count booted Android emulator(s) and $ios_device_count booted iOS simulator(s)."
+if [[ "$install_android" == false && "$install_ios" == false ]]; then
+  echo "ERROR: No ready Android phones/emulators or booted iOS simulators found. Connect and authorize an Android phone, or start a simulator." >&2
+  exit 1
+fi
+echo "Installing for $TARGET_PLATFORM: discovered $android_device_count ready Android device(s) and $ios_device_count booted iOS simulator(s)."
 if [[ "$install_android" == true ]]; then
-  for serial in "${android_devices[@]}"; do
-    echo "  Android: $serial"
+  for index in "${!android_devices[@]}"; do
+    echo "  Android (${android_device_types[$index]}): ${android_devices[$index]}"
   done
 fi
 if [[ "$install_ios" == true ]]; then
@@ -107,6 +134,7 @@ installed_android=0
 installed_ios=0
 
 if [[ "$install_android" == true ]]; then
+  resolve_android_java
   warn_if_android_push_native_config_missing
   echo "Building Android release APK with $EXPO_PUBLIC_API_BASE_URL..."
   (
@@ -119,12 +147,18 @@ if [[ "$install_android" == true ]]; then
     exit 1
   fi
 
-  for serial in "${android_devices[@]}"; do
-    echo "Installing Android release on $serial..."
+  for index in "${!android_devices[@]}"; do
+    serial="${android_devices[$index]}"
+    echo "Installing Android release on $serial (${android_device_types[$index]})..."
     if install_output="$(adb -s "$serial" install -r "$ANDROID_APK" 2>&1)"; then
       printf '%s\n' "$install_output"
     elif grep -Fq 'INSTALL_FAILED_UPDATE_INCOMPATIBLE' <<<"$install_output"; then
       printf '%s\n' "$install_output" >&2
+      if [[ "${android_device_types[$index]}" == physical ]]; then
+        echo "Cannot update $serial: the installed app uses a different signing key. Phone data was preserved; use a build signed with the same key, or back up and remove the old app manually." >&2
+        failures+=("Android $serial: incompatible signing key; existing app preserved")
+        continue
+      fi
       echo "Replacing incompatible prior signature on $serial for $ANDROID_PACKAGE..." >&2
       if ! adb -s "$serial" uninstall "$ANDROID_PACKAGE" ||
         ! adb -s "$serial" install "$ANDROID_APK"; then
@@ -194,9 +228,9 @@ if [[ "$install_ios" == true ]]; then
   done
 fi
 
-echo "Installed production-configured builds on $installed_android Android emulator(s) and $installed_ios iOS simulator(s)."
+echo "Installed production-configured builds on $installed_android Android device(s) and $installed_ios iOS simulator(s)."
 if (( ${#failures[@]} > 0 )); then
-  printf 'ERROR: Installation failed on %d virtual device(s):\n' "${#failures[@]}" >&2
+  printf 'ERROR: Installation failed on %d device(s):\n' "${#failures[@]}" >&2
   printf '  - %s\n' "${failures[@]}" >&2
   exit 1
 fi

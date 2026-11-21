@@ -67,7 +67,8 @@ public class SubscriptionPlan extends AuditableEntity {
     @Column(name = "feature_code", nullable = false, length = 100)
     private Set<String> includedFeatureCodes = new LinkedHashSet<>();
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Enumerated(EnumType.STRING)

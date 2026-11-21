@@ -526,7 +526,7 @@ public class NotificationEventService {
             return;
         }
         Map<String, Object> metadata = new LinkedHashMap<>(context);
-        metadata.putIfAbsent("recipientEmail", user.getEmail());
+
         notificationDispatchService.notifyInApp(
                 user.getTenantId(),
                 user.getId(),
@@ -565,21 +565,6 @@ public class NotificationEventService {
         metadata.put("serviceType", ride.getServiceType() == null ? null : ride.getServiceType().name());
         metadata.put("scheduledPickupAt", ride.getScheduledPickupAt());
         metadata.put("scheduledDropoffAt", ride.getScheduledDropoffAt());
-        metadata.put("pickupAddress", formatAddress(
-                ride.getPickupAddressLine1(),
-                ride.getPickupAddressLine2(),
-                ride.getPickupCity(),
-                ride.getPickupState(),
-                ride.getPickupZipCode()));
-        metadata.put("dropoffAddress", formatAddress(
-                ride.getDropoffAddressLine1(),
-                ride.getDropoffAddressLine2(),
-                ride.getDropoffCity(),
-                ride.getDropoffState(),
-                ride.getDropoffZipCode()));
-        metadata.put("riderName", ride.getRider() == null ? null : fullName(ride.getRider().getFirstName(), ride.getRider().getLastName()));
-        metadata.put("guardianName", ride.getGuardian() == null ? null : fullName(ride.getGuardian().getFirstName(), ride.getGuardian().getLastName()));
-        metadata.put("organizationName", ride.getOrganization() == null ? null : ride.getOrganization().getName());
         metadata.put("routeId", ride.getRouteId());
         metadata.put("audience", audience);
         if (extra != null) {

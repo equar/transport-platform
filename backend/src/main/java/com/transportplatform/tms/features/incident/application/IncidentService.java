@@ -293,7 +293,8 @@ public class IncidentService {
     private String resolveSortField(String sortBy) {
         String resolved = sortBy == null ? "reportedAt" : sortBy;
         return switch (resolved) {
-            case "reportedAt", "createdAt", "updatedAt", "incidentCode", "severity", "status", "title" -> resolved;
+            case "reportedAt", "createdAt", "updatedAt", "incidentCode", "severity", "status" -> resolved;
+            case "title" -> throw new ApiException(ErrorCode.VALIDATION_FAILED,HttpStatus.BAD_REQUEST,"Encrypted narratives cannot be sorted in the database. Sort by code, severity, status or report time.");
             default -> "reportedAt";
         };
     }

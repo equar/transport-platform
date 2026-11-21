@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 SECRET_KEYS = {
     'LIGHTSAIL_HOST', 'LIGHTSAIL_USER', 'LIGHTSAIL_SSH_KEY_B64', 'LIGHTSAIL_SSH_KEY',
     'LIGHTSAIL_KNOWN_HOSTS', 'MYSQL_PASSWORD', 'APP_SECURITY_JWT_SECRET',
+    'APP_PRIVACY_ENCRYPTION_KEYS', 'APP_PRIVACY_LOOKUP_KEY',
     'APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD', 'MICROSOFT_GRAPH_CLIENT_SECRET', 'EXPO_ACCESS_TOKEN', 'APP_SECURITY_MFA_ENCRYPTION_KEY',
 }
 DEFAULTS = {
@@ -21,6 +22,7 @@ DEFAULTS = {
     'APP_EMAIL_ENABLED': 'false', 'APP_EMAIL_PROVIDER': 'logging', 'APP_EMAIL_FROM': '',
     'MICROSOFT_GRAPH_CLIENT_ID': '', 'MICROSOFT_GRAPH_TENANT_ID': '', 'MICROSOFT_GRAPH_CLIENT_SECRET': '',
     'APP_PUSH_ENABLED': 'false', 'APP_PUSH_PROVIDER': 'logging', 'EXPO_ACCESS_TOKEN': '',
+    'APP_PRIVACY_ENCRYPTION_KEYS': '', 'APP_PRIVACY_ACTIVE_KEY_ID': '', 'APP_PRIVACY_LOOKUP_KEY': '',
     'APP_SECURITY_MFA_ENCRYPTION_KEY': '', 'APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS': 'false',
     'APP_PUSH_EXPO_URL': 'https://exp.host/--/api/v2/push/send',
     'APP_LOGGING_LEVEL_ROOT': 'INFO', 'APP_LOGGING_LEVEL_APP': 'INFO',
@@ -98,6 +100,20 @@ def settings(environ=None, target='all', require_ssh=True):
         raise ValueError('APP_SECURITY_MFA_ENCRYPTION_KEY must be base64-encoded 32 random bytes') from None
     if len(mfa_key) != 32:
         raise ValueError('APP_SECURITY_MFA_ENCRYPTION_KEY must be base64-encoded 32 random bytes')
+    try:
+        phi_keys = {}
+        for entry in required(env, 'APP_PRIVACY_ENCRYPTION_KEYS').split(','):
+            name, encoded = entry.strip().split(':', 1)
+            if not re.fullmatch(r'[A-Za-z0-9_-]{1,32}', name) or name in phi_keys:
+                raise ValueError()
+            phi_keys[name] = base64.b64decode(encoded, validate=True)
+        lookup_key = base64.b64decode(required(env, 'APP_PRIVACY_LOOKUP_KEY'), validate=True)
+        if any(len(key) != 32 for key in phi_keys.values()) or len(lookup_key) != 32 or required(env, 'APP_PRIVACY_ACTIVE_KEY_ID') not in phi_keys:
+            raise ValueError()
+        if lookup_key in phi_keys.values() or mfa_key in phi_keys.values() or lookup_key == mfa_key:
+            raise ValueError()
+    except (ValueError, binascii.Error):
+        raise ValueError('Privacy encryption requires a valid key ring, active key ID and independent base64-encoded 32-byte lookup key; do not reuse the MFA key') from None
     if env['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS'] not in ('true', 'false'):
         raise ValueError('APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS must be true or false')
     origins = env['APP_SECURITY_ALLOWED_ORIGINS'].split(',')

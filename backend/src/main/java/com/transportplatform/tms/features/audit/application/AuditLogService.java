@@ -39,16 +39,16 @@ public class AuditLogService {
         AuditLogActor actor = resolveActor(command.actor());
         AuditLog auditLog = new AuditLog();
         auditLog.setActorUserId(actor.userId());
-        auditLog.setActorEmail(actor.email());
-        auditLog.setActorName(actor.name());
+        auditLog.setActorEmail(null);
+        auditLog.setActorName(actor.userId()==null?"System":"User #"+actor.userId());
         auditLog.setTenantId(blankToNull(command.tenantId()));
         auditLog.setModule(normalize(command.module()));
         auditLog.setAction(normalize(command.action()));
         auditLog.setEntityType(normalize(command.entityType()));
         auditLog.setEntityId(command.entityId());
-        auditLog.setSummary(command.summary());
+        auditLog.setSummary(com.transportplatform.tms.common.privacy.PrivacyMinimizer.summary(normalize(command.entityType()),normalize(command.action())));
         auditLog.setOldValueJson(writeJson(command.oldValue()));
-        auditLog.setNewValueJson(writeJson(command.newValue()));
+        auditLog.setNewValueJson(command.newValue()==null?null:writeJson(com.transportplatform.tms.common.privacy.PrivacyMinimizer.auditWithChanges(objectMapper.valueToTree(command.oldValue()),objectMapper.valueToTree(command.newValue()))));
         auditLogRepository.save(auditLog);
     }
 
@@ -160,16 +160,16 @@ public class AuditLogService {
         return new AuditLogResponse(
                 auditLog.getId(),
                 auditLog.getActorUserId(),
-                auditLog.getActorName(),
-                auditLog.getActorEmail(),
+                auditLog.getActorUserId()==null?"System":"User #"+auditLog.getActorUserId(),
+                null,
                 auditLog.getTenantId(),
                 auditLog.getModule(),
                 auditLog.getAction(),
                 auditLog.getEntityType(),
                 auditLog.getEntityId(),
-                auditLog.getSummary(),
-                auditLog.getOldValueJson(),
-                auditLog.getNewValueJson(),
+                com.transportplatform.tms.common.privacy.PrivacyMinimizer.summary(auditLog.getEntityType(),auditLog.getAction()),
+                com.transportplatform.tms.common.privacy.PrivacyMinimizer.auditJson(objectMapper,auditLog.getOldValueJson()),
+                com.transportplatform.tms.common.privacy.PrivacyMinimizer.auditNewJson(objectMapper,auditLog.getOldValueJson(),auditLog.getNewValueJson()),
                 auditLog.getCreatedAt());
     }
 
@@ -177,13 +177,13 @@ public class AuditLogService {
         return new DashboardActivityResponse(
                 auditLog.getId(),
                 auditLog.getCreatedAt(),
-                auditLog.getActorName(),
-                auditLog.getActorEmail(),
+                auditLog.getActorUserId()==null?"System":"User #"+auditLog.getActorUserId(),
+                null,
                 auditLog.getModule(),
                 auditLog.getAction(),
                 auditLog.getEntityType(),
                 auditLog.getEntityId(),
-                auditLog.getSummary(),
+                com.transportplatform.tms.common.privacy.PrivacyMinimizer.summary(auditLog.getEntityType(),auditLog.getAction()),
                 auditLog.getTenantId());
     }
 
@@ -192,7 +192,7 @@ public class AuditLogService {
             return null;
         }
         try {
-            return objectMapper.writeValueAsString(value);
+            return objectMapper.writeValueAsString(com.transportplatform.tms.common.privacy.PrivacyMinimizer.audit(objectMapper.valueToTree(value)));
         } catch (JsonProcessingException exception) {
             throw new ApiException(
                     ErrorCode.INTERNAL_SERVER_ERROR,

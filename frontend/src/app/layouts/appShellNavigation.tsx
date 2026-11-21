@@ -115,6 +115,7 @@ const platformSections: AppShellNavSection[] = [
         to: "/platform/subscription-plans",
         icon: <AttachMoneyRoundedIcon fontSize="small" />,
       },
+      { label: "Privacy & Retention", description: "Privacy retention defaults, company overrides and legal holds.", to: "/platform/privacy-retention", icon: <SecurityRoundedIcon fontSize="small" /> },
       { label: "Subscription Billing", description: "Per-driver platform subscriptions, renewal invoices and receipts.", to: "/platform/subscription-billing", icon: <ReceiptLongRoundedIcon fontSize="small" /> },
       {
         label: "Tenant Subscriptions",
@@ -347,6 +348,7 @@ const companySections: AppShellNavSection[] = [
         requiredModule: "reports",
         audiences: ["company-admin", "billing-admin", "compliance-admin"],
       },
+      { label: "Privacy & Retention", description: "Privacy retention defaults, company overrides and legal holds.", to: "/company/privacy-retention", icon: <SecurityRoundedIcon fontSize="small" />, audiences: ["company-admin"] },
       {
         label: "Settings",
         description:

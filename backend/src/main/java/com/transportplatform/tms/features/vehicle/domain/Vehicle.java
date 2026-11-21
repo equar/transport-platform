@@ -95,7 +95,8 @@ public class Vehicle extends AuditableEntity {
     @Column(name = "assigned_driver_id")
     private Long assignedDriverId;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Enumerated(EnumType.STRING)

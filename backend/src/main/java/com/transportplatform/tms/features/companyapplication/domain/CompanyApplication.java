@@ -77,10 +77,12 @@ public class CompanyApplication extends AuditableEntity {
     @Column(name = "number_of_drivers")
     private Integer numberOfDrivers;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
-    @Column(name = "review_notes", length = 2000)
+    @Column(name = "review_notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String reviewNotes;
 
     @Column(name = "rejection_reason", length = 2000)

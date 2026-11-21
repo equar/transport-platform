@@ -76,40 +76,52 @@ public class Ride extends AuditableEntity {
     @Column(name = "trip_type", nullable = false, length = 30)
     private RideTripType tripType;
 
-    @Column(name = "pickup_address_line1", nullable = false, length = 200)
+    @Column(name = "pickup_address_line1", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String pickupAddressLine1;
 
-    @Column(name = "pickup_address_line2", length = 200)
+    @Column(name = "pickup_address_line2", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String pickupAddressLine2;
 
-    @Column(name = "pickup_city", nullable = false, length = 100)
+    @Column(name = "pickup_city", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String pickupCity;
 
-    @Column(name = "pickup_state", nullable = false, length = 100)
+    @Column(name = "pickup_state", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String pickupState;
 
-    @Column(name = "pickup_zip_code", nullable = false, length = 30)
+    @Column(name = "pickup_zip_code", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String pickupZipCode;
 
-    @Column(name = "pickup_country", nullable = false, length = 100)
+    @Column(name = "pickup_country", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String pickupCountry;
 
-    @Column(name = "dropoff_address_line1", nullable = false, length = 200)
+    @Column(name = "dropoff_address_line1", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String dropoffAddressLine1;
 
-    @Column(name = "dropoff_address_line2", length = 200)
+    @Column(name = "dropoff_address_line2", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String dropoffAddressLine2;
 
-    @Column(name = "dropoff_city", nullable = false, length = 100)
+    @Column(name = "dropoff_city", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String dropoffCity;
 
-    @Column(name = "dropoff_state", nullable = false, length = 100)
+    @Column(name = "dropoff_state", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String dropoffState;
 
-    @Column(name = "dropoff_zip_code", nullable = false, length = 30)
+    @Column(name = "dropoff_zip_code", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String dropoffZipCode;
 
-    @Column(name = "dropoff_country", nullable = false, length = 100)
+    @Column(name = "dropoff_country", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String dropoffCountry;
 
     @Column(name = "scheduled_pickup_at", nullable = false)
@@ -124,22 +136,27 @@ public class Ride extends AuditableEntity {
     @Column(name = "return_dropoff_at")
     private LocalDateTime returnDropoffAt;
 
-    @Column(name = "wheelchair_required", nullable = false)
+    @Column(name = "wheelchair_required", nullable = false, columnDefinition = "VARCHAR(512)")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Flag.class)
     private boolean wheelchairRequired;
 
-    @Column(name = "escort_required", nullable = false)
+    @Column(name = "escort_required", nullable = false, columnDefinition = "VARCHAR(512)")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Flag.class)
     private boolean escortRequired;
 
     @Column(name = "companion_count", nullable = false)
     private int companionCount;
 
-    @Column(name = "special_instructions", length = 2000)
+    @Column(name = "special_instructions", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String specialInstructions;
 
-    @Column(name = "internal_notes", length = 2000)
+    @Column(name = "internal_notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String internalNotes;
 
-    @Column(name = "operational_notes", length = 2000)
+    @Column(name = "operational_notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String operationalNotes;
 
     @Enumerated(EnumType.STRING)
@@ -166,7 +183,8 @@ public class Ride extends AuditableEntity {
     @JoinColumn(name = "recurrence_schedule_id")
     private RecurringRideSchedule recurrenceSchedule;
 
-    @Column(name = "cancellation_reason", length = 1000)
+    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String cancellationReason;
 
     @Column(name = "cancelled_at")

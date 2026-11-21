@@ -31,7 +31,8 @@ public class Notification extends AuditableEntity {
     @Column(name = "title", nullable = false, length = 255)
     private String title;
 
-    @Column(name = "message", nullable = false, length = 4000)
+    @Column(name = "message", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String message;
 
     @Column(name = "email_subject", length = 255)
@@ -65,7 +66,8 @@ public class Notification extends AuditableEntity {
     @Column(name = "read_at")
     private Instant readAt;
 
-    @Column(name = "error_message", length = 1000)
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String errorMessage;
 
     @Column(name = "delivery_attempt_count", nullable = false)
@@ -74,7 +76,8 @@ public class Notification extends AuditableEntity {
     @Column(name = "next_delivery_attempt_at")
     private Instant nextDeliveryAttemptAt;
 
-    @Column(name = "metadata_json", length = 4000)
+    @Column(name = "metadata_json", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String metadataJson;
 
     @Column(name = "correlation_id", length = 128)

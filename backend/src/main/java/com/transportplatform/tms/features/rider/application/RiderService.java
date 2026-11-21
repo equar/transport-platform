@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RiderService {
+    private final com.transportplatform.tms.common.privacy.PhiCipher privacy;
 
     private final RiderRepository riderRepository;
     private final RiderGuardianRepository riderGuardianRepository;
@@ -50,7 +51,8 @@ public class RiderService {
             RiderCodeGenerator riderCodeGenerator,
             OrganizationValidationService organizationValidationService,
             AuditLogService auditLogService,
-            Clock clock) {
+            Clock clock, com.transportplatform.tms.common.privacy.PhiCipher privacy) {
+        this.privacy=privacy;
         this.riderRepository = riderRepository;
         this.riderGuardianRepository = riderGuardianRepository;
         this.riderMapper = riderMapper;
@@ -75,7 +77,7 @@ public class RiderService {
         String tenantId = riderAccessService.requireCompanyTenantId();
         var pageable = PageRequest.of(page, size, Sort.by(sortDirection, resolveSortField(sortBy)));
         var result = riderRepository.findAll(
-                RiderSpecifications.search(tenantId, keyword, status, riderType, wheelchairRequired, escortRequired),
+                RiderSpecifications.search(tenantId, keyword, status, riderType, wheelchairRequired, escortRequired, privacy),
                 pageable);
         Map<Long, List<RiderGuardian>> relationshipsByRiderId = loadActiveRelationshipsByRiderId(tenantId,
                 result.getContent());
@@ -296,9 +298,10 @@ public class RiderService {
     private String resolveSortField(String sortBy) {
         String resolved = sortBy == null ? "updatedAt" : sortBy;
         return switch (resolved) {
-            case "createdAt", "updatedAt", "riderCode", "firstName", "lastName", "dateOfBirth", "city",
+            case "createdAt", "updatedAt", "riderCode", "firstName", "lastName",
                     "status" ->
                 resolved;
+            case "dateOfBirth", "city" -> throw new ApiException(ErrorCode.VALIDATION_FAILED,HttpStatus.BAD_REQUEST,"Private fields cannot be sorted in the database. Sort by name, code, status or update time.");
             default -> "updatedAt";
         };
     }

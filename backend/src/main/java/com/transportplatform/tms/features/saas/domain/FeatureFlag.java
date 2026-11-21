@@ -36,7 +36,8 @@ public class FeatureFlag extends AuditableEntity {
     @Column(name = "platform_managed_only", nullable = false)
     private boolean platformManagedOnly;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Enumerated(EnumType.STRING)

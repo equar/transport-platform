@@ -51,7 +51,8 @@ public class RideEvent extends AuditableEntity {
     @Column(name = "new_status", length = 30)
     private RideStatus newStatus;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     public Long getId() {

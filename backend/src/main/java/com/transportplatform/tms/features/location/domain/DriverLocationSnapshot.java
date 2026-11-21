@@ -36,10 +36,12 @@ public class DriverLocationSnapshot extends AuditableEntity {
     @Column(name = "vehicle_id")
     private Long vehicleId;
 
-    @Column(name = "latitude", nullable = false)
+    @Column(name = "latitude", nullable = false, columnDefinition = "VARCHAR(512)")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Coordinate.class)
     private Double latitude;
 
-    @Column(name = "longitude", nullable = false)
+    @Column(name = "longitude", nullable = false, columnDefinition = "VARCHAR(512)")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Coordinate.class)
     private Double longitude;
 
     @Column(name = "accuracy_meters")

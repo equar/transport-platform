@@ -18,6 +18,7 @@ import java.time.LocalTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+@jakarta.persistence.EntityListeners(com.transportplatform.tms.common.privacy.RiderPrivateIndexListener.class)
 @Entity
 @Table(name = "riders")
 public class Rider extends AuditableEntity {
@@ -45,7 +46,8 @@ public class Rider extends AuditableEntity {
     @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
-    @Column(name = "date_of_birth")
+    @Column(name = "date_of_birth", columnDefinition = "VARCHAR(512)")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Date.class)
     private LocalDate dateOfBirth;
 
     @Enumerated(EnumType.STRING)
@@ -55,40 +57,52 @@ public class Rider extends AuditableEntity {
     @Column(name = "email", length = 150)
     private String email;
 
-    @Column(name = "primary_phone", nullable = false, length = 50)
+    @Column(name = "primary_phone", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String primaryPhone;
 
-    @Column(name = "alternate_phone", length = 50)
+    @Column(name = "alternate_phone", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String alternatePhone;
 
-    @Column(name = "home_address_line1", length = 200)
+    @Column(name = "home_address_line1", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String homeAddressLine1;
 
-    @Column(name = "home_address_line2", length = 200)
+    @Column(name = "home_address_line2", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String homeAddressLine2;
 
-    @Column(name = "city", length = 100)
+    @Column(name = "city", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String city;
 
-    @Column(name = "state", length = 100)
+    @Column(name = "state", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String state;
 
-    @Column(name = "zip_code", length = 30)
+    @Column(name = "zip_code", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String zipCode;
 
-    @Column(name = "country", length = 100)
+    @Column(name = "country", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String country;
 
-    @Column(name = "default_pickup_address", length = 300)
+    @Column(name = "default_pickup_address", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String defaultPickupAddress;
 
-    @Column(name = "default_dropoff_address", length = 300)
+    @Column(name = "default_dropoff_address", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String defaultDropoffAddress;
 
-    @Column(name = "pickup_notes", length = 1000)
+    @Column(name = "pickup_notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String pickupNotes;
 
-    @Column(name = "dropoff_notes", length = 1000)
+    @Column(name = "dropoff_notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String dropoffNotes;
 
     @Column(name = "preferred_pickup_window_start")
@@ -105,40 +119,58 @@ public class Rider extends AuditableEntity {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "rider_mobility_needs", joinColumns = @JoinColumn(name = "rider_id"))
-    @Enumerated(EnumType.STRING)
-    @Column(name = "mobility_need", nullable = false, length = 40)
+    @Column(name = "mobility_need", nullable = false, columnDefinition = "VARCHAR(512)")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Mobility.class)
     private Set<RiderMobilityNeed> mobilityNeeds = new LinkedHashSet<>();
 
-    @Column(name = "wheelchair_required", nullable = false)
+    @Column(name = "wheelchair_required", nullable = false, columnDefinition = "VARCHAR(512)")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Flag.class)
     private boolean wheelchairRequired;
 
-    @Column(name = "escort_required", nullable = false)
+    @Column(name = "escort_required", nullable = false, columnDefinition = "VARCHAR(512)")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Flag.class)
     private boolean escortRequired;
 
-    @Column(name = "special_instructions", length = 2000)
+    @Column(name = "special_instructions", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String specialInstructions;
 
-    @Column(name = "care_notes_summary", length = 2000)
+    @Column(name = "care_notes_summary", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String careNotesSummary;
 
-    @Column(name = "emergency_contact_name", length = 150)
+    @Column(name = "emergency_contact_name", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String emergencyContactName;
 
-    @Column(name = "emergency_contact_phone", length = 50)
+    @Column(name = "emergency_contact_phone", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String emergencyContactPhone;
 
-    @Column(name = "emergency_contact_relationship", length = 100)
+    @Column(name = "emergency_contact_relationship", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String emergencyContactRelationship;
 
     @Column(name = "organization_id")
     private Long organizationId;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private RiderStatus status;
+
+    @Column(name="wheelchair_lookup",length=64) private String wheelchairLookup;
+    @Column(name="escort_lookup",length=64) private String escortLookup;
+    @ElementCollection
+    @CollectionTable(name="rider_private_search_tokens",joinColumns=@JoinColumn(name="rider_id"))
+    @Column(name="token",length=64,nullable=false)
+    private Set<String> privatePhoneTokens=new LinkedHashSet<>();
+    public void setWheelchairLookup(String value){wheelchairLookup=value;}
+    public void setEscortLookup(String value){escortLookup=value;}
+    public void setPrivatePhoneTokens(Set<String> value){privatePhoneTokens=value;}
 
     public Long getId() {
         return id;
@@ -349,7 +381,7 @@ public class Rider extends AuditableEntity {
     }
 
     public void setMobilityNeeds(Set<RiderMobilityNeed> mobilityNeeds) {
-        this.mobilityNeeds = mobilityNeeds;
+        this.mobilityNeeds = mobilityNeeds == null ? new LinkedHashSet<>() : new LinkedHashSet<>(mobilityNeeds);
     }
 
     public boolean isWheelchairRequired() {

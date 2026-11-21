@@ -30,4 +30,14 @@ class NotificationDispatchServiceTest {
         assertThat(email.getMessage()).hasSizeLessThanOrEqualTo(4000);
         assertThat(email.getDeliveryStatus()).isEqualTo(NotificationDeliveryStatus.PENDING);
     }
+    @Test void clinicalTemplateValuesNeverReachOperationalNotificationRecords(){
+        var repo=mock(NotificationRepository.class);when(repo.save(any())).thenAnswer(i->i.getArgument(0));
+        var renderer=mock(NotificationTemplateRenderer.class);when(renderer.render(any(),anyMap(),any(),anyString(),anyString())).thenReturn(new NotificationTemplateRenderer.RenderedTemplate("Patient DOB","Patient name","Oxygen at home address"));
+        var service=new NotificationDispatchService(repo,mock(NotificationTemplateRepository.class),mock(NotificationCodeGenerator.class),renderer,mock(PushDeliveryWorker.class),mock(PortalPushDeviceTokenService.class),new ObjectMapper(),Clock.systemUTC());
+        var result=service.notifyInApp("tenant",1L,NotificationType.RIDE_DRIVER_EN_ROUTE,"RIDE","12","Private Patient","DOB 1960",Map.of("rideId",12,"riderName","Private Patient","pickupAddress","Home address","careNotesSummary","Oxygen"));
+        assertThat(result.getTitle()).isEqualTo("Trip update");assertThat(result.getMessage()).doesNotContain("Oxygen","1960","address");assertThat(result.getMetadataJson()).contains("rideId").doesNotContain("Patient","Home","Oxygen");
+        var email=service.notifyEmail("tenant",1L,"patient@example.test",NotificationType.RIDE_STATUS_CHANGED,"RIDE","12","Private DOB","Patient","Oxygen",Map.of("riderName","Private Patient"));
+        assertThat(email.getEmailSubject()).isEqualTo("Trip update");assertThat(email.getMessage()).doesNotContain("Oxygen");
+    }
+
 }

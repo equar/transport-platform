@@ -43,7 +43,8 @@ public class RouteStop extends AuditableEntity {
     @Column(name = "planned_dropoff_at")
     private LocalDateTime plannedDropoffAt;
 
-    @Column(name = "notes", length = 1000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     @Enumerated(EnumType.STRING)

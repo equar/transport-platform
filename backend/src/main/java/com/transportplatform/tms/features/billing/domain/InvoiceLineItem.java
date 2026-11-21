@@ -61,7 +61,8 @@ public class InvoiceLineItem extends AuditableEntity {
     @Column(name = "service_period_label", length = 120)
     private String servicePeriodLabel;
 
-    @Column(name = "notes", length = 2000)
+    @Column(name = "notes", columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.transportplatform.tms.common.privacy.PhiConverters.Text.class)
     private String notes;
 
     public Long getId() {

@@ -42,6 +42,7 @@ jobs:
       MYSQL_USER: ${{ vars.MYSQL_USER }}
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
       APP_SECURITY_JWT_SECRET: ${{ secrets.APP_SECURITY_JWT_SECRET }}
+      APP_PRIVACY_ACTIVE_KEY_ID: ${{ vars.APP_PRIVACY_ACTIVE_KEY_ID }}
       APP_SECURITY_MFA_ENCRYPTION_KEY: ${{ secrets.APP_SECURITY_MFA_ENCRYPTION_KEY }}
       APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS: ${{ vars.APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS || 'false' }}
       APP_PUBLIC_URL: ${{ vars.APP_PUBLIC_URL || 'https://transport.bakaroo.com' }}
@@ -113,6 +114,8 @@ jobs:
         if: steps.changes.outputs.any == 'true'
         env:
           CONFIG_TARGET: ${{ steps.changes.outputs.backend == 'true' && 'backend' || 'frontend' }}
+          APP_PRIVACY_ENCRYPTION_KEYS: ${{ steps.changes.outputs.backend == 'true' && secrets.APP_PRIVACY_ENCRYPTION_KEYS || '' }}
+          APP_PRIVACY_LOOKUP_KEY: ${{ steps.changes.outputs.backend == 'true' && secrets.APP_PRIVACY_LOOKUP_KEY || '' }}
         run: python3 deployment/aws/validate-config.py --target "$CONFIG_TARGET"
       - name: Verify and package backend
         if: steps.changes.outputs.backend == 'true'
@@ -137,6 +140,9 @@ jobs:
           printf 'SSH_KEY=%s\nSSH_KNOWN_HOSTS_FILE=%s\n' "$RUNNER_TEMP/transport-ssh/key" "$RUNNER_TEMP/transport-ssh/known_hosts" >> "$GITHUB_ENV"
       - name: Deploy backend
         if: steps.changes.outputs.backend == 'true'
+        env:
+          APP_PRIVACY_ENCRYPTION_KEYS: ${{ secrets.APP_PRIVACY_ENCRYPTION_KEYS }}
+          APP_PRIVACY_LOOKUP_KEY: ${{ secrets.APP_PRIVACY_LOOKUP_KEY }}
         run: bash deployment/aws/deploy-backend.sh
       - name: Deploy frontend
         if: steps.changes.outputs.frontend == 'true'
