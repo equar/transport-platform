@@ -51,6 +51,17 @@ class ProductionWorkflowMySqlTest {
                 Map.of("X-Client-Platform",Set.of("driver","rider","guardian").contains(role)?"mobile":"web"));
         assertEquals(200,r.getStatusCode().value(),r.toString());return r.getBody().path("data").path("accessToken").asText();
     }
+    @Test void optionalMfaAllowsUnenrolledPlatformAdminToLoadSubscriptionPlans() {
+        var signed=call(HttpMethod.POST,"/v1/auth/login",Map.of("email","platform.admin@demo.test","password","Password123"),null,Map.of("X-Client-Platform","web"));
+        assertEquals(200,signed.getStatusCode().value(),signed.toString());
+        assertFalse(signed.getBody().path("data").path("user").path("mfaEnrollmentRequired").asBoolean());
+        String token=signed.getBody().path("data").path("accessToken").asText();
+        assertEquals(200,call(HttpMethod.GET,"/platform/subscription-plans",null,token,Map.of()).getStatusCode().value());
+        var status=call(HttpMethod.GET,"/v1/auth/mfa",null,token,Map.of());
+        assertFalse(status.getBody().path("data").path("required").asBoolean());
+        assertFalse(status.getBody().path("data").path("enabled").asBoolean());
+    }
+
     @Test void committedSubscriptionChangesBlockLoginAndExistingAccessTokens() {
         String token=login("tenant.admin");
         String tenant="demo-metro-mobility-000000000001";

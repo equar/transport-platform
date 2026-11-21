@@ -76,3 +76,29 @@ it('requires a tenant and user before capturing a financial retry scope', () => 
   setApiSession({ accessToken: 'platform', identity: { id: 1, tenantId: null } });
   expect(() => captureTenantRequestScope()).toThrow('authenticated company account');
 });
+
+it('refreshes using the HttpOnly cookie without stale bearer or tenant headers',async()=>{
+  setApiSession({accessToken:'restricted-token',identity:{id:1,tenantId:'previous-tenant'}});
+  let captured!:InternalAxiosRequestConfig;
+  apiClient.defaults.adapter=(async config=>{captured=config;return {config,data:{success:true,data:{}},status:200,statusText:'OK',headers:{}};}) as AxiosAdapter;
+  await apiClient.post('/v1/auth/refresh',undefined,{headers:{Authorization:'Bearer stale','X-Tenant-Id':'old'}});
+  expect(captured.headers.get('Authorization')).toBeUndefined();expect(captured.headers.get('X-Tenant-Id')).toBeUndefined();
+});
+it('invalidates stale admin authorization on MFA-required 403 without refreshing or replaying the action',async()=>{
+  setApiSession({accessToken:'old-admin',identity:{id:1,tenantId:null}});
+  const invalidated=vi.fn();window.addEventListener('transport-platform.auth.invalidated',invalidated);
+  const refresh=vi.spyOn(axios,'post');
+  const adapter=vi.fn(async(config:InternalAxiosRequestConfig)=>{throw new AxiosError('MFA required','ERR_BAD_REQUEST',config,undefined,{status:403,statusText:'Forbidden',headers:{},config,data:{success:false,error:{details:{authAction:'ENROLL_MFA'}}}});});
+  apiClient.defaults.adapter=adapter as AxiosAdapter;
+  try {await expect(apiClient.get('/platform/subscription-plans')).rejects.toThrow('MFA required');expect(adapter).toHaveBeenCalledTimes(1);expect(refresh).not.toHaveBeenCalled();
+    expect(invalidated).toHaveBeenCalledTimes(1);
+  } finally {window.removeEventListener('transport-platform.auth.invalidated',invalidated);}
+});
+
+it('keeps an authenticated session for an ordinary permission-denied 403',async()=>{
+  setApiSession({accessToken:'valid-admin',identity:{id:1,tenantId:null}});
+  const invalidated=vi.fn();window.addEventListener('transport-platform.auth.invalidated',invalidated);
+  apiClient.defaults.adapter=(async config=>{throw new AxiosError('Forbidden','ERR_BAD_REQUEST',config,undefined,{status:403,statusText:'Forbidden',headers:{},config,data:{error:{details:{}}}});}) as AxiosAdapter;
+  try {await expect(apiClient.get('/platform/subscription-plans')).rejects.toThrow('Forbidden');expect(invalidated).not.toHaveBeenCalled();}
+  finally {window.removeEventListener('transport-platform.auth.invalidated',invalidated);}
+});

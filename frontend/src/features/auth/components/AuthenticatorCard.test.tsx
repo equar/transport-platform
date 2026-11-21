@@ -1,3 +1,4 @@
+import { MemoryRouter, Routes, Route } from "react-router-dom";
 import {
   cleanup,
   fireEvent,
@@ -53,4 +54,22 @@ it("supports keyboard enrollment and keeps recovery codes until explicitly saved
     }),
   );
   await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
+});
+
+it('offers Skip for now when enrollment is optional and returns to sign-in without enabling MFA',async()=>{
+  vi.mocked(apiClient.get).mockResolvedValue({data:{data:{enabled:false,available:true,required:false}}});
+  render(<MemoryRouter initialEntries={['/account/authenticator']}><Routes><Route path="/account/authenticator" element={<AuthenticatorCard />} /><Route path="/login" element={<div>Sign-in screen</div>} /></Routes></MemoryRouter>);
+  const skip=await screen.findByRole('link',{name:'Skip for now'});
+  fireEvent.click(skip);
+  await screen.findByText('Sign-in screen');
+  expect(signOut).toHaveBeenCalledTimes(1);expect(apiClient.post).not.toHaveBeenCalled();
+});
+it('does not offer Skip for required enrollment or an already-enabled authenticator',async()=>{
+  vi.mocked(apiClient.get).mockResolvedValue({data:{data:{enabled:false,available:true,required:true}}});
+  render(<AuthenticatorCard />);await screen.findByLabelText('Current password');
+  expect(screen.queryByRole('link',{name:'Skip for now'})).toBeNull();
+  cleanup();
+  vi.mocked(apiClient.get).mockResolvedValue({data:{data:{enabled:true,available:true,required:false}}});
+  render(<AuthenticatorCard />);await screen.findByLabelText('Current password');
+  expect(screen.queryByRole('link',{name:'Skip for now'})).toBeNull();
 });

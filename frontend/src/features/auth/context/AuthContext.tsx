@@ -89,8 +89,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setApiSession(restored);
       setSession(restored);
       persistSession(restored);
-    }).catch(() => {
-      if (!persistedSession) {
+    }).catch((error: unknown) => {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (!persistedSession || status === 401 || status === 403) {
         setApiSession(null);
         setSession(null);
         persistSession(null);

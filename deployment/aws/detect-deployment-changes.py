@@ -3,6 +3,9 @@ import argparse
 import json
 import os
 import subprocess
+import re
+import urllib.request
+import urllib.parse
 from pathlib import Path
 
 
@@ -32,10 +35,32 @@ def affected(paths):
     return selected
 
 
+def frontend_backlog(release_url):
+    """Compare against the deployed UI, including changes missed by failed rollouts."""
+    try:
+        parsed=urllib.parse.urlparse(release_url)
+        if parsed.scheme!='https' or not parsed.hostname or parsed.username or parsed.password:
+            raise ValueError('Invalid release URL')
+        request=urllib.request.Request(release_url,headers={'Cache-Control':'no-cache'})
+        with urllib.request.urlopen(request,timeout=10) as response:
+            payload=response.read(65537)
+        if len(payload)>65536: raise ValueError('Release metadata too large')
+        release=json.loads(payload)['release']
+        match=re.fullmatch(r'([0-9a-f]{40})(?:-[A-Za-z0-9._-]+)?',release)
+        if not match: raise ValueError('Invalid release ID')
+        paths=subprocess.check_output(['git','diff','--name-only','--no-renames','-z',match[1],'HEAD'],stderr=subprocess.DEVNULL).decode().split('\0')
+        return 'frontend' in affected(paths)
+    except Exception:
+        # A missing/unverifiable baseline must not silently leave an incompatible UI live.
+        print('Frontend release baseline unavailable; including frontend conservatively.')
+        return True
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--target', default='auto', choices=['auto', 'all', 'backend', 'frontend'])
     parser.add_argument("--paths-json", help="Paginated GitHub PR files JSON, including previous filenames")
+    parser.add_argument("--frontend-release-url", help="Live admin release metadata for recovery of missed frontend changes")
     args = parser.parse_args()
     if args.target == 'auto':
         if args.paths_json:
@@ -58,6 +83,8 @@ def main():
         selected = {'frontend'}
     else:
         selected = {args.target}
+    if args.target == 'auto' and args.frontend_release_url and frontend_backlog(args.frontend_release_url):
+        selected.add('frontend')
     values = {target: str(target in selected).lower() for target in ('backend', 'frontend')}
     values['any'] = str(bool(selected)).lower()
     with open(os.environ['GITHUB_OUTPUT'], 'a') as output:

@@ -105,7 +105,7 @@ apiClient.interceptors.request.use((config) => {
   }
 
   const requestUrl = String(config.url ?? '');
-  const isPublicAuthRequest = ['/v1/auth/login', '/v1/auth/verify-email', '/v1/auth/resend-verification',
+  const isPublicAuthRequest = ['/v1/auth/refresh', '/v1/auth/logout', '/v1/auth/login', '/v1/auth/verify-email', '/v1/auth/resend-verification',
     '/v1/auth/verify-application-email', '/v1/auth/resend-application-verification']
     .some(path => requestUrl.includes(path));
   if (isPublicAuthRequest) {
@@ -181,7 +181,9 @@ apiClient.interceptors.response.use(
     if (originalRequest && originalRequest._sessionGeneration !== sessionGeneration) return Promise.reject(new axios.CanceledError('The account changed.'));
 
     const isLoginRequest = String(originalRequest?.url ?? '').includes('/v1/auth/login');
-    if (status === 401 && !isLoginRequest && readSession()?.accessToken) {
+    const authAction = error?.response?.data?.error?.details?.authAction;
+    const setupRequired = status === 403 && ['ENROLL_MFA', 'CHANGE_PASSWORD'].includes(authAction);
+    if ((status === 401 || setupRequired) && !isLoginRequest && readSession()?.accessToken) {
       logClientEvent('warn', 'auth.session.invalidated', {
         path: String(originalRequest?.url ?? ''),
         status,
@@ -192,7 +194,7 @@ apiClient.interceptors.response.use(
       setApiSession(null);
       persistAuthNotice({
         reason: 'session-expired',
-        message: 'Your session expired or is no longer valid. Sign in again to continue.',
+        message: authAction === 'ENROLL_MFA' ? 'Authenticator setup is required. Sign in again to set up your account.' : authAction === 'CHANGE_PASSWORD' ? 'A password change is required. Sign in again to continue.' : 'Your session expired or is no longer valid. Sign in again to continue.',
       });
       window.dispatchEvent(
         new CustomEvent(AUTH_SESSION_INVALIDATED_EVENT, {
