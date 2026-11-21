@@ -259,9 +259,12 @@ class PrivacyMySqlTest {
                 mode)
             .redirectErrorStream(true)
             .redirectOutput(output.toFile());
+    var documents = java.nio.file.Files.createTempDirectory("privacy-command-documents-");
     var environment = command.environment();
     environment.clear();
     environment.put("TZ", "UTC");
+    environment.put("APP_DRIVER_DOCUMENT_STORAGE_ROOT", documents.toString());
+    environment.put("APP_DOCUMENT_SCAN_ENABLED", "false");
     environment.put("SPRING_DATASOURCE_URL", MYSQL.getJdbcUrl());
     environment.put("SPRING_DATASOURCE_USERNAME", MYSQL.getUsername());
     environment.put("SPRING_DATASOURCE_PASSWORD", MYSQL.getPassword());
@@ -278,6 +281,7 @@ class PrivacyMySqlTest {
     } finally {
       process.destroyForcibly();
       java.nio.file.Files.deleteIfExists(output);
+      java.nio.file.Files.deleteIfExists(documents);
     }
   }
 

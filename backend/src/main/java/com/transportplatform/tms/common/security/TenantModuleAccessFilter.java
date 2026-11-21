@@ -15,6 +15,8 @@ public class TenantModuleAccessFilter extends OncePerRequestFilter {
     @org.springframework.beans.factory.annotation.Autowired
     private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
 
+    public static final String ACCESS_STAMP = TenantModuleAccessFilter.class.getName() + ".access";
+    public record AccessStamp(Long user, String tenant, String method, String path) {}
     private final TenantModulePolicy policy;
     private final RestAccessDeniedHandler denied;
     public TenantModuleAccessFilter(TenantModulePolicy policy, RestAccessDeniedHandler denied) { this.policy = policy; this.denied = denied; }
@@ -24,9 +26,10 @@ public class TenantModuleAccessFilter extends OncePerRequestFilter {
             // Decode paths the same way as MVC; encoded route segments must not bypass the policy.
             String path = UrlPathHelper.defaultInstance.getPathWithinApplication(request);
             if (!path.equals("/v1/auth/logout")) {
-                try { entitlements.requireOperational(user.tenantId()); }
-                catch (ApiException unavailable) { denied.handle(request, response, new AccessDeniedException("Subscription unavailable")); return; }
+                try { entitlements.requireRequestAccess(user, request.getMethod(), path); }
+                catch (ApiException unavailable) { denied.handle(request, response, new AccessDeniedException(entitlements.isPaymentRestricted(user.tenantId()) ? "Subscription recovery required" : "Subscription unavailable")); return; }
             }
+            request.setAttribute(ACCESS_STAMP, new AccessStamp(user.id(), user.tenantId(), request.getMethod(), path));
             Set<String> modules = new LinkedHashSet<>();
             if (path.startsWith("/portal/driver/")) modules.add("PORTAL_DRIVER");
             if (path.startsWith("/portal/rider/")) modules.add("PORTAL_RIDER_GUARDIAN");
@@ -38,7 +41,7 @@ public class TenantModuleAccessFilter extends OncePerRequestFilter {
             if (path.startsWith("/company/compliance") || path.startsWith("/portal/driver/compliance") || path.startsWith("/company/reports/compliance")) modules.add("COMPLIANCE");
             if (path.startsWith("/company/incidents") || path.startsWith("/company/reports/incidents")) modules.add("INCIDENTS");
             if (path.startsWith("/notifications") || path.startsWith("/company/notification-templates") || path.startsWith("/portal/push-token")) modules.add("NOTIFICATIONS");
-            if (path.matches("/(company|portal/rider|portal/organization)/(invoices|invoice-line-items|payments|receivables|pricing-rules|collections|billing)(/.*)?")
+            if (path.matches("/(company|portal/rider|portal/organization)/(invoices|invoice-line-items|payments|receivables|pricing-rules|collections|billing|credit-notes)(/.*)?")
                     || path.matches("/company/reports/(invoices|payments)(/.*)?")) modules.add("BILLING");
             if (!modules.isEmpty()) {
                 try { policy.requireEnabled(user.tenantId(), modules.toArray(String[]::new)); }

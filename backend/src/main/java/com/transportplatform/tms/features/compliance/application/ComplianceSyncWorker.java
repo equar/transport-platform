@@ -30,7 +30,8 @@ public class ComplianceSyncWorker {
             for (String id : ids) {
                 cursor = id;
                 try {
-                    service.synchronizeTenantIssues(id);
+                    synchronize(id, "drivers");
+                    synchronize(id, "vehicles");
                 } catch (RuntimeException e) {
                     org.slf4j.LoggerFactory.getLogger(getClass())
                             .warn("Compliance synchronization failed; record contents omitted.");
@@ -38,4 +39,21 @@ public class ComplianceSyncWorker {
             }
         }
     }
+    private void synchronize(String tenant, String table) {
+        long after = 0;
+        while (true) {
+            var ids = db.queryForList("SELECT id FROM " + table + " WHERE tenant_id=? AND id>? ORDER BY id LIMIT 100", Long.class, tenant, after);
+            if (ids.isEmpty()) return;
+            for (long id : ids) {
+                after = id;
+                try {
+                    if (table.equals("drivers")) service.synchronizeDriver(tenant, id);
+                    else service.synchronizeVehicle(tenant, id);
+                } catch (RuntimeException failure) {
+                    org.slf4j.LoggerFactory.getLogger(getClass()).warn("Compliance entity synchronization failed; tenant={} entityType={} id={}", tenant, table, id);
+                }
+            }
+        }
+    }
+
 }

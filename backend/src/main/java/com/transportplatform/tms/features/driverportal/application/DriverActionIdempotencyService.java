@@ -55,7 +55,7 @@ public class DriverActionIdempotencyService {
                     HttpStatus.BAD_REQUEST,
                     "Idempotency-Key must use 1–120 ASCII letters, digits, dots, underscores, colons or hyphens.");
         AuthenticatedUser user = currentUserService.requireCurrentUser();
-        // Same tenant lock as all dispatch/financial writes; duplicate keys serialize before
+        // Same tenant lock as dispatch writes; duplicate keys serialize before
         // lookup.
         db.queryForList("SELECT id FROM tenants WHERE id=? FOR UPDATE", user.tenantId());
         var existing =

@@ -6,6 +6,7 @@ export interface AuthIdentity {
   tenantId: string | null;
   status: string;
   mustChangePassword: boolean;
+  subscriptionRecovery?: boolean;
   roles: string[];
 }
 

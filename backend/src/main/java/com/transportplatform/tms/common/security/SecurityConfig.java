@@ -99,7 +99,7 @@ public class SecurityConfig {
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Tenant-Id", "X-Client-Platform",
                 "Idempotency-Key", "X-Expected-Ride-Status", "If-Match", RequestCorrelationFilter.HEADER_NAME));
-        configuration.setExposedHeaders(List.of("Authorization", RequestCorrelationFilter.HEADER_NAME));
+        configuration.setExposedHeaders(List.of("Authorization", "Retry-After", RequestCorrelationFilter.HEADER_NAME));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -433,7 +433,6 @@ public class ReportService {
         String tenantId = reportAccessService.requireCompanyAdmin().tenantId();
         reportAccessService.requireModule(tenantId, "COMPLIANCE");
         LocalDate today = LocalDate.now(clock.withZone(zone(tenantId)));
-        complianceIssueSyncService.synchronizeTenantIssues(tenantId);
         List<ComplianceIssue> issues = ReportQueryLimits.load(complianceIssueRepository,
                 ComplianceIssueSpecifications.search(
                         tenantId,

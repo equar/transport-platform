@@ -20,27 +20,31 @@ public class SubscriptionAutomaticCollectionService {
   }
 
   @Transactional(propagation = Propagation.NOT_SUPPORTED)
-  public Invoice collect(long id) {
-    var provider =
-        providers.stream()
-            .filter(SubscriptionPaymentCollector::available)
-            .findFirst()
-            .orElseThrow(
-                () ->
-                    new ApiException(
-                        ErrorCode.VALIDATION_FAILED,
-                        HttpStatus.BAD_REQUEST,
-                        "No automatic payment provider is configured."));
-    Invoice invoice = billing.beginAutomaticCollection(id);
-    if (invoice.status().equals("PAID") || !invoice.collectionMode().equals("AUTOMATIC"))
-      return invoice;
+  public Invoice collect(long id) { return execute(id, false); }
+
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  public Invoice reconcile(long id) { return execute(id, true); }
+
+  private Invoice execute(long id, boolean reconciliationOnly) {
+    Invoice current = billing.invoice(id, null);
+    if (current.status().equals("PAID") || !current.collectionMode().equals("AUTOMATIC")) return current;
+    String original = billing.collectionProvider(id);
+    var candidates = providers.stream().filter(SubscriptionPaymentCollector::available)
+        .filter(provider -> original == null || original.equals(provider.providerId())).toList();
+    if (candidates.size() != 1) throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE,HttpStatus.SERVICE_UNAVAILABLE,
+        original == null ? "Configure exactly one automatic payment provider before collecting funds."
+          : "The original payment provider is unavailable. Contact support to reconcile this invoice.");
+    var provider=candidates.getFirst();
+    var attempt=billing.beginAutomaticCollection(id,provider.providerId(),reconciliationOnly);
+    var invoice=attempt.invoice();
+    if(invoice.status().equals("PAID") || !invoice.collectionMode().equals("AUTOMATIC") || invoice.collectionState().equals("NOT_ATTEMPTED")) return invoice;
     try {
-      var result = provider.collect(invoice, "bakaroo-subscription-invoice-" + id);
-      return billing.finishAutomaticCollection(id, result);
-    } catch (RuntimeException e) {
-      org.slf4j.LoggerFactory.getLogger(getClass())
-          .warn("Subscription collection needs reconciliation invoiceId={}", id);
-      return billing.invoice(id, null);
+      String key="bakaroo-subscription-invoice-"+id;
+      var result=attempt.startCharge()?provider.collect(invoice,key):provider.reconcile(invoice,key);
+      return billing.finishAutomaticCollection(id,result);
+    } catch(RuntimeException failure) {
+      org.slf4j.LoggerFactory.getLogger(getClass()).warn("Subscription collection needs reconciliation invoiceId={}",id);
+      return billing.invoice(id,null);
     }
   }
 }

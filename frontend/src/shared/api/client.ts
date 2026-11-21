@@ -11,7 +11,7 @@ import {
   getCorrelationHeaderName,
 } from '../observability/correlationId';
 
-type ClientSession = { accessToken?: string; identity?: { id?: number; tenantId?: string | null; roles?: string[]; mustChangePassword?: boolean; mfaEnrollmentRequired?: boolean } };
+type ClientSession = { accessToken?: string; identity?: { id?: number; tenantId?: string | null; roles?: string[]; mustChangePassword?: boolean; mfaEnrollmentRequired?: boolean; subscriptionRecovery?: boolean } };
 let currentSession: ClientSession | null = null;
 let sessionGeneration = 0;
 export const SESSION_REFRESHED_EVENT = "transport.session-refreshed";
@@ -21,7 +21,7 @@ const MAX_RETRY_ATTEMPTS = 2;
 
 function sessionScope(session: ClientSession | null) {
   return JSON.stringify([session?.identity?.tenantId, session?.identity?.id,
-    session?.identity?.roles?.slice().sort(), session?.identity?.mustChangePassword, session?.identity?.mfaEnrollmentRequired]);
+    session?.identity?.roles?.slice().sort(), session?.identity?.mustChangePassword, session?.identity?.mfaEnrollmentRequired, session?.identity?.subscriptionRecovery]);
 }
 export function setApiSession(session: ClientSession | null) {
   if (!session || !currentSession || sessionScope(session) !== sessionScope(currentSession)) sessionGeneration++;
@@ -58,7 +58,7 @@ async function refreshAccessToken() {
     user: unknown;
   }>(response.data);
   if (generation !== sessionGeneration) return null;
-  setApiSession({ accessToken: tokens.accessToken, identity: tokens.user as { tenantId?: string | null; roles?: string[]; mustChangePassword?: boolean; mfaEnrollmentRequired?: boolean } });
+  setApiSession({ accessToken: tokens.accessToken, identity: tokens.user as { tenantId?: string | null; roles?: string[]; mustChangePassword?: boolean; mfaEnrollmentRequired?: boolean; subscriptionRecovery?: boolean } });
   window.dispatchEvent(new CustomEvent(SESSION_REFRESHED_EVENT, { detail: {
     accessToken: tokens.accessToken, tokenType: tokens.tokenType, expiresInSeconds: tokens.expiresInSeconds, identity: tokens.user,
   } }));
@@ -85,6 +85,15 @@ function shouldRetryTransientError(status: number | undefined, method: string | 
 function backoffDelayMs(attempt: number) {
   const jitter = Math.floor(Math.random() * 80);
   return 200 * Math.pow(2, attempt) + jitter;
+}
+
+export function retryAfterDelay(value: unknown, now = Date.now()): number | null {
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const text = String(value).trim();
+  if (/^-\d/.test(text)) return null;
+  const seconds = /^\d+$/.test(text) ? Number(text) : NaN;
+  const milliseconds = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(text) - now;
+  return Number.isFinite(milliseconds) ? Math.max(0, milliseconds) : null;
 }
 
 async function delay(ms: number) {
@@ -140,9 +149,10 @@ apiClient.interceptors.response.use(
 
     if (originalRequest && shouldRetryTransientError(status, originalRequest.method)) {
       const retryAttempt = originalRequest._retryAttempt ?? 0;
-      if (retryAttempt < MAX_RETRY_ATTEMPTS) {
+      const retryAfter = retryAfterDelay(error?.response?.headers?.get?.('Retry-After') ?? error?.response?.headers?.['retry-after'] ?? error?.response?.headers?.['Retry-After']);
+      if (retryAttempt < MAX_RETRY_ATTEMPTS && (retryAfter == null || retryAfter <= 60_000)) {
         originalRequest._retryAttempt = retryAttempt + 1;
-        await delay(backoffDelayMs(retryAttempt));
+        await delay(Math.max(backoffDelayMs(retryAttempt), retryAfter ?? 0));
         return apiClient(originalRequest);
       }
 
@@ -182,6 +192,13 @@ apiClient.interceptors.response.use(
 
     const isLoginRequest = String(originalRequest?.url ?? '').includes('/v1/auth/login');
     const authAction = error?.response?.data?.error?.details?.authAction;
+    if (status === 403 && authAction === 'SUBSCRIPTION_RECOVERY' && originalRequest && !originalRequest._authRetry) {
+      originalRequest._authRetry = true;
+      try {
+        refreshPromise ??= refreshAccessToken().finally(() => { refreshPromise = null; });
+        await refreshPromise;
+      } catch { /* Retain the billing recovery explanation; the next authenticated request can retry restoration. */ }
+    }
     const setupRequired = status === 403 && ['ENROLL_MFA', 'CHANGE_PASSWORD'].includes(authAction);
     if ((status === 401 || setupRequired) && !isLoginRequest && readSession()?.accessToken) {
       logClientEvent('warn', 'auth.session.invalidated', {

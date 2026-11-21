@@ -20,7 +20,7 @@ Invoices preserve company/plan names, billed driver IDs and count, USD rate, per
 
 Row locks and a unique subscription/period constraint prevent duplicate renewal invoices across concurrent workers. Receipt references are unique per source. Company reads derive tenant scope from the authenticated identity. Configuration, invoices, payments and trial expiration are audited.
 
-Disabling invoice generation pauses processing; it does not waive outstanding periods. Re-enabling can generate deferred invoices. Cancelling, suspending or expiring a subscription disables its billing account. Issued balances remain visible. Unconverted trials expire automatically. **Automatic suspension of company access for non-payment is not included**; overdue status is tracked, and a collection/enforcement policy remains a separate decision.
+Disabling invoice generation pauses processing; it does not waive outstanding periods. Re-enabling can generate deferred invoices. Cancelling, suspending or expiring a subscription disables its billing account. Issued balances remain visible. Unconverted trials expire automatically. Overdue balances restrict new company operations. Tenant and billing administrators can review subscription invoices, and drivers can finish assigned trips already in progress. Settlement restores authorization without persisting a payment-related administrative suspension. Manual suspensions, cancellations and expired terms still require administrator action.
 
 ## Scheduler
 
@@ -35,3 +35,10 @@ The adapter must use the supplied stable invoice idempotency key, resume/reconci
 ## Verification
 
 Financial integration tests use MySQL 8 with Flyway migrations and cover concurrent renewals, historical counts and rates, month-end dates, tenant isolation, partial receipts, duplicate references, trial conversion/expiration, cancellation, zero-driver invoices, and uncertain or verified automatic outcomes. Frontend tests cover configuration, tenant read-only access, receipts, pagination and error retention.
+
+
+### Provider reconciliation contract
+
+Adapters must expose a stable `providerId()` and implement read-only `reconcile(invoice, key)`. The first collection binds the invoice to that provider and commits PENDING before calling it. Retries and the platform administrator's **Reconcile payment** action perform lookups rather than issuing another charge. Provider changes cannot redirect an unresolved invoice to a different processor. Historical pending invoices without a known provider are marked `legacy-unresolved` and require operator identification of the original provider.
+
+An adapter may return `verifiedNotCharged=true` only after authenticating a final provider result proving that no funds were collected. That releases the manual-receipt block. Confirmed settlement still requires exact amount, USD currency and a unique provider reference. Unknown outcomes remain pending; mismatched settlements require review. No card/ACH adapter or provider credentials are bundled. Provider-specific signed webhooks and durable event deduplication must be implemented with the selected provider before automatic collection is enabled.

@@ -111,6 +111,7 @@ class SubscriptionBillingMySqlTest {
   @BeforeEach
   void setup() {
     reset(provider);
+    when(provider.providerId()).thenReturn("test-provider");
     when(provider.available()).thenReturn(false);
     clock.value = Instant.now().plusSeconds(2);
     var user =
@@ -291,6 +292,36 @@ class SubscriptionBillingMySqlTest {
                 billing.recordManualPayment(
                     id, new PaymentRequest(new BigDecimal("25.00"), "MANUAL-RISK")))
         .isInstanceOf(ApiException.class);
+  }
+
+  @Test
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  void uncertainCollectionIsReconciledWithoutIssuingASecondCharge() {
+    when(provider.available()).thenReturn(true);
+    billing.configure(subscription.getId(),new Configure(new BigDecimal("25.00"),today(),14,"AUTOMATIC",true));
+    long id=billing.generateRenewal(subscription.getId());
+    when(provider.collect(any(),anyString())).thenThrow(new IllegalStateException("uncertain"));
+    automatic.collect(id);
+    when(provider.reconcile(any(),eq("bakaroo-subscription-invoice-"+id))).thenReturn(new SubscriptionPaymentCollector.Result(true,"RECONCILED-"+id,new BigDecimal("25.00"),"USD"));
+    assertThat(automatic.reconcile(id).status()).isEqualTo("PAID");
+    verify(provider,times(1)).collect(any(),anyString());
+    verify(provider,times(1)).reconcile(any(),anyString());
+  }
+
+  @Test
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  void verifiedNoChargeReleasesManualReceiptButSwitchingProviderIsRejected() {
+    when(provider.available()).thenReturn(true);
+    billing.configure(subscription.getId(),new Configure(new BigDecimal("25.00"),today(),14,"AUTOMATIC",true));
+    long id=billing.generateRenewal(subscription.getId());
+    automatic.collect(id);
+    when(provider.providerId()).thenReturn("different-provider");
+    assertThatThrownBy(()->automatic.reconcile(id)).isInstanceOf(ApiException.class);
+    when(provider.providerId()).thenReturn("test-provider");
+    when(provider.reconcile(any(),anyString())).thenReturn(new SubscriptionPaymentCollector.Result(false,null,null,null,true));
+    assertThat(automatic.reconcile(id).collectionState()).isEqualTo("NOT_ATTEMPTED");
+    billing.recordManualPayment(id,new PaymentRequest(new BigDecimal("25.00"),"CONFIRMED-NO-CHARGE-"+id));
+    assertThat(billing.invoice(id,null).status()).isEqualTo("PAID");
   }
 
   @Test

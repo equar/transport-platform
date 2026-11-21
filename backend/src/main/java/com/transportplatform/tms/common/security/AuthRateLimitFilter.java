@@ -27,6 +27,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 
     private static final String CODE_TOO_MANY_REQUESTS = "TOO_MANY_REQUESTS";
 
+    @Autowired(required=false) private DistributedAuthRateLimit distributed;
     private final SecurityProperties securityProperties;
     private final ObjectMapper objectMapper;
     private final Clock clock;
@@ -61,12 +62,17 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         }
 
         Instant now = Instant.now(clock);
-        if (counters.size() > 10000) counters.entrySet().removeIf(entry ->
-                !entry.getValue().windowStartedAt().plus(config.getWindow()).isAfter(now));
-        if (counters.size() >= 20000 && !counters.containsKey(path + "::" + clientIp(request))) {
-            response.setStatus(429); response.setHeader("Retry-After", "60"); return;
+        RateLimitDecision decision;
+        if (distributed != null) {
+            long retry = distributed.retryAfter(path + "::" + clientIp(request), limit, config.getWindow(), now);
+            decision = new RateLimitDecision(retry == 0, retry);
+        } else {
+            if (counters.size() > 10000) counters.entrySet().removeIf(entry ->
+                    !entry.getValue().windowStartedAt().plus(config.getWindow()).isAfter(now));
+            decision = counters.size() >= 20000 && !counters.containsKey(path + "::" + clientIp(request))
+                    ? new RateLimitDecision(false, 60)
+                    : consume(path + "::" + clientIp(request), limit, config.getWindow(), now);
         }
-        RateLimitDecision decision = consume(path + "::" + clientIp(request), limit, config.getWindow(), now);
         if (decision.allowed()) {
             filterChain.doFilter(request, response);
             return;

@@ -40,6 +40,12 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
         if (passwordChangeRequired) details.put("authAction", "CHANGE_PASSWORD");
         if ("MFA enrollment required".equals(accessDeniedException.getMessage()))
             details.put("authAction", "ENROLL_MFA");
+        if ("Subscription recovery required".equals(accessDeniedException.getMessage())) {
+            details.put("authAction", "SUBSCRIPTION_RECOVERY");
+            objectMapper.writeValue(response.getOutputStream(), ApiResponse.failure(ApiErrorResponse.of(
+                    ErrorCode.FORBIDDEN.name(), "Your company's subscription payment is overdue. Billing administrators can review subscription invoices; drivers can finish trips already in progress.", details)));
+            return;
+        }
         ApiResponse<Void> body =
                 ApiResponse.failure(
                         ApiErrorResponse.of(

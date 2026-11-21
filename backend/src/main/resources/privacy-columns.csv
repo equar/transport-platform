@@ -124,3 +124,4 @@ driver_action_idempotency,result_json,text,NULL
 payment_refunds,reason,text,NOT NULL
 credit_notes,reason,text,NOT NULL
 credit_notes,void_reason,text,NULL
+recovery_email_jobs,payload,recovery-email,NOT NULL

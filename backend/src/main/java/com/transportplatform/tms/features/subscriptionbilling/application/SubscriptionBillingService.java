@@ -556,17 +556,25 @@ public class SubscriptionBillingService {
     return saved;
   }
 
+  public String collectionProvider(long id) {
+    return db.queryForObject("SELECT collection_provider FROM platform_subscription_invoices WHERE id=?",String.class,id);
+  }
+
+  public record CollectionAttempt(Invoice invoice, boolean startCharge) {}
+
   @Transactional
-  public Invoice beginAutomaticCollection(long id) {
+  public CollectionAttempt beginAutomaticCollection(long id, String provider, boolean reconciliationOnly) {
     db.queryForList("SELECT id FROM platform_subscription_invoices WHERE id=? FOR UPDATE", id);
     Invoice i = invoice(id, null);
-    if (!i.collectionMode().equals("AUTOMATIC") || i.status().equals("PAID")) return i;
-    if (i.collectionState().equals("REVIEW_REQUIRED"))
-      throw invalid("The collection requires reconciliation before retrying.");
+    if (!i.collectionMode().equals("AUTOMATIC") || i.status().equals("PAID")) return new CollectionAttempt(i,false);
+    String bound = collectionProvider(id);
+    if (bound != null && !bound.equals(provider)) throw invalid("Use the original payment provider to reconcile this invoice.");
+    if (provider == null || !provider.matches("[A-Za-z0-9._$-]{1,120}")) throw invalid("Configure a stable payment provider identifier.");
+    boolean start = i.collectionState().equals("NOT_ATTEMPTED") && !reconciliationOnly;
+    if (!start && i.collectionState().equals("NOT_ATTEMPTED")) return new CollectionAttempt(i,false);
     if (!automaticAvailable()) throw invalid("No automatic payment provider is configured.");
-    db.update(
-        "UPDATE platform_subscription_invoices SET collection_state='PENDING' WHERE id=?", id);
-    return invoice(id, null);
+    db.update("UPDATE platform_subscription_invoices SET collection_state='PENDING',collection_provider=? WHERE id=?",provider,id);
+    return new CollectionAttempt(invoice(id,null),start);
   }
 
   @Transactional
@@ -576,7 +584,13 @@ public class SubscriptionBillingService {
     if (i.status().equals("PAID")) return i;
     if (!i.collectionMode().equals("AUTOMATIC") || !i.collectionState().equals("PENDING"))
       throw invalid("No automatic collection is pending for this invoice.");
-    if (result == null || !result.settled()) return i;
+    if (result == null) return i;
+    if (result.verifiedNotCharged() && !result.settled()) {
+      db.update("UPDATE platform_subscription_invoices SET collection_state='NOT_ATTEMPTED' WHERE id=?",id);
+      record(i.tenantId(),"COLLECTION_NOT_CHARGED","PLATFORM_SUBSCRIPTION_INVOICE",id,"Provider confirmed no payment was collected.",i,invoice(id,null));
+      return invoice(id,null);
+    }
+    if (!result.settled()) return i;
     if (!"USD".equals(result.currency())
         || result.reference() == null
         || result.reference().isBlank()

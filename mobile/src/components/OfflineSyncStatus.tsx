@@ -14,7 +14,7 @@ export function OfflineSyncStatus() {
   const owned=queue.filter(item=>item.userId===session.identity.id && item.tenantId===session.identity.tenantId);
   const reviews=conflicts.filter(item=>item.userId===session.identity.id && item.tenantId===session.identity.tenantId);
   const rideId=owned[0]?.rideId ?? reviews[0]?.rideId;
-  if(!rideId) return null;
+  if(!rideId) return session.identity.subscriptionRecovery ? <View accessibilityRole="alert" style={{ padding: 12, backgroundColor: colors.warningSoft }}><Text style={{ color: colors.warning }}>Your company has an overdue subscription payment. You can finish trips already in progress; new trips are unavailable. Contact dispatch.</Text></View> : null;
   return <View accessibilityRole="alert" style={{ padding: 12, gap: 8, backgroundColor: colors.warningSoft }}>
     <Text style={{ fontFamily: Typography.fontBody, color: colors.warning, lineHeight: 22 }}>{owned.length} trip action(s) pending • {owned.filter(item=>item.failed).length + reviews.length} need attention. Keep this session open to sync. Signing out removes pending actions from this device.</Text>
     <AppButton label="Review trip sync" variant="outlined" onPress={()=>router.push(`/(driver)/rides/${rideId}` as never)} />

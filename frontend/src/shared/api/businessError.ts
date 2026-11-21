@@ -1,7 +1,7 @@
 import axios from "axios";
 import type { ApiErrorResponse } from "./types";
 
-export type BusinessErrorKind = "validation" | "authentication" | "authorization" | "conflict" | "not-found" | "network" | "server" | "unknown";
+export type BusinessErrorKind = "validation" | "authentication" | "authorization" | "conflict" | "not-found" | "network" | "rate-limit" | "server" | "unknown";
 
 export interface BusinessError {
   kind: BusinessErrorKind;
@@ -21,6 +21,7 @@ const titles: Record<BusinessErrorKind, string> = {
   "not-found": "The requested record was not found",
   network: "The service could not be reached",
   server: "The service encountered a problem",
+  "rate-limit": "Please wait before trying again",
   unknown: "The action could not be completed",
 };
 
@@ -30,7 +31,8 @@ function kindFor(status?: number, code?: string): BusinessErrorKind {
   if (status === 401) return "authentication";
   if (status === 403) return "authorization";
   if (status === 404) return "not-found";
-  if (status === 409) return "conflict";
+  if (status === 409 || status === 428) return "conflict";
+  if (status === 429) return "rate-limit";
   if (status >= 500) return "server";
   return "unknown";
 }
@@ -68,20 +70,25 @@ export function normalizeBusinessError(error: unknown, fallback: string): Busine
       kind === "validation" && apiError?.code === "VALIDATION_FAILED"
         ? formatFieldErrors(details)
         : undefined;
+    const headers = error.response?.headers;
+    const header = typeof headers?.get === 'function' ? headers.get('Retry-After') : headers?.['retry-after'] ?? headers?.['Retry-After'];
+    const wait = Number(details.retryAfterSeconds ?? (/^\d+$/.test(String(header)) ? header : NaN));
     return {
       kind,
       code: apiError?.code || (status ? `HTTP_${status}` : "NETWORK_ERROR"),
       title: titles[kind],
       message:
-        kind === "server"
-          ? fallback
+        kind === "rate-limit" && Number.isFinite(wait) && wait > 0
+          ? `Too many requests. Try again in ${Math.ceil(wait)} seconds.`
+          : kind === "server"
+          ? (apiError?.code === "SERVICE_UNAVAILABLE" ? apiError.message : fallback)
           : fieldErrorsMessage ||
             apiError?.message ||
             body?.message ||
             (status ? fallback : "Check your connection and try again."),
       status,
       details,
-      retryable: kind === "network" || kind === "server",
+      retryable: kind === "network" || kind === "server" || kind === "rate-limit",
     };
   }
   const kind: BusinessErrorKind = "unknown";

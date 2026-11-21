@@ -70,7 +70,7 @@ public class RuntimeCapabilitiesService {
             throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
                     "A tenant-scoped user is required for tenant capabilities.");
         }
-        entitlements.requireOperational(user.tenantId());
+        // CurrentAuthenticatedUserService also permits scoped payment recovery.
         Tenant tenant = requireTenant(user.tenantId());
         if (tenant.getStatus() != TenantStatus.ACTIVE) {
             throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,

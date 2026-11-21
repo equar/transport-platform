@@ -98,6 +98,10 @@ export const subscriptionBillingApi = {
     );
     return unwrapResponse<SubscriptionInvoice | null>(r.data);
   },
+  async reconcile(id: number) {
+    const response = await apiClient.post(`/platform/subscription-billing/invoices/${id}/reconcile`);
+    return unwrapResponse<SubscriptionInvoice>(response.data);
+  },
   async payment(id: number, amount: number, reference: string) {
     const r = await apiClient.post(
       `/platform/subscription-billing/invoices/${id}/payments`,

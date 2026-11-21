@@ -1,5 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { execFileSync } from 'node:child_process';
+function releaseId() {
+  try { return process.env.APP_RELEASE_ID ?? process.env.GITHUB_SHA ?? execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], { encoding: 'utf8' }).trim(); }
+  catch { return 'development'; }
+}
 
 export default defineConfig(({ mode }) => ({
   plugins: [react(), {
@@ -11,11 +16,12 @@ export default defineConfig(({ mode }) => ({
         : html;
     },
   }],
-  define: { 'import.meta.env.VITE_SITE_KIND': JSON.stringify(mode === 'admin' ? 'admin' : 'public') },
+  define: { 'import.meta.env.VITE_RELEASE_ID': JSON.stringify(releaseId()), 'import.meta.env.VITE_SITE_KIND': JSON.stringify(mode === 'admin' ? 'admin' : 'public') },
   test: {
     environment: 'jsdom',
   },
   build: {
+    sourcemap: 'hidden',
     chunkSizeWarningLimit: 750,
     rollupOptions: {
       output: {

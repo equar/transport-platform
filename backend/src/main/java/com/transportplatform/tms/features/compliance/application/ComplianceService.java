@@ -56,7 +56,7 @@ public class ComplianceService {
     @Transactional
     public ComplianceDashboardSummaryResponse getCompanyComplianceSummary() {
         AuthenticatedUser user = complianceAccessService.requireCompanyAdmin();
-        List<ComplianceIssue> issues = complianceIssueSyncService.synchronizeTenantIssues(user.tenantId());
+        List<ComplianceIssue> issues = complianceIssueSyncService.listTenantIssueSnapshot(user.tenantId());
         return buildSummary(issues);
     }
 
@@ -76,7 +76,6 @@ public class ComplianceService {
             Sort.Direction sortDirection) {
         AuthenticatedUser user = complianceAccessService.requireCompanyAdmin();
         LocalDate today = LocalDate.now(clock);
-        complianceIssueSyncService.synchronizeTenantIssues(user.tenantId());
         return PageResponse.from(complianceIssueRepository.findAll(
                 ComplianceIssueSpecifications.search(
                         user.tenantId(),
@@ -98,7 +97,6 @@ public class ComplianceService {
     @Transactional
     public ComplianceIssueDetailResponse getCompanyIssue(Long issueId) {
         AuthenticatedUser user = complianceAccessService.requireCompanyAdmin();
-        complianceIssueSyncService.synchronizeTenantIssues(user.tenantId());
         return complianceIssueMapper.toDetail(complianceAccessService.findCompanyIssue(issueId));
     }
 

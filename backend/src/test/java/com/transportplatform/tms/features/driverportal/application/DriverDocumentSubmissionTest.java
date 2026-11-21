@@ -58,6 +58,6 @@ class DriverDocumentSubmissionTest {
         assertEquals("DL-123", response.documentNumber()); assertEquals("State DMV", response.issuingAuthority());
         assertEquals(LocalDate.of(2026, 1, 1), response.issueDate()); assertEquals(LocalDate.of(2027, 1, 1), response.expiryDate());
         assertEquals(DriverDocumentVerificationStatus.PENDING, response.verificationStatus());
-        verify(compliance).synchronizeTenantIssues("tenant");
+        verify(compliance).synchronizeDriver("tenant", 10L);
     }
 }

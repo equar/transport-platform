@@ -109,16 +109,19 @@ class TenantEntitlementMySqlTest {
         assertThat(db.queryForObject("SELECT status FROM tenant_subscriptions WHERE id=?",String.class,subscription)).isEqualTo("EXPIRED");
         verify(sessions).revokeAllForTenant(tenant);
     }
-    @Test void overdueBalanceBlocksAccessAndSuspendsSubscription() {
+    @Test void overdueBalancesRestrictOperationsButAllowBillingRecoveryAndRestoreAfterPayment() {
         db.update("INSERT INTO platform_subscription_invoices(subscription_id,tenant_id,tenant_name,plan_code,period_start,period_end,due_date,metered_at,driver_count,driver_ids_json,monthly_driver_rate,amount,collection_mode) VALUES (?,?,'Test','TEST','2030-01-01','2030-02-01','2030-01-14',NOW(),1,'[1]',10,10,'MANUAL')",subscription,tenant);
-        assertThat(access.evaluate(tenant).state()).isEqualTo("SUSPENDED");
+        assertThat(access.evaluate(tenant).paymentRestricted()).isTrue();
         lifecycle.reconcile(subscription);
-        assertThat(db.queryForObject("SELECT status FROM tenant_subscriptions WHERE id=?",String.class,subscription)).isEqualTo("SUSPENDED");
-        verify(sessions).revokeAllForTenant(tenant);
-        assertThatThrownBy(() -> subscriptions.activate(subscription)).isInstanceOf(ApiException.class).hasMessageContaining("Settle overdue");
+        assertThat(db.queryForObject("SELECT status FROM tenant_subscriptions WHERE id=?",String.class,subscription)).isEqualTo("ACTIVE");
+        verify(sessions,never()).revokeAllForTenant(tenant);
+        var principal = new com.transportplatform.tms.common.security.AuthenticatedUser(1L,tenant,"finance@example.test","Finance","User","",true,true,false,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_BILLING_ADMIN")));
+        access.requireRequestAccess(principal,"GET","/company/subscription-billing/invoices");
+        assertThatThrownBy(() -> access.requireRequestAccess(principal,"POST","/company/payments")).isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> access.requireOperational(tenant)).isInstanceOf(ApiException.class);
         db.update("UPDATE platform_subscription_invoices SET paid_amount=amount,status='PAID' WHERE subscription_id=?",subscription);
-        subscriptions.activate(subscription);
         assertThat(access.evaluate(tenant).allowed()).isTrue();
+        access.requireOperational(tenant);
     }
     @Test void manualSuspensionAndCancellationImmediatelyDenyAccess() {
         subscriptions.suspend(subscription);

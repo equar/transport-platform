@@ -98,11 +98,11 @@ class ConfigurationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'valid email'):
             settings(env)
 
-    def test_mfa_enrollment_is_optional_by_default_but_can_be_required(self):
+    def test_mfa_enrollment_is_required_by_default_with_explicit_override(self):
         values=environment()
-        self.assertEqual(settings(values)['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS'],'false')
-        values['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS']='true'
         self.assertEqual(settings(values)['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS'],'true')
+        values['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS']='false'
+        self.assertEqual(settings(values)['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS'],'false')
         values['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS']='invalid'
         with self.assertRaisesRegex(ValueError,'true or false'): settings(values)
 

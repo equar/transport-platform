@@ -68,4 +68,9 @@ public class PlatformSubscriptionBillingController {
   public ApiResponse<Invoice> collect(@PathVariable long id) {
     return ApiResponse.success(automatic.collect(id));
   }
+  @PostMapping("/invoices/{id}/reconcile")
+  public ApiResponse<Invoice> reconcile(@PathVariable long id) {
+    return ApiResponse.success(automatic.reconcile(id));
+  }
+
 }

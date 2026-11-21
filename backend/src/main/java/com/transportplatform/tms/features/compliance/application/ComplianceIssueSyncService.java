@@ -84,89 +84,44 @@ public class ComplianceIssueSyncService {
         this.clock = clock;
     }
 
-    @Transactional
-    public List<ComplianceIssue> synchronizeTenantIssues(String tenantId) {
-        if (org.springframework.transaction.support.TransactionSynchronizationManager
-                .isCurrentTransactionReadOnly())
-            return complianceIssueRepository.findAllByTenantId(tenantId);
-        db.queryForList("SELECT id FROM tenants WHERE id=? FOR UPDATE", tenantId);
-        LocalDate today = tenantTime.today(tenantId);
-        LocalDate expiringSoonDate = today.plusDays(EXPIRING_SOON_WINDOW_DAYS);
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.common.concurrency.WorkflowLockService locks;
 
-        List<Driver> drivers = driverRepository.findAllByTenantId(tenantId);
-        Map<Long, List<DriverDocument>> driverDocumentsByDriverId =
-                driverDocumentRepository
-                        .findAllByTenantIdAndDriver_IdIn(
-                                tenantId, drivers.stream().map(Driver::getId).toList())
-                        .stream()
-                        .sorted(
-                                Comparator.comparing(
-                                                DriverDocument::getCreatedAt,
-                                                Comparator.nullsLast(Comparator.naturalOrder()))
-                                        .reversed())
-                        .collect(
-                                java.util.stream.Collectors.groupingBy(
-                                        document -> document.getDriver().getId(),
-                                        LinkedHashMap::new,
-                                        java.util.stream.Collectors.toList()));
-
-        List<Vehicle> vehicles = vehicleRepository.findAllByTenantId(tenantId);
-        Map<Long, List<VehicleDocument>> vehicleDocumentsByVehicleId =
-                vehicleDocumentRepository
-                        .findAllByTenantIdAndVehicle_IdIn(
-                                tenantId, vehicles.stream().map(Vehicle::getId).toList())
-                        .stream()
-                        .sorted(
-                                Comparator.comparing(
-                                                VehicleDocument::getCreatedAt,
-                                                Comparator.nullsLast(Comparator.naturalOrder()))
-                                        .reversed())
-                        .collect(
-                                java.util.stream.Collectors.groupingBy(
-                                        document -> document.getVehicle().getId(),
-                                        LinkedHashMap::new,
-                                        java.util.stream.Collectors.toList()));
-
-        Set<String> activeSourceKeys = new LinkedHashSet<>();
-        List<ComplianceIssue> synchronizedIssues = new ArrayList<>();
-
-        for (Driver driver : drivers) {
-            List<ComplianceIssueCandidate> candidates =
-                    deriveDriverCandidates(
-                            driver,
-                            driverDocumentsByDriverId.getOrDefault(driver.getId(), List.of()),
-                            today,
-                            expiringSoonDate);
-            for (ComplianceIssueCandidate candidate : candidates) {
-                activeSourceKeys.add(candidate.sourceKey());
-                synchronizedIssues.add(upsertIssue(candidate));
-            }
-        }
-
-        for (Vehicle vehicle : vehicles) {
-            List<ComplianceIssueCandidate> candidates =
-                    deriveVehicleCandidates(
-                            vehicle,
-                            vehicleDocumentsByVehicleId.getOrDefault(vehicle.getId(), List.of()),
-                            today,
-                            expiringSoonDate);
-            for (ComplianceIssueCandidate candidate : candidates) {
-                activeSourceKeys.add(candidate.sourceKey());
-                synchronizedIssues.add(upsertIssue(candidate));
-            }
-        }
-
-        List<ComplianceIssue> existingIssues =
-                complianceIssueRepository.findAllByTenantId(tenantId);
-        for (ComplianceIssue issue : existingIssues) {
-            if (!activeSourceKeys.contains(issue.getSourceKey())
-                    && ACTIVE_STATUSES.contains(issue.getIssueStatus())) {
-                issue.setIssueStatus(ComplianceIssueStatus.RESOLVED);
-                synchronizedIssues.add(complianceIssueRepository.save(issue));
-            }
-        }
-
+    /** Read-side snapshots are maintained by entity mutations and the paged worker. */
+    @Transactional(readOnly = true)
+    public List<ComplianceIssue> listTenantIssueSnapshot(String tenantId) {
         return complianceIssueRepository.findAllByTenantId(tenantId);
+    }
+
+    @Transactional
+    public void synchronizeDriver(String tenantId, long id) {
+        locks.lock(tenantId, "COMPLIANCE_DRIVER", id);
+        var driver = driverRepository.findByIdAndTenantId(id, tenantId).orElse(null);
+        if (driver == null) return;
+        LocalDate today = tenantTime.today(tenantId);
+        var documents = driverDocumentRepository.findAllByTenantIdAndDriver_IdIn(tenantId, List.of(id));
+        reconcile(tenantId, ComplianceEntityType.DRIVER, id, deriveDriverCandidates(driver, documents, today, today.plusDays(30)));
+    }
+
+    @Transactional
+    public void synchronizeVehicle(String tenantId, long id) {
+        locks.lock(tenantId, "COMPLIANCE_VEHICLE", id);
+        var vehicle = vehicleRepository.findByIdAndTenantId(id, tenantId).orElse(null);
+        if (vehicle == null) return;
+        LocalDate today = tenantTime.today(tenantId);
+        var documents = vehicleDocumentRepository.findAllByTenantIdAndVehicle_IdIn(tenantId, List.of(id));
+        reconcile(tenantId, ComplianceEntityType.VEHICLE, id, deriveVehicleCandidates(vehicle, documents, today, today.plusDays(30)));
+    }
+
+    private void reconcile(String tenant, ComplianceEntityType type, long id, List<ComplianceIssueCandidate> candidates) {
+        Set<String> active = new java.util.HashSet<>();
+        for (var candidate : candidates) { active.add(candidate.sourceKey()); upsertIssue(candidate); }
+        for (var issue : complianceIssueRepository.findAllByTenantIdAndEntityTypeAndEntityId(tenant, type, id)) {
+            if (!active.contains(issue.getSourceKey()) && ACTIVE_STATUSES.contains(issue.getIssueStatus())) {
+                issue.setIssueStatus(ComplianceIssueStatus.RESOLVED);
+                complianceIssueRepository.save(issue);
+            }
+        }
     }
 
     private ComplianceIssue upsertIssue(ComplianceIssueCandidate candidate) {

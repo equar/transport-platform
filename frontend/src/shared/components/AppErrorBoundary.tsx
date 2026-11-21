@@ -1,3 +1,4 @@
+import { crashDetails } from '../observability/crashDetails';
 import { logClientEvent } from '../observability/clientTelemetry';
 import React, { type PropsWithChildren } from "react";
 import { Box, Button, Chip, Stack, Typography } from "@mui/material";
@@ -21,7 +22,7 @@ export class AppErrorBoundary extends React.Component<
     return { hasError: true };
   }
 
-  public componentDidCatch() { logClientEvent('error', 'ui.render.failed'); }
+  public componentDidCatch(error: Error) { logClientEvent('error', 'ui.render.failed', crashDetails(error)); }
 
   public render() {
     if (this.state.hasError) {

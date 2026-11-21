@@ -1,4 +1,5 @@
 import { View, Text, Button } from 'react-native';
+import { crashDetails } from '../src/utils/crashDetails';
 import { logClientEvent } from '../src/utils/clientTelemetry';
 import { useQueryConnectivity } from '@hooks/useQueryConnectivity';
 import { runtimeApi } from '@api/runtimeApi';
@@ -39,7 +40,7 @@ function SessionQueries({ children }: { children: React.ReactNode }) {
   const { session } = useAuth();
   const owner = `${session?.identity.tenantId ?? ''}:${session?.identity.id ?? 'anonymous'}:${session?.identity.roles.slice().sort().join(',') ?? ''}`;
   const client = useMemo(() => new QueryClient({
-    defaultOptions: { queries: { retry: 2, staleTime: 30_000 } },
+    defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
   }), [owner]);
   useEffect(() => () => { void client.cancelQueries(); client.clear(); }, [client]);
   return <QueryClientProvider key={owner} client={client}>{children}</QueryClientProvider>;
@@ -159,8 +160,8 @@ function AppViewport({ children }: { children: React.ReactNode }) {
   </SafeAreaView>;
 }
 
-export function ErrorBoundary({ retry }: { retry: () => void }) {
-  useEffect(() => { logClientEvent('error', 'ui.render.failed'); }, []);
+export function ErrorBoundary({ retry, error }: { retry: () => void; error: Error }) {
+  useEffect(() => { logClientEvent('error', 'ui.render.failed', crashDetails(error)); }, [error]);
   return <View style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 16, backgroundColor: '#fff' }}>
     <Text style={{ fontSize: 24, color: '#142831' }}>This screen could not open</Text>
     <Text style={{ color: '#142831' }}>If you were updating a trip, refresh it to confirm the result before submitting again.</Text>

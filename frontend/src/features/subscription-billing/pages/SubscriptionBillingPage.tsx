@@ -105,7 +105,8 @@ export function SubscriptionBillingPage() {
     setBusy(true);
     setError(null);
     try {
-      await work();
+      const result = await work();
+      if (result === false) return false;
       setNotice(success);
       setRefresh((v) => v + 1);
       return true;
@@ -186,6 +187,7 @@ export function SubscriptionBillingPage() {
   }
   return (
     <Stack spacing={3}>
+      {session?.identity.subscriptionRecovery && <Alert severity="warning">Subscription payment is overdue. You can review invoices here while other workspace features are restricted. Contact the platform administrator to arrange payment. Sign in again after the overdue balance is settled.</Alert>}
       <SectionHeader
         eyebrow={
           platform ? "Platform administration" : "Company administration"
@@ -388,6 +390,15 @@ export function SubscriptionBillingPage() {
                           >
                             View invoice
                           </Button>
+                          {platform && i.status !== "PAID" && ["PENDING", "REVIEW_REQUIRED"].includes(i.collectionState) && (
+                            <Button disabled={busy} onClick={() => void action(async () => {
+                              const result = await api.reconcile(i.id);
+                              if (result.status !== "PAID" && result.collectionState !== "NOT_ATTEMPTED") {
+                                setError("Collection is still pending. Contact support; do not record another payment.");
+                                return false;
+                              }
+                            }, "Payment provider reconciliation completed.")}>Reconcile payment</Button>
+                          )}
                           {platform && i.status !== "PAID" ? (
                             <Button
                               disabled={

@@ -26,7 +26,7 @@ public class BillingAccessService {
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final PricingRuleRepository pricingRuleRepository;
     @org.springframework.beans.factory.annotation.Autowired
-    private com.transportplatform.tms.features.tenant.domain.TenantRepository financialTenants;
+    private com.transportplatform.tms.common.concurrency.WorkflowLockService locks;
     private final InvoiceRepository invoiceRepository;
     private final InvoiceLineItemRepository invoiceLineItemRepository;
     private final PaymentRepository paymentRepository;
@@ -46,7 +46,16 @@ public class BillingAccessService {
         this.collectionNoteRepository = collectionNoteRepository;
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.saas.application.TenantModulePolicy modules;
+
     public String requireCompanyTenantId() {
+        var user = requireBillingIdentity();
+        modules.requireEnabled(user.tenantId(), "BILLING");
+        return user.tenantId();
+    }
+
+    private AuthenticatedUser requireBillingIdentity() {
         AuthenticatedUser user = currentAuthenticatedUserService.requireCurrentUser();
         boolean billingAdministrator = user.getAuthorities().stream()
             .map(authority -> authority.getAuthority())
@@ -58,13 +67,19 @@ public class BillingAccessService {
                     HttpStatus.FORBIDDEN,
                 "A tenant or billing administrator account is required for billing operations.");
         }
-        return user.tenantId();
+        return user;
     }
 
     /** Acquire before any financial read to serialize invoice/payment/line-item transitions. */
     public void lockFinancialWrites() {
-        financialTenants.lockForDispatch(requireCompanyTenantId()).orElseThrow(() ->
-                new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Company was not found."));
+        var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof AuthenticatedUser user)
+                || user.tenantId() == null || user.tenantId().isBlank()
+                || user.getAuthorities().stream().noneMatch(a -> java.util.Set.of("ROLE_TENANT_ADMIN", "ROLE_BILLING_ADMIN").contains(a.getAuthority())))
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "A billing administrator account is required.");
+        // No snapshot-producing read may precede this lock: waiting writers must see committed balances.
+        locks.lock(user.tenantId(), "FINANCE", 0);
+        requireCompanyTenantId();
     }
 
     public PricingRule findPricingRuleForCompanyScope(Long pricingRuleId) {

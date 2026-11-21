@@ -44,6 +44,7 @@ public class AuthFacade {
 
     @org.springframework.beans.factory.annotation.Autowired
     private MfaService mfa;
+    @org.springframework.beans.factory.annotation.Autowired private RecoveryEmailService recoveryEmails;
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -156,7 +157,7 @@ public class AuthFacade {
 
     @Transactional
     public String requestPasswordReset(ForgotPasswordRequest request) {
-        appUserRepository.findForAuthenticationByEmail(request.email().trim())
+        appUserRepository.findByEmailIgnoreCase(request.email().trim())
                 .filter(AppUser::isActiveForLogin)
                 .ifPresent(this::preparePasswordReset);
         return "If an account exists for that email address, password recovery instructions will be sent.";
@@ -167,7 +168,7 @@ public class AuthFacade {
         AppUser user = appUserRepository.findByPasswordResetTokenHash(hashResetToken(request.token().trim()))
                 .orElseThrow(this::invalidResetToken);
         if (user.getPasswordResetTokenExpiresAt() == null
-                || user.getPasswordResetTokenExpiresAt().isBefore(clock.instant())) {
+                || !user.getPasswordResetTokenExpiresAt().isAfter(clock.instant())) {
             throw expiredResetToken();
         }
         applyPassword(user, request.password(), false);
@@ -204,6 +205,7 @@ public class AuthFacade {
                         user.isEnabled() ? UserStatus.ACTIVE.name() : UserStatus.INVITED.name(),
                         user.mustChangePassword(),
                         mfa.required(appUser) && appUser.getMfaSecret() == null,
+                        appUser.getTenantId() != null && entitlements.isPaymentRestricted(appUser.getTenantId()),
                         user.getAuthorities().stream().map(authority -> authority.getAuthority())
                                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new))));
     }
@@ -272,18 +274,7 @@ public class AuthFacade {
                 "Password reset requested.",
                 null,
                 Map.of("userId", user.getId(), "email", user.getEmail())));
-        String link = buildPasswordResetLink(rawToken);
-        try {
-            var delivery = notificationEmailSender.send(new NotificationEmailSender.NotificationEmailCommand(
-                    user.getEmail(), "Password reset request", "Password reset request",
-                    "A password reset was requested for your account. Use this link to continue: " + link));
-            if (delivery == null || !delivery.sent()) {
-                org.slf4j.LoggerFactory.getLogger(AuthFacade.class).error("Password recovery email delivery failed; investigate delivery provider health.");
-            }
-        } catch (RuntimeException failure) {
-            // Preserve the public anti-enumeration response without logging the token or provider payload.
-            org.slf4j.LoggerFactory.getLogger(AuthFacade.class).error("Password recovery email provider unavailable.");
-        }
+        recoveryEmails.enqueue(user, buildPasswordResetLink(rawToken));
     }
 
     private void ensureMfaComplete(AppUser user, String code) {
@@ -355,7 +346,7 @@ public class AuthFacade {
         if (tenantRepository.findById(tenantId)
                 .map(tenant -> tenant.getStatus() == TenantStatus.ACTIVE)
                 .orElse(false)) {
-            entitlements.requireOperational(tenantId);
+            entitlements.requireLoginAccess(user);
             return;
         }
         throw new ApiException(

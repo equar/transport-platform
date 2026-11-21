@@ -21,6 +21,9 @@ public class NotificationEmailRetryService {
 
     private static final int MAX_DELIVERY_ATTEMPTS = 3;
     private static final int BATCH_SIZE = 50;
+    @org.springframework.beans.factory.annotation.Autowired private org.springframework.jdbc.core.JdbcTemplate db;
+    @org.springframework.beans.factory.annotation.Autowired private org.springframework.transaction.PlatformTransactionManager manager;
+
 
     private final NotificationRepository notificationRepository;
     private final NotificationDeliveryAccess deliveryAccess;
@@ -38,22 +41,39 @@ public class NotificationEmailRetryService {
     }
 
     @Scheduled(fixedDelayString = "${app.notification-retry.fixed-delay:PT1M}")
-    @Transactional
     public void retryDueEmailNotifications() {
         Instant now = clock.instant();
-        List<Notification> notifications = notificationRepository
-                .findByChannelAndDeliveryStatusInAndNextDeliveryAttemptAtLessThanEqualOrderByNextDeliveryAttemptAtAsc(
-                        NotificationChannel.EMAIL,
-                        List.of(NotificationDeliveryStatus.PENDING, NotificationDeliveryStatus.FAILED),
-                        now,
-                        PageRequest.of(0, BATCH_SIZE));
-        notifications.forEach(notification -> retry(notification, now));
+        var ids = db.queryForList("SELECT id FROM notifications WHERE channel='EMAIL' AND delivery_status IN ('PENDING','FAILED') AND next_delivery_attempt_at<=? AND (delivery_lease_until IS NULL OR delivery_lease_until<=?) AND delivery_attempt_count<3 ORDER BY next_delivery_attempt_at LIMIT 50", Long.class, utc(now), utc(now));
+        var transaction = new org.springframework.transaction.support.TransactionTemplate(manager);
+        for (long id : ids) {
+            String claim = java.util.UUID.randomUUID().toString();
+            Notification notification = transaction.execute(status -> {
+                int acquired = db.update("UPDATE notifications SET delivery_claim=?,delivery_lease_until=?,delivery_attempt_count=delivery_attempt_count+1 WHERE id=? AND delivery_status IN ('PENDING','FAILED') AND next_delivery_attempt_at<=? AND (delivery_lease_until IS NULL OR delivery_lease_until<=?) AND delivery_attempt_count<3", claim, utc(now.plusSeconds(300)), id, utc(now), utc(now));
+                return acquired == 0 ? null : notificationRepository.findById(id).orElse(null);
+            });
+            if (notification == null) continue;
+            // Provider I/O runs after the claim commits and outside a database transaction.
+            retry(notification, now);
+            transaction.executeWithoutResult(status -> {
+                var owned=db.queryForList("SELECT id FROM notifications WHERE id=? AND delivery_claim=? FOR UPDATE", id,claim);
+                if (owned.isEmpty()) return;
+                var managed = notificationRepository.findById(id).orElseThrow();
+                managed.setDeliveryStatus(notification.getDeliveryStatus());
+                managed.setDeliveryAttemptCount(notification.getDeliveryAttemptCount());
+                managed.setErrorMessage(notification.getErrorMessage());
+                managed.setSentAt(notification.getSentAt());
+                managed.setNextDeliveryAttemptAt(notification.getNextDeliveryAttemptAt());
+                notificationRepository.saveAndFlush(managed);
+                db.update("UPDATE notifications SET delivery_claim=NULL,delivery_lease_until=NULL WHERE id=? AND delivery_claim=?",id,claim);
+            });
+        }
+        db.update("UPDATE notifications SET delivery_status='FAILED',next_delivery_attempt_at=NULL,delivery_claim=NULL,delivery_lease_until=NULL WHERE channel='EMAIL' AND delivery_status IN ('PENDING','FAILED') AND delivery_attempt_count>=3 AND delivery_lease_until<=?",utc(clock.instant()));
     }
 
     private void retry(Notification notification, Instant now) {
-        if (notification.getDeliveryAttemptCount() >= MAX_DELIVERY_ATTEMPTS) {
+        if (notification.getDeliveryAttemptCount() > MAX_DELIVERY_ATTEMPTS) {
             notification.setNextDeliveryAttemptAt(null);
-            notificationRepository.save(notification);
+
             return;
         }
         var recipient = deliveryAccess.recipient(notification);
@@ -61,11 +81,11 @@ public class NotificationEmailRetryService {
             notification.setDeliveryStatus(NotificationDeliveryStatus.SKIPPED);
             notification.setErrorMessage("Recipient access or email is no longer available.");
             notification.setNextDeliveryAttemptAt(null);
-            notificationRepository.save(notification);
+
             return;
         }
         NotificationEmailSender.DeliveryResult result = deliver(notification, recipient.get().getEmail().trim());
-        int attempts = notification.getDeliveryAttemptCount() + 1;
+        int attempts = notification.getDeliveryAttemptCount();
         notification.setDeliveryAttemptCount(attempts);
         notification.setErrorMessage(result.errorMessage());
         if ("DELIVERY_DISABLED".equals(result.errorMessage())) {
@@ -79,7 +99,7 @@ public class NotificationEmailRetryService {
             notification.setDeliveryStatus(NotificationDeliveryStatus.FAILED);
             notification.setNextDeliveryAttemptAt(attempts >= MAX_DELIVERY_ATTEMPTS ? null : now.plus(retryDelay(attempts)));
         }
-        notificationRepository.save(notification);
+
     }
 
     private NotificationEmailSender.DeliveryResult deliver(Notification notification, String recipientEmail) {
@@ -115,4 +135,6 @@ public class NotificationEmailRetryService {
             default -> Duration.ofMinutes(15);
         };
     }
+    private static java.time.LocalDateTime utc(Instant instant) { return java.time.LocalDateTime.ofInstant(instant, java.time.ZoneOffset.UTC); }
+
 }

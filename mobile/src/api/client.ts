@@ -54,6 +54,15 @@ function backoffDelayMs(attempt: number) {
   return 200 * Math.pow(2, attempt) + jitter;
 }
 
+export function retryAfterDelay(value: unknown, now = Date.now()): number | null {
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const text = String(value).trim();
+  if (/^-\d/.test(text)) return null;
+  const seconds = /^\d+$/.test(text) ? Number(text) : NaN;
+  const milliseconds = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(text) - now;
+  return Number.isFinite(milliseconds) ? Math.max(0, milliseconds) : null;
+}
+
 async function delay(ms: number) {
   await new Promise<void>((resolve) => setTimeout(() => resolve(), ms));
 }
@@ -165,9 +174,10 @@ apiClient.interceptors.response.use(
 
     if (originalRequest && shouldRetryTransientError(status, String(originalRequest.method ?? 'get'))) {
       const retryAttempt = originalRequest._retryAttempt ?? 0;
-      if (retryAttempt < MAX_RETRY_ATTEMPTS) {
+      const retryAfter = retryAfterDelay(error?.response?.headers?.get?.('Retry-After') ?? error?.response?.headers?.['retry-after'] ?? error?.response?.headers?.['Retry-After']);
+      if (retryAttempt < MAX_RETRY_ATTEMPTS && (retryAfter == null || retryAfter <= 60_000)) {
         originalRequest._retryAttempt = retryAttempt + 1;
-        await delay(backoffDelayMs(retryAttempt));
+        await delay(Math.max(backoffDelayMs(retryAttempt), retryAfter ?? 0));
         return apiClient.request(originalRequest);
       }
 
@@ -202,6 +212,11 @@ apiClient.interceptors.response.use(
     }
 
     if (originalRequest && originalRequest._sessionGeneration !== sessionGeneration) return Promise.reject(new axios.CanceledError('The account changed.'));
+    if (status === 403 && error?.response?.data?.error?.details?.authAction === 'SUBSCRIPTION_RECOVERY' && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+      refreshPromise ??= refreshAccessToken().finally(() => { refreshPromise = null; });
+      await refreshPromise;
+    }
     if (status === 401) {
       const session = await readSession();
       if (originalRequest && originalRequest._sessionGeneration !== sessionGeneration) return Promise.reject(new axios.CanceledError('The account changed.'));
@@ -221,6 +236,8 @@ apiClient.interceptors.response.use(
 
     const apiError = error?.response?.data?.error;
     if (apiError?.message) error.message = apiError.message;
+    const wait = retryAfterDelay(error?.response?.headers?.get?.('Retry-After') ?? error?.response?.headers?.['retry-after'] ?? error?.response?.headers?.['Retry-After']);
+    if (status === 429 && wait != null) error.message = `Too many requests. Try again in ${Math.max(1, Math.ceil(wait / 1000))} seconds.`;
     return Promise.reject(error);
   },
 );

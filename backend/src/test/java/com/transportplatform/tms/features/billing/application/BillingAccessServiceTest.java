@@ -63,14 +63,26 @@ class BillingAccessServiceTest {
         assertEquals("FORBIDDEN", exception.getErrorCode().name());
     }
 
+    @Test void serviceBoundaryRejectsBillingEvenWhenTheCallerBypassesRouteGuards() {
+        var service=service();
+        when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(user("tenant-a",RoleName.ROLE_BILLING_ADMIN));
+        var modules=org.mockito.Mockito.mock(com.transportplatform.tms.features.saas.application.TenantModulePolicy.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"modules",modules);
+        org.mockito.Mockito.doThrow(new ApiException(com.transportplatform.tms.common.exception.ErrorCode.FORBIDDEN,org.springframework.http.HttpStatus.FORBIDDEN,"Billing disabled"))
+            .when(modules).requireEnabled("tenant-a","BILLING");
+        assertThrows(ApiException.class,service::requireCompanyTenantId);
+    }
+
     private BillingAccessService service() {
-        return new BillingAccessService(
+        var service = new BillingAccessService(
                 currentAuthenticatedUserService,
                 pricingRuleRepository,
                 invoiceRepository,
                 invoiceLineItemRepository,
                 paymentRepository,
                 collectionNoteRepository);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"modules", org.mockito.Mockito.mock(com.transportplatform.tms.features.saas.application.TenantModulePolicy.class));
+        return service;
     }
 
     private AuthenticatedUser user(String tenantId, RoleName role) {

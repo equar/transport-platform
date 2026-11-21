@@ -96,6 +96,35 @@ class MediumReviewMySqlIntegrationTest {
         actor("tenant.admin@demo.test");
     }
 
+    @Autowired com.transportplatform.tms.features.saas.application.TenantEntitlementService subscriptionAccess;
+
+    @Test void overdueBillingPreservesAssignedActiveTripsButNeverAllowsANewTripOrManualSuspensionBypass() {
+        long subscription=db.queryForObject("SELECT id FROM tenant_subscriptions WHERE tenant_id=? ORDER BY effective_start_date DESC,id DESC LIMIT 1",Long.class,TENANT);
+        String subscriptionStatus=db.queryForObject("SELECT status FROM tenant_subscriptions WHERE id=?",String.class,subscription);
+        long driverId=db.queryForObject("SELECT driver_id FROM rides WHERE tenant_id=? AND driver_id IS NOT NULL ORDER BY id LIMIT 1",Long.class,TENANT);
+        long ride=db.queryForObject("SELECT id FROM rides WHERE tenant_id=? AND driver_id=? ORDER BY id LIMIT 1",Long.class,TENANT,driverId);
+        String oldRide=db.queryForObject("SELECT status FROM rides WHERE id=?",String.class,ride);
+        long driverUser=db.queryForObject("SELECT app_user_id FROM portal_user_scopes WHERE tenant_id=? AND portal_subject_type='DRIVER' AND portal_subject_id=?",Long.class,TENANT,driverId);
+        var principal=new AuthenticatedUser(driverUser,TENANT,"driver@example.test","Driver","User","",true,true,false,List.of(new SimpleGrantedAuthority("ROLE_DRIVER")));
+        java.time.LocalDate today=java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+        db.update("INSERT INTO platform_subscription_invoices(subscription_id,tenant_id,tenant_name,plan_code,period_start,period_end,due_date,metered_at,driver_count,driver_ids_json,monthly_driver_rate,amount,collection_mode) VALUES (?,?,'Test','TEST','2038-12-01','2039-01-01',?,UTC_TIMESTAMP(),1,'[1]',10,10,'MANUAL')",subscription,TENANT,today.minusDays(1));
+        try {
+            db.update("UPDATE rides SET status='PICKED_UP' WHERE id=?",ride);
+            subscriptionAccess.requireRequestAccess(principal,"GET","/portal/driver/rides/"+ride);
+            subscriptionAccess.requireRequestAccess(principal,"POST","/portal/driver/rides/"+ride+"/actions/dropped-off");
+            subscriptionAccess.requireRequestAccess(principal,"POST","/portal/driver/rides/"+ride+"/location-snapshots");
+            db.update("UPDATE rides SET status='ASSIGNED' WHERE id=?",ride);
+            assertThatThrownBy(()->subscriptionAccess.requireRequestAccess(principal,"POST","/portal/driver/rides/"+ride+"/actions/driver-en-route")).isInstanceOf(ApiException.class);
+            db.update("UPDATE rides SET status='PICKED_UP' WHERE id=?",ride);
+            db.update("UPDATE tenant_subscriptions SET status='SUSPENDED' WHERE id=?",subscription);
+            assertThatThrownBy(()->subscriptionAccess.requireRequestAccess(principal,"POST","/portal/driver/rides/"+ride+"/actions/complete")).isInstanceOf(ApiException.class);
+        } finally {
+            db.update("UPDATE rides SET status=? WHERE id=?",oldRide,ride);
+            db.update("UPDATE tenant_subscriptions SET status=? WHERE id=?",subscriptionStatus,subscription);
+            db.update("DELETE FROM platform_subscription_invoices WHERE subscription_id=? AND period_start='2038-12-01'",subscription);
+        }
+    }
+
     @AfterEach
     void clear() {
         SecurityContextHolder.clearContext();

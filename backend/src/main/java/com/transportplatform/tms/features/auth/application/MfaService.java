@@ -46,7 +46,7 @@ public class MfaService {
         return new Status(user.getMfaSecret()!=null,key!=null,required(user));
     }
     public boolean required(AppUser user) { return policy.isRequireMfaForPrivilegedAccounts() &&
-        (user.getRoles().contains(RoleName.ROLE_PLATFORM_ADMIN) || user.getRoles().contains(RoleName.ROLE_TENANT_ADMIN)); }
+        (user.getRoles().contains(RoleName.ROLE_PLATFORM_ADMIN) || user.getRoles().contains(RoleName.ROLE_TENANT_ADMIN) || user.getRoles().contains(RoleName.ROLE_BILLING_ADMIN) || user.getRoles().contains(RoleName.ROLE_COMPLIANCE_ADMIN)); }
     private AppUser authenticated(String password) {
         var identity=current.requireCurrentUser();
         var user=users.findByEmailIgnoreCase(identity.getUsername()).orElseThrow(this::invalid);

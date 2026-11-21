@@ -1,3 +1,4 @@
+import { crashDetails } from './crashDetails';
 import { env } from '../config/env';
 type TelemetryLevel = 'info' | 'warn' | 'error';
 
@@ -23,10 +24,16 @@ function scrubValue(value: unknown): unknown {
   return output;
 }
 
+function diagnosticDetails(details?: TelemetryDetails) {
+  if (!details || typeof details.fingerprint !== 'string' || !/^[a-f0-9]{8}$/.test(details.fingerprint)) return {};
+  const safe = crashDetails({ name: details.errorType, stack: details.frames });
+  return { fingerprint: details.fingerprint, errorType: safe.errorType, frames: safe.frames };
+}
+
 export function logClientEvent(level: TelemetryLevel, event: string, details?: TelemetryDetails) {
   if (typeof fetch === 'function' && level !== 'info' && /^[a-zA-Z0-9._-]{1,100}$/.test(event)) {
     void fetch(`${env.apiBaseUrl}/client-events`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event, level, client: 'web', release: '0.1.0' }), keepalive: true }).catch(() => undefined);
+      body: JSON.stringify({ event, level, client: 'web', release: import.meta.env.VITE_RELEASE_ID ?? 'development', ...diagnosticDetails(details) }), keepalive: true }).catch(() => undefined);
   }
   const payload = {
     event,
