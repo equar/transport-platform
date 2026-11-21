@@ -128,6 +128,9 @@ class PrivacyMySqlTest {
 
   @Test
   void coordinatesUseEncryptedVarcharColumnsAndRoundTripAsDoublesWithSchemaValidation() {
+    var entity = em.getMetamodel().entity(DriverLocationSnapshot.class);
+    assertThat(entity.getSingularAttribute("latitude").getJavaType()).isEqualTo(String.class);
+    assertThat(entity.getSingularAttribute("longitude").getJavaType()).isEqualTo(String.class);
     var sample = new DriverLocationSnapshot();
     sample.setTenantId(tenant);
     sample.setRide(ride);
@@ -153,6 +156,16 @@ class PrivacyMySqlTest {
     var loaded = em.find(DriverLocationSnapshot.class, id);
     assertThat(loaded.getLatitude()).isEqualTo(42.3601);
     assertThat(loaded.getLongitude()).isEqualTo(-71.0589);
+    // Earlier versions used the same coordinate envelope with a Double-valued converter.
+    db.update(
+        "UPDATE driver_location_snapshots SET latitude=?,longitude=? WHERE id=?",
+        crypto.encrypt("40.7128", "coordinate"),
+        crypto.encrypt("-74.006", "coordinate"),
+        id);
+    em.clear();
+    var existing = em.find(DriverLocationSnapshot.class, id);
+    assertThat(existing.getLatitude()).isEqualTo(40.7128);
+    assertThat(existing.getLongitude()).isEqualTo(-74.006);
   }
 
   @Test

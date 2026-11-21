@@ -2,6 +2,9 @@
 Description=Transport Platform Backend
 After=network-online.target
 Wants=network-online.target
+# Three total starts per deployment/manual reset; do not reopen a rolling retry window.
+StartLimitIntervalSec=infinity
+StartLimitBurst=3
 
 [Service]
 Type=simple
@@ -11,7 +14,7 @@ WorkingDirectory=/opt/transport-platform/runtime
 EnvironmentFile=/opt/transport-platform/.env
 ExecStart=/usr/bin/java -Xms512m -Xmx1g -XX:+UseG1GC -Djavax.net.ssl.trustStore=/etc/transport-platform/database-truststore.jks -Djavax.net.ssl.trustStorePassword=changeit -jar /opt/transport-platform/backend.jar --spring.profiles.active=prod --server.address=127.0.0.1 --server.port=8082 --server.servlet.context-path=/api --spring.jpa.hibernate.ddl-auto=validate --spring.flyway.locations=classpath:db/migration
 Restart=on-failure
-RestartSec=10
+RestartSec=60
 SuccessExitStatus=143
 TimeoutStopSec=45
 StandardOutput=journal

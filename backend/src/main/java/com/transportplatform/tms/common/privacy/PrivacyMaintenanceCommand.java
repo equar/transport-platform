@@ -61,7 +61,8 @@ public final class PrivacyMaintenanceCommand {
     String url = required(env, "SPRING_DATASOURCE_URL"),
         user = required(env, "SPRING_DATASOURCE_USERNAME"),
         password = required(env, "SPRING_DATASOURCE_PASSWORD");
-    if (apply)
+    if (apply) {
+      resumeFailedV24(url, user, password);
       Flyway.configure()
           .dataSource(url, user, password)
           .locations(
@@ -70,6 +71,7 @@ public final class PrivacyMaintenanceCommand {
                   : new String[] {"classpath:db/migration"})
           .load()
           .migrate();
+    }
     try (Connection db = DriverManager.getConnection(url, user, password)) {
       db.setAutoCommit(false);
       if (check || ensure) {
@@ -85,6 +87,40 @@ public final class PrivacyMaintenanceCommand {
     }
   }
 
+  static void resumeFailedV24(String url, String user, String password) throws Exception {
+    try (var connection = DriverManager.getConnection(url, user, password)) {
+      connection.setAutoCommit(false);
+      if (query(
+              connection,
+              "SELECT table_name FROM information_schema.tables WHERE table_schema=DATABASE() AND"
+                  + " table_name='flyway_schema_history'")
+          .isEmpty()) return;
+      var failures =
+          query(
+              connection,
+              "SELECT installed_rank,version,script FROM flyway_schema_history WHERE success=FALSE"
+                  + " FOR UPDATE");
+      if (failures.isEmpty()) return;
+      if (failures.size() != 1
+          || !"24".equals(failures.getFirst().get("version"))
+          || !"V24__medium_review_integrity.sql".equals(failures.getFirst().get("script")))
+        throw new IllegalStateException(
+            "A different failed migration requires operator review; no migration history was"
+                + " changed.");
+      // V24 checks each DDL object before creation. Clear only its failed-attempt marker,
+      // then let Flyway execute the complete migration; never mark it successful or repair
+      // checksums.
+      execute(
+          connection,
+          "DELETE FROM flyway_schema_history WHERE installed_rank=? AND version='24' AND"
+              + " script='V24__medium_review_integrity.sql' AND success=FALSE",
+          failures.getFirst().get("installed_rank"));
+      connection.commit();
+      System.out.println(
+          "Resuming interrupted V24 migration; existing schema objects and records are preserved.");
+    }
+  }
+
   static void verifyCoordinateMappings() throws ReflectiveOperationException {
     Class<?> entity =
         com.transportplatform.tms.features.location.domain.DriverLocationSnapshot.class;
@@ -92,7 +128,8 @@ public final class PrivacyMaintenanceCommand {
       var field = entity.getDeclaredField(name);
       var column = field.getAnnotation(jakarta.persistence.Column.class);
       var converter = field.getAnnotation(jakarta.persistence.Convert.class);
-      if (column == null
+      if (field.getType() != String.class
+          || column == null
           || !column.columnDefinition().equalsIgnoreCase("VARCHAR(512)")
           || converter == null
           || converter.disableConversion()
