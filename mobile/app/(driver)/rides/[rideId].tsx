@@ -57,6 +57,7 @@ export default function DriverRideDetailPage() {
   const screenVisible = useTripScreenVisible();
   const colors = useBrandingColors();
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
+  const validRideId = typeof rideId === 'string' && /^[1-9]\d*$/.test(rideId) && Number.isSafeInteger(Number(rideId));
   const router = useRouter();
   const qc = useQueryClient();
   const network = useNetInfo();
@@ -67,11 +68,11 @@ export default function DriverRideDetailPage() {
   const [odometerMiles, setOdometerMiles] = React.useState('');
   const [deliveryReady,setDeliveryReady]=React.useState(false);
 
-  const { data: serverRide, isLoading, isError, refetch, isRefetching } = useQuery({
+  const { data: serverRide, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['driver-ride', rideId],
     ...manualTripRefreshOptions,
     queryFn: () => driverPortalApi.getRide(Number(rideId)),
-    enabled: screenVisible && !!rideId,
+    enabled: screenVisible && validRideId,
   });
 
   const ride = serverRide && session?.identity.tenantId ? { ...serverRide,
@@ -224,8 +225,9 @@ export default function DriverRideDetailPage() {
     }
   }, [ride?.status, rideId, session?.identity.id]);
 
+  if (!validRideId) return <RequestError message="This trip link is invalid. Open a trip from your list." retryLabel="Back to trips" onRetry={() => router.replace("/(driver)/rides")} />;
   if (isLoading) return <LoadingState />;
-  if (isError || !ride) return <RequestError onRetry={() => void refetch()} />;
+  if (isError || !ride) return <RequestError error={error} onRetry={() => void refetch()} />;
 
   const primaryAction = rideActions?.[ride.status] ?? PRIMARY_STATUS_ACTIONS[ride.status];
   const secondaryActions = SECONDARY_STATUS_ACTIONS[ride.status] ?? [];
@@ -449,14 +451,14 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   heroCard: {
     backgroundColor: colors.surface,
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 0, borderColor: colors.border,
     borderRadius: 14,
     padding: Spacing.lg,
     gap: Spacing.sm,
   },
   earningsCard: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: colors.border,
     borderRadius: 14,
     padding: Spacing.lg,
@@ -518,7 +520,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     color: colors.textPrimary,
   },
   queuedActionState: {
-    borderLeftWidth: 4,
+    borderLeftWidth: 0,
     borderLeftColor: colors.warning,
     backgroundColor: colors.warningSoft,
     padding: Spacing.md,
@@ -535,7 +537,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     color: colors.warning,
   },
   conflictActionState: {
-    borderLeftWidth: 4,
+    borderLeftWidth: 0,
     borderLeftColor: colors.error,
     backgroundColor: colors.errorSoft,
     padding: Spacing.md,
@@ -568,7 +570,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
 
 const createSectionStyles = (colors: BrandColors) => StyleSheet.create({
   container: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: colors.border,
     gap: 0,
     backgroundColor: colors.surface, borderRadius: 16, overflow: 'hidden',

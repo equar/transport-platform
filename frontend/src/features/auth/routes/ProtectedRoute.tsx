@@ -76,6 +76,10 @@ export function ProtectedRoute({
     return <Navigate to="/account/authenticator" replace />;
   }
 
+  if (session?.identity.subscriptionRecovery && !["/company/subscription-billing", "/account/password", "/account/authenticator"].includes(location.pathname)) {
+    return <Navigate to="/company/subscription-billing" replace />;
+  }
+
   if (allowedRoles && !allowedRoles.some((role) => hasRole(role))) {
     return renderUnauthorizedRedirect();
   }

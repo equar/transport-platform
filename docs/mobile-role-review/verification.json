@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-21",
+  "scope": "Mobile driver, rider and guardian screens, role boundaries, error handling, flat visual styling, and optional end-of-trip delivery signatures.",
+  "changes": [
+    "Role layouts guard access before mounting their children; ambiguous operational roles are rejected instead of selecting one silently. Refreshed ambiguous identities clear local access.",
+    "Role names remain visible in the header. Trips and Profile labels are consistent across role navigation.",
+    "Cards and tab bars use flat surfaces without shadows or heavy outlines; form and selection control boundaries remain visible. Decorative hero layers and repeated instructions were removed.",
+    "Dropped-off trips stay active until final completion, keeping delivery confirmation accessible. Tracking ends at drop-off.",
+    "Invalid trip/route links are rejected before data requests, with an action to return to the list.",
+    "Offline, timeout, expired-session, missing-record, permission, conflict, validation, throttling and service failures have actionable defaults; service exceptions are not shown to users.",
+    "Driver tracking and offline replay stay restricted to driver sessions after any required password change. Push registration/deep-link listeners wait for an authorized mobile role and completed password change.",
+    "Native signature entry is optional, bounded, responsive and kept in memory until the passenger explicitly confirms delivery. Drafts clear when the trip leaves view or its delivery evidence changes.",
+    "The server validates signature coordinates, stroke counts and total points, encrypts saved ink using the existing PHI cipher, and exposes only the signed flag with confirmation metadata. Existing tenant, assignment, guardian relationship and verified-drop-off authorization remains authoritative.",
+    "Signature and stroke fields are redacted from mobile telemetry diagnostics. Sign-out and background task failures are handled at asynchronous boundaries."
+  ],
+  "automated": {
+    "mobile": {
+      "suites": 34,
+      "tests": 146,
+      "failures": 0,
+      "typecheck": "passed",
+      "eslint": "passed"
+    },
+    "backend": {
+      "targetedTests": 19,
+      "failures": 0,
+      "coverage": [
+        "TripEvidenceMySqlTest",
+        "DeliverySignatureValidationTest",
+        "PrivacyInventoryTest",
+        "PrivacyMySqlTest",
+        "ApiContractGenerationTest"
+      ],
+      "migrationsValidatedThrough": 26
+    },
+    "sharedContracts": "regenerated for mobile and web",
+    "webTypecheck": "passed"
+  },
+  "native": {
+    "platform": "Android emulator",
+    "data": "synthetic; isolated component harness; no production API mutations",
+    "widthsPoints": [
+      393,
+      320
+    ],
+    "fontScales": [
+      1.0,
+      1.8
+    ],
+    "observed": [
+      "Drawing enables Use signature.",
+      "Saving returns to the confirmation screen with Signature added.",
+      "Clear removes ink and disables Use signature.",
+      "Go back allows confirmation without signing.",
+      "Controls remain readable and reachable at 320-point width and 180% text."
+    ],
+    "screenshots": [
+      "android-flat-trip.png",
+      "android-signature.png",
+      "android-320-large-signature.png"
+    ]
+  },
+  "deployment": {
+    "deployed": false,
+    "requiredMigration": "V26__optional_delivery_signature.sql",
+    "privacyMaintenance": "The privacy inventory includes trip_delivery_confirmations.signature_json; follow the existing release privacy-maintenance procedure.",
+    "order": "Deploy the migrated backend before releasing the updated mobile app."
+  },
+  "limitations": [
+    "No authenticated end-to-end walkthrough against production accounts.",
+    "No iOS native device or physical-device performance benchmark in this review.",
+    "Android screenshots show isolated shared components with synthetic data, not complete authenticated role screens."
+  ],
+  "cleanup": "Read-only Android emulator and temporary Metro server stopped after verification; production services and existing device sessions were not changed."
+}

@@ -195,6 +195,7 @@ export function getDefaultRoute(session: AuthSession | null) {
   if (isMobileOnlyAccount(session)) return "/unauthorized";
   if (session?.identity.mustChangePassword) return "/account/password";
   if (session?.identity.mfaEnrollmentRequired) return "/account/authenticator";
+  if (session?.identity.subscriptionRecovery) return "/company/subscription-billing";
   if (isPlatformAdmin(session)) {
     return "/platform";
   }

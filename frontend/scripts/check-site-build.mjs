@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 assert(!existsSync('dist/index.html'), 'Legacy combined build must be removed before packaging');
 const publicAssets = readdirSync('dist/public/assets');
 const adminAssets = readdirSync('dist/admin/assets');
+assert(![...publicAssets, ...adminAssets].some(name => name.endsWith('.map')), 'Source maps must be archived outside published sites');
 assert(publicAssets.some(name => name.startsWith('HomePage-')), 'Public home page missing');
 assert(!publicAssets.some(name => /^(DashboardPage|LoginPage|DispatchBoardPage|TenantManagementPage)-/.test(name)), 'Admin pages leaked into the public build');
 assert(adminAssets.some(name => name.startsWith('LoginPage-')), 'Admin login missing');

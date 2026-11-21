@@ -55,11 +55,11 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long>, JpaSpec
         Optional<AppUser> findByIdAndTenantId(Long id, String tenantId);
 
         @Query("""
-                        select distinct user
+                        select user
                         from AppUser user
-                        left join fetch user.roles
                         where user.passwordResetTokenHash = :tokenHash
                         """)
+        @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
         Optional<AppUser> findByPasswordResetTokenHash(@Param("tokenHash") String tokenHash);
 
         @org.springframework.data.jpa.repository.Modifying

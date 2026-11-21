@@ -21,9 +21,9 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
   const role = guardian ? 'guardian' : 'rider'; const router = useRouter(); const { session } = useAuth();
   const dashboard = useQuery({ queryKey: [`${role}-dashboard`], queryFn: riderPortalApi.getDashboard });
   const trips = useQuery({ queryKey: [`${role}-next-rides`], queryFn: () => riderPortalApi.searchRides({ page: 0, size: 20, fromDate: new Date(Date.now()-86400000).toISOString().slice(0,10), sortBy: 'scheduledPickupAt', sortDirection: 'ASC' }) });
-  const next = trips.data?.items.find(ride => isTrackableTrip(ride.status)) ?? trips.data?.items.find(ride => !isFinishedTrip(ride.status)); const data = dashboard.data;
+  const next = trips.data?.items.find(ride => isTrackableTrip(ride.status)) ?? trips.data?.items.find(ride => ride.status === 'DROPPED_OFF') ?? trips.data?.items.find(ride => !isFinishedTrip(ride.status)); const data = dashboard.data;
   if (dashboard.isLoading) return <LoadingState />;
-  if (dashboard.isError) return <RequestError onRetry={() => void dashboard.refetch()} />;
+  if (dashboard.isError) return <RequestError error={dashboard.error} onRetry={() => void dashboard.refetch()} />;
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={dashboard.isRefetching || trips.isRefetching} onRefresh={() => { void dashboard.refetch(); void trips.refetch(); }} />}>
     <DashboardHeader name={session?.identity.firstName?.trim() || (guardian ? 'Guardian' : 'Rider')} role={role} />
     <StatsGrid items={[
@@ -32,7 +32,7 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
       { label: guardian ? 'Linked riders' : 'Open invoices', value: guardian ? data?.linkedRiderCount ?? '—' : data?.openInvoiceCount ?? '—', icon: guardian ? 'account-group-outline' : 'receipt-text-outline' },
       { label: 'Unread alerts', value: data?.unreadNotifications ?? '—', icon: 'bell-outline' },
     ]} />
-    <SectionHeader title="Next trip" subtitle={guardian ? 'Pickup and status for your linked riders.' : 'Pickup details and trip status.'} />
+    <SectionHeader title="Next trip" />
     <AppCard style={styles.trip}>
       {trips.isLoading ? <Text style={styles.body}>Loading your trips…</Text> : trips.isError ? <><Text style={styles.body}>Trips couldn’t be loaded.</Text><AppButton label="Retry trips" variant="outlined" onPress={() => void trips.refetch()} /></> : next ? <>
         <AppBadge status={next.status} /><Text style={styles.title}>{formatShortDateTime(next.scheduledPickupAt)}</Text>
@@ -43,9 +43,9 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
         <AppButton label="View trip details" rightIcon="arrow-right" onPress={() => router.push(`/(${role})/rides/${next.id}` as never)} />
       </> : <EmptyState title="No upcoming trips" description="Trips assigned by your transport provider will appear here." />}
     </AppCard>
-    <ActionRow icon="car-outline" title={guardian ? 'Riders’ trips' : 'All rides'} description={guardian ? 'Upcoming trips and history for your linked riders' : 'Upcoming trips, status updates and history'} onPress={() => router.push(`/(${role})/rides` as never)} />
+    <ActionRow icon="car-outline" title={guardian ? 'Riders’ trips' : 'Trips'} description={guardian ? 'Upcoming trips and history for your linked riders' : 'Upcoming trips, status updates and history'} onPress={() => router.push(`/(${role})/rides` as never)} />
     {guardian && <ActionRow icon="account-group-outline" title="Linked riders" description="View the riders you’re authorized to support" onPress={() => router.push('/(guardian)/riders')} />}
-    <ActionRow icon="receipt-text-outline" title="Billing & payments" description="Review invoices and payment records" onPress={() => router.push(`/(${role})/billing` as never)} />
+    <ActionRow icon="receipt-text-outline" title="Invoices & payments" description="Review invoices and payment records" onPress={() => router.push(`/(${role})/billing` as never)} />
   </ScrollView>;
 }
 const createStyles = (colors: BrandColors) => StyleSheet.create({

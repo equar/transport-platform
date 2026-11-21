@@ -11,9 +11,9 @@ export default function UnsupportedMobileRolePage() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Use the web admin portal</Text>
+      <Text style={styles.heading}>Mobile access unavailable</Text>
       <Text style={styles.body}>
-        Platform and company administration are available in the web application. This mobile app is for drivers, riders, and guardians.
+        Ask your transport provider for one driver, rider, or guardian profile. For administration, use the web portal.
       </Text>
       <AppButton label="Sign out" onPress={signOut} fullWidth />
     </View>

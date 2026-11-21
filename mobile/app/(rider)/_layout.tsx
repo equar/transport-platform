@@ -15,10 +15,12 @@ export default function RiderLayout() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          borderTopWidth: 1,
+          borderTopWidth: 0,
           height: 70,
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
           paddingTop: 7,
           paddingBottom: 7,
         },
@@ -42,7 +44,7 @@ export default function RiderLayout() {
       <Tabs.Screen
         name="rides"
         options={{
-          title: 'Rides',
+          title: 'Trips',
           tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'car' : 'car-outline'} size={size} color={color} />,
         }}
       />

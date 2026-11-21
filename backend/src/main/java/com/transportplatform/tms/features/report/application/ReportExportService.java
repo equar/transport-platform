@@ -45,17 +45,41 @@ public class ReportExportService {
             AppUserRepository users,TenantRepository tenants,ReportService reports,Clock clock) {
         this.jdbc=jdbc;this.mapper=mapper;this.current=current;this.users=users;this.tenants=tenants;this.reports=reports;this.clock=clock;
     }
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.common.concurrency.WorkflowLockService locks;
+
+    @org.springframework.transaction.annotation.Transactional
     public Job create(Request request) {
         var owner=current.requireCurrentUser();
         if(request.reportType()==null || request.filters()==null) throw invalid("Choose a report and a date range.");
         LocalDate from=date(request.filters(),"fromDate"), to=date(request.filters(),"toDate");
         if(from==null || to==null || to.isBefore(from) || from.plusDays(366).isBefore(to)) throw invalid("Choose a date range of up to 366 days.");
+        validateFilters(request);
+        locks.lock(owner.tenantId(), "REPORT_EXPORT", owner.id());
         Long pending=jdbc.queryForObject("SELECT COUNT(*) FROM report_export_jobs WHERE tenant_id=? AND user_id=? AND status IN ('PENDING','RUNNING')",Long.class,owner.tenantId(),owner.id());
         if(pending!=null && pending>=3) throw invalid("Wait for an existing export or cancel it before starting another.");
         String id=UUID.randomUUID().toString();
         try { jdbc.update("INSERT INTO report_export_jobs(id,tenant_id,user_id,request_json,expires_at) VALUES (?,?,?,?,?)", id,owner.tenantId(),owner.id(),privacy.encrypt(mapper.writeValueAsString(request),"text"),Timestamp.from(clock.instant().plusSeconds(86400))); }
         catch(com.fasterxml.jackson.core.JsonProcessingException ex) { throw invalid("Export request could not be read."); }
         return status(id);
+    }
+    private static void validateFilters(Request request) {
+        var f = request.filters();
+        if (f.size() > 24 || f.entrySet().stream().anyMatch(entry -> entry.getKey().length() > 64 || (entry.getValue() != null && entry.getValue().length() > 200)))
+            throw invalid("Export filters are too long. Shorten the search and try again.");
+        for (String field : List.of("organizationId", "riderId", "driverId", "assignedToUserId")) number(f, field);
+        for (String field : List.of("wheelchairRequired", "escortRequired", "overdueOnly", "expiredOnly", "expiringSoonOnly")) bool(f, field);
+        switch (request.reportType()) {
+            case DRIVER -> { en(DriverStatus.class,f,"status"); en(DriverType.class,f,"driverType"); }
+            case VEHICLE -> { en(VehicleStatus.class,f,"status"); en(VehicleOwnershipType.class,f,"ownershipType"); }
+            case RIDER -> { en(RiderStatus.class,f,"status"); en(RiderType.class,f,"riderType"); }
+            case RIDE -> en(RideStatus.class,f,"status");
+            case ROUTE -> en(RouteStatus.class,f,"status");
+            case INVOICE -> { en(InvoiceStatus.class,f,"status"); en(BillToType.class,f,"billToType"); }
+            case PAYMENT -> { en(PaymentStatus.class,f,"status"); en(PaymentMethod.class,f,"paymentMethod"); }
+            case COMPLIANCE -> { en(ComplianceEntityType.class,f,"entityType"); en(ComplianceIssueType.class,f,"issueType"); en(ComplianceIssueSeverity.class,f,"severity"); en(ComplianceIssueStatus.class,f,"issueStatus"); }
+            case INCIDENT -> { en(IncidentType.class,f,"incidentType"); en(IncidentSeverity.class,f,"severity"); en(IncidentStatus.class,f,"status"); }
+        }
+        if (request.reportType() == ReportType.RIDE || request.reportType() == ReportType.ROUTE) en(ServiceType.class,f,"serviceType");
     }
     private Map<String,Object> owned(String id) {
         var owner=current.requireCurrentUser();
@@ -132,9 +156,31 @@ public class ReportExportService {
     private static void append(StringBuilder out,Collection<?> values) {
         out.append(values.stream().map(v->{String s=v==null?"":v.toString();if(!s.stripLeading().isEmpty() && "=+-@".indexOf(s.stripLeading().charAt(0))>=0)s="'"+s;return "\""+s.replace("\"","\"\"")+"\"";}).collect(java.util.stream.Collectors.joining(","))).append("\r\n");
     }
-    private static LocalDate date(Map<String,String> f,String k) {String v=f.get(k);return v==null||v.isBlank()?null:LocalDate.parse(v);}
-    private static Long number(Map<String,String> f,String k) {String v=f.get(k);return v==null||v.isBlank()?null:Long.valueOf(v);}
-    private static Boolean bool(Map<String,String> f,String k) {String v=f.get(k);return v==null||v.isBlank()?null:Boolean.valueOf(v);}
-    private static <T extends Enum<T>> T en(Class<T> type,Map<String,String> f,String k) {String v=f.get(k);return v==null||v.isBlank()?null:Enum.valueOf(type,v);}
+    private static LocalDate date(Map<String,String> f,String k) {String v=f.get(k);return v==null||v.isBlank()?null:parseDate(v,k);}
+    private static Long number(Map<String,String> f,String k) {String v=f.get(k);return v==null||v.isBlank()?null:parseNumber(v,k);}
+    private static Boolean bool(Map<String,String> f,String k) {String v=f.get(k);return v==null||v.isBlank()?null:parseBoolean(v,k);}
+    private static <T extends Enum<T>> T en(Class<T> type,Map<String,String> f,String k) {String v=f.get(k);return v==null||v.isBlank()?null:parseEnum(type,v,k);}
+    private static ApiException fieldError(String field, String message) {
+        return new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                "Review the export filters and try again.", Map.of("fieldErrors", Map.of(field, message)));
+    }
+    private static LocalDate parseDate(String value, String field) {
+        try { if (!value.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) throw new java.time.DateTimeException("Invalid date format"); return LocalDate.parse(value); } catch (java.time.DateTimeException ex) {
+            throw fieldError(field, "Enter a valid date in YYYY-MM-DD format.");
+        }
+    }
+    private static Long parseNumber(String value, String field) {
+        try { long result = Long.parseLong(value); if (result <= 0) throw new NumberFormatException(); return result; }
+        catch (NumberFormatException ex) { throw fieldError(field, "Choose a valid record."); }
+    }
+    private static Boolean parseBoolean(String value, String field) {
+        if (!value.equals("true") && !value.equals("false")) throw fieldError(field, "Choose true or false.");
+        return Boolean.valueOf(value);
+    }
+    private static <T extends Enum<T>> T parseEnum(Class<T> type, String value, String field) {
+        try { return Enum.valueOf(type, value); } catch (IllegalArgumentException ex) {
+            throw fieldError(field, "Choose a supported value.");
+        }
+    }
     private static ApiException invalid(String message) {return new ApiException(ErrorCode.VALIDATION_FAILED,HttpStatus.BAD_REQUEST,message);}
 }

@@ -84,8 +84,8 @@ public class AuditIntegrityService {
 
     private void append(String scope, String type, long auditId, String content) {
         db.update(
-                "INSERT IGNORE INTO audit_integrity_heads(scope_key,sequence_no,signature)"
-                        + " VALUES(?,0,?)",
+                "INSERT INTO audit_integrity_heads(scope_key,sequence_no,signature)"
+                        + " VALUES(?,0,?) ON DUPLICATE KEY UPDATE scope_key=audit_integrity_heads.scope_key",
                 scope,
                 GENESIS);
         var head =
@@ -103,7 +103,7 @@ public class AuditIntegrityService {
             var last =
                     db.queryForList(
                             "SELECT * FROM audit_integrity_ledger WHERE scope_key=? AND"
-                                    + " sequence_no=?",
+                                    + " sequence_no=? FOR SHARE",
                             scope,
                             seq - 1);
             if (last.isEmpty()
@@ -241,7 +241,7 @@ public class AuditIntegrityService {
             var anchored =
                     db.queryForList(
                             "SELECT * FROM audit_integrity_ledger WHERE scope_key=? AND"
-                                    + " sequence_no=?",
+                                    + " sequence_no=? FOR SHARE",
                             scope,
                             expectedSequence);
             if (head < expectedSequence
@@ -255,7 +255,7 @@ public class AuditIntegrityService {
             var prev =
                     db.queryForList(
                             "SELECT * FROM audit_integrity_ledger WHERE scope_key=? AND"
-                                    + " sequence_no=?",
+                                    + " sequence_no=? FOR SHARE",
                             scope,
                             after);
             if (prev.isEmpty() || !valid(prev.getFirst()))

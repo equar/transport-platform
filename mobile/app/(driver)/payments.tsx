@@ -39,7 +39,7 @@ export default function DriverPaymentsPage() {
   const payments = useQuery({ queryKey: ['driver-payments'], queryFn: driverPortalApi.getPayments });
 
   if (payments.isLoading) return <LoadingState />;
-  if (payments.isError || !payments.data) return <RequestError onRetry={() => void payments.refetch()} />;
+  if (payments.isError || !payments.data) return <RequestError error={payments.error} onRetry={() => void payments.refetch()} />;
 
   const { currency, earnedTotal, pendingTotal, pendingReviewTotal, entries } = payments.data;
   return <ScrollView

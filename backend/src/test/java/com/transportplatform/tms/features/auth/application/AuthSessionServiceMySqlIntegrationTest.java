@@ -49,6 +49,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Import({
         JpaAuditConfig.class,
         AuthSessionService.class,
+        com.transportplatform.tms.common.security.DistributedAuthRateLimit.class,
         AuthSessionServiceMySqlIntegrationTest.SessionTestConfiguration.class,
 })
 @Testcontainers
@@ -78,6 +79,39 @@ class AuthSessionServiceMySqlIntegrationTest {
     @Autowired private CompanyApplicationRepository applicationRepository;
     @Autowired private TenantSettingsRepository settingsRepository;
     @Autowired private Clock clock;
+
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
+    @Autowired com.transportplatform.tms.common.security.DistributedAuthRateLimit rateLimits;
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional(propagation=org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    void concurrentResetRequestsConsumeTheTokenOnlyOnce() throws Exception {
+        String token="reset-"+UUID.randomUUID();
+        var tx=new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+        tx.executeWithoutResult(status->{var user=saveUser("reset-race");user.setPasswordResetTokenHash(token);appUserRepository.saveAndFlush(user);});
+        var start=new java.util.concurrent.CountDownLatch(1);
+        try(var pool=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            java.util.concurrent.Callable<Boolean> consume=()->{start.await();return tx.execute(status->{
+                var user=appUserRepository.findByPasswordResetTokenHash(token);
+                if(user.isEmpty())return false;
+                user.get().setPasswordResetTokenHash(null);appUserRepository.saveAndFlush(user.get());return true;
+            });};
+            var first=pool.submit(consume);var second=pool.submit(consume);start.countDown();
+            assertThat(java.util.List.of(first.get(10,java.util.concurrent.TimeUnit.SECONDS),second.get(10,java.util.concurrent.TimeUnit.SECONDS))).containsExactlyInAnyOrder(true,false);
+        }
+    }
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional(propagation=org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    void concurrentReplicasShareOneRateLimitBudget() throws Exception {
+        String key=UUID.randomUUID().toString();
+        var start=new java.util.concurrent.CountDownLatch(1);
+        try(var pool=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            java.util.concurrent.Callable<Long> consume=()->{start.await();return rateLimits.retryAfter(key,1,java.time.Duration.ofMinutes(1),clock.instant());};
+            var first=pool.submit(consume);var second=pool.submit(consume);start.countDown();
+            assertThat(java.util.List.of(first.get(10,java.util.concurrent.TimeUnit.SECONDS),second.get(10,java.util.concurrent.TimeUnit.SECONDS))).containsExactlyInAnyOrder(0L,60L);
+        }
+    }
 
     @DynamicPropertySource
     static void configureDataSource(DynamicPropertyRegistry registry) {

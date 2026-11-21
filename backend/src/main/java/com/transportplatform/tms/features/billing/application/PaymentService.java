@@ -35,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PaymentService {
+    @org.springframework.beans.factory.annotation.Autowired private ReceivablesQueries queries;
 
     private final PaymentRepository paymentRepository;
     private final BillingAccessService billingAccessService;
@@ -245,8 +246,7 @@ public class PaymentService {
 
     public BigDecimal calculateCollectedAmount(String tenantId) {
         if(!java.util.Objects.equals(tenantId,billingAccessService.requireCompanyTenantId())) throw validationFailure("Payment totals are restricted to your company.");
-        return paymentRepository.findAll(PaymentSpecifications.search(tenantId,"",null,null,null,null)).stream()
-            .map(Payment::getCollectedAmount).reduce(BigDecimal.ZERO,BigDecimal::add).setScale(2,RoundingMode.HALF_UP);
+        return queries.collected(tenantId);
     }
 
     private void validateInvoiceAcceptsPayment(Invoice invoice, BigDecimal amount, LocalDate today) {

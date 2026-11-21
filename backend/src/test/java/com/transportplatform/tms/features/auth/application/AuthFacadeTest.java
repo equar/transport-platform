@@ -152,7 +152,7 @@ class AuthFacadeTest {
         when(appUserRepository.findForAuthenticationByEmail("ops@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("secret123", "hashed-password")).thenReturn(true);
         org.mockito.Mockito.doThrow(new ApiException(com.transportplatform.tms.common.exception.ErrorCode.FORBIDDEN,
-            HttpStatus.FORBIDDEN, "Subscription expired")).when(entitlements).requireOperational("tenant-a");
+            HttpStatus.FORBIDDEN, "Subscription expired")).when(entitlements).requireLoginAccess(user);
         assertThrows(ApiException.class, () -> authFacade.login(new LoginRequest("ops@example.com", "secret123"), "WEB"));
         verify(authSessionService, never()).issue(any(), any());
         when(authSessionService.rotate("blocked-refresh", "WEB")).thenReturn(new AuthSessionService.RotatedRefreshToken(user,

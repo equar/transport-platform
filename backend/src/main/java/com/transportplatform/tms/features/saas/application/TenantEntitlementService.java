@@ -20,6 +20,7 @@ public class TenantEntitlementService {
     }
     public record Decision(Long subscriptionId, String state, String reason, Map<Resource, Integer> limits) {
         public boolean allowed() { return "ACTIVE".equals(state) || "TRIAL".equals(state); }
+        public boolean paymentRestricted() { return "SUSPENDED".equals(state) && reason.equals("The subscription has an overdue unpaid invoice."); }
     }
     private final JdbcTemplate db;
     private final Clock clock;
@@ -63,13 +64,40 @@ public class TenantEntitlementService {
         return db.queryForObject("SELECT COUNT(*) FROM platform_subscription_invoices WHERE tenant_id=? AND status='ISSUED' AND paid_amount<amount AND due_date<?" + (lock ? " FOR SHARE" : ""), Long.class, tenant, today()) > 0;
     }
     public void requireOperational(String tenant) {
-        // A nonlocking read before a financial lock would establish an old REPEATABLE READ
-        // snapshot. In write transactions, lock the tenant first and use current locking reads.
-        boolean lock = org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()
-            && !org.springframework.transaction.support.TransactionSynchronizationManager.isCurrentTransactionReadOnly();
-        if (lock) lockTenant(tenant);
-        Decision decision = evaluate(tenant, lock, false);
+        // HTTP authorization is evaluated before domain transactions by the request filter.
+        Decision decision = evaluate(tenant, false, false);
         if (!decision.allowed()) throw denied(decision.reason());
+    }
+    public boolean isPaymentRestricted(String tenant) { return evaluate(tenant).paymentRestricted(); }
+
+    public void requireLoginAccess(com.transportplatform.tms.features.auth.domain.AppUser user) {
+        Decision decision = evaluate(user.getTenantId());
+        boolean recoveryRole = user.getRoles().stream().anyMatch(role -> java.util.Set.of(
+                "ROLE_TENANT_ADMIN", "ROLE_BILLING_ADMIN", "ROLE_DRIVER").contains(role.name()));
+        if (!decision.allowed() && !(decision.paymentRestricted() && recoveryRole)) throw denied(decision.reason());
+    }
+
+    public void requireRequestAccess(com.transportplatform.tms.common.security.AuthenticatedUser user, String method, String path) {
+        Decision decision = evaluate(user.tenantId());
+        if (decision.allowed()) return;
+        if (decision.paymentRestricted()) {
+            boolean finance = user.getAuthorities().stream().anyMatch(a -> java.util.Set.of("ROLE_TENANT_ADMIN", "ROLE_BILLING_ADMIN").contains(a.getAuthority()));
+            boolean driver = user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
+            if (path.equals("/v1/auth/logout") || path.equals("/v1/auth/status") || path.equals("/v1/auth/change-password")
+                    || path.matches("/v1/auth/mfa(/.*)?") || ("GET".equals(method) && java.util.Set.of("/runtime/tenant-capabilities", "/runtime/tenant-branding").contains(path))) return;
+            if (finance && "GET".equals(method) && path.matches("/company/subscription-billing(/.*)?")) return;
+            if (driver && "GET".equals(method) && java.util.Set.of("/portal/driver/rides", "/portal/driver/dashboard", "/portal/driver/profile").contains(path)) return;
+            if (driver && ("GET".equals(method) || "POST".equals(method))) {
+                var match = java.util.regex.Pattern.compile("^/portal/driver/rides/([0-9]+)(?:/(location-history|location-snapshot|location-snapshots|notes|actions/(?:driver-en-route|arrived|picked-up|dropped-off|complete|no-show|failed)))?$").matcher(path);
+                if (match.matches()) {
+                    long rideId;
+                    try { rideId = Long.parseLong(match.group(1)); } catch (NumberFormatException invalid) { throw denied(decision.reason()); }
+                    Long count = db.queryForObject("SELECT COUNT(*) FROM rides r JOIN portal_user_scopes p ON p.tenant_id=r.tenant_id AND p.portal_subject_type='DRIVER' AND p.portal_subject_id=r.driver_id WHERE r.tenant_id=? AND p.app_user_id=? AND r.id=? AND r.status IN ('DRIVER_EN_ROUTE','ARRIVED','PICKED_UP','DROPPED_OFF','COMPLETED','RIDER_NO_SHOW','FAILED')", Long.class, user.tenantId(), user.id(), rideId);
+                    if (count != null && count > 0) return;
+                }
+            }
+        }
+        throw denied(decision.reason());
     }
     public void lockTenant(String tenant) {
         if (db.queryForList("SELECT id FROM tenants WHERE id=? FOR UPDATE", tenant).isEmpty()) throw denied("Company was not found.");

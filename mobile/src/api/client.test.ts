@@ -1,5 +1,5 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig, type AxiosAdapter } from 'axios';
-import { apiClient, invalidateSessionRequests } from './client';
+import { apiClient, invalidateSessionRequests, retryAfterDelay } from './client';
 import { getSessionValue } from '../auth/sessionStorage';
 import { Platform } from 'react-native';
 jest.mock('expo-constants',()=>({__esModule:true,default:{expoConfig:{extra:{apiBaseUrl:'https://example.test/api'}}}}));
@@ -53,4 +53,10 @@ it('does not send a request if account ownership changes during secure-storage a
   await ready; invalidateSessionRequests();
   complete(JSON.stringify({ accessToken: 'b', identity: { id: 2, tenantId: 'b' } }));
   await assertion; expect(adapter).not.toHaveBeenCalled();
+});
+
+it('parses server-directed retry delays without accepting negative values', () => {
+  expect(retryAfterDelay('60')).toBe(60000);
+  expect(retryAfterDelay('-1')).toBeNull();
+  expect(retryAfterDelay('Sat, 21 Nov 2026 15:01:00 GMT', Date.parse('2026-11-21T15:00:00Z'))).toBe(60000);
 });

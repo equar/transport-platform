@@ -365,6 +365,17 @@ public class TripEvidenceService {
     var drop = consumed(r, "DROPPED_OFF");
     if (((Number) drop.get("id")).longValue() != request.dropoffEvidenceId())
       throw invalid("The drop-off record changed. Refresh and review it before confirming.");
+    if (request.signature() != null && !request.signature().isValid())
+      throw invalid("Draw a signature, or continue without signing.");
+    String signature = null;
+    if (request.signature() != null) {
+      try {
+        signature = privacy.encrypt(new com.fasterxml.jackson.databind.ObjectMapper()
+            .writeValueAsString(request.signature()), "text");
+      } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+        throw invalid("The signature could not be saved. Try again or continue without signing.");
+      }
+    }
     var existing =
         db.queryForList("SELECT ride_id FROM trip_delivery_confirmations WHERE ride_id=?", id);
     if (!existing.isEmpty()) return summary(r, true);
@@ -375,8 +386,8 @@ public class TripEvidenceService {
             : scope.guardian().getId();
     db.update(
         "INSERT INTO"
-            + " trip_delivery_confirmations(ride_id,tenant_id,dropoff_evidence_id,confirmed_by,confirmer_name,subject_type,subject_id,confirmed_at)"
-            + " VALUES(?,?,?,?,?,?,?,?)",
+            + " trip_delivery_confirmations(ride_id,tenant_id,dropoff_evidence_id,confirmed_by,confirmer_name,subject_type,subject_id,confirmed_at,signature_json)"
+            + " VALUES(?,?,?,?,?,?,?,?,?)",
         id,
         r.getTenantId(),
         drop.get("id"),
@@ -384,7 +395,8 @@ public class TripEvidenceService {
         scope.user().displayName(),
         scope.scopeType().name(),
         subject,
-        now());
+        now(),
+        signature);
     record(
         r,
         "DELIVERY_CONFIRMED",
@@ -445,12 +457,13 @@ public class TripEvidenceService {
             r.getTenantId());
     var confirmations =
         db.query(
-            "SELECT * FROM trip_delivery_confirmations WHERE ride_id=? AND tenant_id=?",
+            "SELECT confirmer_name, subject_type, confirmed_at, signature_json IS NOT NULL AS signed FROM trip_delivery_confirmations WHERE ride_id=? AND tenant_id=?",
             (rs, n) ->
                 new Confirmed(
                     rs.getString("confirmer_name"),
                     rs.getString("subject_type"),
-                    rs.getObject("confirmed_at", LocalDateTime.class).toInstant(ZoneOffset.UTC)),
+                    rs.getObject("confirmed_at", LocalDateTime.class).toInstant(ZoneOffset.UTC),
+                    rs.getBoolean("signed")),
             r.getId(),
             r.getTenantId());
     boolean ready = false;

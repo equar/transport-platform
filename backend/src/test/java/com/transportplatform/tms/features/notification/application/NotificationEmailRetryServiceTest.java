@@ -28,6 +28,8 @@ import com.transportplatform.tms.common.observability.RequestCorrelationFilter;
 @ExtendWith(MockitoExtension.class)
 class NotificationEmailRetryServiceTest {
 
+    @Mock private org.springframework.jdbc.core.JdbcTemplate db;
+    @Mock private org.springframework.transaction.PlatformTransactionManager manager;
     @Mock
     private NotificationRepository notificationRepository;
 
@@ -42,8 +44,7 @@ class NotificationEmailRetryServiceTest {
         Notification notification = dueNotification(1);
         AppUser recipient = new AppUser();
         recipient.setEmail("rider@example.com");
-        when(notificationRepository.findByChannelAndDeliveryStatusInAndNextDeliveryAttemptAtLessThanEqualOrderByNextDeliveryAttemptAtAsc(
-                any(), any(), any(), any())).thenReturn(List.of(notification));
+        stubClaim(notification);
         when(deliveryAccess.recipient(notification)).thenReturn(Optional.of(recipient));
         AtomicReference<String> senderCorrelationId = new AtomicReference<>();
         AtomicReference<NotificationEmailSender.NotificationEmailCommand> emailCommand = new AtomicReference<>();
@@ -64,7 +65,7 @@ class NotificationEmailRetryServiceTest {
         assertEquals("Your ride schedule changed", emailCommand.get().subject());
         assertEquals("worker-123", MDC.get(RequestCorrelationFilter.MDC_KEY));
         MDC.remove(RequestCorrelationFilter.MDC_KEY);
-        verify(notificationRepository).save(notification);
+        verify(notificationRepository).saveAndFlush(notification);
     }
 
     @Test
@@ -72,8 +73,7 @@ class NotificationEmailRetryServiceTest {
         Notification notification = dueNotification(2);
         AppUser recipient = new AppUser();
         recipient.setEmail("rider@example.com");
-        when(notificationRepository.findByChannelAndDeliveryStatusInAndNextDeliveryAttemptAtLessThanEqualOrderByNextDeliveryAttemptAtAsc(
-                any(), any(), any(), any())).thenReturn(List.of(notification));
+        stubClaim(notification);
         when(deliveryAccess.recipient(notification)).thenReturn(Optional.of(recipient));
         when(notificationEmailSender.send(any())).thenReturn(new NotificationEmailSender.DeliveryResult(false, "Mail provider unavailable."));
 
@@ -86,8 +86,21 @@ class NotificationEmailRetryServiceTest {
     }
 
     private NotificationEmailRetryService retryService() {
-        return new NotificationEmailRetryService(notificationRepository, deliveryAccess, notificationEmailSender,
+        var service = new NotificationEmailRetryService(notificationRepository, deliveryAccess, notificationEmailSender,
                 Clock.fixed(Instant.parse("2026-09-03T12:00:00Z"), ZoneOffset.UTC));
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"db",db);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"manager",manager);
+        return service;
+    }
+
+    private void stubClaim(Notification notification) {
+        org.springframework.test.util.ReflectionTestUtils.setField(notification,"id",1L);
+        notification.setDeliveryAttemptCount(notification.getDeliveryAttemptCount()+1);
+        when(db.queryForList(org.mockito.ArgumentMatchers.startsWith("SELECT id FROM notifications WHERE channel"), org.mockito.ArgumentMatchers.eq(Long.class), any(), any())).thenReturn(List.of(1L));
+        when(db.update(org.mockito.ArgumentMatchers.startsWith("UPDATE notifications SET delivery_claim=?"), any(), any(), any(), any(), any())).thenReturn(1);
+        when(notificationRepository.findById(1L)).thenReturn(Optional.of(notification));
+        when(db.queryForList(org.mockito.ArgumentMatchers.startsWith("SELECT id FROM notifications WHERE id=?"), org.mockito.ArgumentMatchers.<Object>any(), org.mockito.ArgumentMatchers.<Object>any())).thenReturn(List.of(java.util.Map.of("id",1L)));
+        when(manager.getTransaction(any())).thenReturn(new org.springframework.transaction.support.SimpleTransactionStatus());
     }
 
     private Notification dueNotification(int deliveryAttemptCount) {

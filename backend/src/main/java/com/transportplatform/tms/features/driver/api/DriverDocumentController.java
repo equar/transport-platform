@@ -78,6 +78,7 @@ public class DriverDocumentController {
             mediaType = MediaType.APPLICATION_OCTET_STREAM;
         }
         return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .contentType(mediaType)
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "inline; filename*=UTF-8''" + java.net.URLEncoder.encode(stored.fileName(), java.nio.charset.StandardCharsets.UTF_8))

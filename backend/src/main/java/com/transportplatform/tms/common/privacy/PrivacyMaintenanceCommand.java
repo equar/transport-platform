@@ -72,6 +72,15 @@ public final class PrivacyMaintenanceCommand {
           .load()
           .migrate();
     }
+    if (apply) {
+      var environment = new org.springframework.core.env.StandardEnvironment();
+      var scanner = new com.transportplatform.tms.features.driver.application.DocumentScanner(
+          Boolean.parseBoolean(env.getOrDefault("APP_DOCUMENT_SCAN_ENABLED", "true")),
+          env.getOrDefault("APP_DOCUMENT_SCAN_HOST", "127.0.0.1"),
+          Integer.parseInt(env.getOrDefault("APP_DOCUMENT_SCAN_PORT", "3310")), environment);
+      com.transportplatform.tms.features.driver.application.DocumentFileProtection.protectExisting(
+          java.nio.file.Path.of(env.getOrDefault("APP_DRIVER_DOCUMENT_STORAGE_ROOT", "./var/driver-documents")), crypto, scanner);
+    }
     try (Connection db = DriverManager.getConnection(url, user, password)) {
       db.setAutoCommit(false);
       if (check || ensure) {
@@ -251,9 +260,10 @@ public final class PrivacyMaintenanceCommand {
             Object raw = row.get(f.column());
             if (raw == null) continue;
             String text = raw.toString();
-            String value = plain(crypto, raw, f.context());
-            if (f.context().equals("flag")) value = Boolean.toString(flag(value));
-            if (!crypto.current(text)) updates.put(f.column(), crypto.encrypt(value, f.context()));
+            String context = f.context().equals("recovery-email") ? "recovery-email|" + row.get("user_id") : f.context();
+            String value = plain(crypto, raw, context);
+            if (context.equals("flag")) value = Boolean.toString(flag(value));
+            if (!crypto.current(text)) updates.put(f.column(), crypto.encrypt(value, context));
           }
           // The in-memory minimization above must also replace already-encrypted notification
           // content.

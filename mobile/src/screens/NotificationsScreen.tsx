@@ -26,7 +26,7 @@ export default function NotificationsScreen() {
     onSuccess: () => client.invalidateQueries(),
     onError: () => Alert.alert('Couldn’t update alerts', 'Check your connection and try again.') });
   if (query.isLoading) return <LoadingState />;
-  if (query.isError && !query.data) return <RequestError onRetry={() => void query.refetch()} />;
+  if (query.isError && !query.data) return <RequestError error={query.error} onRetry={() => void query.refetch()} />;
   const items = query.data?.pages.flatMap(page => page.items) ?? [];
   return <View style={styles.screen}>
     <View style={styles.header}><SectionHeader title="Alerts" subtitle="Trip updates from your transport provider." />
@@ -48,4 +48,4 @@ export default function NotificationsScreen() {
     />
   </View>;
 }
-const createStyles = (colors: BrandColors) => StyleSheet.create({ screen: { flex: 1, backgroundColor: colors.background }, header: { padding: Spacing.xl, gap: Spacing.md }, list: { flexGrow: 1, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxl }, item: { gap: Spacing.md }, unread: { gap: Spacing.md, borderLeftWidth: 3, borderLeftColor: colors.primary }, metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, alignItems: 'center', justifyContent: 'space-between' }, date: { fontFamily: Typography.fontBody, fontSize: Typography.sizeXs, color: colors.textSecondary }, subject: { fontFamily: Typography.fontBodyMedium, fontSize: Typography.sizeMd, color: colors.textPrimary }, body: { fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: colors.textPrimary, lineHeight: 23 } });
+const createStyles = (colors: BrandColors) => StyleSheet.create({ screen: { flex: 1, backgroundColor: colors.background }, header: { padding: Spacing.xl, gap: Spacing.md }, list: { flexGrow: 1, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxl }, item: { gap: Spacing.md }, unread: { gap: Spacing.md, borderLeftWidth: 0, backgroundColor: colors.primarySoft }, metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, alignItems: 'center', justifyContent: 'space-between' }, date: { fontFamily: Typography.fontBody, fontSize: Typography.sizeXs, color: colors.textSecondary }, subject: { fontFamily: Typography.fontBodyMedium, fontSize: Typography.sizeMd, color: colors.textPrimary }, body: { fontFamily: Typography.fontBody, fontSize: Typography.sizeMd, color: colors.textPrimary, lineHeight: 23 } });

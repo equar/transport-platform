@@ -33,7 +33,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     flexBasis: 120,
     backgroundColor: colors.surface,
     padding: Spacing.lg,
-    borderWidth: 1, borderColor: colors.border, borderRadius: 10,
+    borderWidth: 0, borderColor: colors.border, borderRadius: 10,
     alignItems: 'flex-start',
     gap: Spacing.xs,
     minWidth: 120,

@@ -67,3 +67,5 @@ infra/.local/
 # Deployment validation bytecode
 __pycache__/
 *.py[cod]
+
+/frontend/artifacts/

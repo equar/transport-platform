@@ -5,7 +5,7 @@ import { registerForPushNotifications, usePushNotifications } from './usePushNot
 import { pushNotificationsApi } from '@api/pushNotificationsApi';
 import { logClientEvent } from '@utils/clientTelemetry';
 const mockRouter = { push: jest.fn() };
-const mockSession = { identity: { roles: ['ROLE_GUARDIAN'] } };
+const mockSession = { identity: { id: 7, tenantId: 'tenant-a', mustChangePassword: false, roles: ['ROLE_GUARDIAN'] } };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
 jest.mock('@auth/AuthContext', () => ({ useAuth: () => ({ session: mockSession }) }));
 jest.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries: jest.fn() }) }));
@@ -19,7 +19,7 @@ jest.mock('expo-notifications', () => ({
  setNotificationChannelAsync: jest.fn(), getPermissionsAsync: jest.fn(), requestPermissionsAsync: jest.fn(), getExpoPushTokenAsync: jest.fn(),
  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })), addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })), getLastNotificationResponseAsync: jest.fn().mockResolvedValue(null),
 }));
-beforeEach(() => {
+beforeEach(() => { mockSession.identity.mustChangePassword = false;
  jest.clearAllMocks(); jest.useFakeTimers(); jest.replaceProperty(Platform, 'OS', 'android');
  jest.mocked(Notifications.setNotificationChannelAsync).mockResolvedValue(null);
  jest.mocked(Notifications.getPermissionsAsync).mockResolvedValue({ status: 'granted' } as never);
@@ -57,4 +57,12 @@ it('retries a transient backend failure and cancels pending retries on unmount',
  unmount();
  await act(async () => { await jest.advanceTimersByTimeAsync(60000); });
  expect(pushNotificationsApi.register).toHaveBeenCalledTimes(2);
+});
+
+it('does not register notifications before the required password change', async () => {
+ mockSession.identity.mustChangePassword = true;
+ renderHook(() => usePushNotifications());
+ await act(async () => {});
+ expect(Notifications.getExpoPushTokenAsync).not.toHaveBeenCalled();
+ expect(Notifications.addNotificationResponseReceivedListener).not.toHaveBeenCalled();
 });

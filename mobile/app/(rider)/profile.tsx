@@ -108,7 +108,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   hero: {
     backgroundColor: colors.surface,
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 0, borderColor: colors.border,
     borderRadius: 16,
     padding: Spacing.lg,
     gap: Spacing.xs,

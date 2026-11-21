@@ -21,14 +21,15 @@ export default function GuardianRideDetailPage() {
   const screenVisible = useTripScreenVisible();
 	const router = useRouter();
 	const { rideId, track } = useLocalSearchParams<{ rideId: string; track?: string }>();
+  const validRideId = typeof rideId === 'string' && /^[1-9]\d*$/.test(rideId) && Number.isSafeInteger(Number(rideId));
   const [trackingRideId, setTrackingRideId] = React.useState<string | null>(null);
   const trackingRequested = track === '1' || trackingRideId === rideId;
 
-	const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
+	const { data: ride, isLoading, isError, error, refetch, isRefetching } = useQuery({
 		queryKey: ['guardian-ride-detail', rideId],
     ...manualTripRefreshOptions,
 		queryFn: () => riderPortalApi.getRide(Number(rideId)),
-		enabled: screenVisible && Boolean(rideId),
+		enabled: screenVisible && validRideId,
 	});
 
   const trackingActive = !!ride && !isError && isTrackableTrip(ride.status) && trackingRequested;
@@ -60,8 +61,9 @@ export default function GuardianRideDetailPage() {
     }
   }
 
+  if (!validRideId) return <RequestError message="This trip link is invalid. Open a trip from your list." retryLabel="Back to trips" onRetry={() => router.replace("/(guardian)/rides")} />;
 	if (isLoading) return <LoadingState />;
-  if (isError || !ride) return <RequestError onRetry={() => void refetch()} />;
+  if (isError || !ride) return <RequestError error={error} onRetry={() => void refetch()} />;
 
 	return (
 		<ScrollView
@@ -135,7 +137,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
 	content: { padding: Spacing.lg, gap: Spacing.lg },
 	heroCard: {
 		backgroundColor: colors.surface,
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 0, borderColor: colors.border,
 		borderRadius: 14,
 		padding: Spacing.lg,
 		gap: Spacing.xs,

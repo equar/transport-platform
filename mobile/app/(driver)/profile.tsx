@@ -183,7 +183,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   hero: {
     backgroundColor: colors.surface,
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 0, borderColor: colors.border,
     borderRadius: 16,
     padding: Spacing.lg,
     gap: Spacing.xs,
@@ -211,7 +211,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   tabButton: {
     flex: 1,
     borderRadius: 10,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: colors.border,
     minHeight: 48, justifyContent: 'center',
     paddingVertical: Spacing.sm,

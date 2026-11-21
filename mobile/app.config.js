@@ -2,6 +2,11 @@ const { expo } = require('./app.json');
 const withIosAutomaticSigning = require('./plugins/withIosAutomaticSigning');
 const withOptionalAndroidHardware = require('./plugins/withOptionalAndroidHardware');
 const fs = require('fs');
+const { execFileSync } = require('child_process');
+function releaseId() {
+  try { return process.env.APP_RELEASE_ID || process.env.GITHUB_SHA || execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], { cwd: __dirname, encoding: 'utf8' }).trim(); }
+  catch { return 'development'; }
+}
 const path = require('path');
 
 function getExpoProjectId() {
@@ -136,6 +141,7 @@ module.exports = () => {
     ],
     extra: {
       ...(expo.extra || {}),
+      releaseId: releaseId(),
       apiBaseUrl,
       simulatorSessionStorage,
       eas: {

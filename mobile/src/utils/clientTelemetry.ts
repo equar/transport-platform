@@ -1,9 +1,10 @@
+import { crashDetails } from './crashDetails';
 import Constants from 'expo-constants';
 type TelemetryLevel = 'info' | 'warn' | 'error';
 
 type TelemetryDetails = Record<string, unknown>;
 
-const SENSITIVE_KEYS = ['authorization', 'password', 'token', 'secret', 'cookie', 'set-cookie'];
+const SENSITIVE_KEYS = ['authorization', 'password', 'token', 'secret', 'cookie', 'set-cookie', 'signature', 'strokes'];
 
 function scrubValue(value: unknown): unknown {
   if (value == null) return value;
@@ -23,11 +24,17 @@ function scrubValue(value: unknown): unknown {
   return output;
 }
 
+function diagnosticDetails(details?: TelemetryDetails) {
+  if (!details || typeof details.fingerprint !== 'string' || !/^[a-f0-9]{8}$/.test(details.fingerprint)) return {};
+  const safe = crashDetails({ name: details.errorType, stack: details.frames });
+  return { fingerprint: details.fingerprint, errorType: safe.errorType, frames: safe.frames };
+}
+
 export function logClientEvent(level: TelemetryLevel, event: string, details?: TelemetryDetails) {
   const base = (Constants.expoConfig?.extra as { apiBaseUrl?: string } | undefined)?.apiBaseUrl;
   if (typeof fetch === 'function' && level !== 'info' && base?.startsWith('https://') && /^[a-zA-Z0-9._-]{1,100}$/.test(event)) {
     void fetch(`${base.replace(/\/$/, '')}/client-events`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event, level, client: 'mobile', release: Constants.expoConfig?.version ?? 'unknown' }) }).catch(() => undefined);
+      body: JSON.stringify({ event, level, client: 'mobile', release: String((Constants.expoConfig?.extra as { releaseId?: string } | undefined)?.releaseId ?? Constants.expoConfig?.version ?? 'unknown'), ...diagnosticDetails(details) }) }).catch(() => undefined);
   }
   const payload = {
     event,

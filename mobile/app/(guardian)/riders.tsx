@@ -15,13 +15,13 @@ export default function GuardianRidersPage() {
   const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
-  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['guardian-linked-riders'],
     queryFn: () => riderPortalApi.getLinkedRiders(),
   });
 
   if (isLoading) return <LoadingState />;
-  if (isError) return <RequestError onRetry={() => void refetch()} />;
+  if (isError) return <RequestError error={error} onRetry={() => void refetch()} />;
 
   const riders = data ?? [];
 

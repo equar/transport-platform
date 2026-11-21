@@ -21,7 +21,16 @@ public class CurrentAuthenticatedUserService {
                     HttpStatus.UNAUTHORIZED,
                     "An authenticated user is required to access this resource.");
         }
-        if (user.tenantId() != null) entitlements.requireOperational(user.tenantId());
+        if (user.tenantId() != null) {
+            var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes servlet) {
+                var request = servlet.getRequest();
+                String path = org.springframework.web.util.UrlPathHelper.defaultInstance.getPathWithinApplication(request);
+                var stamp = new TenantModuleAccessFilter.AccessStamp(user.id(), user.tenantId(), request.getMethod(), path);
+                if (!stamp.equals(request.getAttribute(TenantModuleAccessFilter.ACCESS_STAMP)))
+                    entitlements.requireRequestAccess(user, request.getMethod(), path);
+            } else entitlements.requireOperational(user.tenantId());
+        }
         return user;
     }
 }

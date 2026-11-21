@@ -45,7 +45,16 @@ public class MicrosoftGraphNotificationEmailSender implements NotificationEmailS
                 .tenantId(requireConfiguration("MICROSOFT_GRAPH_TENANT_ID", tenantId))
                 .clientSecret(requireConfiguration("MICROSOFT_GRAPH_CLIENT_SECRET", clientSecret))
                 .build();
-        this.graphServiceClient = new GraphServiceClient(credential, scopes.split(","));
+        com.azure.core.credential.TokenCredential boundedCredential = context -> credential.getToken(context)
+                .timeout(java.time.Duration.ofSeconds(20));
+        var authentication = new com.microsoft.kiota.authentication.AzureIdentityAuthenticationProvider(
+                boundedCredential, new String[] { "graph.microsoft.com" }, scopes.split(","));
+        var client = com.microsoft.graph.core.requests.GraphClientFactory.create()
+                .connectTimeout(java.time.Duration.ofSeconds(10))
+                .readTimeout(java.time.Duration.ofSeconds(20))
+                .writeTimeout(java.time.Duration.ofSeconds(20))
+                .callTimeout(java.time.Duration.ofSeconds(60)).build();
+        this.graphServiceClient = new GraphServiceClient(authentication, client);
     }
 
     @Override

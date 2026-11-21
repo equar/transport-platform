@@ -67,6 +67,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class DriverPortalService {
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.saas.application.TenantEntitlementService subscriptions;
     private final com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence;
 
     private static final Set<ComplianceIssueStatus> UNRESOLVED_COMPLIANCE_STATUSES = Set.of(
@@ -149,7 +150,7 @@ public class DriverPortalService {
     @Transactional
     public DriverPortalDashboardResponse getDashboard() {
         Driver driver = driverPortalAccessService.resolveCurrentDriver();
-        complianceIssueSyncService.synchronizeTenantIssues(driver.getTenantId());
+
         AuthenticatedUser user = currentAuthenticatedUserService.requireCurrentUser();
         LocalDate today = tenantTime.today(currentAuthenticatedUserService.requireCurrentUser().tenantId());
         LocalDateTime from = today.atStartOfDay();
@@ -208,7 +209,7 @@ public class DriverPortalService {
     @Transactional
     public DriverPortalComplianceSummaryResponse getComplianceSummary() {
         Driver driver = driverPortalAccessService.resolveCurrentDriver();
-        complianceIssueSyncService.synchronizeTenantIssues(driver.getTenantId());
+
         List<DriverPortalDocumentResponse> documents = loadDriverDocuments(driver).stream()
                 .map(driverPortalMapper::toDocumentResponse)
                 .toList();
@@ -249,8 +250,7 @@ public class DriverPortalService {
                 documentNumber, issuingAuthority, issueDate, expiryDate);
         if (notes != null && notes.length() > 2000) throw validationFailure("Notes must be 2000 characters or fewer.");
         String storagePath = driverDocumentStorageService.store(driver.getTenantId(), driver.getId(), file);
-        String originalName = file.getOriginalFilename() == null ? "document" :
-                java.nio.file.Path.of(file.getOriginalFilename()).getFileName().toString();
+        String originalName = DriverDocumentStorageService.safeOriginalName(file.getOriginalFilename());
         DriverDocument document = new DriverDocument();
         document.setTenantId(driver.getTenantId());
         document.setDriver(driver);
@@ -278,7 +278,7 @@ public class DriverPortalService {
                         "fileName", saved.getOriginalFileName(), "documentNumber", saved.getDocumentNumber(),
                         "issuingAuthority", saved.getIssuingAuthority(), "issueDate", saved.getIssueDate().toString(),
                         "expiryDate", saved.getExpiryDate().toString())));
-        complianceIssueSyncService.synchronizeTenantIssues(saved.getTenantId());
+        complianceIssueSyncService.synchronizeDriver(saved.getTenantId(), saved.getDriver().getId());
         return driverPortalMapper.toDocumentResponse(saved);
     }
 
@@ -308,7 +308,8 @@ public class DriverPortalService {
                         fromDateTime,
                         toDateTime,
                         driver.getId(),
-                        null),
+                        null).and((root, query, cb) -> subscriptions.isPaymentRestricted(driver.getTenantId())
+                                ? root.get("status").in(java.util.Set.of(RideStatus.DRIVER_EN_ROUTE, RideStatus.ARRIVED, RideStatus.PICKED_UP, RideStatus.DROPPED_OFF, RideStatus.COMPLETED, RideStatus.RIDER_NO_SHOW, RideStatus.FAILED)) : cb.conjunction()),
                 pageable);
         return PageResponse.from(result.map(driverPortalMapper::toRideSummaryResponse));
     }

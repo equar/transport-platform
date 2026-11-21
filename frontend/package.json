@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --mode public",
-    "build": "tsc -b && npm run clean:build && npm run build:public && npm run build:admin && npm run check:sites",
+    "build": "tsc -b && npm run clean:build && npm run build:public && npm run build:admin && node scripts/archive-source-maps.mjs && npm run check:sites",
     "preview": "vite preview --mode public --outDir dist/public",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",

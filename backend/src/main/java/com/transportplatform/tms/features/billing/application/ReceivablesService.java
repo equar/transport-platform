@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ReceivablesService {
 
+    @org.springframework.beans.factory.annotation.Autowired private ReceivablesQueries queries;
     private final BillingAccessService billingAccessService;
     private final CollectionNoteRepository collectionNoteRepository;
     private final PaymentRepository paymentRepository;
@@ -62,62 +63,9 @@ public class ReceivablesService {
 
     @Transactional(readOnly = true)
     public ReceivablesSummaryResponse getReceivablesSummary(String tenantId) {
-        LocalDate today = tenantTime.today(tenantId);
-        List<Invoice> invoices = billingAccessService.findAllInvoicesForTenant(tenantId);
-        List<Invoice> openReceivables = invoices.stream()
-                .filter(invoiceFinancialService::isReceivable)
-                .toList();
-
-        BigDecimal overdueAmount = openReceivables.stream()
-                .filter(invoice -> invoiceFinancialService.resolveDaysPastDue(invoice, today) > 0)
-                .map(Invoice::getBalanceDue)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
-
-        long overdueInvoiceCount = openReceivables.stream()
-                .filter(invoice -> invoiceFinancialService.resolveDaysPastDue(invoice, today) > 0)
-                .count();
-
-        long partiallyPaidInvoiceCount = invoices.stream()
-                .filter(invoice -> invoice.getStatus() == InvoiceStatus.PARTIALLY_PAID)
-                .count();
-
-        Map<InvoiceAgingBucket, AgingAccumulator> buckets = new LinkedHashMap<>();
-        Arrays.stream(InvoiceAgingBucket.values()).forEach(bucket -> buckets.put(bucket, new AgingAccumulator()));
-        for (Invoice invoice : openReceivables) {
-            InvoiceAgingBucket bucket = invoiceFinancialService.resolveAgingBucket(invoice, today);
-            if (bucket != null) {
-                buckets.get(bucket).add(invoice.getBalanceDue());
-            }
-        }
-
-        BigDecimal outstandingBalance = openReceivables.stream()
-                .map(Invoice::getBalanceDue)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
-
-        BigDecimal totalCollectedAmount = paymentRepository
-                .findAll(PaymentSpecifications.search(tenantId, "", null, null, null, null))
-                .stream()
-                .filter(payment -> payment.getStatus() != PaymentStatus.VOID
-                        && payment.getStatus() != PaymentStatus.FAILED)
-                .map(com.transportplatform.tms.features.billing.domain.Payment::getCollectedAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
-
-        return new ReceivablesSummaryResponse(
-                paymentRepository.countByTenantId(tenantId),
-                totalCollectedAmount,
-                outstandingBalance,
-                overdueInvoiceCount,
-                overdueAmount,
-                partiallyPaidInvoiceCount,
-                buckets.entrySet().stream()
-                        .map(entry -> new AgingBucketSummaryResponse(
-                                entry.getKey(),
-                                entry.getValue().count(),
-                                entry.getValue().amount()))
-                        .toList());
+        if (!java.util.Objects.equals(tenantId, billingAccessService.requireCompanyTenantId()))
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "Receivables are restricted to your company.");
+        return queries.summary(tenantId, tenantTime.today(tenantId));
     }
 
     @Transactional(readOnly = true)

@@ -37,7 +37,8 @@ public class SubscriptionLifecycleService {
         if (ended(r,"effective_end_date",today,false)
             || (!managed && "TRIAL".equals(old) && (r.get("trial_end_date")==null || ended(r,"trial_end_date",today,true)))
             || (!managed && ended(r,"renewal_date",today,true))) next="EXPIRED";
-        else if (access.hasOverdueBalance(tenant)) next="SUSPENDED";
+        // Payment restriction is derived from unpaid balances. Do not revoke active trips,
+        // disable invoicing, or persist a suspension that cannot recover after settlement.
         if (next==null) return;
         db.update("UPDATE tenant_subscriptions SET status=?,updated_by='subscription-lifecycle',updated_at=UTC_TIMESTAMP(6) WHERE id=?",next,id);
         db.update("UPDATE subscription_billing_accounts SET enabled=FALSE WHERE subscription_id=?",id);

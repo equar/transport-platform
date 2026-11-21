@@ -16,6 +16,7 @@ interface AuthTokensResponse {
     status: string;
     mustChangePassword: boolean;
   mfaEnrollmentRequired?: boolean;
+  subscriptionRecovery?: boolean;
     roles: string[];
   };
 }

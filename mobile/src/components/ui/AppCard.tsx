@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { StyleSheet, View, ViewStyle, useWindowDimensions } from 'react-native';
+import { View, ViewStyle, useWindowDimensions } from 'react-native';
 import { Density, Radius, Shadow, Spacing } from '@theme/tokens';
 import { useThemedStyles } from '@theme/ThemeProvider';
 
@@ -16,7 +16,7 @@ export function AppCard({ children, style, noBorder, density = 'comfortable', va
     card: {
       backgroundColor: colors.surface,
       borderRadius: Radius.lg,
-      borderWidth: StyleSheet.hairlineWidth,
+      borderWidth: 0,
       borderColor: colors.divider,
       ...Shadow.card,
     },

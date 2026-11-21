@@ -1,4 +1,5 @@
 import React from "react";
+import { DeliverySignaturePad } from "../DeliverySignaturePad";
 import { Alert } from "react-native";
 import {
   act,
@@ -106,4 +107,27 @@ it("does not load evidence while the screen is out of view", () => {
   mockVisible = false;
   open();
   expect(tripEvidenceApi.get).not.toHaveBeenCalled();
+});
+
+it("offers an optional signature only for passenger confirmation", async () => {
+  open();
+  expect(await screen.findByRole("button", { name: "Add signature (optional)" })).toBeTruthy();
+  fireEvent.press(screen.getByRole("button", { name: "Add signature (optional)" }));
+  expect(await screen.findByText("Signature (optional)")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Use signature" })).toBeDisabled();
+  fireEvent.press(screen.getByRole("button", { name: "Go back" }));
+  expect(tripEvidenceApi.confirm).not.toHaveBeenCalled();
+});
+
+it("sends saved ink only with the passenger’s explicit delivery attestation", async () => {
+  const signature = { strokes: [[{ x: 0.1, y: 0.2 }, { x: 0.8, y: 0.7 }]] };
+  open();
+  fireEvent.press(await screen.findByRole("button", { name: "Add signature (optional)" }));
+  const pad = screen.UNSAFE_getByType(DeliverySignaturePad);
+  act(() => pad.props.onSave(signature));
+  expect(tripEvidenceApi.confirm).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByRole("button", { name: "Confirm rider was delivered" }));
+  const buttons = jest.mocked(Alert.alert).mock.calls[0][2]!;
+  await act(async () => buttons.find(b => b.text === "Yes, confirm delivery")!.onPress!());
+  await waitFor(() => expect(tripEvidenceApi.confirm).toHaveBeenCalledWith(10, 17, signature));
 });

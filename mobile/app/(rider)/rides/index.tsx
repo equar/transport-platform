@@ -138,7 +138,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     marginHorizontal: 0,
     padding: Spacing.md,
     gap: Spacing.xs,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: colors.border,
     borderRadius: 14,
     backgroundColor: colors.surface,

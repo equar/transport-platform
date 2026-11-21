@@ -17,8 +17,8 @@ const PAGE_SIZE = 20;
 type DispatchSegment = 'assigned' | 'completed' | 'cancelled';
 
 const STATUS_SEGMENTS: Record<DispatchSegment, string[]> = {
-  assigned: ['ASSIGNED', 'DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP'],
-  completed: ['DROPPED_OFF', 'COMPLETED'],
+  assigned: ['ASSIGNED', 'DRIVER_EN_ROUTE', 'ARRIVED', 'PICKED_UP', 'DROPPED_OFF'],
+  completed: ['COMPLETED'],
   cancelled: ['CANCELLED', 'MISSED', 'FAILED', 'RIDER_NO_SHOW'],
 };
 
@@ -143,7 +143,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     padding: Spacing.xl,
     borderRadius: 14,
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: colors.border,
     ...Shadow.soft,
   },
@@ -181,7 +181,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   dispatchCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: colors.border,
     borderRadius: 14,
     backgroundColor: colors.surface,

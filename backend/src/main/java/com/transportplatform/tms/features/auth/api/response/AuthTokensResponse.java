@@ -18,6 +18,11 @@ public record AuthTokensResponse(
             String status,
             boolean mustChangePassword,
             boolean mfaEnrollmentRequired,
+            boolean subscriptionRecovery,
             Set<String> roles) {
+        public AuthenticatedUserResponse(Long id, String email, String firstName, String lastName, String tenantId,
+                String status, boolean mustChangePassword, boolean mfaEnrollmentRequired, Set<String> roles) {
+            this(id, email, firstName, lastName, tenantId, status, mustChangePassword, mfaEnrollmentRequired, false, roles);
+        }
     }
 }

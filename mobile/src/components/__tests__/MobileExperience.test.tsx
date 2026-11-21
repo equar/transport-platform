@@ -99,9 +99,9 @@ it('shows assigned travel and existing billing actions without a service catalog
   render(<PassengerHomeScreen />);
   expect(screen.queryByRole('button', { name: 'Request a ride' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Student' })).toBeNull();
-  fireEvent.press(screen.getByRole('button', { name: 'All rides' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Trips' }));
   expect(mockPush).toHaveBeenCalledWith('/(rider)/rides');
-  fireEvent.press(screen.getByRole('button', { name: 'Billing & payments' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Invoices & payments' }));
   expect(mockPush).toHaveBeenCalledWith('/(rider)/billing');
 });
 
@@ -115,4 +115,12 @@ it('does not offer guardian tracking for finished trips', () => {
   mockRides = [mockRiderItems[1]];
   render(<PassengerHomeScreen guardian />);
   expect(screen.queryByRole('button', { name: 'Track' })).toBeNull();
+});
+
+it('keeps dropped-off trips available until final completion', () => {
+  mockRides = [{ ...mockRiderItems[0], rideNumber: 'AWAITING-CONFIRMATION', status: 'DROPPED_OFF' }];
+  render(<RiderRidesPage />);
+  expect(screen.getByText('AWAITING-CONFIRMATION')).toBeTruthy();
+  fireEvent.press(screen.getByRole('tab', { name: 'History' }));
+  expect(screen.queryByText('AWAITING-CONFIRMATION')).toBeNull();
 });

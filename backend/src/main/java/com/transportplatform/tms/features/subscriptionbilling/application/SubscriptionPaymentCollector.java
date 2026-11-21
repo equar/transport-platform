@@ -11,7 +11,16 @@ import java.math.BigDecimal;
 public interface SubscriptionPaymentCollector {
   boolean available();
 
+  default String providerId() { return getClass().getName(); }
+
   Result collect(Invoice invoice, String idempotencyKey);
 
-  record Result(boolean settled, String reference, BigDecimal amount, String currency) {}
+  /** Read-only provider lookup. Never issue a charge while reconciling an uncertain outcome. */
+  default Result reconcile(Invoice invoice, String idempotencyKey) { return null; }
+
+  record Result(boolean settled, String reference, BigDecimal amount, String currency, boolean verifiedNotCharged) {
+    public Result(boolean settled, String reference, BigDecimal amount, String currency) {
+      this(settled, reference, amount, currency, false);
+    }
+  }
 }

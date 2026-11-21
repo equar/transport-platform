@@ -16,8 +16,15 @@ management:
         include: health,info,notificationDelivery,metrics
 
 app:
+  driver-document-storage:
+    max-tenant-bytes: ${APP_DRIVER_DOCUMENT_STORAGE_MAX_TENANT_BYTES:1073741824}
+    max-tenant-files: ${APP_DRIVER_DOCUMENT_STORAGE_MAX_TENANT_FILES:10000}
+  document-scan:
+    enabled: ${APP_DOCUMENT_SCAN_ENABLED:true}
+    host: ${APP_DOCUMENT_SCAN_HOST:127.0.0.1}
+    port: ${APP_DOCUMENT_SCAN_PORT:3310}
   auth:
-    require-mfa-for-privileged-accounts: ${APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS:false}
+    require-mfa-for-privileged-accounts: ${APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS:true}
   bootstrap:
     platform-admin:
       email-enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL_ENABLED:false}

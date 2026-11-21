@@ -159,7 +159,7 @@ public class DriverDocumentService {
         DriverDocument saved = driverDocumentRepository.save(document);
         recordAudit(saved, "UPLOADED", "Driver document " + saved.getDocumentType().name()
                 + " was uploaded for review.", null, snapshot(saved));
-        complianceIssueSyncService.synchronizeTenantIssues(saved.getTenantId());
+        complianceIssueSyncService.synchronizeDriver(saved.getTenantId(), saved.getDriver().getId());
         return driverDocumentMapper.toResponse(saved);
     }
 
@@ -200,7 +200,7 @@ public class DriverDocumentService {
         recordAudit(saved, "VERIFIED", "Driver document " + saved.getDocumentType().name() + " was verified.",
                 oldSnapshot, snapshot(saved));
         notificationEventService.publishDriverDocumentVerified(saved);
-        complianceIssueSyncService.synchronizeTenantIssues(saved.getTenantId());
+        complianceIssueSyncService.synchronizeDriver(saved.getTenantId(), saved.getDriver().getId());
         return driverDocumentMapper.toResponse(saved);
     }
 
@@ -221,7 +221,7 @@ public class DriverDocumentService {
         recordAudit(saved, "REJECTED", "Driver document " + saved.getDocumentType().name() + " was rejected.",
                 oldSnapshot, snapshot(saved));
         notificationEventService.publishDriverDocumentRejected(saved);
-        complianceIssueSyncService.synchronizeTenantIssues(saved.getTenantId());
+        complianceIssueSyncService.synchronizeDriver(saved.getTenantId(), saved.getDriver().getId());
         return driverDocumentMapper.toResponse(saved);
     }
 
@@ -279,9 +279,7 @@ public class DriverDocumentService {
     }
 
     private String resolveOriginalFileName(MultipartFile file) {
-        String originalFileName = file.getOriginalFilename() == null ? "document" :
-                java.nio.file.Path.of(file.getOriginalFilename()).getFileName().toString().trim();
-        return originalFileName.isEmpty() ? "document" : originalFileName.substring(0, Math.min(originalFileName.length(), 255));
+        return DriverDocumentStorageService.safeOriginalName(file.getOriginalFilename());
     }
 
     private String trimToNull(String value) {

@@ -93,6 +93,13 @@ public class GlobalExceptionHandler {
                         "Document files must be 10 MB or smaller.", Map.of())));
     }
 
+    @ExceptionHandler({jakarta.validation.ConstraintViolationException.class,
+            org.springframework.web.method.annotation.HandlerMethodValidationException.class})
+    public ResponseEntity<ApiResponse<Void>> handleParameterValidation(Exception exception) {
+        return ResponseEntity.badRequest().body(ApiResponse.failure(ApiErrorResponse.of(
+                ErrorCode.VALIDATION_FAILED.name(), "Some submitted fields are missing or invalid. Review the values and try again.", Map.of())));
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnreadableRequest(HttpMessageNotReadableException exception) {
         LOGGER.debug("Request body could not be parsed", exception);
@@ -134,18 +141,52 @@ public class GlobalExceptionHandler {
                 ApiErrorResponse.of(ErrorCode.VALIDATION_FAILED.name(), "This action is not supported for this resource.", Map.of())));
     }
 
-    @ExceptionHandler({org.springframework.dao.PessimisticLockingFailureException.class,
-            org.springframework.dao.DataIntegrityViolationException.class})
-    public ResponseEntity<ApiResponse<Void>> handleDataConflict(Exception exception) {
+    @ExceptionHandler(org.springframework.dao.PessimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBusyRecord(Exception exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.failure(
                 ApiErrorResponse.of(ErrorCode.RESOURCE_CONFLICT.name(),
-                        "This change conflicts with another update. Refresh and retry the same request.", Map.of())));
+                        "This record is being updated. Wait a moment, refresh it, and try again.", Map.of())));
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataConflict(Exception exception) {
+        Throwable cause = exception;
+        while (cause.getCause() != null && cause.getCause() != cause) cause = cause.getCause();
+        int vendorCode = cause instanceof java.sql.SQLException sql ? sql.getErrorCode() : 0;
+        String message = switch (vendorCode) {
+            case 1062 -> "A record with this reference already exists. Check the existing record or use a different reference.";
+            case 1451 -> "This record is still used by other records. Remove those links before deleting it.";
+            case 1452 -> "A linked record is no longer available. Refresh and choose an existing record.";
+            case 1264, 1406 -> "A submitted value is too large. Review the field limits and try again.";
+            default -> "This change conflicts with existing data. Check the linked records and references before trying again.";
+        };
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.failure(
+                ApiErrorResponse.of(ErrorCode.RESOURCE_CONFLICT.name(), message, Map.of())));
     }
 
     @ExceptionHandler(org.springframework.web.bind.MissingRequestHeaderException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMissingHeader(Exception exception) {
-        return ResponseEntity.status(HttpStatus.PRECONDITION_REQUIRED).body(ApiResponse.failure(
-                ApiErrorResponse.of(ErrorCode.RESOURCE_CONFLICT.name(), "Refresh this record before saving changes.", Map.of())));
+    public ResponseEntity<ApiResponse<Void>> handleMissingHeader(org.springframework.web.bind.MissingRequestHeaderException exception) {
+        String name = exception.getHeaderName();
+        boolean stale = name.equalsIgnoreCase("If-Match") || name.equalsIgnoreCase("X-Expected-Ride-Status");
+        String message = name.equalsIgnoreCase("Idempotency-Key")
+                ? "The submission key is missing. Reopen this form and submit it again."
+                : stale ? "Refresh this record before saving changes."
+                : "A required request header is missing: " + name + ".";
+        return ResponseEntity.status(stale ? HttpStatus.PRECONDITION_REQUIRED : HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.failure(ApiErrorResponse.of(ErrorCode.VALIDATION_FAILED.name(), message,
+                        Map.of("header", name))));
+    }
+
+    @ExceptionHandler({org.springframework.dao.DataAccessResourceFailureException.class,
+            org.springframework.transaction.CannotCreateTransactionException.class,
+            org.springframework.jdbc.CannotGetJdbcConnectionException.class,
+            org.springframework.dao.QueryTimeoutException.class,
+            org.springframework.dao.TransientDataAccessResourceException.class})
+    public ResponseEntity<ApiResponse<Void>> handleServiceUnavailable(Exception exception) {
+        LOGGER.error("Database service unavailable; request could not complete", exception);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).header("Retry-After", "30")
+                .body(ApiResponse.failure(ApiErrorResponse.of("SERVICE_UNAVAILABLE",
+                        "The service is temporarily unavailable. If you were saving, check the record before submitting again.", Map.of())));
     }
 
     @ExceptionHandler(Exception.class)

@@ -10,7 +10,7 @@ import { riderPortalApi } from '@api/riderPortalApi';
 let mockVisible = true;
 jest.mock('@hooks/useTripScreenVisible', () => ({ useTripScreenVisible: () => mockVisible, manualTripRefreshOptions: { refetchInterval: false, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: false } }));
 let mockParams: { rideId: string; track?: string } = { rideId: '10' };
-jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams, useRouter: () => ({ back: jest.fn(), push: jest.fn() }) }));
+jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams, useRouter: () => ({ back: jest.fn(), push: jest.fn(), replace: jest.fn() }) }));
 jest.mock('@components/SupportContact', () => ({ SupportContact: () => null }));
 jest.mock('@expo/vector-icons', () => ({ MaterialCommunityIcons: 'Icon' }));
 jest.mock('@api/riderPortalApi', () => ({ riderPortalApi: { getRide: jest.fn(), getRideLocationHistory: jest.fn().mockResolvedValue([]), getRideLocationSnapshot: jest.fn() } }));
@@ -117,4 +117,13 @@ it('opens an embedded map without inventing a driver pin before the first GPS re
   expect(await screen.findByTestId('ride-location-map')).toBeTruthy();
   expect(view.UNSAFE_queryByType(Marker)).toBeNull();
   expect(screen.getByText(/Waiting for the driver’s first location update/)).toBeTruthy();
+});
+
+it.each([RiderRideDetailPage, GuardianRideDetailPage])('rejects malformed trip links before requesting private data', Page => {
+  mockParams = { rideId: '-10' };
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  clients.push(client);
+  render(<QueryClientProvider client={client}><Page /></QueryClientProvider>);
+  expect(screen.getByText('This trip link is invalid. Open a trip from your list.')).toBeTruthy();
+  expect(riderPortalApi.getRide).not.toHaveBeenCalled();
 });

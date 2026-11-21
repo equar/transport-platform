@@ -23,12 +23,14 @@ DEFAULTS = {
     'MICROSOFT_GRAPH_CLIENT_ID': '', 'MICROSOFT_GRAPH_TENANT_ID': '', 'MICROSOFT_GRAPH_CLIENT_SECRET': '',
     'APP_PUSH_ENABLED': 'false', 'APP_PUSH_PROVIDER': 'logging', 'EXPO_ACCESS_TOKEN': '',
     'APP_PRIVACY_ENCRYPTION_KEYS': '', 'APP_PRIVACY_ACTIVE_KEY_ID': '', 'APP_PRIVACY_LOOKUP_KEY': '',
-    'APP_SECURITY_MFA_ENCRYPTION_KEY': '', 'APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS': 'false',
+    'APP_SECURITY_MFA_ENCRYPTION_KEY': '', 'APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS': 'true',
     'APP_PUSH_EXPO_URL': 'https://exp.host/--/api/v2/push/send',
     'APP_LOGGING_LEVEL_ROOT': 'INFO', 'APP_LOGGING_LEVEL_APP': 'INFO',
     'APP_LOGGING_LEVEL_WEB': 'WARN', 'APP_LOGGING_LEVEL_SECURITY': 'INFO',
     'APP_LOGGING_LEVEL_SQL': 'WARN', 'APP_LOGGING_LEVEL_SQL_BIND': 'OFF',
     'VITE_GOOGLE_MAPS_API_KEY': '',
+    'APP_DOCUMENT_SCAN_ENABLED': 'true', 'APP_DOCUMENT_SCAN_HOST': '127.0.0.1', 'APP_DOCUMENT_SCAN_PORT': '3310',
+    'APP_DRIVER_DOCUMENT_STORAGE_MAX_TENANT_BYTES': '1073741824', 'APP_DRIVER_DOCUMENT_STORAGE_MAX_TENANT_FILES': '10000',
 }
 VARIABLE_KEYS = (set(DEFAULTS) | {'MYSQL_HOST', 'MYSQL_USER', 'APP_AUTH_PASSWORD_RESET_BASE_URL'}) - SECRET_KEYS
 FIXED = {
@@ -132,6 +134,15 @@ def settings(environ=None, target='all', require_ssh=True):
         raise ValueError('Privacy keys must not reuse APP_SECURITY_MFA_ENCRYPTION_KEY')
     if env['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS'] not in ('true','false'):
         raise ValueError('APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS must be true or false')
+    if env['APP_DOCUMENT_SCAN_ENABLED'] != 'true' or env['APP_DOCUMENT_SCAN_HOST'] not in ('127.0.0.1', '::1', 'localhost'):
+        raise ValueError('Production requires enabled document scanning on the loopback interface')
+    try:
+        if not 1 <= int(env['APP_DOCUMENT_SCAN_PORT']) <= 65535:
+            raise ValueError()
+        if int(env['APP_DRIVER_DOCUMENT_STORAGE_MAX_TENANT_BYTES']) < 10485760 or int(env['APP_DRIVER_DOCUMENT_STORAGE_MAX_TENANT_FILES']) < 1:
+            raise ValueError()
+    except ValueError:
+        raise ValueError('Document scanner port and storage quotas must be valid positive limits') from None
     origins = env['APP_SECURITY_ALLOWED_ORIGINS'].split(',')
     for origin in origins:
         public_origin(origin.strip(), 'APP_SECURITY_ALLOWED_ORIGINS')

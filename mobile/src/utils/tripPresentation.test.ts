@@ -1,8 +1,8 @@
 import { isFinishedTrip, isTrackableTrip, tripStatusLabel } from './tripPresentation';
 describe('Trip presentation', () => {
   it('keeps active delayed trips out of history and finished trips out of upcoming', () => {
-    for (const state of ['REQUESTED','SCHEDULED','ASSIGNED','DRIVER_EN_ROUTE','ARRIVED','PICKED_UP']) expect(isFinishedTrip(state)).toBe(false);
-    for (const state of ['DROPPED_OFF','COMPLETED','CANCELLED','MISSED','FAILED','RIDER_NO_SHOW']) expect(isFinishedTrip(state)).toBe(true);
+    for (const state of ['REQUESTED','SCHEDULED','ASSIGNED','DRIVER_EN_ROUTE','ARRIVED','PICKED_UP','DROPPED_OFF']) expect(isFinishedTrip(state)).toBe(false);
+    for (const state of ['COMPLETED','CANCELLED','MISSED','FAILED','RIDER_NO_SHOW']) expect(isFinishedTrip(state)).toBe(true);
   });
   it('uses passenger-friendly status labels without enum formatting', () => {
     expect(tripStatusLabel('DRIVER_EN_ROUTE')).toBe('Driver on the way');
