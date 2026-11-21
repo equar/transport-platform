@@ -31,6 +31,11 @@ public final class PrivacyMaintenanceCommand {
   }
 
   public static void main(String[] args) throws Exception {
+    verifyCoordinateMappings();
+    if (Arrays.equals(args, new String[] {"--verify-artifact"})) {
+      System.out.println("Encrypted coordinate mappings verified in this release artifact.");
+      return;
+    }
     boolean ensure = Arrays.asList(args).contains("--ensure-ready"),
         check = Arrays.asList(args).contains("--check-ready");
     boolean apply = Arrays.asList(args).contains("--apply") || ensure,
@@ -77,6 +82,26 @@ public final class PrivacyMaintenanceCommand {
         }
       }
       run(db, crypto, apply);
+    }
+  }
+
+  static void verifyCoordinateMappings() throws ReflectiveOperationException {
+    Class<?> entity =
+        com.transportplatform.tms.features.location.domain.DriverLocationSnapshot.class;
+    for (String name : List.of("latitude", "longitude")) {
+      var field = entity.getDeclaredField(name);
+      var column = field.getAnnotation(jakarta.persistence.Column.class);
+      var converter = field.getAnnotation(jakarta.persistence.Convert.class);
+      if (column == null
+          || !column.columnDefinition().equalsIgnoreCase("VARCHAR(512)")
+          || converter == null
+          || converter.disableConversion()
+          || converter.converter() != PhiConverters.Coordinate.class)
+        throw new IllegalStateException(
+            "Release artifact has an incompatible encrypted coordinate mapping: "
+                + name
+                + ". Rebuild and deploy the current backend; do not convert ciphertext columns to"
+                + " numeric types.");
     }
   }
 
@@ -308,7 +333,7 @@ public final class PrivacyMaintenanceCommand {
     String unsigned =
         signed
             ? " AND NOT EXISTS (SELECT 1 FROM audit_integrity_ledger l WHERE l.audit_id=a.id AND"
-                  + " l.event_type='ENTRY' AND l.scope_key=COALESCE(a.tenant_id,'PLATFORM'))"
+                + " l.event_type='ENTRY' AND l.scope_key=COALESCE(a.tenant_id,'PLATFORM'))"
             : "";
     while (true) {
       var batch =

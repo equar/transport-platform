@@ -15,6 +15,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 class PrivacyBoundaryTest {
   @Test
+  void releaseArtifactCanVerifyCoordinateMappingsWithoutCredentialsOrDatabase() {
+    assertThatCode(() -> PrivacyMaintenanceCommand.main(new String[] {"--verify-artifact"}))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
   void auditServiceDoesNotPersistClinicalSnapshotsOrPersonalActorLabels() {
     var repo = mock(AuditLogRepository.class);
     var service = new AuditLogService(repo, new ObjectMapper());

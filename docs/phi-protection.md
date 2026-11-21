@@ -106,3 +106,11 @@ For a host currently failing this check:
 The deployment fix has not been run against a live server by this change. A successful local test does not mean the failing production host has recovered.
 
 Deployment recovery verification: 29 deployment tests and 23 focused backend tests passed, including a real offline-command subprocess against disposable MySQL, unchanged readiness timestamps when already current, failure on an outdated fingerprint, and preservation of signed audit evidence. A new deployment also refuses to replace release files while a maintenance oneshot from an interrupted SSH/job session is still running.
+
+### Coordinate schema mismatch after an older release starts
+
+`driver_location_snapshots.latitude/longitude` are intentionally `VARCHAR(512)`: the database stores authenticated ciphertext while the Java entity exposes `Double` through `PhiConverters.Coordinate`. A startup message expecting `float(53)` indicates the running Hibernate model disagrees with that encrypted mapping; the current source and tested packaged classes expect text. An older/incompatible release running after migration is a likely cause. Do not convert these columns back to numeric types or disable schema validation.
+
+Backend deployment now checks the actual packaged entity annotations with `PrivacyMaintenanceCommand --verify-artifact` before SSH/upload, and offline maintenance repeats that check before database work. The workflow prints the artifact's SHA-256. Compare it with `sha256sum /opt/transport-platform/backend.jar` on the host to identify which JAR is actually installed; the release-id file alone identifies the last healthy activation, not necessarily the file left by a failed activation. After a backup and with writers stopped, deploy the current verified JAR and its matching maintenance scripts/environment. Do not restore an older JAR alone against the migrated database.
+
+Verification: 12 focused backend tests passed with MySQL schema validation, encrypted latitude/longitude storage and numeric round trips; 30 deployment tests passed, including artifact rejection before any server upload. The packaged offline artifact verifier also runs without database credentials. No live host was changed by these checks.
