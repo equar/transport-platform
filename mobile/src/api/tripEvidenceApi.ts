@@ -1,4 +1,5 @@
 import { apiClient, unwrapResponse } from "./client";
+export interface DeliverySignature { strokes: { x: number; y: number }[][] }
 export interface TripEvidenceSummary {
   stops: {
     pickupLatitude: number;
@@ -19,6 +20,7 @@ export interface TripEvidenceSummary {
     confirmerName: string;
     subjectType: string;
     confirmedAt: string;
+    signed?: boolean;
   } | null;
   canConfirm: boolean;
   readyToComplete: boolean;
@@ -47,12 +49,13 @@ export const tripEvidenceApi = {
       ).data,
     );
   },
-  async confirm(rideId: number, dropoffEvidenceId: number) {
+  async confirm(rideId: number, dropoffEvidenceId: number, signature?: DeliverySignature) {
     return unwrapResponse<TripEvidenceSummary>(
       (
         await apiClient.post(`${path(rideId, false)}/confirm`, {
           dropoffEvidenceId,
           delivered: true,
+          ...(signature ? { signature } : {}),
         })
       ).data,
     );

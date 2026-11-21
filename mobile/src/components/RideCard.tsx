@@ -23,7 +23,6 @@ export function RideCard({ ride, onPress }: RideCardProps) {
     <TouchableOpacity accessibilityRole="button" accessibilityHint="Opens trip details" style={styles.card} onPress={onPress} activeOpacity={0.85}>
       <View style={[styles.row, stackedHeader && styles.stackedRow]}>
         <View style={[styles.headerBlock, stackedHeader && styles.stackedHeader]}>
-          <Text style={styles.eyebrow}>Trip assignment</Text>
           <Text style={styles.rideNumber}>{ride.rideNumber}{ride.journeyLeg ? ` • ${ride.journeyLeg === "RETURN" ? "Return" : "Outbound"}` : ""}</Text>
         </View>
         <AppBadge status={ride.status} />
@@ -54,7 +53,7 @@ export function RideCard({ ride, onPress }: RideCardProps) {
 const createStyles = (colors: BrandColors) => StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0,
     borderColor: colors.divider,
     borderRadius: 14,
     padding: Spacing.lg,
@@ -76,13 +75,6 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     flexBasis: 160,
     minWidth: 0,
     gap: 2,
-  },
-  eyebrow: { display: 'none',
-    fontFamily: 'Inter_700Bold',
-    fontSize: Typography.sizeXs,
-    color: colors.secondaryDark,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
   },
   rideNumber: {
     fontFamily: 'Manrope_700Bold',

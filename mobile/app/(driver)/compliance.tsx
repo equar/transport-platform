@@ -24,13 +24,13 @@ export default function DriverCompliancePage() {
   const [submittedDocumentName, setSubmittedDocumentName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [draft, setDraft] = useState<{ documentType: DriverPortalDocumentType; file: DocumentPicker.DocumentPickerAsset } | null>(null);
-  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['driver-compliance'],
     queryFn: () => driverPortalApi.getComplianceSummary(),
   });
 
   if (isLoading) return <LoadingState />;
-  if (isError) return <RequestError onRetry={() => void refetch()} />;
+  if (isError) return <RequestError error={error} onRetry={() => void refetch()} />;
 
   async function uploadDocument(documentType: DriverPortalDocumentType) {
     try {
@@ -190,7 +190,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   metricRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   metricRowCompact: { flexDirection: 'column' },
-  uploadCard: { borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: Spacing.md, gap: Spacing.sm },
+  uploadCard: { borderRadius: 16, borderWidth: 0, borderColor: colors.border, backgroundColor: colors.surface, padding: Spacing.md, gap: Spacing.sm },
   uploadTitle: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeLg, color: colors.textPrimary },
   uploadText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textSecondary, lineHeight: 18 },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.scrim, padding: Spacing.md },
@@ -208,7 +208,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   },
   issueCard: {
     backgroundColor: colors.surface, borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: colors.border,
     padding: Spacing.md,
     gap: Spacing.xs,
@@ -217,7 +217,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   summary: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeMd, color: colors.textPrimary },
   action: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textSecondary },
   expiry: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.warning },
-  docCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: Spacing.md, gap: Spacing.xs },
+  docCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: 0, borderColor: colors.border, padding: Spacing.md, gap: Spacing.xs },
   docType: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: colors.textPrimary, flex: 1 },
   docName: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textSecondary },
 });

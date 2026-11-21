@@ -23,15 +23,16 @@ export default function RiderRideDetailPage() {
   const styles = useThemedStyles(createStyles);
   const screenVisible = useTripScreenVisible();
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
+  const validRideId = typeof rideId === 'string' && /^[1-9]\d*$/.test(rideId) && Number.isSafeInteger(Number(rideId));
   const router = useRouter();
   const qc = useQueryClient();
   const [reason, setReason] = React.useState('');
 
-  const { data: ride, isLoading, isError, refetch, isRefetching } = useQuery({
+  const { data: ride, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['rider-ride', rideId],
     ...manualTripRefreshOptions,
     queryFn: () => riderPortalApi.getRide(Number(rideId)),
-    enabled: screenVisible && !!rideId,
+    enabled: screenVisible && validRideId,
   });
 
   const {
@@ -77,8 +78,9 @@ export default function RiderRideDetailPage() {
     ]);
   }
 
+  if (!validRideId) return <RequestError message="This trip link is invalid. Open a trip from your list." retryLabel="Back to trips" onRetry={() => router.replace("/(rider)/rides")} />;
   if (isLoading) return <LoadingState />;
-  if (isError || !ride) return <RequestError onRetry={() => void refetch()} />;
+  if (isError || !ride) return <RequestError error={error} onRetry={() => void refetch()} />;
 
   const canCancel = CANCELLABLE.has(ride.status);
 
@@ -172,7 +174,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   heroCard: {
     backgroundColor: colors.surface,
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 0, borderColor: colors.border,
     borderRadius: 14,
     padding: Spacing.lg,
     gap: Spacing.xs,
@@ -198,7 +200,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     color: colors.textPrimary,
   },
   back: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: colors.primary },
-  section: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.surface },
+  section: { borderWidth: 0, borderColor: colors.border, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.surface },
   sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeXs, color: colors.textSecondary, letterSpacing: 0.5, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider, backgroundColor: colors.surfaceMuted },
   actionRow: {
     flexDirection: 'row',

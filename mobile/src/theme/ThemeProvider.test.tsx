@@ -19,11 +19,12 @@ function contrastRatio(foreground: string, background: string) {
   return (values[0] + 0.05) / (values[1] + 0.05);
 }
 let mockTenant: string | null = 'tenant-a';
+let mockRoles = ['ROLE_DRIVER'];
 let mockPage = '(driver)';
 let mockPrimary = '#276442';
 const mockRefetch = jest.fn();
-jest.mock('@auth/AuthContext', () => ({ useAuth: () => ({ session: mockTenant ? { identity: { tenantId: mockTenant } } : null }) }));
-jest.mock('expo-router', () => ({ useSegments: () => mockPage === '(driver)' ? ['(driver)'] : ['(driver)', 'rides'], useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => false }) }));
+jest.mock('@auth/AuthContext', () => ({ useAuth: () => ({ session: mockTenant ? { identity: { tenantId: mockTenant, roles: mockRoles, mustChangePassword: false } } : null }) }));
+jest.mock('expo-router', () => ({ Redirect: () => null, useSegments: () => mockPage === '(driver)' ? ['(driver)'] : ['(driver)', 'rides'], useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => false }) }));
 jest.mock('@expo/vector-icons', () => ({ MaterialCommunityIcons: 'Icon' }));
 jest.mock('@api/runtimeApi', () => ({ runtimeApi: { getTenantBranding: jest.fn() } }));
 jest.mock('@auth/sessionStorage', () => ({ getCachedTenantBranding: jest.fn().mockResolvedValue(null), setCachedTenantBranding: jest.fn().mockResolvedValue(undefined) }));
@@ -51,7 +52,7 @@ function AppearanceProbe() {
   return <Text onPress={() => void setPreference('dark')}>{`${preference}|${resolvedScheme}`}</Text>;
 }
 function App() { return <ThemeProvider><RoleShell role="driver"><Probe /><AppearanceLoadedProbe /></RoleShell></ThemeProvider>; }
-beforeEach(() => { mockTenant = 'tenant-a'; mockPage = '(driver)'; mockPrimary = '#276442'; mockUseColorScheme.mockReturnValue('light'); });
+beforeEach(() => { mockRoles = ['ROLE_DRIVER']; mockTenant = 'tenant-a'; mockPage = '(driver)'; mockPrimary = '#276442'; mockUseColorScheme.mockReturnValue('light'); });
 it('shows the tenant business name while keeping the mobile palette fixed through theme and account changes', async () => {
   const view = render(<App />);
   await waitForAppearanceLoad();
@@ -67,7 +68,7 @@ it('shows the tenant business name while keeping the mobile palette fixed throug
   expect(screen.getByText(`${LightColors.primary}|${LightColors.secondaryDark}|${LightColors.accent}`)).toBeTruthy();
   mockTenant = null; view.rerender(<App />);
   expect(screen.queryByText('Forest Transit')).toBeNull();
-  expect(screen.getByText(`${LightColors.primary}|${LightColors.secondaryDark}|${LightColors.accent}`)).toBeTruthy();
+  expect(screen.queryByTestId('appearance-loaded')).toBeNull();
 });
 it('uses the dark palette when the device is in dark mode', async () => {
   mockUseColorScheme.mockReturnValue('dark');
@@ -170,4 +171,13 @@ it('keeps the Bakaroo logo on the authentication frame', async () => {
   await waitForAppearanceLoad();
   expect(screen.getByLabelText('Bakaroo Transport logo')).toBeTruthy();
   expect(screen.queryByText('Blue Harbor Mobility')).toBeNull();
+});
+
+it('does not mount driver content for rider or guardian identities', () => {
+  mockRoles = ['ROLE_GUARDIAN'];
+  const view = render(<App />);
+  expect(screen.queryByTestId('appearance-loaded')).toBeNull();
+  mockRoles = ['ROLE_RIDER'];
+  view.rerender(<App />);
+  expect(screen.queryByTestId('appearance-loaded')).toBeNull();
 });

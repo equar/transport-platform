@@ -16,7 +16,7 @@ import { formatDate } from '@utils/formatDate';
 export default function DriverRoutesPage() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
-  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['driver-routes'],
     queryFn: () => driverPortalApi.searchRoutes({ size: 50, sortBy: 'routeDate', sortDirection: 'ASC' }),
   });
@@ -24,7 +24,7 @@ export default function DriverRoutesPage() {
   const routes = data?.items ?? [];
 
   if (isLoading) return <LoadingState />;
-  if (isError) return <RequestError onRetry={() => void refetch()} />;
+  if (isError) return <RequestError error={error} onRetry={() => void refetch()} />;
 
   return (
     <View style={styles.container}>
@@ -64,7 +64,7 @@ export default function DriverRoutesPage() {
 const createStyles = (colors: BrandColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: { padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border },
-  card: { padding: Spacing.lg, gap: Spacing.sm, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10 },
+  card: { padding: Spacing.lg, gap: Spacing.sm, backgroundColor: colors.surface, borderWidth: 0, borderColor: colors.border, borderRadius: 10 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'space-between', alignItems: 'center' },
   code: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeMd, color: colors.primary },
   name: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeLg, color: colors.textPrimary },

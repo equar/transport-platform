@@ -167,7 +167,7 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const createStyles = (colors: BrandColors) => StyleSheet.create({
-  section: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.surface },
+  section: { borderWidth: 0, borderColor: colors.border, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.surface },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -29,7 +29,7 @@ import { useAppearancePreference } from '@theme/ThemeProvider';
 import { AuthProvider, useAuth } from '@auth/AuthContext';
 import NetInfo from '@react-native-community/netinfo';
 import { AppState } from 'react-native';
-import { refreshTripTracking } from '../src/tracking/activeTrip';
+import { refreshTripTracking, stopTripTracking } from '../src/tracking/activeTrip';
 import { useOfflineQueue } from '@stores/offlineQueueStore';
 import { usePushNotifications } from '@hooks/usePushNotifications';
 import { useBrandingColors } from '@theme/BrandingContext';
@@ -66,15 +66,20 @@ function AuthGate() {
   }, [session?.identity.id, session?.identity.tenantId]);
 
   useEffect(() => {
-    if (!session?.identity.roles.includes('ROLE_DRIVER')) return;
-    void refreshTripTracking();
-    const timer = setInterval(() => void refreshTripTracking(), 30000);
-    const listener = AppState.addEventListener('change', state => { if (state === 'active') void refreshTripTracking(); });
+    if (isLoading) return;
+    if (mobileRoleGroup(session) !== '(driver)' || session?.identity.mustChangePassword) {
+      void stopTripTracking().catch(() => logClientEvent('warn', 'tracking.stop.failed'));
+      return;
+    }
+    void refreshTripTracking().catch(() => logClientEvent('warn', 'tracking.refresh.failed'));
+    const timer = setInterval(() => void refreshTripTracking().catch(() => logClientEvent('warn', 'tracking.refresh.failed')), 30000);
+    const listener = AppState.addEventListener('change', state => { if (state === 'active') void refreshTripTracking().catch(() => logClientEvent('warn', 'tracking.refresh.failed')); });
     return () => { clearInterval(timer); listener.remove(); };
-  }, [session?.identity.id]);
+  }, [isLoading, session?.identity.id, session?.identity.roles, session?.identity.mustChangePassword]);
 
   // Drain offline queue when connectivity restores
   useEffect(() => {
+    if (mobileRoleGroup(session) !== '(driver)' || session?.identity.mustChangePassword) return;
     async function sync() {
       if (!session?.identity.tenantId || !session.identity.roles.includes('ROLE_DRIVER')) return;
       const state = await NetInfo.fetch();
@@ -83,11 +88,11 @@ function AuthGate() {
         if (result.success || result.conflicts) await client.invalidateQueries();
       }
     }
-    const unsub = NetInfo.addEventListener(() => { void sync(); });
-    const timer = setInterval(() => { void sync(); }, 15000);
-    const listener = AppState.addEventListener('change', state => { if (state === 'active') void sync(); });
+    const unsub = NetInfo.addEventListener(() => { void sync().catch(() => logClientEvent('warn', 'offline.sync.failed')); });
+    const timer = setInterval(() => { void sync().catch(() => logClientEvent('warn', 'offline.sync.failed')); }, 15000);
+    const listener = AppState.addEventListener('change', state => { if (state === 'active') void sync().catch(() => logClientEvent('warn', 'offline.sync.failed')); });
     return () => { unsub(); clearInterval(timer); listener.remove(); };
-  }, [drain, session?.identity.id, session?.identity.tenantId, session?.identity.roles]);
+  }, [drain, session?.identity.id, session?.identity.tenantId, session?.identity.roles, session?.identity.mustChangePassword]);
 
   const inAuth = segments[0] === '(auth)';
   const passwordScreen = inAuth && segments[1] === 'change-password';
@@ -102,7 +107,7 @@ function AuthGate() {
 
   return (
     <>
-    <OfflineSyncStatus />
+    {group === '(driver)' ? <OfflineSyncStatus /> : null}
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(driver)" />

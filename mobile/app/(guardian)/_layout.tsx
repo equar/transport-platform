@@ -15,10 +15,12 @@ export default function GuardianLayout() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          borderTopWidth: 1,
+          borderTopWidth: 0,
           height: 70,
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
           paddingTop: 7,
           paddingBottom: 7,
         },
@@ -65,7 +67,7 @@ export default function GuardianLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Account',
+          title: 'Profile',
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
         }}
       />

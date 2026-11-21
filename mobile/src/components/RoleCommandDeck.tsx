@@ -77,7 +77,7 @@ export function RoleCommandDeck({
 
 const createStyles = (colors: BrandColors) => StyleSheet.create({
   shell: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0,
     borderColor: colors.divider,
     borderRadius: Radius.lg,
     backgroundColor: colors.surface,
@@ -145,7 +145,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   },
   actionButton: {
     borderRadius: Radius.chip,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: colors.border,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,

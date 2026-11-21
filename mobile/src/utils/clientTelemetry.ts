@@ -4,7 +4,7 @@ type TelemetryLevel = 'info' | 'warn' | 'error';
 
 type TelemetryDetails = Record<string, unknown>;
 
-const SENSITIVE_KEYS = ['authorization', 'password', 'token', 'secret', 'cookie', 'set-cookie'];
+const SENSITIVE_KEYS = ['authorization', 'password', 'token', 'secret', 'cookie', 'set-cookie', 'signature', 'strokes'];
 
 function scrubValue(value: unknown): unknown {
   if (value == null) return value;

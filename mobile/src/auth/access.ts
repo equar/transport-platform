@@ -1,7 +1,7 @@
 import type { AuthSession } from './types';
 
 export function mobileRoleOptions(session: AuthSession | null): Array<'(driver)' | '(guardian)' | '(rider)'> {
-  if (!session?.identity.tenantId) return [];
+  if (!session?.identity?.tenantId || typeof session.identity.tenantId !== 'string' || !Array.isArray(session.identity.roles) || !session.identity.roles.every(role => typeof role === 'string')) return [];
   const roles = session.identity.roles;
   const ordered = ['ROLE_DRIVER', 'ROLE_GUARDIAN', 'ROLE_RIDER'] as const;
   return ordered.flatMap((roleName) => {
@@ -16,7 +16,7 @@ export function mobileRoleOptions(session: AuthSession | null): Array<'(driver)'
 
 export function mobileRoleGroup(session: AuthSession | null): '(driver)' | '(guardian)' | '(rider)' | null {
   const options = mobileRoleOptions(session);
-  if (options.length === 0) return null;
+  if (options.length !== 1) return null;
   return options[0];
 }
 

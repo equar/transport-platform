@@ -125,3 +125,4 @@ payment_refunds,reason,text,NOT NULL
 credit_notes,reason,text,NOT NULL
 credit_notes,void_reason,text,NULL
 recovery_email_jobs,payload,recovery-email,NOT NULL
+trip_delivery_confirmations,signature_json,text,NULL

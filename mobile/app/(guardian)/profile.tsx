@@ -107,7 +107,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
 	content: { padding: Spacing.lg, gap: Spacing.lg },
 	heroCard: {
 		backgroundColor: colors.surface,
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 0, borderColor: colors.border,
 		borderRadius: 16,
 		gap: Spacing.xs,
 	},

@@ -220,6 +220,24 @@ class TripEvidenceMySqlTest {
   }
 
   @Test
+  void optionalSignatureIsValidatedEncryptedAndNeverReturnedAsRawInk() {
+    stops();
+    stage("ARRIVED", null);
+    stage("PICKED_UP", "100.0");
+    stage("DROPPED_OFF", "105.5");
+    long drop = service.passengerSummary(ride.getId()).milestones().getLast().id();
+    assertThatThrownBy(() -> service.confirm(ride.getId(),
+        new Confirmation(drop, true, new Signature(List.of(List.of(new Point(Double.NaN, 0)))))))
+        .isInstanceOf(ApiException.class);
+    var signature = new Signature(List.of(List.of(new Point(0.1, 0.2), new Point(0.8, 0.7))));
+    var result = service.confirm(ride.getId(), new Confirmation(drop, true, signature));
+    assertThat(result.confirmation().signed()).isTrue();
+    var stored = db.queryForObject("SELECT signature_json FROM trip_delivery_confirmations WHERE ride_id=?", String.class, ride.getId());
+    assertThat(stored).isNotNull().doesNotContain("strokes").doesNotContain("0.8");
+    assertThat(service.confirm(ride.getId(), new Confirmation(drop, true)).confirmation().signed()).isTrue();
+  }
+
+  @Test
   void completedRideNeedsIndependentPassengerConfirmationAndSnapshotBinding() {
     stops();
     stage("ARRIVED", null);

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { requestErrorMessage } from '@utils/requestError';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import type { ApiResponse } from './types';
@@ -234,8 +235,7 @@ apiClient.interceptors.response.use(
       }
     }
 
-    const apiError = error?.response?.data?.error;
-    if (apiError?.message) error.message = apiError.message;
+    error.message = requestErrorMessage(error);
     const wait = retryAfterDelay(error?.response?.headers?.get?.('Retry-After') ?? error?.response?.headers?.['retry-after'] ?? error?.response?.headers?.['Retry-After']);
     if (status === 429 && wait != null) error.message = `Too many requests. Try again in ${Math.max(1, Math.ceil(wait / 1000))} seconds.`;
     return Promise.reject(error);

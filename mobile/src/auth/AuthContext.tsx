@@ -19,7 +19,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (payload: LoginPayload) => Promise<AuthSession>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   hasRole: (role: string) => boolean;
   getDefaultRoute: () => string;
 }
@@ -31,7 +31,7 @@ async function readStoredSession(): Promise<AuthSession | null> {
     const raw = await getSessionValue(SESSION_KEY);
     if (!raw) return null;
     const parsed=JSON.parse(raw) as AuthSession;
-    if (!parsed.accessToken || !parsed.refreshToken || !parsed.identity || !Number.isSafeInteger(parsed.identity.id) || !Array.isArray(parsed.identity.roles) || !mobileRoleGroup(parsed)) {
+    if (typeof parsed.accessToken !== 'string' || !parsed.accessToken || typeof parsed.refreshToken !== 'string' || !parsed.refreshToken || !parsed.identity || (!Number.isSafeInteger(parsed.identity.id) || parsed.identity.id <= 0) || !Array.isArray(parsed.identity.roles) || !mobileRoleGroup(parsed)) {
       await deleteSessionValue(SESSION_KEY); return null;
     }
     return parsed;
@@ -49,9 +49,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     readStoredSession().then(setSession).catch(() => setSession(null)).finally(() => setIsLoading(false));
 
-    const unsubscribeRefresh = onSessionRefreshed(setSession);
+    const unsubscribeRefresh = onSessionRefreshed(next => {
+      if (mobileRoleGroup(next) && Number.isSafeInteger(next.identity.id) && next.identity.id > 0) {
+        setSession(next);
+      } else {
+        invalidateSessionRequests();
+        void deleteSessionValue(SESSION_KEY).catch(() => { /* access is cleared in memory even if storage is unavailable */ });
+        void stopTripTracking().catch(() => { /* expiry must still clear access */ });
+        useOfflineQueue.getState().pause();
+        setSession(null);
+      }
+    });
     const unsubscribe = onSessionExpired(() => {
-      void stopTripTracking();
+      void stopTripTracking().catch(() => { /* expiry must still clear access */ });
       useOfflineQueue.getState().pause();
       setSession(null);
     });
@@ -77,7 +87,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const next = await authApi.signIn(payload);
       if (!mobileRoleGroup(next)) {
         try { await authApi.signOut(next.refreshToken); } catch { /* no unsupported credentials are retained */ }
-        throw new Error('This account uses the admin portal. Sign in at admin.transport.bakaroo.com.');
+        throw new Error('This account needs one driver, rider, or guardian profile. Contact your transport provider, or use the web portal for administration.');
       }
       useOfflineQueue.getState().retainOwner({ tenantId: next.identity.tenantId!, userId: next.identity.id });
       await setSessionValue(SESSION_KEY, JSON.stringify(next));

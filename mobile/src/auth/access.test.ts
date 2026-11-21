@@ -19,3 +19,14 @@ it('routes signed-in web-only roles to a sign-out-capable support screen', () =>
   expect(mobileDefaultRoute(session('ROLE_VIEWER'))).toBe('/unsupported');
   expect(mobileDefaultRoute(null)).toBe('/(auth)/login');
 });
+
+it('fails closed for ambiguous operational roles instead of mixing portals', () => {
+  const mixed = session('ROLE_DRIVER');
+  mixed.identity.roles.push('ROLE_GUARDIAN');
+  expect(mobileRoleGroup(mixed)).toBeNull();
+  expect(mobileDefaultRoute(mixed)).toBe('/unsupported');
+});
+it('rejects malformed stored identities without crashing', () => {
+  expect(mobileRoleGroup({ identity: null } as unknown as AuthSession)).toBeNull();
+  expect(mobileRoleGroup({ identity: { tenantId: 'a', roles: [null] } } as unknown as AuthSession)).toBeNull();
+});

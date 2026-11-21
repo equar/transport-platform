@@ -5,13 +5,13 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@auth/AuthContext';
+import { mobileRoleGroup } from '@auth/access';
 import Constants from 'expo-constants';
 import { pushNotificationsApi } from '@api/pushNotificationsApi';
 import { getSessionValue, setSessionValue, deleteSessionValue } from '@auth/sessionStorage';
 import { logClientEvent } from '@utils/clientTelemetry';
 
 const PUSH_TOKEN_KEY = 'device_push_token';
-const SAFE_PORTAL_SCOPES = new Set(['driver', 'guardian', 'rider']);
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -96,26 +96,6 @@ function toSafeDeepLink(value: unknown): string | null {
   return candidate;
 }
 
-function resolvePortalScope(explicitScope: unknown, sessionRoles: string[] | undefined) {
-  if (typeof explicitScope === 'string') {
-    const normalized = explicitScope.toLowerCase();
-    if (SAFE_PORTAL_SCOPES.has(normalized)) {
-      return normalized;
-    }
-  }
-
-  if (sessionRoles?.includes('ROLE_DRIVER')) {
-    return 'driver';
-  }
-  if (sessionRoles?.includes('ROLE_GUARDIAN')) {
-    return 'guardian';
-  }
-  if (sessionRoles?.includes('ROLE_RIDER')) {
-    return 'rider';
-  }
-  return 'driver';
-}
-
 export function usePushNotifications() {
   const client = useQueryClient();
   const router = useRouter();
@@ -126,10 +106,9 @@ export function usePushNotifications() {
 
   useEffect(() => {
     let active = true;
-    const portalUser =
-      session?.identity.roles.includes('ROLE_DRIVER') ||
-      session?.identity.roles.includes('ROLE_RIDER') ||
-      session?.identity.roles.includes('ROLE_GUARDIAN');
+    const group = mobileRoleGroup(session);
+    const portalUser = !!group && !session?.identity.mustChangePassword;
+    if (!portalUser) return;
 
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     if (portalUser) {
@@ -165,7 +144,7 @@ export function usePushNotifications() {
       if (!active || !session || handled.current === response.notification.request.identifier) return;
       const data = response.notification.request.content.data as Record<string, unknown>;
       if (data?.tenantId !== session.identity.tenantId || Number(data?.recipientUserId) !== session.identity.id) return;
-      const scope = resolvePortalScope(undefined, session.identity.roles);
+      const scope = group!.slice(1, -1);
       const deepLink = toSafeDeepLink(data?.deepLink);
       const rideId = Number(data?.rideId);
       if (deepLink && deepLink.startsWith(`/(${scope})/`)) {

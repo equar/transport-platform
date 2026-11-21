@@ -8,7 +8,7 @@ export function StatsGrid({ items }: { items: { label: string; value: number | s
   const colors = useBrandingColors();
   const styles = useThemedStyles(React.useCallback(colors => StyleSheet.create({
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
-    tile: { flexBasis: '45%', flexGrow: 1, minWidth: 120, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.divider, borderRadius: Radius.lg, padding: Spacing.md, gap: Spacing.xs, ...Shadow.card },
+    tile: { flexBasis: '45%', flexGrow: 1, minWidth: 120, backgroundColor: colors.surface, borderWidth: 0, borderColor: colors.divider, borderRadius: Radius.lg, padding: Spacing.md, gap: Spacing.xs, ...Shadow.card },
     icon: { backgroundColor: colors.primarySoft, padding: Spacing.sm, borderRadius: Radius.md, alignSelf: 'flex-start' },
     value: { fontFamily: Typography.fontHeading, fontSize: Typography.sizeXxl, color: colors.textPrimary },
     label: { fontFamily: Typography.fontBody, fontSize: Typography.sizeSm, color: colors.textSecondary },

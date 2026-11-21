@@ -17,15 +17,17 @@ export default function DriverRouteDetailPage() {
   const styles = useThemedStyles(createStyles);
   const { routeId } = useLocalSearchParams<{ routeId: string }>();
   const router = useRouter();
+  const validRouteId = typeof routeId === 'string' && /^[1-9]\d*$/.test(routeId) && Number.isSafeInteger(Number(routeId));
 
-  const { data: route, isLoading, isError, refetch, isRefetching } = useQuery({
+  const { data: route, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['driver-route', routeId],
     queryFn: () => driverPortalApi.getRoute(Number(routeId)),
-    enabled: !!routeId,
+    enabled: validRouteId,
   });
 
+  if (!validRouteId) return <RequestError message="This route link is invalid. Open a route from your list." retryLabel="Back to routes" onRetry={() => router.replace("/(driver)/routes")} />;
   if (isLoading) return <LoadingState />;
-  if (isError || !route) return <RequestError onRetry={() => void refetch()} />;
+  if (isError || !route) return <RequestError error={error} onRetry={() => void refetch()} />;
 
   return (
     <ScrollView
@@ -66,7 +68,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   code: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeXxl, color: colors.textPrimary },
   name: { fontFamily: 'Inter_600SemiBold', fontSize: Typography.sizeLg, color: colors.textPrimary },
   meta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textSecondary },
-  notes: { borderWidth: 1, borderColor: colors.border, padding: Spacing.md, gap: Spacing.xs },
+  notes: { borderWidth: 0, borderColor: colors.border, padding: Spacing.md, gap: Spacing.xs },
   notesLabel: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeXs, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
   notesText: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeMd, color: colors.textPrimary },
   stopsHeading: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeLg, color: colors.textPrimary },
