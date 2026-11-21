@@ -1,0 +1,25 @@
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, expect, it, vi } from 'vitest';
+import { FinancialAdjustmentsPanel } from './FinancialAdjustmentsPanel';
+import { apiClient } from '../../../shared/api/client';
+import { postFinancialAdjustment } from '../../../shared/api/financialIntent';
+vi.mock('../../../shared/api/client', () => ({ apiClient: { get: vi.fn() }, unwrapResponse: (body: { data: unknown }) => body.data, getApiErrorMessage: () => 'Failed' }));
+vi.mock('../../../shared/api/financialIntent', () => ({ postFinancialAdjustment: vi.fn() }));
+afterEach(() => { cleanup(); vi.clearAllMocks(); });
+it('requires an actual refund reference and caps the returned amount', async () => {
+  vi.mocked(apiClient.get).mockResolvedValue({ data: { data: [] } });
+  vi.mocked(postFinancialAdjustment).mockResolvedValue({ id: 1 });
+  const changed = vi.fn();
+  render(<FinancialAdjustmentsPanel paymentId={1} currency="USD" maximum={20} onChanged={changed} />);
+  await waitFor(() => expect(screen.queryByLabelText('Loading financial history')).toBeNull());
+  fireEvent.change(screen.getByLabelText('Amount (USD)'), { target: { value: '21' } });
+  fireEvent.change(screen.getByLabelText('Reason for the adjustment or unused-credit void'), { target: { value: 'Cash returned' } });
+  const submit = screen.getByRole('button', { name: 'Record returned money' }) as HTMLButtonElement;
+  expect(submit.disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText('Actual refund / cash-return reference'), { target: { value: 'REF-1' } });
+  expect(submit.disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText('Amount (USD)'), { target: { value: '20' } });
+  expect(submit.disabled).toBe(false); fireEvent.click(submit);
+  await waitFor(() => expect(changed).toHaveBeenCalledTimes(1));
+  expect(postFinancialAdjustment).toHaveBeenCalledWith('/company/payments/1/refunds', { amount: 20, reason: 'Cash returned', reference: 'REF-1' });
+});

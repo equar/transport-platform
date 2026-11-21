@@ -194,6 +194,7 @@ export function canAccessScope(
 export function getDefaultRoute(session: AuthSession | null) {
   if (isMobileOnlyAccount(session)) return "/unauthorized";
   if (session?.identity.mustChangePassword) return "/account/password";
+  if (session?.identity.mfaEnrollmentRequired) return "/account/authenticator";
   if (isPlatformAdmin(session)) {
     return "/platform";
   }

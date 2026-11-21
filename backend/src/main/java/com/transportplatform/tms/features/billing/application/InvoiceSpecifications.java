@@ -37,9 +37,17 @@ public final class InvoiceSpecifications {
             if (status != null) {
                 if (status == InvoiceStatus.OVERDUE) {
                     predicate = builder.and(predicate,
-                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID)),
+                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE)),
                             builder.lessThan(root.get("dueDate"), today),
                             builder.greaterThan(root.get("balanceDue"), BigDecimal.ZERO));
+                } else if (status == InvoiceStatus.ISSUED || status == InvoiceStatus.PARTIALLY_PAID) {
+                    predicate = builder.and(predicate,
+                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE)),
+                            builder.greaterThan(root.get("balanceDue"), BigDecimal.ZERO),
+                            builder.or(builder.isNull(root.get("dueDate")), builder.greaterThanOrEqualTo(root.get("dueDate"), today)),
+                            status == InvoiceStatus.PARTIALLY_PAID
+                                    ? builder.greaterThan(root.get("amountPaid"), BigDecimal.ZERO)
+                                    : builder.equal(root.get("amountPaid"), BigDecimal.ZERO));
                 } else {
                     predicate = builder.and(predicate, builder.equal(root.get("status"), status));
                 }
@@ -51,21 +59,21 @@ public final class InvoiceSpecifications {
                             builder.or(
                                     builder.isNull(root.get("dueDate")),
                                     builder.greaterThanOrEqualTo(root.get("dueDate"), today)),
-                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID)));
+                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE)));
                     case DAYS_1_TO_30 -> builder.and(predicate,
-                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID)),
+                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE)),
                             builder.greaterThan(root.get("balanceDue"), BigDecimal.ZERO),
                             builder.between(root.get("dueDate"), today.minusDays(30), today.minusDays(1)));
                     case DAYS_31_TO_60 -> builder.and(predicate,
-                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID)),
+                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE)),
                             builder.greaterThan(root.get("balanceDue"), BigDecimal.ZERO),
                             builder.between(root.get("dueDate"), today.minusDays(60), today.minusDays(31)));
                     case DAYS_61_TO_90 -> builder.and(predicate,
-                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID)),
+                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE)),
                             builder.greaterThan(root.get("balanceDue"), BigDecimal.ZERO),
                             builder.between(root.get("dueDate"), today.minusDays(90), today.minusDays(61)));
                     case DAYS_90_PLUS -> builder.and(predicate,
-                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID)),
+                            root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE)),
                             builder.greaterThan(root.get("balanceDue"), BigDecimal.ZERO),
                             builder.lessThan(root.get("dueDate"), today.minusDays(90)));
                 };
@@ -81,7 +89,7 @@ public final class InvoiceSpecifications {
             }
             if (Boolean.TRUE.equals(overdueOnly)) {
                 predicate = builder.and(predicate,
-                        root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID)),
+                        root.get("status").in(List.of(InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE)),
                         builder.lessThan(root.get("dueDate"), today),
                         builder.greaterThan(root.get("balanceDue"), BigDecimal.ZERO));
             }

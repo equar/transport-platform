@@ -14,7 +14,6 @@ import com.transportplatform.tms.features.billing.domain.InvoiceLineItemReposito
 import com.transportplatform.tms.features.billing.domain.InvoiceStatus;
 import com.transportplatform.tms.features.driver.domain.Driver;
 import com.transportplatform.tms.features.driver.domain.DriverRepository;
-import com.transportplatform.tms.features.driverportal.application.DriverPortalAccessService;
 import com.transportplatform.tms.features.driverearnings.api.request.DriverEarningsAdjustmentRequest;
 import com.transportplatform.tms.features.driverearnings.api.request.DriverEarningsRateRequest;
 import com.transportplatform.tms.features.driverearnings.api.request.DriverEarningsReviewRequest;
@@ -24,22 +23,39 @@ import com.transportplatform.tms.features.driverearnings.domain.DriverEarningsEn
 import com.transportplatform.tms.features.driverearnings.domain.DriverEarningsLedger;
 import com.transportplatform.tms.features.driverearnings.domain.DriverEarningsLedgerRepository;
 import com.transportplatform.tms.features.driverearnings.domain.DriverEarningsStatus;
+import com.transportplatform.tms.features.driverportal.application.DriverPortalAccessService;
 import com.transportplatform.tms.features.ride.domain.Ride;
 import com.transportplatform.tms.features.ride.domain.RideRepository;
 import com.transportplatform.tms.features.settings.domain.TenantSettings;
 import com.transportplatform.tms.features.settings.domain.TenantSettingsRepository;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DriverEarningsService {
-    private final com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence;
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate db;
+
+    @Transactional
+    public DriverEarningsEntryResponse recalculate(Long id) {
+        String tenant = requireAdminTenant();
+        var entry = findEntryForTenant(id, tenant);
+        if (entry.getEntryType() != DriverEarningsEntryType.EARNED)
+            throw invalidState("Only ride earnings have an invoice basis.");
+        reconcileRide(tenant, entry.getRideId());
+        return map(entry, true);
+    }
+
+    private final com.transportplatform.tms.features.tripevidence.application.TripEvidenceService
+            evidence;
 
     private final DriverEarningsLedgerRepository ledger;
     private final InvoiceLineItemRepository invoiceLineItems;
@@ -58,8 +74,10 @@ public class DriverEarningsService {
             CurrentAuthenticatedUserService currentUser,
             DriverRepository drivers,
             RideRepository rides,
-            AuditLogService audit, com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence) {
-        this.evidence=evidence;
+            AuditLogService audit,
+            com.transportplatform.tms.features.tripevidence.application.TripEvidenceService
+                    evidence) {
+        this.evidence = evidence;
         this.ledger = ledger;
         this.invoiceLineItems = invoiceLineItems;
         this.settings = settings;
@@ -74,7 +92,8 @@ public class DriverEarningsService {
     public void createForCompletedRide(Ride ride) {
         evidence.requireBillable(ride);
         if (ride.getDriverId() == null
-                || ledger.existsByRideIdAndEntryType(ride.getId(), DriverEarningsEntryType.EARNED)) {
+                || ledger.existsByRideIdAndEntryType(
+                        ride.getId(), DriverEarningsEntryType.EARNED)) {
             return;
         }
 
@@ -85,59 +104,82 @@ public class DriverEarningsService {
         entry.setRideId(ride.getId());
         entry.setEntryType(DriverEarningsEntryType.EARNED);
         entry.setCurrency(tenantSettings == null ? "USD" : tenantSettings.getCurrency());
-        entry.setEarningsRate(tenantSettings == null ? null : tenantSettings.getDriverEarningsRate());
+        entry.setEarningsRate(
+                tenantSettings == null ? null : tenantSettings.getDriverEarningsRate());
         applyBillableRideAmount(entry, findBillableRideAmount(ride.getTenantId(), ride.getId()));
 
         if (entry.getEarningsRate() == null || entry.getBillableAmount() == null) {
             entry.setStatus(DriverEarningsStatus.PENDING_CALCULATION);
-            entry.setReason(calculationPendingReason(entry.getEarningsRate(), entry.getBillableAmount()));
+            entry.setReason(
+                    calculationPendingReason(entry.getEarningsRate(), entry.getBillableAmount()));
         } else {
             calculateForReview(entry);
         }
 
         ledger.save(entry);
-        record(entry, "EARNINGS_CREATED", "Driver earnings record created for a completed ride.", null);
+        record(
+                entry,
+                "EARNINGS_CREATED",
+                "Driver earnings record created for a completed ride.",
+                null);
     }
 
     @Transactional
     public void calculatePendingForIssuedRide(String tenantId, Long rideId) {
-        TenantSettings tenantSettings = settings.findById(tenantId).orElse(null);
-        if (tenantSettings == null || tenantSettings.getDriverEarningsRate() == null) {
-            return;
-        }
-        Optional<BillableRideAmount> billableAmount = findBillableRideAmount(tenantId, rideId);
-        if (billableAmount.isEmpty()) {
-            return;
-        }
+        reconcileRide(tenantId, rideId);
+    }
 
-        for (DriverEarningsLedger entry : ledger.findAllByTenantIdAndRideIdAndStatusAndEntryType(
-                tenantId,
-                rideId,
-                DriverEarningsStatus.PENDING_CALCULATION,
-                DriverEarningsEntryType.EARNED)) {
-            Object oldSnapshot = snapshot(entry);
-            entry.setEarningsRate(tenantSettings.getDriverEarningsRate());
-            applyBillableRideAmount(entry, billableAmount);
-            calculateForReview(entry);
+    @Transactional
+    public void reconcileRide(String tenantId, Long rideId) {
+        var basis = findBillableRideAmount(tenantId, rideId);
+        var tenantSettings = settings.findById(tenantId).orElse(null);
+        for (var entry :
+                ledger.findAllByTenantIdAndRideIdAndEntryType(
+                        tenantId, rideId, DriverEarningsEntryType.EARNED)) {
+            if (basis.isPresent()
+                    && entry.getStatus() == DriverEarningsStatus.APPROVED
+                    && java.util.Objects.equals(entry.getSourceInvoiceId(), basis.get().invoiceId())
+                    && entry.getBillableAmount() != null
+                    && entry.getBillableAmount().compareTo(basis.get().amount()) == 0
+                    && java.util.Objects.equals(entry.getCurrency(), basis.get().currency()))
+                continue;
+            Object before = snapshot(entry);
+            // Approved historical rates are not retroactively repriced; a changed invoice removes
+            // approval.
+            if (entry.getStatus() != DriverEarningsStatus.APPROVED && tenantSettings != null)
+                entry.setEarningsRate(tenantSettings.getDriverEarningsRate());
+            entry.setSourceInvoiceId(null);
+            entry.setBillableAmount(null);
+            applyBillableRideAmount(entry, basis);
+            if (entry.getBillableAmount() == null || entry.getEarningsRate() == null) {
+                entry.setAmount(null);
+                entry.setStatus(DriverEarningsStatus.PENDING_CALCULATION);
+                entry.setReason(
+                        "Invoice basis changed or was voided; recalculation and review are"
+                            + " required.");
+            } else calculateForReview(entry);
             ledger.save(entry);
-            record(entry, "EARNINGS_CALCULATED", "Driver earnings calculated from the issued ride charge.", oldSnapshot);
+            record(
+                    entry,
+                    "EARNINGS_BASIS_CHANGED",
+                    "Invoice correction invalidated the previous earnings review.",
+                    before);
         }
     }
 
     @Transactional(readOnly = true)
     public DriverEarningsSummaryResponse myEarnings() {
         Driver driver = driverAccess.resolveCurrentDriver();
-        List<DriverEarningsLedger> entries = ledger.findAllByTenantIdAndDriverIdOrderByCreatedAtDesc(
-                driver.getTenantId(),
-                driver.getId());
+        List<DriverEarningsLedger> entries =
+                ledger.findAllByTenantIdAndDriverIdOrderByCreatedAtDesc(
+                        driver.getTenantId(), driver.getId());
         return summary(entries, driver.getTenantId());
     }
 
     @Transactional(readOnly = true)
     public List<DriverEarningsEntryResponse> listAdmin() {
         String tenantId = requireAdminTenant();
-        return ledger.findAllByTenantIdOrderByCreatedAtDesc(tenantId)
-                .stream()
+        return ledger.findAllByTenantIdOrderByCreatedAtDesc(tenantId).stream()
                 .map(entry -> map(entry, true))
                 .toList();
     }
@@ -145,23 +187,27 @@ public class DriverEarningsService {
     @Transactional
     public BigDecimal updateRate(DriverEarningsRateRequest request) {
         String tenantId = requireAdminTenant();
-        TenantSettings tenantSettings = settings.findById(tenantId)
-                .orElseThrow(() -> new ApiException(
-                        ErrorCode.RESOURCE_NOT_FOUND,
-                        HttpStatus.NOT_FOUND,
-                        "Tenant settings were not found."));
+        TenantSettings tenantSettings =
+                settings.findById(tenantId)
+                        .orElseThrow(
+                                () ->
+                                        new ApiException(
+                                                ErrorCode.RESOURCE_NOT_FOUND,
+                                                HttpStatus.NOT_FOUND,
+                                                "Tenant settings were not found."));
         tenantSettings.setDriverEarningsRate(request.rate().setScale(2, RoundingMode.HALF_UP));
         settings.save(tenantSettings);
-        audit.record(new AuditLogCommand(
-                null,
-                tenantId,
-                "DRIVER_EARNINGS",
-                "RATE_UPDATED",
-                "TENANT_SETTINGS",
-                tenantId,
-                "Driver earnings rate updated.",
-                null,
-                Map.of("rate", tenantSettings.getDriverEarningsRate())));
+        audit.record(
+                new AuditLogCommand(
+                        null,
+                        tenantId,
+                        "DRIVER_EARNINGS",
+                        "RATE_UPDATED",
+                        "TENANT_SETTINGS",
+                        tenantId,
+                        "Driver earnings rate updated.",
+                        null,
+                        Map.of("rate", tenantSettings.getDriverEarningsRate())));
         recalculatePendingForTenant(tenantId, tenantSettings);
         return tenantSettings.getDriverEarningsRate();
     }
@@ -174,11 +220,14 @@ public class DriverEarningsService {
     }
 
     @Transactional
-    public DriverEarningsEntryResponse updateEntry(Long entryId, DriverEarningsReviewRequest request) {
+    public DriverEarningsEntryResponse updateEntry(
+            Long entryId, DriverEarningsReviewRequest request) {
         String tenantId = requireAdminTenant();
         DriverEarningsLedger entry = findEntryForTenant(entryId, tenantId);
         if (entry.getStatus() == DriverEarningsStatus.APPROVED) {
-            throw invalidState("Approved earnings cannot be edited. Add a ledger adjustment to correct the amount.");
+            throw invalidState(
+                    "Approved earnings cannot be edited. Add a ledger adjustment to correct the"
+                        + " amount.");
         }
 
         Object oldSnapshot = snapshot(entry);
@@ -186,7 +235,11 @@ public class DriverEarningsService {
         entry.setReason(request.reason().trim());
         entry.setStatus(DriverEarningsStatus.PENDING_REVIEW);
         DriverEarningsLedger saved = ledger.save(entry);
-        record(saved, "EARNINGS_UPDATED", "Driver earnings record updated for review.", oldSnapshot);
+        record(
+                saved,
+                "EARNINGS_UPDATED",
+                "Driver earnings record updated for review.",
+                oldSnapshot);
         return map(saved, true);
     }
 
@@ -198,11 +251,33 @@ public class DriverEarningsService {
             throw invalidState("Only calculated earnings awaiting review can be approved.");
         }
 
-        if (entry.getRideId() != null) evidence.requireBillable(rides.findByIdAndTenantId(entry.getRideId(), tenantId).orElseThrow(() -> invalidState("Ride no longer exists.")));
+        if (entry.getEntryType() == DriverEarningsEntryType.EARNED) {
+            var basis = findBillableRideAmount(tenantId, entry.getRideId());
+            if (basis.isEmpty()
+                    || !java.util.Objects.equals(
+                            entry.getSourceInvoiceId(), basis.get().invoiceId())
+                    || entry.getBillableAmount() == null
+                    || entry.getBillableAmount().compareTo(basis.get().amount()) != 0)
+                throw invalidState(
+                        "The invoice basis changed. Recalculate and review the earnings before"
+                            + " approval.");
+        }
+        if (entry.getRideId() != null)
+            evidence.requireBillable(
+                    rides.findByIdAndTenantId(entry.getRideId(), tenantId)
+                            .orElseThrow(() -> invalidState("Ride no longer exists.")));
         Object oldSnapshot = snapshot(entry);
         entry.setStatus(DriverEarningsStatus.APPROVED);
         DriverEarningsLedger saved = ledger.save(entry);
-        record(saved, "EARNINGS_APPROVED", "Driver earnings approved by the tenant administrator.", oldSnapshot);
+        db.update(
+                "UPDATE earnings_legacy_reviews SET resolved_at=UTC_TIMESTAMP(6) WHERE ledger_id=?"
+                    + " AND resolved_at IS NULL",
+                saved.getId());
+        record(
+                saved,
+                "EARNINGS_APPROVED",
+                "Driver earnings approved by the tenant administrator.",
+                oldSnapshot);
         return map(saved, true);
     }
 
@@ -216,10 +291,12 @@ public class DriverEarningsService {
                     "Adjustment amount cannot be zero.");
         }
         drivers.findByIdAndTenantId(request.driverId(), tenantId)
-                .orElseThrow(() -> new ApiException(
-                        ErrorCode.RESOURCE_NOT_FOUND,
-                        HttpStatus.NOT_FOUND,
-                        "Driver was not found."));
+                .orElseThrow(
+                        () ->
+                                new ApiException(
+                                        ErrorCode.RESOURCE_NOT_FOUND,
+                                        HttpStatus.NOT_FOUND,
+                                        "Driver was not found."));
 
         DriverEarningsLedger entry = new DriverEarningsLedger();
         entry.setTenantId(tenantId);
@@ -227,7 +304,8 @@ public class DriverEarningsService {
         entry.setEntryType(DriverEarningsEntryType.ADJUSTMENT);
         entry.setStatus(DriverEarningsStatus.APPROVED);
         entry.setAmount(request.amount().setScale(2, RoundingMode.HALF_UP));
-        entry.setCurrency(settings.findById(tenantId).map(TenantSettings::getCurrency).orElse("USD"));
+        entry.setCurrency(
+                settings.findById(tenantId).map(TenantSettings::getCurrency).orElse("USD"));
         entry.setReason(request.reason().trim());
         DriverEarningsLedger saved = ledger.save(entry);
         record(saved, "ADJUSTMENT_CREATED", "Driver earnings adjustment created.", null);
@@ -235,23 +313,10 @@ public class DriverEarningsService {
     }
 
     private void recalculatePendingForTenant(String tenantId, TenantSettings tenantSettings) {
-        if (tenantSettings.getDriverEarningsRate() == null) {
-            return;
-        }
-        for (DriverEarningsLedger entry : ledger.findAllByTenantIdAndStatusAndEntryType(
-                tenantId,
-                DriverEarningsStatus.PENDING_CALCULATION,
-                DriverEarningsEntryType.EARNED)) {
-            Optional<BillableRideAmount> billableAmount = findBillableRideAmount(tenantId, entry.getRideId());
-            if (billableAmount.isEmpty()) {
-                continue;
-            }
-            Object oldSnapshot = snapshot(entry);
-            entry.setEarningsRate(tenantSettings.getDriverEarningsRate());
-            applyBillableRideAmount(entry, billableAmount);
-            calculateForReview(entry);
-            ledger.save(entry);
-            record(entry, "EARNINGS_CALCULATED", "Driver earnings calculated from the issued ride charge.", oldSnapshot);
+        for (var entry :
+                ledger.findAllByTenantIdAndEntryType(tenantId, DriverEarningsEntryType.EARNED)) {
+            if (entry.getStatus() == DriverEarningsStatus.APPROVED) continue;
+            reconcileRide(tenantId, entry.getRideId());
         }
     }
 
@@ -259,24 +324,25 @@ public class DriverEarningsService {
         if (rideId == null) {
             return Optional.empty();
         }
-        List<InvoiceLineItem> rideLineItems = invoiceLineItems
-                .findAllByTenantIdAndChargeSourceTypeAndSourceReferenceIdOrderByIdDesc(
-                        tenantId,
-                        ChargeSourceType.RIDE,
-                        rideId);
-        Optional<InvoiceLineItem> latestIssuedItem = rideLineItems.stream()
-                .filter(item -> isIssued(item.getInvoice().getStatus()))
-                .findFirst();
+        List<InvoiceLineItem> rideLineItems =
+                invoiceLineItems
+                        .findAllByTenantIdAndChargeSourceTypeAndSourceReferenceIdOrderByIdDesc(
+                                tenantId, ChargeSourceType.RIDE, rideId);
+        Optional<InvoiceLineItem> latestIssuedItem =
+                rideLineItems.stream()
+                        .filter(item -> isIssued(item.getInvoice().getStatus()))
+                        .findFirst();
         if (latestIssuedItem.isEmpty()) {
             return Optional.empty();
         }
 
         Invoice invoice = latestIssuedItem.get().getInvoice();
-        BigDecimal amount = rideLineItems.stream()
-                .filter(item -> item.getInvoice().getId().equals(invoice.getId()))
-                .map(InvoiceLineItem::getLineAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        return Optional.of(new BillableRideAmount(amount, invoice.getCurrency()));
+        BigDecimal amount =
+                rideLineItems.stream()
+                        .filter(item -> item.getInvoice().getId().equals(invoice.getId()))
+                        .map(InvoiceLineItem::getLineAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return Optional.of(new BillableRideAmount(amount, invoice.getCurrency(), invoice.getId()));
     }
 
     private boolean isIssued(InvoiceStatus status) {
@@ -284,18 +350,20 @@ public class DriverEarningsService {
     }
 
     private void applyBillableRideAmount(
-            DriverEarningsLedger entry,
-            Optional<BillableRideAmount> billableAmount) {
-        billableAmount.ifPresent(value -> {
-            entry.setBillableAmount(value.amount());
-            entry.setCurrency(value.currency());
-        });
+            DriverEarningsLedger entry, Optional<BillableRideAmount> billableAmount) {
+        billableAmount.ifPresent(
+                value -> {
+                    entry.setSourceInvoiceId(value.invoiceId());
+                    entry.setBillableAmount(value.amount());
+                    entry.setCurrency(value.currency());
+                });
     }
 
     private void calculateForReview(DriverEarningsLedger entry) {
-        entry.setAmount(entry.getBillableAmount()
-                .multiply(entry.getEarningsRate())
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
+        entry.setAmount(
+                entry.getBillableAmount()
+                        .multiply(entry.getEarningsRate())
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
         entry.setStatus(DriverEarningsStatus.PENDING_REVIEW);
         entry.setReason("Calculated from the issued ride charge; awaiting tenant admin review.");
     }
@@ -310,23 +378,36 @@ public class DriverEarningsService {
         return "Awaiting an issued invoice line for this ride.";
     }
 
-    private DriverEarningsSummaryResponse summary(List<DriverEarningsLedger> entries, String tenantId) {
-        BigDecimal total = entries.stream()
-                .filter(entry -> entry.getStatus() == DriverEarningsStatus.APPROVED)
-                .map(DriverEarningsLedger::getAmount)
-                .filter(amount -> amount != null)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal pendingReviewTotal = entries.stream()
-                .filter(entry -> entry.getStatus() == DriverEarningsStatus.PENDING_REVIEW)
-                .map(DriverEarningsLedger::getAmount)
-                .filter(amount -> amount != null)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        long pendingCalculationCount = entries.stream()
-                .filter(entry -> entry.getStatus() == DriverEarningsStatus.PENDING_CALCULATION)
-                .count();
-        String currency = settings.findById(tenantId)
-                .map(TenantSettings::getCurrency)
-                .orElseGet(() -> entries.stream().findFirst().map(DriverEarningsLedger::getCurrency).orElse("USD"));
+    private DriverEarningsSummaryResponse summary(
+            List<DriverEarningsLedger> entries, String tenantId) {
+        BigDecimal total =
+                entries.stream()
+                        .filter(entry -> entry.getStatus() == DriverEarningsStatus.APPROVED)
+                        .map(DriverEarningsLedger::getAmount)
+                        .filter(amount -> amount != null)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal pendingReviewTotal =
+                entries.stream()
+                        .filter(entry -> entry.getStatus() == DriverEarningsStatus.PENDING_REVIEW)
+                        .map(DriverEarningsLedger::getAmount)
+                        .filter(amount -> amount != null)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long pendingCalculationCount =
+                entries.stream()
+                        .filter(
+                                entry ->
+                                        entry.getStatus()
+                                                == DriverEarningsStatus.PENDING_CALCULATION)
+                        .count();
+        String currency =
+                settings.findById(tenantId)
+                        .map(TenantSettings::getCurrency)
+                        .orElseGet(
+                                () ->
+                                        entries.stream()
+                                                .findFirst()
+                                                .map(DriverEarningsLedger::getCurrency)
+                                                .orElse("USD"));
         return new DriverEarningsSummaryResponse(
                 total,
                 BigDecimal.valueOf(pendingCalculationCount),
@@ -336,16 +417,18 @@ public class DriverEarningsService {
     }
 
     private DriverEarningsEntryResponse map(DriverEarningsLedger entry, boolean includeContext) {
-        String driverName = includeContext
-                ? drivers.findByIdAndTenantId(entry.getDriverId(), entry.getTenantId())
-                        .map(driver -> driver.getFirstName() + " " + driver.getLastName())
-                        .orElse(null)
-                : null;
-        String rideNumber = includeContext && entry.getRideId() != null
-                ? rides.findByIdAndTenantId(entry.getRideId(), entry.getTenantId())
-                        .map(Ride::getRideNumber)
-                        .orElse(null)
-                : null;
+        String driverName =
+                includeContext
+                        ? drivers.findByIdAndTenantId(entry.getDriverId(), entry.getTenantId())
+                                .map(driver -> driver.getFirstName() + " " + driver.getLastName())
+                                .orElse(null)
+                        : null;
+        String rideNumber =
+                includeContext && entry.getRideId() != null
+                        ? rides.findByIdAndTenantId(entry.getRideId(), entry.getTenantId())
+                                .map(Ride::getRideNumber)
+                                .orElse(null)
+                        : null;
         return new DriverEarningsEntryResponse(
                 entry.getId(),
                 entry.getDriverId(),
@@ -364,10 +447,12 @@ public class DriverEarningsService {
 
     private DriverEarningsLedger findEntryForTenant(Long entryId, String tenantId) {
         return ledger.findByIdAndTenantId(entryId, tenantId)
-                .orElseThrow(() -> new ApiException(
-                        ErrorCode.RESOURCE_NOT_FOUND,
-                        HttpStatus.NOT_FOUND,
-                        "Driver earnings record was not found."));
+                .orElseThrow(
+                        () ->
+                                new ApiException(
+                                        ErrorCode.RESOURCE_NOT_FOUND,
+                                        HttpStatus.NOT_FOUND,
+                                        "Driver earnings record was not found."));
     }
 
     private ApiException invalidState(String message) {
@@ -378,7 +463,11 @@ public class DriverEarningsService {
         AuthenticatedUser user = currentUser.requireCurrentUser();
         if (user.tenantId() == null
                 || user.getAuthorities().stream()
-                        .noneMatch(authority -> authority.getAuthority().equals(RoleName.ROLE_TENANT_ADMIN.name()))) {
+                        .noneMatch(
+                                authority ->
+                                        authority
+                                                .getAuthority()
+                                                .equals(RoleName.ROLE_TENANT_ADMIN.name()))) {
             throw new ApiException(
                     ErrorCode.FORBIDDEN,
                     HttpStatus.FORBIDDEN,
@@ -388,22 +477,34 @@ public class DriverEarningsService {
     }
 
     private Object snapshot(DriverEarningsLedger entry) {
-        return map(entry, false);
+        var values = new java.util.LinkedHashMap<String, Object>();
+        values.put("id", entry.getId());
+        values.put("driverId", entry.getDriverId());
+        values.put("rideId", entry.getRideId());
+        values.put("entryType", entry.getEntryType());
+        values.put("status", entry.getStatus());
+        values.put("sourceInvoiceId", entry.getSourceInvoiceId());
+        values.put("billableAmount", entry.getBillableAmount());
+        values.put("earningsRate", entry.getEarningsRate());
+        values.put("amount", entry.getAmount());
+        values.put("currency", entry.getCurrency());
+        return values;
     }
 
-    private void record(DriverEarningsLedger entry, String action, String summary, Object oldSnapshot) {
-        audit.record(new AuditLogCommand(
-                null,
-                entry.getTenantId(),
-                "DRIVER_EARNINGS",
-                action,
-                "DRIVER_EARNINGS_LEDGER",
-                String.valueOf(entry.getId()),
-                summary,
-                oldSnapshot,
-                snapshot(entry)));
+    private void record(
+            DriverEarningsLedger entry, String action, String summary, Object oldSnapshot) {
+        audit.record(
+                new AuditLogCommand(
+                        null,
+                        entry.getTenantId(),
+                        "DRIVER_EARNINGS",
+                        action,
+                        "DRIVER_EARNINGS_LEDGER",
+                        String.valueOf(entry.getId()),
+                        summary,
+                        oldSnapshot,
+                        snapshot(entry)));
     }
 
-    private record BillableRideAmount(BigDecimal amount, String currency) {
-    }
+    private record BillableRideAmount(BigDecimal amount, String currency, Long invoiceId) {}
 }

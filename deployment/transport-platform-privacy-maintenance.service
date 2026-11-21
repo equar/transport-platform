@@ -1,0 +1,25 @@
+[Unit]
+Description=Transport Platform Offline Privacy Maintenance
+After=network-online.target
+Wants=network-online.target
+Conflicts=transport-platform-backend.service
+Before=transport-platform-backend.service
+
+[Service]
+Type=oneshot
+User=transport
+Group=transport
+WorkingDirectory=/opt/transport-platform/runtime
+EnvironmentFile=/opt/transport-platform/.env
+ExecStart=/usr/bin/java -Xms128m -Xmx1g -Djavax.net.ssl.trustStore=/etc/transport-platform/database-truststore.jks -Djavax.net.ssl.trustStorePassword=changeit -Dloader.main=com.transportplatform.tms.common.privacy.PrivacyMaintenanceCommand -cp /opt/transport-platform/backend.jar org.springframework.boot.loader.launch.PropertiesLauncher --ensure-ready
+TimeoutStartSec=infinity
+Restart=no
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=transport-platform-privacy-maintenance
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0027
+Environment=TZ=UTC

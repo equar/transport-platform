@@ -16,6 +16,8 @@ management:
         include: health,info,notificationDelivery,metrics
 
 app:
+  auth:
+    require-mfa-for-privileged-accounts: true
   bootstrap:
     platform-admin:
       email-enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL_ENABLED:false}

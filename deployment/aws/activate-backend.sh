@@ -8,6 +8,13 @@ release_id="${2:?Pass the release ID}"
 # Also serialize direct operator releases, not only GitHub workflow runs.
 exec 9>/var/lock/transport-platform-deploy.lock
 flock -w 300 9 || { echo 'Another Transport deployment holds the host lock' >&2; exit 1; }
+# An SSH/job interruption can leave the systemd oneshot running after this shell exits.
+# Never replace its JAR, environment or database trust configuration underneath it.
+maintenance_state="$(systemctl show transport-platform-privacy-maintenance.service --property=ActiveState --value 2>/dev/null || true)"
+if [[ "$maintenance_state" =~ ^(activating|active|deactivating)$ ]]; then
+  echo 'Offline privacy maintenance is still running. Wait for it to finish before deploying again.' >&2
+  exit 1
+fi
 app=/opt/transport-platform
 service=transport-platform-backend.service
 unit=/etc/systemd/system/$service
@@ -22,6 +29,7 @@ bash "$incoming/setup-rds-truststore.sh"
 id transport >/dev/null 2>&1 || useradd --system --home "$app" --shell /usr/sbin/nologin transport
 install -d -o root -g root -m 755 "$app" "$app/runtime"
 install -d -o transport -g transport -m 750 "$app/logs" "$app/documents" "$app/documents/driver-documents"
+maintenance_started=false
 previous_healthy=false
 healthy() {
   # Readiness becomes UP only after ApplicationRunner/bootstrap has completed.
@@ -41,7 +49,9 @@ rollback() {
   trap - EXIT
   if [[ "$status" != 0 ]]; then
     systemctl stop "$service" || true
-    if [[ "$previous_healthy" == true ]]; then
+    if [[ "$maintenance_started" == true ]]; then
+      echo 'Release stopped after offline database maintenance began. Automatic JAR rollback is unsafe; deploy a corrected release or restore a matching database backup and environment.' >&2
+    elif [[ "$previous_healthy" == true ]]; then
       cp -p "$app/backend.jar.previous" "$app/backend.jar"
       cp -p "$app/.env.previous" "$app/.env"
       cp -p "$app/service.previous" "$unit"
@@ -69,8 +79,17 @@ fi
 install -o root -g root -m 644 "$incoming/backend.jar" "$app/backend.jar"
 install -o root -g root -m 600 "$incoming/backend.env" "$app/.env"
 install -o root -g root -m 644 "$incoming/transport-platform-backend.service" "$unit"
+install -o root -g root -m 644 "$incoming/transport-platform-privacy-maintenance.service" /etc/systemd/system/transport-platform-privacy-maintenance.service
 systemctl daemon-reload
 systemctl enable "$service"
+# systemd loads EnvironmentFile without shell evaluation and runs the offline command as transport.
+# Migration and protection complete before any HTTP server or background worker starts.
+maintenance_started=true
+if ! systemctl start transport-platform-privacy-maintenance.service; then
+  python3 "$incoming/sanitize-logs.py" >&2 || true
+  echo 'Offline privacy maintenance failed. Backend remains stopped; inspect maintenance service logs.' >&2
+  exit 1
+fi
 systemctl restart "$service"
 for _ in $(seq 1 90); do
   if systemctl is-active --quiet "$service" && healthy; then

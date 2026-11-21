@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,12 +43,12 @@ class DriverActionIdempotencyServiceTest {
         when(repository.findByTenantIdAndUserIdAndIdempotencyKey("tenant-123", 7L, "request-123"))
                 .thenReturn(Optional.of(record));
 
-        String result = service.execute("request-123", 42L, "arrived", () -> {
+        String result = service.execute("request-123", 42L, "arrived", String.class, () -> {
             operationCalled.set(true);
             return "operation";
         }, () -> "replayed");
 
-        assertEquals("replayed", result);
+        assertEquals("original-result", result);
         assertEquals(false, operationCalled.get());
         verify(repository, never()).saveAndFlush(any());
     }
@@ -61,15 +62,18 @@ class DriverActionIdempotencyServiceTest {
                 .thenReturn(Optional.of(record(42L, "arrived")));
 
         ApiException exception = assertThrows(ApiException.class,
-                () -> service.execute("request-123", 42L, "picked-up", () -> "operation", () -> "replayed"));
+                () -> service.execute("request-123", 42L, "picked-up", String.class, () -> "operation", () -> "replayed"));
 
         assertEquals("VALIDATION_FAILED", exception.getErrorCode().name());
         verify(repository, never()).saveAndFlush(any());
     }
 
     private DriverActionIdempotencyService service() {
-        return new DriverActionIdempotencyService(repository, currentUserService,
+        var service=new DriverActionIdempotencyService(repository, currentUserService,
                 Clock.fixed(Instant.parse("2026-09-03T12:00:00Z"), ZoneOffset.UTC));
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"db",mock(org.springframework.jdbc.core.JdbcTemplate.class));
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"mapper",new com.fasterxml.jackson.databind.ObjectMapper());
+        return service;
     }
 
     private AuthenticatedUser currentUser() {
@@ -79,6 +83,7 @@ class DriverActionIdempotencyServiceTest {
 
     private DriverActionIdempotency record(Long rideId, String action) {
         DriverActionIdempotency record = new DriverActionIdempotency();
+        record.setResultJson("\"original-result\"");
         record.setRideId(rideId);
         record.setActionName(action);
         return record;

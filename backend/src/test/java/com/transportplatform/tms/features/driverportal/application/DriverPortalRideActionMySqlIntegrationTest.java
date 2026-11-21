@@ -88,6 +88,7 @@ class DriverPortalRideActionMySqlIntegrationTest {
 
     @TestConfiguration
     static class ClockTestConfiguration {
+        @Bean com.fasterxml.jackson.databind.ObjectMapper mapper() { return new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules(); }
         @Bean
         Clock clock() {
             return Clock.systemUTC();
@@ -143,10 +144,10 @@ class DriverPortalRideActionMySqlIntegrationTest {
         Ride ride = saveRide("tenant-a", driver.getId(), RideStatus.ASSIGNED);
         authenticate(driver, "tenant-a");
 
-        idempotencyService.execute("driver-action-1", ride.getId(), "driver-en-route",
+        idempotencyService.execute("driver-action-1", ride.getId(), "driver-en-route", com.transportplatform.tms.features.driverportal.api.response.DriverPortalRideDetailResponse.class,
                 () -> driverPortalService.markRideDriverEnRoute(ride.getId()),
                 () -> driverPortalService.getMyRide(ride.getId()));
-        idempotencyService.execute("driver-action-1", ride.getId(), "driver-en-route",
+        idempotencyService.execute("driver-action-1", ride.getId(), "driver-en-route", com.transportplatform.tms.features.driverportal.api.response.DriverPortalRideDetailResponse.class,
                 () -> driverPortalService.markRideDriverEnRoute(ride.getId()),
                 () -> driverPortalService.getMyRide(ride.getId()));
 

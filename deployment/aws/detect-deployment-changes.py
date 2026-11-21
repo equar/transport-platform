@@ -16,7 +16,7 @@ def affected(paths):
                 selected.add(target)
         if path == '.github/workflows/deploy.yml':
             selected.update(('backend', 'frontend'))
-        elif path in ('deployment/transport-platform-backend.service', 'deployment/deploy-backend-aws.sh'):
+        elif path in ('deployment/transport-platform-backend.service', 'deployment/transport-platform-privacy-maintenance.service', 'deployment/deploy-backend-aws.sh'):
             selected.add('backend')
         elif path in ('deployment/nginx-transport-platform.conf.template', 'deployment/deploy-frontend-aws.sh'):
             selected.add('frontend')

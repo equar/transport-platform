@@ -85,3 +85,24 @@ Platform admins configure defaults under **Privacy & Retention**. Tenant admins 
 - **Primary rider/trip records, billing documents, delivery evidence and clinical histories are not automatically deleted or anonymized.** The implemented primary-record workflow is review and documented retention, not clinical-record disposal. A separately approved disposition process is needed for erasure, payer/legal holds, claims and backups; the UI labels this distinction explicitly.
 
 The worker defaults to an hourly interval and a five-minute initial delay. Each pass deletes at most 100 eligible records per category/company. These limits prevent a newly enabled policy from issuing an unbounded deletion transaction. Record contents are omitted from worker error logs.
+
+## Medium-review additions
+
+Encrypted driver-action response snapshots and manual refund/credit reasons are included in the updated column inventory. Raw GPS trails now have configurable platform/tenant retention (30 days by default), legal holds, and milestone-evidence pinning. Audit retention produces signed deletion evidence. See [M1–M14 remediation and deployment requirements](medium-review-remediation.md) for checkpoint custody and migration steps.
+
+### Deployment readiness failure and recovery
+
+A startup failure saying `Sensitive-data maintenance has not completed` means the stored inventory fingerprint does not match the running JAR (or no completed fingerprint exists). Adding protected columns changes that fingerprint. Do not bypass the startup guard or manually update the fingerprint.
+
+The AWS backend deployment now stops the backend, installs the release/environment and runs `transport-platform-privacy-maintenance.service` before starting the backend. This dedicated offline oneshot uses systemd's `EnvironmentFile`, the transport account and the same database TLS truststore. It invokes `PrivacyMaintenanceCommand --ensure-ready`: Flyway runs first; protection runs if the release fingerprint is missing/outdated. An already-current inventory is skipped. Explicit `--apply` remains the full scan/rotation operation. Signed audit rows are preserved unchanged; legacy unsigned audit history is minimized.
+
+For a host currently failing this check:
+
+1. Stop the restart loop with `sudo systemctl stop transport-platform-backend.service` and keep other database writers stopped.
+2. Confirm a recoverable database backup and retain the complete original key ring and independent lookup key. Do not replace existing keys with newly generated values.
+3. Redeploy the corrected backend/deployment scripts. The pipeline runs offline maintenance using the configured production environment before health checks. Inspect failures with `sudo journalctl -u transport-platform-privacy-maintenance.service --no-pager -n 100` through an authorized operator session.
+4. If maintenance fails, the backend remains stopped. Correct the configuration/data problem and retry with the same keys. Once database maintenance begins, automatic JAR-only rollback is disabled: an older JAR can reject the newer privacy inventory or schema. Recovery uses a corrected release, or a coordinated restore of the matching database backup, JAR and environment.
+
+The deployment fix has not been run against a live server by this change. A successful local test does not mean the failing production host has recovered.
+
+Deployment recovery verification: 29 deployment tests and 23 focused backend tests passed, including a real offline-command subprocess against disposable MySQL, unchanged readiness timestamps when already current, failure on an outdated fingerprint, and preservation of signed audit evidence. A new deployment also refuses to replace release files while a maintenance oneshot from an interrupted SSH/job session is still running.

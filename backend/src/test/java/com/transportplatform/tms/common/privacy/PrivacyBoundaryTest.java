@@ -18,6 +18,8 @@ class PrivacyBoundaryTest {
   void auditServiceDoesNotPersistClinicalSnapshotsOrPersonalActorLabels() {
     var repo = mock(AuditLogRepository.class);
     var service = new AuditLogService(repo, new ObjectMapper());
+    org.springframework.test.util.ReflectionTestUtils.setField(
+        service, "integrity", mock(AuditIntegrityService.class));
     service.record(
         new AuditLogCommand(
             new AuditLogActor(42L, "patient@example.test", "Private Patient"),
@@ -38,13 +40,32 @@ class PrivacyBoundaryTest {
                 "status",
                 "ACTIVE")));
     var row = ArgumentCaptor.forClass(AuditLog.class);
-    verify(repo).save(row.capture());
+    verify(repo).saveAndFlush(row.capture());
     assertThat(row.getValue().getNewValueJson())
         .doesNotContain("1960-01-01", "Oxygen assistance")
         .contains("ACTIVE", "REDACTED", "changedFields");
     assertThat(row.getValue().getSummary()).isEqualTo("RIDER record: UPDATED.");
     assertThat(row.getValue().getActorEmail()).isNull();
     assertThat(row.getValue().getActorName()).isEqualTo("User #42");
+  }
+
+  @Test
+  void financialBasisAndLocationRetentionChangesRemainVisibleWithoutClinicalDetails() {
+    var mapper = new ObjectMapper();
+    var snapshot =
+        PrivacyMinimizer.audit(
+                mapper.valueToTree(
+                    Map.of(
+                        "sourceInvoiceId",
+                        7,
+                        "locationDays",
+                        30,
+                        "careNotesSummary",
+                        "Private care details")))
+            .toString();
+    assertThat(snapshot)
+        .contains("sourceInvoiceId", "locationDays", "30")
+        .doesNotContain("Private care details");
   }
 
   @Test

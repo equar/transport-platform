@@ -51,6 +51,8 @@ class PlatformAdminBootstrapRunnerTest {
         PlatformAdminBootstrapProperties properties = new PlatformAdminBootstrapProperties();
         properties.setEnabled(true);
         properties.setPassword(password);
-        return new PlatformAdminBootstrapRunner(properties, appUserRepository, passwordEncoder);
+        var runner = new PlatformAdminBootstrapRunner(properties, appUserRepository, passwordEncoder);
+        org.springframework.test.util.ReflectionTestUtils.setField(runner,"temporaryPasswordClock",java.time.Clock.systemUTC());
+        return runner;
     }
 }

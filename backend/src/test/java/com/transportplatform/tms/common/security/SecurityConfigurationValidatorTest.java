@@ -26,7 +26,15 @@ class SecurityConfigurationValidatorTest {
     void rejectsDevelopmentJwtSecretInProd() {
         assertThrows(IllegalStateException.class,
                 () -> new SecurityConfigurationValidator(
-                        securityProperties("dev-jwt-secret-change-before-deployment-1234567890"), prodEnvironment()));
+                        securityProperties("development-placeholder-".repeat(3)), prodEnvironment()));
+    }
+
+    @Test
+    void rejectsPlaceholderSecretsInDevelopmentAndDisabledProductionMfa() {
+        assertThrows(IllegalStateException.class,()->new SecurityConfigurationValidator(
+            securityProperties("development-placeholder-".repeat(3)),new MockEnvironment().withProperty("spring.profiles.active","dev")));
+        assertThrows(IllegalStateException.class,()->new SecurityConfigurationValidator(
+            securityProperties(STRONG_JWT_SECRET),prodEnvironment().withProperty("app.auth.require-mfa-for-privileged-accounts","false")));
     }
 
     private SecurityProperties securityProperties() {

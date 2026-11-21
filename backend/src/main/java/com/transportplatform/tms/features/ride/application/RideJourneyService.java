@@ -35,7 +35,11 @@ public class RideJourneyService {
         back.setWheelchairRequired(outbound.isWheelchairRequired());back.setEscortRequired(outbound.isEscortRequired());back.setCompanionCount(outbound.getCompanionCount());
         back.setSpecialInstructions(outbound.getSpecialInstructions());back.setInternalNotes(outbound.getInternalNotes());back.setOperationalNotes(outbound.getOperationalNotes());
         back.setPriorityLevel(outbound.getPriorityLevel());back.setBillingType(outbound.getBillingType());
-        back.setQuotedPrice(outbound.getQuotedPrice());
+        if (outbound.getQuotedPrice()!=null) {
+            var total=outbound.getQuotedPrice().setScale(2,java.math.RoundingMode.HALF_UP);
+            var outboundAmount=total.divide(java.math.BigDecimal.valueOf(2),2,java.math.RoundingMode.HALF_UP);
+            outbound.setQuotedPrice(outboundAmount);back.setQuotedPrice(total.subtract(outboundAmount));
+        }
         back.setStatus(switch(outbound.getStatus()) {case DRAFT,REQUESTED,PENDING_REVIEW -> outbound.getStatus();default -> RideStatus.SCHEDULED;});
         outbound.setTripType(RideTripType.ONE_WAY);outbound.setJourneyLeg("OUTBOUND");outbound.setReturnPickupAt(null);outbound.setReturnDropoffAt(null);
         rides.saveAndFlush(outbound);back.setLinkedRideId(outbound.getId());back.setJourneyLeg("RETURN");rides.saveAndFlush(back);

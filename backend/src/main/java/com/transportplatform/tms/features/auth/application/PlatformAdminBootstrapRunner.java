@@ -16,6 +16,7 @@ import com.transportplatform.tms.features.auth.domain.UserStatus;
 
 @Component
 public class PlatformAdminBootstrapRunner implements ApplicationRunner {
+    @org.springframework.beans.factory.annotation.Autowired private java.time.Clock temporaryPasswordClock;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlatformAdminBootstrapRunner.class);
 
@@ -56,6 +57,7 @@ public class PlatformAdminBootstrapRunner implements ApplicationRunner {
             user.setLastName("Administrator");
             user.setMustChangePassword(true);
             user.setPasswordHash(com.transportplatform.tms.common.security.PasswordEncoding.encode(passwordEncoder, properties.getPassword()));
+            user.setTemporaryPasswordExpiresAt(temporaryPasswordClock.instant().plusSeconds(86400));
             user.setStatus(UserStatus.ACTIVE);
             user.setRoles(Set.of(RoleName.ROLE_PLATFORM_ADMIN));
             appUserRepository.save(user);

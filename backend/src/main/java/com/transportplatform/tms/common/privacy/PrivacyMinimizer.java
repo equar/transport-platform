@@ -34,7 +34,8 @@ public final class PrivacyMinimizer {
           "stopSequence",
           "operationalReviewDays",
           "auditDays",
-          "notificationDays");
+          "notificationDays",
+          "locationDays");
   private static final Set<String> TOKENS =
       Set.of(
           "status",
@@ -82,6 +83,7 @@ public final class PrivacyMinimizer {
           "organizationId",
           "contractId",
           "invoiceId",
+          "sourceInvoiceId",
           "paymentId",
           "subscriptionId",
           "subscriptionPlanId",

@@ -43,6 +43,7 @@ import org.testcontainers.junit.jupiter.*;
   SubscriptionAutomaticCollectionService.class,
   SubscriptionProvisioningService.class,
   AuditLogService.class,
+  com.transportplatform.tms.features.audit.application.AuditIntegrityService.class,
   CurrentAuthenticatedUserService.class,
   SubscriptionBillingMySqlTest.Config.class
 })

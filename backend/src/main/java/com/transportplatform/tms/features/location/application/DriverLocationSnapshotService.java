@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DriverLocationSnapshotService {
+    @org.springframework.beans.factory.annotation.Autowired private org.springframework.jdbc.core.JdbcTemplate db;
 
     private static final Set<RideStatus> TRACKABLE_RIDE_STATUSES = Set.of(
             RideStatus.DRIVER_EN_ROUTE,
@@ -50,6 +51,15 @@ public class DriverLocationSnapshotService {
         ensureTrackable(ride);
         Driver driver = driverPortalAccessService.resolveCurrentDriver();
 
+        db.queryForList("SELECT id FROM drivers WHERE id=? AND tenant_id=? FOR UPDATE", driver.getId(), ride.getTenantId());
+        Instant captured = resolveCapturedAt(request.capturedAt());
+        var previous = repository.findTopByTenantIdAndDriver_IdOrderByCapturedAtDescIdDesc(ride.getTenantId(), driver.getId());
+        if (previous.isPresent()) {
+            var last = previous.get();
+            if (last.getCreatedAt() != null && last.getCreatedAt().isAfter(clock.instant().minusSeconds(5)))
+                throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.TOO_MANY_REQUESTS, "Location uploads must be at least five seconds apart.");
+            if (!captured.isAfter(last.getCapturedAt())) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.CONFLICT, "Location samples must arrive in chronological order.");
+        }
         DriverLocationSnapshot snapshot = new DriverLocationSnapshot();
         snapshot.setTenantId(ride.getTenantId());
         snapshot.setRide(ride);
@@ -60,7 +70,7 @@ public class DriverLocationSnapshotService {
         snapshot.setAccuracyMeters(request.accuracyMeters());
         snapshot.setSpeedMps(request.speedMps());
         snapshot.setHeadingDegrees(request.headingDegrees());
-        snapshot.setCapturedAt(resolveCapturedAt(request.capturedAt()));
+        snapshot.setCapturedAt(captured);
         DriverLocationSnapshot saved = repository.save(snapshot);
         return mapper.toResponse(saved);
     }
@@ -68,7 +78,8 @@ public class DriverLocationSnapshotService {
     @Transactional(readOnly = true)
     public DriverLocationSnapshotResponse getLatestCompanyRideSnapshot(Long rideId) {
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
-        return repository.findTopByTenantIdAndRide_IdOrderByCapturedAtDescIdDesc(ride.getTenantId(), ride.getId())
+        if (!TRACKABLE_RIDE_STATUSES.contains(ride.getStatus()) || ride.getDriverId() == null) return null;
+        return repository.findTopByTenantIdAndRide_IdAndDriver_IdOrderByCapturedAtDescIdDesc(ride.getTenantId(), ride.getId(), ride.getDriverId())
                 .map(mapper::toResponse)
                 .orElse(null);
     }
@@ -76,7 +87,8 @@ public class DriverLocationSnapshotService {
     @Transactional(readOnly = true)
     public DriverLocationSnapshotResponse getLatestDriverRideSnapshot(Long rideId) {
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
-        return repository.findTopByTenantIdAndRide_IdOrderByCapturedAtDescIdDesc(ride.getTenantId(), ride.getId())
+        if (!TRACKABLE_RIDE_STATUSES.contains(ride.getStatus()) || ride.getDriverId() == null) return null;
+        return repository.findTopByTenantIdAndRide_IdAndDriver_IdOrderByCapturedAtDescIdDesc(ride.getTenantId(), ride.getId(), ride.getDriverId())
                 .map(mapper::toResponse)
                 .orElse(null);
     }
@@ -103,11 +115,11 @@ public class DriverLocationSnapshotService {
         if (providedCapturedAt == null) {
             return now;
         }
-        if (providedCapturedAt.isAfter(now.plusSeconds(300))) {
+        if (providedCapturedAt.isBefore(now.minusSeconds(300)) || providedCapturedAt.isAfter(now.plusSeconds(60))) {
             throw new ApiException(
                     ErrorCode.VALIDATION_FAILED,
                     HttpStatus.BAD_REQUEST,
-                    "Location capture time cannot be more than five minutes in the future.");
+                    "Location capture time must be within five minutes in the past and one minute in the future.");
         }
         return providedCapturedAt;
     }

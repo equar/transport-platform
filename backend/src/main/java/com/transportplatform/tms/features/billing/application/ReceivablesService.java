@@ -101,7 +101,7 @@ public class ReceivablesService {
                 .stream()
                 .filter(payment -> payment.getStatus() != PaymentStatus.VOID
                         && payment.getStatus() != PaymentStatus.FAILED)
-                .map(payment -> payment.getAmount())
+                .map(com.transportplatform.tms.features.billing.domain.Payment::getCollectedAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
 

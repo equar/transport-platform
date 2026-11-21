@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AppUserTenantOwnerProvisioningService implements TenantOwnerProvisioningService {
+    @org.springframework.beans.factory.annotation.Autowired private java.time.Clock temporaryPasswordClock;
     @org.springframework.beans.factory.annotation.Autowired
     private com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
 
@@ -47,6 +48,7 @@ public class AppUserTenantOwnerProvisioningService implements TenantOwnerProvisi
         String inaccessiblePassword = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         user.setMustChangePassword(true);
         user.setPasswordHash(com.transportplatform.tms.common.security.PasswordEncoding.encode(passwordEncoder, inaccessiblePassword));
+        user.setTemporaryPasswordExpiresAt(temporaryPasswordClock.instant().plusSeconds(86400));
         user.setStatus(UserStatus.ACTIVE);
         user.setRoles(Set.of(RoleName.ROLE_TENANT_ADMIN));
         return appUserRepository.save(user).getId();

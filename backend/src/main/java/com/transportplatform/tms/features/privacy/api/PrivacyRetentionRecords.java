@@ -11,7 +11,8 @@ public final class PrivacyRetentionRecords {
       @Min(1) @Max(36500) Integer auditDays,
       @Min(1) @Max(36500) Integer notificationDays,
       Boolean cleanupEnabled,
-      boolean legalHold) {}
+      boolean legalHold,
+      @Min(1) @Max(36500) Integer locationDays) {}
 
   public record PrivacyRetentionPolicy(
       String scope,
@@ -19,7 +20,8 @@ public final class PrivacyRetentionRecords {
       Integer auditDays,
       Integer notificationDays,
       Boolean cleanupEnabled,
-      boolean legalHold) {}
+      boolean legalHold,
+      @Min(1) @Max(36500) Integer locationDays) {}
 
   public record PrivacyRetentionView(
       PrivacyRetentionPolicy platform,

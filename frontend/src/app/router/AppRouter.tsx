@@ -1,3 +1,4 @@
+import { AuthenticatorCard } from "../../features/auth/components/AuthenticatorCard";
 import { PasswordChangeCard } from "../../features/auth/components/PasswordChangeCard";
 import { lazy, type ComponentType } from "react";
 import {
@@ -353,7 +354,7 @@ const VerifyApplicationEmailPage = lazyPage(
 );
 
 const router = createBrowserRouter([
-  { element: <ProtectedRoute><AuthLayout /></ProtectedRoute>, children: [{ path: "/account/password", element: <PasswordChangeCard /> }] },
+  { element: <ProtectedRoute><AuthLayout /></ProtectedRoute>, children: [{ path: "/account/password", element: <PasswordChangeCard /> }, { path: "/account/authenticator", element: <AuthenticatorCard /> }] },
   { path: "/", element: <Navigate to="/login" replace /> },
   {
     element: <AuthLayout />,

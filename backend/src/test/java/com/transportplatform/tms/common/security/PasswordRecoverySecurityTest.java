@@ -22,6 +22,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     AuthRateLimitFilter.class,RestAuthenticationEntryPoint.class,RestAccessDeniedHandler.class})
 @EnableConfigurationProperties({SecurityProperties.class,TenantProperties.class})
 class PasswordRecoverySecurityTest {
+    @org.springframework.test.context.bean.override.mockito.MockitoBean com.transportplatform.tms.features.auth.application.MfaService mfa;
+
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.transportplatform.tms.features.saas.application.TenantModulePolicy tenantModulePolicy;
     @MockitoBean com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;

@@ -14,5 +14,8 @@ public record PaymentReportRowResponse(
         BigDecimal amount,
         String invoiceNumber,
         String payerName,
-        String referenceNumber) {
+        String referenceNumber,
+        BigDecimal refundedAmount,
+        BigDecimal netCollectedAmount,
+        String currency) {
 }

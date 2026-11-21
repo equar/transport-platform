@@ -1,3 +1,4 @@
+import { AuditIntegrityPanel } from "../components/AuditIntegrityPanel";
 import { useEffect, useState } from "react";
 import {
   Button,
@@ -248,6 +249,7 @@ export function AuditLogsPage() {
         </Alert>
       ) : null}
 
+      <AuditIntegrityPanel />
       <PageCard sx={{ p: 0, overflow: "hidden" }}>
         {loading ? (
           <LoadingState />

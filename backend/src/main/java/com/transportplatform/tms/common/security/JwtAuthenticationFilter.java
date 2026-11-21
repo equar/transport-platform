@@ -20,6 +20,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private com.transportplatform.tms.features.auth.application.MfaService mfa;
 
     private final JwtService jwtService;
     private final TenantRepository tenantRepository;
@@ -100,8 +103,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     storedUser.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.name())).toList(), storedUser.getSecurityVersion());
             String endpoint = request.getRequestURI().substring(request.getContextPath().length());
             if (user.mustChangePassword() && !java.util.Set.of("/v1/auth/change-password", "/v1/auth/logout",
-                    "/v1/auth/refresh", "/v1/auth/status", "/runtime/tenant-branding").contains(endpoint)) {
+                    "/v1/auth/status", "/runtime/tenant-branding").contains(endpoint)) {
                 deniedHandler.handle(request, response, new org.springframework.security.access.AccessDeniedException("Password change required"));
+                return;
+            }
+            if (mfa.required(storedUser) && storedUser.getMfaSecret() == null
+                && !java.util.Set.of("/v1/auth/mfa", "/v1/auth/mfa/setup", "/v1/auth/mfa/activate", "/v1/auth/logout", "/v1/auth/status", "/v1/auth/change-password").contains(endpoint)) {
+                deniedHandler.handle(request, response, new org.springframework.security.access.AccessDeniedException("MFA enrollment required"));
                 return;
             }
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null,

@@ -1,3 +1,4 @@
+import { FinancialAdjustmentsPanel } from "../components/FinancialAdjustmentsPanel";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
 import PublishRoundedIcon from "@mui/icons-material/PublishRounded";
@@ -14,10 +15,10 @@ import { formatDateTime } from "../../../shared/utils/format";
 import { billingApi, type PaymentRecord } from "../api/billingApi";
 import { getApiErrorMessage } from "../../../shared/api/client";
 
-function formatCurrency(value: number) {
+function formatCurrency(value: number, currency: string) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency,
   }).format(value || 0);
 }
 
@@ -199,25 +200,25 @@ export function PaymentDetailsPage() {
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <TextField
               label="Payment Amount"
-              value={formatCurrency(payment.amount)}
+              value={formatCurrency(payment.amount, payment.currency)}
               InputProps={{ readOnly: true }}
               fullWidth
             />
             <TextField
               label="Invoice Total"
-              value={formatCurrency(payment.invoiceTotalAmount)}
+              value={formatCurrency(payment.invoiceTotalAmount, payment.currency)}
               InputProps={{ readOnly: true }}
               fullWidth
             />
             <TextField
               label="Invoice Amount Paid"
-              value={formatCurrency(payment.invoiceAmountPaid)}
+              value={formatCurrency(payment.invoiceAmountPaid, payment.currency)}
               InputProps={{ readOnly: true }}
               fullWidth
             />
             <TextField
               label="Invoice Balance Due"
-              value={formatCurrency(payment.invoiceBalanceDue)}
+              value={formatCurrency(payment.invoiceBalanceDue, payment.currency)}
               InputProps={{ readOnly: true }}
               fullWidth
             />
@@ -301,6 +302,8 @@ export function PaymentDetailsPage() {
         </Stack>
       </PageCard>
 
+      {(payment.refundedAmount ?? 0) > 0 ? <Alert severity="info">Refunded: {payment.refundedAmount?.toFixed(2)} {payment.currency}. Original receipt amount is preserved.</Alert> : null}
+      <FinancialAdjustmentsPanel maximum={payment.amount - (payment.refundedAmount ?? 0)} allowCreate={['APPLIED','PARTIALLY_APPLIED','PARTIALLY_REFUNDED'].includes(payment.status) && payment.paymentMethod !== 'CREDIT_NOTE'} paymentId={payment.id} currency={payment.currency} onChanged={() => void loadPage()} />
       <ConfirmDialog
         open={action !== null}
         title={action === "apply" ? "Apply payment" : "Void payment"}

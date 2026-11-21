@@ -108,14 +108,8 @@ public class InvoiceFinancialService {
             invoice.setStatus(InvoiceStatus.PAID);
             return;
         }
-        if (zeroIfNull(invoice.getAmountPaid()).compareTo(BigDecimal.ZERO) > 0) {
-            invoice.setStatus(InvoiceStatus.PARTIALLY_PAID);
-            return;
-        }
-        invoice.setStatus(InvoiceStatus.ISSUED);
-        if (InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, today) == InvoiceStatus.OVERDUE) {
-            invoice.setStatus(InvoiceStatus.ISSUED);
-        }
+        invoice.setStatus(zeroIfNull(invoice.getAmountPaid()).signum() > 0 ? InvoiceStatus.PARTIALLY_PAID : InvoiceStatus.ISSUED);
+        invoice.setStatus(InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, today));
     }
 
     private Invoice statusPreviewInvoice(Invoice source, InvoiceStatus status, BigDecimal balanceDue) {

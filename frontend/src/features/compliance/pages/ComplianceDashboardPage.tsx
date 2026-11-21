@@ -387,6 +387,7 @@ export function ComplianceDashboardPage() {
                 color="inherit"
                 onClick={() => void handleAction("dismiss")}
                 disabled={
+                  selectedIssue.severity === "CRITICAL" ||
                   selectedIssue.issueStatus === "RESOLVED" ||
                   selectedIssue.issueStatus === "DISMISSED"
                 }

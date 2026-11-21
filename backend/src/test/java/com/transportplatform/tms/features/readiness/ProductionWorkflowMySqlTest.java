@@ -17,7 +17,7 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.*;
 
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT, properties={
-    "app.bootstrap.platform-admin.enabled=false", "app.email.enabled=false", "app.push.enabled=false",
+    "app.bootstrap.platform-admin.enabled=false", "app.dev-seed.enabled=true", "app.email.enabled=false", "app.push.enabled=false",
     "app.security.jwt.secret=isolated-workflow-tests-only-secret-12345678901234567890",
     "app.security.auth-rate-limit.login-max-requests=100",
     "app.security.mfa-encryption-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="})
@@ -167,6 +167,8 @@ class ProductionWorkflowMySqlTest {
                 // Existing company endpoints must reject a status-only milestone.
                 assertEquals(400,call(HttpMethod.POST,"/company/rides/"+leg+"/"+action,Map.of(),token,Map.of()).getStatusCode().value());
                 boolean drop=action.equals("dropped-off");
+                // Advance the synthetic receipt interval without weakening the production limiter.
+                jdbc.update("UPDATE driver_location_snapshots SET created_at=DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 6 SECOND) WHERE tenant_id=? AND driver_id=1","demo-metro-mobility-000000000001");
                 var gps=call(HttpMethod.POST,"/portal/driver/rides/"+leg+"/location-snapshots",Map.of("latitude",drop?42.01:42.0,"longitude",drop?-71.01:-71.0,"accuracyMeters",5,"capturedAt",java.time.Instant.now().toString()),driverToken,Map.of());
                 assertEquals(200,gps.getStatusCode().value(),gps.toString());
                 var proof=call(HttpMethod.POST,"/portal/driver/rides/"+leg+"/delivery-evidence/milestones",Map.of("milestone",action.toUpperCase().replace('-','_'),"odometerMiles",drop?105:100,"mockedLocation",false),driverToken,Map.of());
@@ -175,7 +177,7 @@ class ProductionWorkflowMySqlTest {
                 assertEquals(200,milestone.getStatusCode().value(),action+": "+milestone);
             }
             assertEquals(400,call(HttpMethod.POST,"/company/rides/"+leg+"/complete",Map.of(),token,Map.of()).getStatusCode().value());
-            assertEquals(400,call(HttpMethod.POST,"/portal/driver/rides/"+leg+"/actions/complete",Map.of(),driverToken,Map.of()).getStatusCode().value());
+            assertEquals(400,call(HttpMethod.POST,"/portal/driver/rides/"+leg+"/actions/complete",Map.of(),driverToken,Map.of("Idempotency-Key",UUID.randomUUID().toString())).getStatusCode().value());
             var evidence=call(HttpMethod.GET,"/portal/rider/rides/"+leg+"/delivery-evidence",null,riderToken,Map.of()).getBody().path("data");
             long dropEvidence=0;for(var m:evidence.path("milestones"))if(m.path("milestone").asText().equals("DROPPED_OFF"))dropEvidence=m.path("id").asLong();
             assertTrue(dropEvidence>0,evidence.toString());
@@ -183,7 +185,7 @@ class ProductionWorkflowMySqlTest {
             var confirmation=call(HttpMethod.POST,"/portal/rider/rides/"+leg+"/delivery-evidence/confirm",Map.of("dropoffEvidenceId",dropEvidence,"delivered",true),riderToken,Map.of());
             assertEquals(200,confirmation.getStatusCode().value(),confirmation.toString());
             var completed=leg==id
-                ? call(HttpMethod.POST,"/portal/driver/rides/"+leg+"/actions/complete",Map.of(),driverToken,Map.of())
+                ? call(HttpMethod.POST,"/portal/driver/rides/"+leg+"/actions/complete",Map.of(),driverToken,Map.of("Idempotency-Key",UUID.randomUUID().toString()))
                 : call(HttpMethod.POST,"/company/rides/"+leg+"/complete",Map.of(),token,Map.of());
             assertEquals(200,completed.getStatusCode().value(),completed.toString());
             if(leg==id) assertEquals("SCHEDULED",call(HttpMethod.GET,"/company/rides/"+backId,null,token,Map.of()).getBody().path("data").path("status").asText());

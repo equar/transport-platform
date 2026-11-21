@@ -31,13 +31,20 @@ public final class PrivacyMaintenanceCommand {
   }
 
   public static void main(String[] args) throws Exception {
-    boolean apply = Arrays.asList(args).contains("--apply"),
+    boolean ensure = Arrays.asList(args).contains("--ensure-ready"),
+        check = Arrays.asList(args).contains("--check-ready");
+    boolean apply = Arrays.asList(args).contains("--apply") || ensure,
         demo = Arrays.asList(args).contains("--demo-data");
     if (Arrays.stream(args)
-        .anyMatch(a -> !Set.of("--apply", "--dry-run", "--demo-data").contains(a)))
+        .anyMatch(
+            a ->
+                !Set.of("--apply", "--dry-run", "--demo-data", "--ensure-ready", "--check-ready")
+                    .contains(a)))
       throw new IllegalArgumentException(
-          "Use --dry-run or --apply; --demo-data is for disposable development databases only.");
-    if (apply && Arrays.asList(args).contains("--dry-run"))
+          "Use --dry-run, --apply, --ensure-ready or --check-ready; --demo-data is for disposable"
+              + " development databases only.");
+    if ((apply && Arrays.asList(args).contains("--dry-run"))
+        || (check && (apply || demo || Arrays.asList(args).contains("--dry-run"))))
       throw new IllegalArgumentException("Choose --apply or --dry-run, never both.");
     var env = System.getenv();
     var crypto =
@@ -60,8 +67,30 @@ public final class PrivacyMaintenanceCommand {
           .migrate();
     try (Connection db = DriverManager.getConnection(url, user, password)) {
       db.setAutoCommit(false);
+      if (check || ensure) {
+        boolean ready = ready(db);
+        if (check && !ready)
+          throw new IllegalStateException("The release privacy inventory is not ready.");
+        if (ready) {
+          System.out.println("Privacy inventory is ready for this release.");
+          return;
+        }
+      }
       run(db, crypto, apply);
     }
+  }
+
+  static boolean ready(Connection db) throws Exception {
+    if (query(
+            db,
+            "SELECT table_name FROM information_schema.tables WHERE table_schema=DATABASE() AND"
+                + " table_name='privacy_protection_state'")
+        .isEmpty()) return false;
+    return !query(
+            db,
+            "SELECT id FROM privacy_protection_state WHERE id=1 AND inventory_hash=?",
+            inventoryHash())
+        .isEmpty();
   }
 
   public static String inventoryHash() {
@@ -268,8 +297,25 @@ public final class PrivacyMaintenanceCommand {
     Object cursor = 0L;
     long count = 0;
     ObjectMapper mapper = new ObjectMapper();
+    // Sealed audit records must remain byte-for-byte unchanged. Only legacy unsigned history is
+    // minimized.
+    boolean signed =
+        !query(
+                db,
+                "SELECT table_name FROM information_schema.tables WHERE table_schema=DATABASE() AND"
+                    + " table_name='audit_integrity_ledger'")
+            .isEmpty();
+    String unsigned =
+        signed
+            ? " AND NOT EXISTS (SELECT 1 FROM audit_integrity_ledger l WHERE l.audit_id=a.id AND"
+                  + " l.event_type='ENTRY' AND l.scope_key=COALESCE(a.tenant_id,'PLATFORM'))"
+            : "";
     while (true) {
-      var batch = query(db, "SELECT * FROM audit_logs WHERE id>? ORDER BY id LIMIT 200", cursor);
+      var batch =
+          query(
+              db,
+              "SELECT a.* FROM audit_logs a WHERE a.id>?" + unsigned + " ORDER BY a.id LIMIT 200",
+              cursor);
       if (batch.isEmpty()) break;
       for (var row : batch) {
         cursor = row.get("id");

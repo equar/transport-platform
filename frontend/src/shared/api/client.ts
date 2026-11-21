@@ -11,7 +11,7 @@ import {
   getCorrelationHeaderName,
 } from '../observability/correlationId';
 
-type ClientSession = { accessToken?: string; identity?: { id?: number; tenantId?: string | null; roles?: string[]; mustChangePassword?: boolean } };
+type ClientSession = { accessToken?: string; identity?: { id?: number; tenantId?: string | null; roles?: string[]; mustChangePassword?: boolean; mfaEnrollmentRequired?: boolean } };
 let currentSession: ClientSession | null = null;
 let sessionGeneration = 0;
 export const SESSION_REFRESHED_EVENT = "transport.session-refreshed";
@@ -21,7 +21,7 @@ const MAX_RETRY_ATTEMPTS = 2;
 
 function sessionScope(session: ClientSession | null) {
   return JSON.stringify([session?.identity?.tenantId, session?.identity?.id,
-    session?.identity?.roles?.slice().sort(), session?.identity?.mustChangePassword]);
+    session?.identity?.roles?.slice().sort(), session?.identity?.mustChangePassword, session?.identity?.mfaEnrollmentRequired]);
 }
 export function setApiSession(session: ClientSession | null) {
   if (!session || !currentSession || sessionScope(session) !== sessionScope(currentSession)) sessionGeneration++;
@@ -58,7 +58,7 @@ async function refreshAccessToken() {
     user: unknown;
   }>(response.data);
   if (generation !== sessionGeneration) return null;
-  setApiSession({ accessToken: tokens.accessToken, identity: tokens.user as { tenantId?: string | null; roles?: string[]; mustChangePassword?: boolean } });
+  setApiSession({ accessToken: tokens.accessToken, identity: tokens.user as { tenantId?: string | null; roles?: string[]; mustChangePassword?: boolean; mfaEnrollmentRequired?: boolean } });
   window.dispatchEvent(new CustomEvent(SESSION_REFRESHED_EVENT, { detail: {
     accessToken: tokens.accessToken, tokenType: tokens.tokenType, expiresInSeconds: tokens.expiresInSeconds, identity: tokens.user,
   } }));

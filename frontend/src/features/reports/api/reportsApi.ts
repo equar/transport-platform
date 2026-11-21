@@ -151,6 +151,9 @@ export interface InvoiceReportRowRecord {
 }
 
 export interface PaymentReportRowRecord {
+  refundedAmount: number;
+  netCollectedAmount: number;
+  currency: string;
   id: number;
   paymentNumber: string;
   status: PaymentStatus;

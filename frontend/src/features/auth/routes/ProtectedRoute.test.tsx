@@ -94,6 +94,14 @@ describe('ProtectedRoute role boundaries', () => {
     expect(screen.queryByText('Protected workspace')).toBeNull();
   });
 
+  it('requires privileged MFA enrollment before entering the workspace', () => {
+    const restricted = session(['ROLE_TENANT_ADMIN']); restricted.identity.mfaEnrollmentRequired = true;
+    useAuth.mockReturnValue({ isAuthenticated: true, isLoading: false, hasRole: () => true, session: restricted });
+    renderAt('/company/users');
+    expect(screen.getByTestId('location').textContent).toBe('/account/authenticator');
+    expect(screen.queryByText('Protected workspace')).toBeNull();
+  });
+
   it('redirects a platform administrator away from the company workspace', () => {
     useAuth.mockReturnValue({
       isAuthenticated: true,

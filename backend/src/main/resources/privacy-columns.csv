@@ -120,3 +120,7 @@ invoice_line_items,notes,text,NULL
 driver_earnings_ledger,reason,text,NULL
 tenant_transport_compliance,verification_notes,text,NULL
 report_export_jobs,request_json,text,NOT NULL
+driver_action_idempotency,result_json,text,NULL
+payment_refunds,reason,text,NOT NULL
+credit_notes,reason,text,NOT NULL
+credit_notes,void_reason,text,NULL

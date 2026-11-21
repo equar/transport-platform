@@ -17,3 +17,8 @@ INSERT INTO vehicle_documents
 SELECT 'demo-metro-mobility-000000000001',1,t.kind,'synthetic-review-document','2030-12-31','VERIFIED','ACTIVE',
 'isolated-review-fixture',NOW(),'isolated-review-fixture',NOW(),'isolated-review-fixture',NOW()
 FROM (SELECT 'VEHICLE_REGISTRATION' kind UNION ALL SELECT 'VEHICLE_INSURANCE' UNION ALL SELECT 'VEHICLE_INSPECTION') t;
+
+-- Match the synthetic verified documents; live qualification fields are also enforced.
+UPDATE drivers SET license_expiry_date='2030-12-31',background_check_status='CLEAR',
+background_check_expiry_date='2030-12-31',drug_test_status='CLEAR',drug_test_expiry_date='2030-12-31',
+training_status='COMPLETED' WHERE tenant_id='demo-metro-mobility-000000000001' AND id=1;

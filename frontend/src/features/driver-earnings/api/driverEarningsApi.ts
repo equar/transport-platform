@@ -33,6 +33,9 @@ export const driverEarningsApi = {
       (await apiClient.put(`/company/driver-earnings/${id}`, { amount, reason })).data,
     );
   },
+  async recalculate(id: number) {
+    return unwrapResponse<DriverEarningsEntry>((await apiClient.post(`/company/driver-earnings/${id}/recalculate`)).data);
+  },
   async approve(id: number) {
     return unwrapResponse<DriverEarningsEntry>(
       (await apiClient.post(`/company/driver-earnings/${id}/approve`)).data,

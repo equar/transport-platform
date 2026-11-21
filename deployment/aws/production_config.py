@@ -23,7 +23,7 @@ DEFAULTS = {
     'MICROSOFT_GRAPH_CLIENT_ID': '', 'MICROSOFT_GRAPH_TENANT_ID': '', 'MICROSOFT_GRAPH_CLIENT_SECRET': '',
     'APP_PUSH_ENABLED': 'false', 'APP_PUSH_PROVIDER': 'logging', 'EXPO_ACCESS_TOKEN': '',
     'APP_PRIVACY_ENCRYPTION_KEYS': '', 'APP_PRIVACY_ACTIVE_KEY_ID': '', 'APP_PRIVACY_LOOKUP_KEY': '',
-    'APP_SECURITY_MFA_ENCRYPTION_KEY': '', 'APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS': 'false',
+    'APP_SECURITY_MFA_ENCRYPTION_KEY': '', 'APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS': 'true',
     'APP_PUSH_EXPO_URL': 'https://exp.host/--/api/v2/push/send',
     'APP_LOGGING_LEVEL_ROOT': 'INFO', 'APP_LOGGING_LEVEL_APP': 'INFO',
     'APP_LOGGING_LEVEL_WEB': 'WARN', 'APP_LOGGING_LEVEL_SECURITY': 'INFO',
@@ -130,8 +130,8 @@ def settings(environ=None, target='all', require_ssh=True):
         raise ValueError('APP_PRIVACY_LOOKUP_KEY must be different from every APP_PRIVACY_ENCRYPTION_KEYS key')
     if mfa_key in phi_keys.values() or lookup_key == mfa_key:
         raise ValueError('Privacy keys must not reuse APP_SECURITY_MFA_ENCRYPTION_KEY')
-    if env['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS'] not in ('true', 'false'):
-        raise ValueError('APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS must be true or false')
+    if env['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS'] != 'true':
+        raise ValueError('APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS must be true in production')
     origins = env['APP_SECURITY_ALLOWED_ORIGINS'].split(',')
     for origin in origins:
         public_origin(origin.strip(), 'APP_SECURITY_ALLOWED_ORIGINS')

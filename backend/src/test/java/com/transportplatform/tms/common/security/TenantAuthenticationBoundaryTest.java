@@ -26,6 +26,7 @@ class TenantAuthenticationBoundaryTest {
         properties.getJwt().setSecret("tenant-isolation-test-signing-key-at-least-32-bytes-long");
         tokens = new JwtService(properties, Clock.systemUTC());
         filter = new JwtAuthenticationFilter(tokens, tenants, users, new TenantProperties(), new RestAccessDeniedHandler(new ObjectMapper().findAndRegisterModules()));
+        org.springframework.test.util.ReflectionTestUtils.setField(filter,"mfa",mock(com.transportplatform.tms.features.auth.application.MfaService.class));
         user = new AppUser(); ReflectionTestUtils.setField(user, "id", 1L);
         user.setTenantId("tenant-a"); user.setEmail("admin@example.test"); user.setStatus(UserStatus.ACTIVE);
         user.setRoles(Set.of(RoleName.ROLE_TENANT_ADMIN));

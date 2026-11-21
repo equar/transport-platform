@@ -20,6 +20,7 @@ jar="$ROOT/backend/target/transport-platform-backend-0.1.0-SNAPSHOT.jar"
 remote="$(new_remote_directory backend)"
 scp "${SSH_OPTIONS[@]}" "$jar" "$SERVER:$remote/backend.jar"
 scp "${SSH_OPTIONS[@]}" "$work/backend.env" "$ROOT/deployment/transport-platform-backend.service" \
+  "$ROOT/deployment/transport-platform-privacy-maintenance.service" \
   "$ROOT/deployment/aws/activate-backend.sh" "$ROOT/deployment/aws/setup-rds-truststore.sh" \
   "$ROOT/deployment/aws/sanitize-logs.py" "$SERVER:$remote/"
 ssh "${SSH_OPTIONS[@]}" "$SERVER" "sudo -n bash '$remote/activate-backend.sh' '$remote' '$DEPLOY_ID'"

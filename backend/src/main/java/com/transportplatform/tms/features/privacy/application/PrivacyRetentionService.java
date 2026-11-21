@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PrivacyRetentionService {
+  @org.springframework.beans.factory.annotation.Autowired private AuditIntegrityService integrity;
   private final JdbcTemplate db;
   private final Clock clock;
   private final CurrentAuthenticatedUserService users;
@@ -46,10 +47,11 @@ public class PrivacyRetentionService {
                     (Integer) r.getObject("audit_days"),
                     (Integer) r.getObject("notification_days"),
                     (Boolean) r.getObject("cleanup_enabled"),
-                    r.getBoolean("legal_hold")),
+                    r.getBoolean("legal_hold"),
+                    (Integer) r.getObject("location_days")),
             scope);
     return rows.isEmpty()
-        ? new PrivacyRetentionPolicy(scope, null, null, null, null, false)
+        ? new PrivacyRetentionPolicy(scope, null, null, null, null, false, null)
         : rows.getFirst();
   }
 
@@ -63,7 +65,8 @@ public class PrivacyRetentionService {
             or(override.auditDays(), platform.auditDays()),
             or(override.notificationDays(), platform.notificationDays()),
             or(override.cleanupEnabled(), platform.cleanupEnabled()),
-            override.legalHold() || platform.legalHold());
+            override.legalHold() || platform.legalHold(),
+            or(or(override.locationDays(), platform.locationDays()), 30));
     return new PrivacyRetentionView(platform, override, effective, scope.equals("PLATFORM"));
   }
 
@@ -87,15 +90,16 @@ public class PrivacyRetentionService {
           "Set an approved audit or notification retention duration before enabling cleanup.");
     db.update(
         "INSERT INTO"
-            + " privacy_retention_policies(scope_key,operational_review_days,audit_days,notification_days,cleanup_enabled,legal_hold,updated_by,updated_at)"
-            + " VALUES(?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE"
-            + " operational_review_days=VALUES(operational_review_days),audit_days=VALUES(audit_days),notification_days=VALUES(notification_days),cleanup_enabled=VALUES(cleanup_enabled),legal_hold=VALUES(legal_hold),updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)",
+            + " privacy_retention_policies(scope_key,operational_review_days,audit_days,notification_days,cleanup_enabled,legal_hold,location_days,updated_by,updated_at)"
+            + " VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE"
+            + " operational_review_days=VALUES(operational_review_days),audit_days=VALUES(audit_days),notification_days=VALUES(notification_days),cleanup_enabled=VALUES(cleanup_enabled),legal_hold=VALUES(legal_hold),location_days=VALUES(location_days),updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)",
         scope,
         request.operationalReviewDays(),
         request.auditDays(),
         request.notificationDays(),
         request.cleanupEnabled(),
         request.legalHold(),
+        request.locationDays(),
         users.requireCurrentUser().id(),
         LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));
     audit.record(
@@ -183,10 +187,25 @@ public class PrivacyRetentionService {
         "SELECT scope_key FROM privacy_retention_policies WHERE scope_key='PLATFORM' FOR UPDATE");
     var p = view("PLATFORM").effective();
     if (Boolean.TRUE.equals(p.cleanupEnabled()) && !p.legalHold() && p.auditDays() != null)
-      db.update(
-          "DELETE FROM audit_logs WHERE tenant_id IS NULL AND created_at<? ORDER BY id LIMIT 100",
-          LocalDateTime.ofInstant(
-              clock.instant().minusSeconds(p.auditDays() * 86400L), ZoneOffset.UTC));
+      integrity.retire(null,db.queryForList("SELECT id FROM audit_logs WHERE tenant_id IS NULL AND created_at<? ORDER BY id LIMIT 100",Long.class,
+          LocalDateTime.ofInstant(clock.instant().minusSeconds(p.auditDays()*86400L),ZoneOffset.UTC)));
+  }
+
+  @Transactional
+  public int cleanLocations(String tenant) {
+    db.queryForList("SELECT scope_key FROM privacy_retention_policies WHERE scope_key='PLATFORM' FOR UPDATE");
+    db.queryForList("SELECT scope_key FROM privacy_retention_policies WHERE scope_key=? FOR UPDATE",tenant);
+    var policy=view(tenant).effective();
+    return policy.legalHold()?0:purgeLocations(tenant,policy);
+  }
+
+  private int purgeLocations(String tenant,PrivacyRetentionPolicy policy) {
+    var ids=db.queryForList("SELECT s.id FROM driver_location_snapshots s WHERE s.tenant_id=? AND s.created_at<? AND NOT EXISTS (SELECT 1 FROM trip_milestone_evidence e WHERE e.snapshot_id=s.id) ORDER BY s.id LIMIT 1000",Long.class,tenant,
+        LocalDateTime.ofInstant(clock.instant().minusSeconds(policy.locationDays()*86400L),ZoneOffset.UTC));
+    if(ids.isEmpty())return 0;
+    var args=new java.util.ArrayList<Object>();args.add(tenant);args.addAll(ids);
+    String placeholders=String.join(",",java.util.Collections.nCopies(ids.size(),"?"));
+    return db.update("DELETE FROM driver_location_snapshots WHERE tenant_id=? AND id IN ("+placeholders+") AND NOT EXISTS (SELECT 1 FROM trip_milestone_evidence e WHERE e.snapshot_id=driver_location_snapshots.id)",args.toArray());
   }
 
   @Transactional
@@ -196,7 +215,9 @@ public class PrivacyRetentionService {
     db.queryForList(
         "SELECT scope_key FROM privacy_retention_policies WHERE scope_key=? FOR UPDATE", tenant);
     var p = view(tenant).effective();
-    if (!Boolean.TRUE.equals(p.cleanupEnabled()) || p.legalHold()) return;
+    if (p.legalHold()) return;
+    purgeLocations(tenant,p);
+    if (!Boolean.TRUE.equals(p.cleanupEnabled())) return;
     if (p.notificationDays() != null) {
       LocalDateTime cutoff =
           LocalDateTime.ofInstant(
@@ -218,11 +239,8 @@ public class PrivacyRetentionService {
       }
     }
     if (p.auditDays() != null) {
-      db.update(
-          "DELETE FROM audit_logs WHERE tenant_id=? AND created_at<? ORDER BY id LIMIT 100",
-          tenant,
-          LocalDateTime.ofInstant(
-              clock.instant().minusSeconds(p.auditDays() * 86400L), ZoneOffset.UTC));
+      integrity.retire(tenant,db.queryForList("SELECT id FROM audit_logs WHERE tenant_id=? AND created_at<? ORDER BY id LIMIT 100",Long.class,tenant,
+          LocalDateTime.ofInstant(clock.instant().minusSeconds(p.auditDays()*86400L),ZoneOffset.UTC)));
     }
   }
 }

@@ -405,18 +405,19 @@ public class ReportService {
                         payment.getAmount(),
                         payment.getInvoice().getInvoiceNumber(),
                         payment.getPayerName(),
-                        payment.getReferenceNumber()))
+                        payment.getReferenceNumber(),
+                        payment.getRefundedAmount(),
+                        payment.getCollectedAmount(),
+                        payment.getInvoice().getCurrency()))
                 .toList();
         auditReportRun(tenantId, ReportType.PAYMENT, rows.size());
         return response(ReportType.PAYMENT, "Payment Report", List.of(
                 metric("totalPayments", "Payments Recorded", rows.size()),
-                metric("successfulPayments", "Successful Payments",
+                metric("successfulPayments", "Payments With Cash Retained",
                         payments.stream()
-                                .filter(item -> item.getStatus() == PaymentStatus.RECORDED
-                                        || item.getStatus() == PaymentStatus.APPLIED
-                                        || item.getStatus() == PaymentStatus.PARTIALLY_APPLIED)
+                                .filter(item -> item.getCollectedAmount().signum() > 0)
                                 .count()),
-                metric("totalAmount", "Total Amount", sum(payments.stream().map(Payment::getAmount).toList()))), rows);
+                metric("totalAmount", "Net Collected", sum(payments.stream().map(Payment::getCollectedAmount).toList()))), rows);
     }
 
     @Transactional

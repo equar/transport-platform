@@ -45,7 +45,7 @@ class InvoiceFinancialServiceTest {
 
         assertEquals(new BigDecimal("40.00"), invoice.getAmountPaid());
         assertEquals(new BigDecimal("60.00"), invoice.getBalanceDue());
-        assertEquals(InvoiceStatus.PARTIALLY_PAID, invoice.getStatus());
+        assertEquals(InvoiceStatus.OVERDUE, invoice.getStatus());
         assertEquals(30, service.resolveDaysPastDue(invoice, LocalDate.of(2026, 3, 31)));
         assertEquals(InvoiceAgingBucket.DAYS_1_TO_30,
                 service.resolveAgingBucket(invoice, LocalDate.of(2026, 3, 31)));
@@ -64,7 +64,7 @@ class InvoiceFinancialServiceTest {
 
         assertEquals(new BigDecimal("75.00"), invoice.getAmountPaid());
         assertEquals(new BigDecimal("25.00"), invoice.getBalanceDue());
-        assertEquals(InvoiceStatus.PARTIALLY_PAID, invoice.getStatus());
+        assertEquals(InvoiceStatus.OVERDUE, invoice.getStatus());
 
         Invoice voidInvoice = new Invoice();
         voidInvoice.setStatus(InvoiceStatus.VOID);

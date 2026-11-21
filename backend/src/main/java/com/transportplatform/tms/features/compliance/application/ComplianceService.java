@@ -121,6 +121,8 @@ public class ComplianceService {
     @Transactional
     public ComplianceIssueDetailResponse dismissCompanyIssue(Long issueId) {
         ComplianceIssue issue = complianceAccessService.findCompanyIssue(issueId);
+        if (issue.getSeverity()==com.transportplatform.tms.features.compliance.domain.ComplianceIssueSeverity.CRITICAL)
+            throw new com.transportplatform.tms.common.exception.ApiException(com.transportplatform.tms.common.exception.ErrorCode.VALIDATION_FAILED, org.springframework.http.HttpStatus.CONFLICT, "Critical compliance issues cannot be dismissed. Resolve the underlying qualification or document problem.");
         ComplianceIssueStatusWorkflow.ensureCanDismiss(issue);
         return updateStatus(issue, ComplianceIssueStatus.DISMISSED, "DISMISSED",
                 "Compliance issue was dismissed.");

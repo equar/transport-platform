@@ -101,6 +101,10 @@ public class AuthFacade {
         AuthSessionService.RotatedRefreshToken rotated = authSessionService.rotate(refreshToken, clientType);
         AppUser user = rotated.user();
         ensureEligibleForTokenIssuance(user, true);
+        if (user.isMustChangePassword()) {
+            authSessionService.revokeAllForUser(user.getId());
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.UNAUTHORIZED, "Change your temporary password before signing in again; temporary sessions cannot be refreshed.");
+        }
         ensureClientAllowed(user, clientType, true);
         ensureTenantActive(user);
         if (mfa.required(user) && user.getMfaSecret() == null) {
@@ -199,6 +203,7 @@ public class AuthFacade {
                         user.tenantId(),
                         user.isEnabled() ? UserStatus.ACTIVE.name() : UserStatus.INVITED.name(),
                         user.mustChangePassword(),
+                        mfa.required(appUser) && appUser.getMfaSecret() == null,
                         user.getAuthorities().stream().map(authority -> authority.getAuthority())
                                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new))));
     }
@@ -282,7 +287,7 @@ public class AuthFacade {
     }
 
     private void ensureMfaComplete(AppUser user, String code) {
-        if (user.getMfaSecret() != null || (authFlowProperties != null && authFlowProperties.isRequireMfaForPrivilegedAccounts())) {
+        if (user.getMfaSecret() != null) {
             mfa.verify(user, code);
         }
     }
@@ -291,7 +296,7 @@ public class AuthFacade {
         user.setPasswordHash(com.transportplatform.tms.common.security.PasswordEncoding.encode(passwordEncoder, rawPassword));
         user.setPasswordChangedAt(clock.instant());
         user.setMustChangePassword(mustChangePassword);
-        user.setTemporaryPasswordExpiresAt(null);
+        user.setTemporaryPasswordExpiresAt(mustChangePassword ? clock.instant().plusSeconds(86400) : null);
     }
 
     private void clearPasswordResetState(AppUser user) {

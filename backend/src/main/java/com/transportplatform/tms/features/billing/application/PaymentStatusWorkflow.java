@@ -24,7 +24,7 @@ public final class PaymentStatusWorkflow {
     }
 
     public static void ensureCanVoid(Payment payment) {
-        if (payment.getStatus() == PaymentStatus.VOID || payment.getStatus() == PaymentStatus.FAILED) {
+        if (payment.getStatus() != PaymentStatus.RECORDED && payment.getStatus() != PaymentStatus.APPLIED && payment.getStatus() != PaymentStatus.PARTIALLY_APPLIED) {
             throw invalidTransition("Only recorded or applied payments can be voided.");
         }
     }

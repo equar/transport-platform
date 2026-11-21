@@ -26,5 +26,6 @@ public record PaymentSummaryResponse(
         String createdBy,
         Instant createdAt,
         String updatedBy,
-        Instant updatedAt) {
+        Instant updatedAt,
+        BigDecimal refundedAmount) {
 }

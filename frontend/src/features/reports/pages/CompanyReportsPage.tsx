@@ -326,8 +326,18 @@ const reportColumns: Record<ReportType, ColumnDefinition[]> = {
     },
     {
       key: "amount",
-      header: "Amount",
-      render: (row) => formatCurrency(Number(row.amount ?? 0), "USD"),
+      header: "Original amount",
+      render: (row) => formatCurrency(Number(row.amount ?? 0), String(row.currency ?? "USD")),
+    },
+    {
+      key: "refundedAmount",
+      header: "Refunded",
+      render: (row) => formatCurrency(Number(row.refundedAmount ?? 0), String(row.currency ?? "USD")),
+    },
+    {
+      key: "netCollectedAmount",
+      header: "Net collected",
+      render: (row) => formatCurrency(Number(row.netCollectedAmount ?? 0), String(row.currency ?? "USD")),
     },
     {
       key: "invoiceNumber",
