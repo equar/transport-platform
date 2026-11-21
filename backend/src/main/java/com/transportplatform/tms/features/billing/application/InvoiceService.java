@@ -59,6 +59,9 @@ public class InvoiceService {
     @org.springframework.beans.factory.annotation.Autowired
     private com.transportplatform.tms.features.driverearnings.application.DriverEarningsService driverEarningsService;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private InvoiceGenerationIdempotencyService invoiceGenerationIdempotencyService;
+
     private final InvoiceRepository invoiceRepository;
     private final InvoiceLineItemRepository invoiceLineItemRepository;
     private final BillingAccessService billingAccessService;
@@ -206,6 +209,7 @@ public class InvoiceService {
                         invoice.getId(),
                         invoice.getTenantId());
         InvoiceLineItem lineItem = invoiceMapper.toLineItem(invoice, request);
+        validateRideSource(invoice.getTenantId(), lineItem);
         lineItem.setLineNumber(existingItems.size() + 1);
         InvoiceLineItem saved = invoiceLineItemRepository.save(lineItem);
         recalculateAndSaveInvoice(invoice, existingItems, saved, null);
@@ -224,6 +228,7 @@ public class InvoiceService {
         InvoiceStatusWorkflow.ensureDraftEditable(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
         Object oldSnapshot = snapshot(lineItem);
         invoiceMapper.apply(lineItem, request);
+        validateRideSource(invoice.getTenantId(), lineItem);
         InvoiceLineItem saved = invoiceLineItemRepository.save(lineItem);
         recalculateAndSaveInvoice(invoice,
                 invoiceLineItemRepository.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(invoice.getId(),
@@ -274,6 +279,7 @@ public class InvoiceService {
                 billingReferenceValidationService.resolveBillableRide(invoice.getTenantId(), item.getSourceReferenceId());
             }
         }
+        validateRideSources(invoice.getTenantId(), lineItems);
         Object oldSnapshot = snapshot(invoice);
         invoice.setStatus(InvoiceStatus.ISSUED);
         Invoice saved = invoiceRepository.save(invoice);
@@ -300,6 +306,7 @@ public class InvoiceService {
         Object oldSnapshot = snapshot(invoice);
         invoice.setStatus(InvoiceStatus.VOID);
         invoice.setVoidReason(request.reason().trim());
+        invoiceLineItemRepository.releaseRideClaims(invoice.getId(), invoice.getTenantId());
         Invoice saved = invoiceRepository.save(invoice);
         recordInvoiceAudit(saved, "VOIDED", "Invoice " + saved.getInvoiceNumber() + " was voided.", oldSnapshot,
                 snapshot(saved));
@@ -321,8 +328,10 @@ public class InvoiceService {
     }
 
     @Transactional
-    public InvoiceDetailResponse generateManualInvoice(ManualInvoiceGenerationRequest request) {
+    public InvoiceDetailResponse generateManualInvoice(ManualInvoiceGenerationRequest request, String idempotencyKey) {
         billingAccessService.lockFinancialWrites();
+        var claim = invoiceGenerationIdempotencyService.claim(idempotencyKey, request);
+        if (!claim.claimedByCaller()) return getCompanyInvoice(claim.record().getInvoiceId());
         PreviewContext previewContext = buildPreviewContext(new BillingPreviewRequest(
                 request.billToType(),
                 request.billToId(),
@@ -370,12 +379,17 @@ public class InvoiceService {
                             "amount", request.manualOverrideAmount(),
                             "note", request.manualOverrideNote()));
         }
+        claim.record().setInvoiceId(savedInvoice.getId());
         return toDetail(savedInvoice);
     }
 
     private PreviewContext buildPreviewContext(BillingPreviewRequest request) {
         String tenantId = billingAccessService.requireCompanyTenantId();
         validatePreviewRequest(request);
+        if (request.rideIds() != null && (request.rideIds().stream().anyMatch(Objects::isNull)
+            || new java.util.HashSet<>(request.rideIds()).size() != request.rideIds().size())) {
+            throw validationFailure("Ride references must be present and unique.");
+        }
         BillingReferenceValidationService.ResolvedBillTo billTo = billingReferenceValidationService.resolveBillTo(
                 tenantId,
                 request.billToType(),
@@ -414,8 +428,35 @@ public class InvoiceService {
             lineItems.add(buildCalculatedLineItem(invoice, request, pricingRule));
         }
 
+        validateRideSources(tenantId, lineItems);
         recalculateTotals(invoice, lineItems);
         return new PreviewContext(invoice, lineItems, billTo, pricingRule);
+    }
+
+    private void validateRideSources(String tenantId, List<InvoiceLineItem> items) {
+        var seen = new java.util.HashSet<Long>();
+        for (var item : items) {
+            if (item.getChargeSourceType() != ChargeSourceType.RIDE) continue;
+            if (!seen.add(item.getSourceReferenceId())) {
+                throw validationFailure("A ride may appear only once in an invoice.");
+            }
+            validateRideSource(tenantId, item);
+        }
+    }
+
+    private void validateRideSource(String tenantId, InvoiceLineItem item) {
+        if (item.getChargeSourceType() != ChargeSourceType.RIDE) return;
+        if (item.getSourceReferenceId() == null) {
+            throw validationFailure("Ride charges require a ride reference.");
+        }
+        billingReferenceValidationService.resolveRide(tenantId, item.getSourceReferenceId());
+        boolean claimed = invoiceLineItemRepository
+            .findAllByTenantIdAndChargeSourceTypeAndSourceReferenceIdOrderByIdDesc(
+                tenantId, ChargeSourceType.RIDE, item.getSourceReferenceId()).stream()
+            .anyMatch(existing -> existing.getInvoice().getStatus() != InvoiceStatus.VOID
+                && !Objects.equals(existing.getId(), item.getId()));
+        if (claimed) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.CONFLICT,
+            "This ride is already included in a non-void invoice. Void that invoice or remove its draft line before rebilling.");
     }
 
     private PricingRule resolvePricingRule(String tenantId,

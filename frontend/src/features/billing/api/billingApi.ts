@@ -2,6 +2,7 @@ import { apiClient, unwrapResponse } from "../../../shared/api/client";
 import type { PageResponse } from "../../../shared/api/types";
 import type { RideTripType, ServiceType } from "../../rides/api/ridesApi";
 
+const invoiceIntentFallback = new Map<string, string>();
 const paymentIntentFallback = new Map<string, string>();
 
 export const pricingModelOptions = [
@@ -548,7 +549,17 @@ export const billingApi = {
     return unwrapResponse<BillingPreviewRecord>(response.data);
   },
   async generateInvoice(payload: InvoiceGenerationPayload) {
-    const response = await apiClient.post("/company/invoices/generate", payload);
+    const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(payload)));
+    const digest = Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
+    const storageKey = `invoice-intent:${digest}`;
+    let key = invoiceIntentFallback.get(storageKey);
+    try { key = sessionStorage.getItem(storageKey) ?? key; } catch { /* Storage may be disabled. */ }
+    if (!key) key = crypto.randomUUID();
+    invoiceIntentFallback.set(storageKey, key);
+    try { sessionStorage.setItem(storageKey, key); } catch { /* Keep identity in memory. */ }
+    const response = await apiClient.post("/company/invoices/generate", payload, { headers: { 'Idempotency-Key': key } });
+    invoiceIntentFallback.delete(storageKey);
+    try { sessionStorage.removeItem(storageKey); } catch { /* Storage is unavailable. */ }
     return unwrapResponse<InvoiceRecord>(response.data);
   },
   async searchPayments(params: {

@@ -140,7 +140,8 @@ public class InvoiceManagementController {
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<InvoiceDetailResponse> generateManualInvoice(
+            @org.springframework.web.bind.annotation.RequestHeader(name = "Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody ManualInvoiceGenerationRequest request) {
-        return ApiResponse.success(invoiceService.generateManualInvoice(request));
+        return ApiResponse.success(invoiceService.generateManualInvoice(request, idempotencyKey));
     }
 }

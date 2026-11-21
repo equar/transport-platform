@@ -32,6 +32,8 @@ import {
   serviceTypeOptions,
 } from "../../rides/api/ridesApi";
 
+import { getApiErrorMessage } from "../../../shared/api/client";
+
 interface InvoiceGenerationDialogProps {
   open: boolean;
   loading: boolean;
@@ -315,8 +317,8 @@ export function InvoiceGenerationDialog({
     try {
       const invoice = await billingApi.generateInvoice(buildPayload());
       onGenerated(invoice.id);
-    } catch {
-      setRequestError("The invoice could not be generated.");
+    } catch (error) {
+      setRequestError(getApiErrorMessage(error, "The invoice could not be generated. Retry with the same details if the result is uncertain."));
     } finally {
       setSubmitLoading(false);
     }
