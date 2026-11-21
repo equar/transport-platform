@@ -353,3 +353,11 @@ sudo systemctl start transport-platform-backend.service
 ```
 
 The policy is installed by the next backend deployment. See the [systemd start-limit documentation](https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#StartLimitIntervalSec=interval) for counter/reset semantics. Local verification covers the unit settings and activation order; a live server restart was not performed by this change.
+
+### Recover frontend changes missed by a failed rollout
+
+Automatic deployment compares the live admin `/release.json` commit with the current checkout, in addition to the current PR's changed files. Pending frontend changes are included even when they came from an earlier failed deployment. Checkout uses full history for this comparison. Missing, malformed or unavailable release metadata conservatively includes the frontend. Explicit manual `backend` / `frontend` targets retain their requested scope; choose `all` when recovering a mismatched release pair.
+
+A stale admin frontend can attempt subscription-plan requests without understanding the backend's mandatory authenticator enrollment. Deploy both current applications, reload the admin UI and sign in again. MFA enrollment currently defaults to optional; use Skip for now on the setup screen or enable it later in account settings. A true policy flag can require enrollment again. Refresh uses its own cookie/mobile credential and browser-origin validation, without a stale access token or tenant header. Rejected restoration clears cached sessions; MFA/password setup denials return an actionable reason and trigger fresh sign-in. Ordinary permission-denied responses do not sign the user out.
+
+MFA enrollment policy: set the GitHub Actions repository variable `APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS=false` for the current optional policy. Deployment and backend defaults are false. Existing enrolled accounts retain MFA protection; the Skip link is available only to unenrolled accounts when the server reports enrollment optional.

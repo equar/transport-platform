@@ -44,3 +44,21 @@ it("rejects a mobile-role response from web session restoration", async () => {
   await waitFor(() => expect(screen.getByText("signed out")).toBeTruthy());
   expect(window.sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBeNull();
 });
+
+it.each([401,403])('clears a persisted admin session when refresh authoritatively rejects it (%s)',async status=>{
+  const cached=mobileSession('ROLE_PLATFORM_ADMIN');cached.identity.tenantId=null;
+  window.sessionStorage.setItem(AUTH_SESSION_STORAGE_KEY,JSON.stringify(cached));
+  vi.mocked(authApi.restoreSession).mockRejectedValue({response:{status}});
+  render(<AuthProvider><Probe /></AuthProvider>);
+  await waitFor(()=>expect(screen.getByText('signed out')).toBeTruthy());
+  expect(window.sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBeNull();
+});
+
+it('restores the server MFA requirement instead of retaining a legacy admin identity',async()=>{
+  const legacy=mobileSession('ROLE_PLATFORM_ADMIN');legacy.identity.tenantId=null;
+  window.sessionStorage.setItem(AUTH_SESSION_STORAGE_KEY,JSON.stringify(legacy));
+  vi.mocked(authApi.restoreSession).mockResolvedValue({...legacy,identity:{...legacy.identity,mfaEnrollmentRequired:true}});
+  function RouteProbe(){return <output>{useAuth().getDefaultRoute()}</output>;}
+  render(<AuthProvider><RouteProbe /></AuthProvider>);
+  await screen.findByText('/account/authenticator');
+});

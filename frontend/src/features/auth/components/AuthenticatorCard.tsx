@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Stack, TextField, Typography } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
+import { Alert, Button, Link, Stack, TextField, Typography } from "@mui/material";
 import {
   apiClient,
   getApiErrorMessage,
@@ -197,6 +198,13 @@ export function AuthenticatorCard() {
             ) : null}
           </>
         )}
+        {status && status.required === false && status.enabled === false && !recovery.length ? <>
+          <Typography variant="body2" color="text.secondary">MFA is optional. You can enable it later in your account settings.</Typography>
+          <Link component={RouterLink} to="/login" onClick={event => {
+            if (busy) { event.preventDefault(); return; }
+            setSecret(null); setPassword(""); setCode(""); signOut();
+          }} aria-disabled={busy}>Skip for now</Link>
+        </> : null}
         {!recovery.length ? (
           <Button type="button" onClick={signOut} disabled={busy}>
             Sign out

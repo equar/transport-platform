@@ -98,6 +98,14 @@ class ConfigurationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'valid email'):
             settings(env)
 
+    def test_mfa_enrollment_is_optional_by_default_but_can_be_required(self):
+        values=environment()
+        self.assertEqual(settings(values)['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS'],'false')
+        values['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS']='true'
+        self.assertEqual(settings(values)['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS'],'true')
+        values['APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS']='invalid'
+        with self.assertRaisesRegex(ValueError,'true or false'): settings(values)
+
     def test_safe_defaults_and_runtime_tls(self):
         runtime = runtime_settings(settings(environment()))
         self.assertEqual(runtime['SPRING_PROFILES_ACTIVE'], 'prod')
@@ -303,6 +311,23 @@ esac
     def test_all_local_and_remote_scripts_parse(self):
         for path in (ROOT/'deployment').rglob('*.sh'):
             subprocess.run(['bash', '-n', str(path)], check=True, capture_output=True)
+
+
+
+class FrontendRecoverySelectionTests(unittest.TestCase):
+    def test_failed_rollout_changes_are_detected_from_the_live_frontend_baseline(self):
+        from unittest.mock import patch, MagicMock
+        response=MagicMock();response.__enter__.return_value.read.return_value=json.dumps({'release':'a'*40+'-123-1'}).encode()
+        with patch.object(changes.urllib.request,'urlopen',return_value=response), patch.object(changes.subprocess,'check_output',return_value=b'frontend/src/features/auth/access.ts\0') as diff:
+            self.assertTrue(changes.frontend_backlog('https://admin.example.invalid/release.json'))
+            self.assertEqual(diff.call_args.args[0][-2:],['a'*40,'HEAD'])
+        with patch.object(changes.urllib.request,'urlopen',return_value=response), patch.object(changes.subprocess,'check_output',return_value=b'backend/src/Service.java\0'):
+            self.assertFalse(changes.frontend_backlog('https://admin.example.invalid/release.json'))
+
+    def test_unavailable_baseline_does_not_silently_skip_the_frontend(self):
+        from unittest.mock import patch
+        with patch.object(changes.urllib.request,'urlopen',side_effect=OSError('Offline')):
+            self.assertTrue(changes.frontend_backlog('https://admin.example.invalid/release.json'))
 
 
 if __name__ == '__main__':

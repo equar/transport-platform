@@ -769,6 +769,131 @@ class MediumReviewMySqlIntegrationTest {
         }
     }
 
+    @Test
+    void platformAdminEnrollmentAndRefreshBoundariesProtectSubscriptionPlans() {
+        var login =
+                call(
+                        HttpMethod.POST,
+                        "/v1/auth/login",
+                        Map.of("email", "platform.admin@demo.test", "password", "Password123"),
+                        null);
+        assertThat(login.getStatusCode().value()).isEqualTo(200);
+        String token = login.getBody().path("data").path("accessToken").asText();
+        assertThat(
+                        login.getBody()
+                                .path("data")
+                                .path("user")
+                                .path("mfaEnrollmentRequired")
+                                .asBoolean())
+                .isTrue();
+        var forbidden = call(HttpMethod.GET, "/platform/subscription-plans", null, token);
+        assertThat(forbidden.getStatusCode().value()).isEqualTo(403);
+        assertThat(forbidden.getBody().path("error").path("details").path("authAction").asText())
+                .isEqualTo("ENROLL_MFA");
+        var headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.set("X-Tenant-Id", "stale-tenant");
+        headers.set("Cookie", login.getHeaders().getFirst("Set-Cookie").split(";", 2)[0]);
+        var refresh =
+                http.exchange(
+                        "http://localhost:" + port + "/api/v1/auth/refresh",
+                        HttpMethod.POST,
+                        new HttpEntity<>(null, headers),
+                        JsonNode.class);
+        // Refresh authenticates its own credential; the facade still refuses unenrolled MFA
+        // sessions.
+        assertThat(refresh.getStatusCode().value()).isEqualTo(401);
+        // Rejected refresh revokes old sessions; authenticate again before enrollment.
+        login =
+                call(
+                        HttpMethod.POST,
+                        "/v1/auth/login",
+                        Map.of("email", "platform.admin@demo.test", "password", "Password123"),
+                        null);
+        assertThat(login.getStatusCode().value()).isEqualTo(200);
+        token = login.getBody().path("data").path("accessToken").asText();
+        assertThat(
+                        call(
+                                        HttpMethod.POST,
+                                        "/v1/auth/mfa/setup",
+                                        Map.of("password", "Password123"),
+                                        token)
+                                .getStatusCode()
+                                .value())
+                .isEqualTo(200);
+        var user = users.findForAuthenticationByEmail("platform.admin@demo.test").orElseThrow();
+        byte[] secret =
+                ReflectionTestUtils.invokeMethod(
+                        mfa, "decrypt", user.getMfaPendingSecret(), user.getId());
+        String code = MfaService.totp(secret, Instant.now().getEpochSecond() / 30);
+        assertThat(
+                        call(
+                                        HttpMethod.POST,
+                                        "/v1/auth/mfa/activate",
+                                        Map.of("password", "Password123", "code", code),
+                                        token)
+                                .getStatusCode()
+                                .value())
+                .isEqualTo(200);
+        var signed =
+                call(
+                        HttpMethod.POST,
+                        "/v1/auth/login",
+                        Map.of(
+                                "email",
+                                "platform.admin@demo.test",
+                                "password",
+                                "Password123",
+                                "mfaCode",
+                                MfaService.totp(secret, Instant.now().getEpochSecond() / 30 + 1)),
+                        null);
+        assertThat(signed.getStatusCode().value()).isEqualTo(200);
+        assertThat(
+                        call(
+                                        HttpMethod.GET,
+                                        "/platform/subscription-plans",
+                                        null,
+                                        signed.getBody().path("data").path("accessToken").asText())
+                                .getStatusCode()
+                                .value())
+                .isEqualTo(200);
+        headers.set("Cookie", signed.getHeaders().getFirst("Set-Cookie").split(";", 2)[0]);
+        headers.set("Origin", "https://untrusted.example");
+        assertThat(
+                        http.exchange(
+                                        "http://localhost:" + port + "/api/v1/auth/refresh",
+                                        HttpMethod.POST,
+                                        new HttpEntity<>(null, headers),
+                                        String.class)
+                                .getStatusCode()
+                                .value())
+                .isEqualTo(403);
+        headers.remove("Origin");
+        var renewed =
+                http.exchange(
+                        "http://localhost:" + port + "/api/v1/auth/refresh",
+                        HttpMethod.POST,
+                        new HttpEntity<>(null, headers),
+                        JsonNode.class);
+        assertThat(renewed.getStatusCode().value()).isEqualTo(200);
+        assertThat(
+                        renewed.getBody()
+                                .path("data")
+                                .path("user")
+                                .path("mfaEnrollmentRequired")
+                                .asBoolean())
+                .isFalse();
+        assertThat(
+                        call(
+                                        HttpMethod.GET,
+                                        "/platform/subscription-plans",
+                                        null,
+                                        renewed.getBody().path("data").path("accessToken").asText())
+                                .getStatusCode()
+                                .value())
+                .isEqualTo(200);
+    }
+
     private ResponseEntity<JsonNode> call(
             HttpMethod method, String path, Object body, String token) {
         var h = new HttpHeaders();

@@ -41,6 +41,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        // Refresh authenticates its own cookie/mobile token and validates browser origin.
+        // A stale/restricted access token must not prevent that credential from being checked.
+        return "POST".equalsIgnoreCase(request.getMethod())
+            && "/v1/auth/refresh".equals(request.getRequestURI().substring(request.getContextPath().length()));
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
@@ -101,6 +109,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     true,
                     storedUser.isMustChangePassword(),
                     storedUser.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.name())).toList(), storedUser.getSecurityVersion());
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null,
+                    List.copyOf(user.getAuthorities()));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
             String endpoint = request.getRequestURI().substring(request.getContextPath().length());
             if (user.mustChangePassword() && !java.util.Set.of("/v1/auth/change-password", "/v1/auth/logout",
                     "/v1/auth/status", "/runtime/tenant-branding").contains(endpoint)) {
@@ -112,9 +123,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 deniedHandler.handle(request, response, new org.springframework.security.access.AccessDeniedException("MFA enrollment required"));
                 return;
             }
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null,
-                    List.copyOf(user.getAuthorities()));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
             if (storedUser.getTenantId() != null && !storedUser.getTenantId().isBlank()) {
                 TenantContext.setTenantId(storedUser.getTenantId());
             }

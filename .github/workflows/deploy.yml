@@ -44,7 +44,7 @@ jobs:
       APP_SECURITY_JWT_SECRET: ${{ secrets.APP_SECURITY_JWT_SECRET }}
       APP_PRIVACY_ACTIVE_KEY_ID: ${{ vars.APP_PRIVACY_ACTIVE_KEY_ID }}
       APP_SECURITY_MFA_ENCRYPTION_KEY: ${{ secrets.APP_SECURITY_MFA_ENCRYPTION_KEY }}
-      APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS: ${{ vars.APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS || 'true' }}
+      APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS: ${{ vars.APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS || 'false' }}
       APP_PUBLIC_URL: ${{ vars.APP_PUBLIC_URL || 'https://transport.bakaroo.com' }}
       APP_ADMIN_URL: ${{ vars.APP_ADMIN_URL || 'https://admin.transport.bakaroo.com' }}
       VITE_PUBLIC_SITE_URL: ${{ vars.APP_PUBLIC_URL || 'https://transport.bakaroo.com' }}
@@ -79,7 +79,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
-          fetch-depth: 2
+          fetch-depth: 0
       - name: Detect affected applications
         id: changes
         env:
@@ -89,7 +89,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          arguments=(--target "$DEPLOY_TARGET")
+          arguments=(--target "$DEPLOY_TARGET" --frontend-release-url "$APP_ADMIN_URL/release.json")
           if [[ "$EVENT_NAME" == pull_request ]]; then
             gh api --paginate --slurp "repos/$GH_REPO/pulls/$PR_NUMBER/files" > "$RUNNER_TEMP/transport-pr-files.json"
             arguments+=(--paths-json "$RUNNER_TEMP/transport-pr-files.json")

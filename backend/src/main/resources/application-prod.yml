@@ -17,7 +17,7 @@ management:
 
 app:
   auth:
-    require-mfa-for-privileged-accounts: true
+    require-mfa-for-privileged-accounts: ${APP_AUTH_REQUIRE_MFA_FOR_PRIVILEGED_ACCOUNTS:false}
   bootstrap:
     platform-admin:
       email-enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL_ENABLED:false}
