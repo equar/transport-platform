@@ -90,7 +90,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
         throw new Error('This account needs one driver, rider, or guardian profile. Contact your transport provider, or use the web portal for administration.');
       }
       useOfflineQueue.getState().retainOwner({ tenantId: next.identity.tenantId!, userId: next.identity.id });
-      await setSessionValue(SESSION_KEY, JSON.stringify(next));
+      try {
+        await setSessionValue(SESSION_KEY, JSON.stringify(next));
+      } catch (error) {
+        await deleteSessionValue(SESSION_KEY).catch(() => undefined);
+        // Best-effort revoke the newly issued refresh session when local persistence fails.
+        void authApi.signOut(next.refreshToken).catch(() => undefined);
+        throw error;
+      }
       setSession(next);
       return next;
     },

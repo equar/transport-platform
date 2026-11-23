@@ -1,3 +1,5 @@
+import { TripContactCard } from '@components/TripContactCard';
+import { requestErrorMessage } from '@utils/requestError';
 import {TripDeliveryEvidence} from '@components/TripDeliveryEvidence';
 import { useTripScreenVisible, foregroundTripRefreshOptions } from '@hooks/useTripScreenVisible';
 import { FormScrollView } from '@components/FormScrollView';
@@ -67,7 +69,7 @@ export default function RiderRideDetailPage() {
     onSuccess: () => {
       void qc.invalidateQueries();
     },
-    onError: (err: Error) => Alert.alert('Error', err.message),
+    onError: (err: Error) => Alert.alert('Couldn’t cancel trip', requestErrorMessage(err)),
   });
 
   function handleCancel() {
@@ -116,6 +118,7 @@ export default function RiderRideDetailPage() {
         <Row label="To" value={ride.dropoffAddress ?? '—'} />
       </View>
 
+      <TripContactCard title="Driver" name={ride.driverName} phone={ride.driverPhone} callLabel="Call driver" emptyLabel="Driver details not available yet" />
       <TripDeliveryEvidence rideId={ride.id} status={ride.status} destination={ride.dropoffAddress ?? undefined} />
       {isTrackableTrip(ride.status) && (
 <TripTrackingCard

@@ -1,10 +1,15 @@
 /** Safe, actionable defaults for failures without a user-facing API message. */
 export function requestErrorMessage(error: unknown, fallback = 'Please try again. If this continues, contact your transport provider.'): string {
-  const e = error as { response?: { status?: number; headers?: Record<string, unknown>; data?: { error?: { message?: unknown; details?: { fieldErrors?: Record<string, unknown>; retryAfterSeconds?: unknown } } } }; code?: string; message?: string } | null;
+  const e = error as { config?: { url?: string }; response?: { status?: number; headers?: Record<string, unknown>; data?: { error?: { message?: unknown; details?: { fieldErrors?: Record<string, unknown>; retryAfterSeconds?: unknown } } } }; code?: string; message?: string } | null;
   const status = e?.response?.status;
   if (e?.code === 'ERR_CANCELED') return 'This request was cancelled. Open the screen again to continue.';
   if (e?.code === 'ECONNABORTED' || e?.code === 'ETIMEDOUT') return 'The request timed out. Check your connection and try again.';
   if (e?.code === 'ERR_NETWORK' || (!e?.response && e?.message === 'Network Error')) return 'You’re offline or the service can’t be reached. Check your connection and try again.';
+  if (status === 401 && typeof e?.config?.url === 'string' && e.config.url.split('?')[0].endsWith('/v1/auth/login')) {
+    const message = e.response?.data?.error?.message;
+    return typeof message === 'string' && message.trim() && message.length <= 500
+      ? message : 'Check your email, password and authenticator code, then try again.';
+  }
   if (status === 401) return 'Your session has expired. Sign in again to continue.';
   if (status === 404) return 'This item is no longer available. Go back and refresh the list.';
   const details = e?.response?.data?.error?.details;

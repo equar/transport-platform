@@ -181,6 +181,8 @@ export interface DriverPortalRideSummaryRecord {
 }
 
 export interface DriverPortalRideDetailRecord extends DriverPortalRideSummaryRecord {
+  riderPhone?: string | null;
+  guardianPhone?: string | null;
   returnPickupAt: string | null;
   returnDropoffAt: string | null;
   wheelchairRequired: boolean;

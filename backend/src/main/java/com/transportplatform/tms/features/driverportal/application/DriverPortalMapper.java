@@ -136,7 +136,9 @@ public class DriverPortalMapper {
                 ride.getCompanionCount(),
                 ride.getSpecialInstructions(),
                 ride.getOperationalNotes(),
-                ride.getRouteId(), ride.getLinkedRideId(), ride.getJourneyLeg());
+                ride.getRouteId(), ride.getLinkedRideId(), ride.getJourneyLeg(),
+                ride.getRider().getPrimaryPhone(),
+                ride.getGuardian() == null ? null : ride.getGuardian().getPhone());
     }
 
     public DriverPortalRouteSummaryResponse toRouteSummaryResponse(Route route, long linkedRideCount) {

@@ -1,3 +1,4 @@
+import { TripContactCard } from '@components/TripContactCard';
 import * as Location from 'expo-location';
 import {tripEvidenceApi} from '@api/tripEvidenceApi';
 import {TripDeliveryEvidence} from '@components/TripDeliveryEvidence';
@@ -262,6 +263,9 @@ export default function DriverRideDetailPage() {
         </View>
       </View>
 
+      <TripContactCard title="Rider" name={ride.riderName} phone={ride.riderPhone} callLabel="Call rider" />
+      <TripContactCard title="Guardian" name={ride.guardianName} phone={ride.guardianPhone} callLabel="Call guardian" emptyLabel="No guardian listed for this trip" />
+
       {ride.status === 'COMPLETED' ? (
         <View style={styles.earningsCard}>
           <Text style={styles.earningsTitle}>Trip earnings</Text>
@@ -339,16 +343,13 @@ export default function DriverRideDetailPage() {
           ) : null}
         </Section>
       )}
-      {/* Rider */}
-      <Section title="Rider">
-        <Row label="Name" value={ride.riderName} />
-        {ride.guardianName ? <Row label="Guardian" value={ride.guardianName} /> : null}
+      {(ride.wheelchairRequired || ride.escortRequired || ride.companionCount > 0) ? <Section title="Passenger needs">
         {ride.wheelchairRequired ? <Row label="Needs" value="Wheelchair required" /> : null}
         {ride.escortRequired ? <Row label="Escort" value="Required" /> : null}
         {ride.companionCount > 0 ? (
           <Row label="Companions" value={String(ride.companionCount)} />
         ) : null}
-      </Section>
+      </Section> : null}
 
       {/* Schedule */}
       <Section title="Schedule">

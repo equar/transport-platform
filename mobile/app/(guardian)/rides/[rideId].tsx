@@ -1,3 +1,4 @@
+import { TripContactCard } from '@components/TripContactCard';
 import {TripDeliveryEvidence} from '@components/TripDeliveryEvidence';
 import { useTripScreenVisible, foregroundTripRefreshOptions } from '@hooks/useTripScreenVisible';
 import { isTrackableTrip } from '@utils/tripPresentation';
@@ -81,6 +82,7 @@ export default function GuardianRideDetailPage() {
 				</View>
 			</View>
 
+      <TripContactCard title="Driver" name={ride.driverName} phone={ride.driverPhone} callLabel="Call driver" emptyLabel="Driver details not available yet" />
       <TripDeliveryEvidence rideId={ride.id} status={ride.status} destination={ride.dropoffAddress ?? undefined} />
       {trackingActive ? <TripTrackingCard
         title="Driver location"

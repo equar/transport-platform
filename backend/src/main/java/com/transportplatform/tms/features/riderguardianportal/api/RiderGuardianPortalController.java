@@ -77,6 +77,7 @@ public class RiderGuardianPortalController {
     public ApiResponse<PageResponse<PortalRideSummaryResponse>> searchRides(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) RideStatus status,
+            @RequestParam(required = false) PortalTripView view,
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate,
             @RequestParam(defaultValue = "0") int page,
@@ -84,7 +85,7 @@ public class RiderGuardianPortalController {
             @RequestParam(defaultValue = "scheduledPickupAt") String sortBy,
             @RequestParam(defaultValue = "ASC") Sort.Direction sortDirection) {
         return ApiResponse
-                .success(service.searchRides(keyword, status, fromDate, toDate, page, size, sortBy, sortDirection));
+                .success(service.searchRides(keyword, status, fromDate, toDate, page, size, sortBy, sortDirection, view));
     }
 
     @GetMapping("/portal/rider/rides/{rideId}")
