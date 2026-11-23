@@ -25,7 +25,7 @@ jest.mock('@tanstack/react-query', () => ({ useInfiniteQuery: () => ({
   data: { pages: [{ items: mockRides }] },
 }), useQuery: ({ queryKey }: { queryKey: string[] }) => ({
   isLoading: false, isError: false, isRefetching: false, refetch: jest.fn(),
-  data: queryKey[0] === 'guardian-next-rides' ? { items: mockRides } : queryKey[0] === 'driver-dashboard' ? { ridesToday: 7, assignedRides: 3, activeRoutesToday: 2, unresolvedComplianceIssues: 1 } : queryKey[0].endsWith('-dashboard') ? { upcomingRideCount: 4, activeRideCount: 1, openInvoiceCount: 2, linkedRiderCount: 3, unreadNotifications: 0 } : { items: [] },
+  data: queryKey[0].endsWith('-next-rides') ? { items: mockRides } : queryKey[0] === 'driver-dashboard' ? { ridesToday: 7, assignedRides: 3, activeRoutesToday: 2, unresolvedComplianceIssues: 1 } : queryKey[0].endsWith('-dashboard') ? { upcomingRideCount: 4, activeRideCount: 1, openInvoiceCount: 2, linkedRiderCount: 3, unreadNotifications: 0 } : { items: [] },
 }) }));
 beforeEach(() => { jest.clearAllMocks(); mockRides = mockRiderItems; });
 it('centers the login heading and omits the sign-in description', () => {
@@ -100,7 +100,7 @@ it('shows assigned travel and existing billing actions without a service catalog
   render(<PassengerHomeScreen />);
   expect(screen.queryByRole('button', { name: 'Request a ride' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Student' })).toBeNull();
-  fireEvent.press(screen.getByRole('button', { name: 'Trips' }));
+  fireEvent.press(screen.getByRole('button', { name: 'All trips' }));
   expect(mockPush).toHaveBeenCalledWith('/(rider)/rides');
   fireEvent.press(screen.getByRole('button', { name: 'Invoices & payments' }));
   expect(mockPush).toHaveBeenCalledWith('/(rider)/billing');
@@ -124,4 +124,13 @@ it('keeps dropped-off trips available until final completion', () => {
   expect(screen.getByText('AWAITING-CONFIRMATION')).toBeTruthy();
   fireEvent.press(screen.getByRole('tab', { name: 'History' }));
   expect(screen.queryByText('AWAITING-CONFIRMATION')).toBeNull();
+});
+
+it('routes a successful rider sign-in to the rider portal', async () => {
+  mockSignIn.mockResolvedValueOnce({ identity: { id: 10, tenantId: 'test-tenant', roles: ['ROLE_RIDER'], mustChangePassword: false } });
+  render(<LoginPage />);
+  fireEvent.changeText(screen.getByLabelText('Email address'), 'rider@example.test');
+  fireEvent.changeText(screen.getByLabelText('Password'), 'test-passphrase');
+  fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+  await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(rider)'));
 });

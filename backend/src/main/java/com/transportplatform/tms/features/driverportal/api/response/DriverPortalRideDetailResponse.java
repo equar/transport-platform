@@ -25,5 +25,6 @@ public record DriverPortalRideDetailResponse(
         int companionCount,
         String specialInstructions,
         String operationalNotes,
-        Long routeId, Long linkedRideId, String journeyLeg) {
+        Long routeId, Long linkedRideId, String journeyLeg,
+        String riderPhone, String guardianPhone) {
 }

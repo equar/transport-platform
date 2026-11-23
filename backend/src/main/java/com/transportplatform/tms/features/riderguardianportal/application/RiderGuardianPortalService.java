@@ -272,16 +272,24 @@ public class RiderGuardianPortalService {
             int size,
             String sortBy,
             Sort.Direction sortDirection) {
+        return searchRides(keyword,status,fromDate,toDate,page,size,sortBy,sortDirection,null);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<PortalRideSummaryResponse> searchRides(String keyword, RideStatus status,
+            LocalDate fromDate, LocalDate toDate, int page, int size, String sortBy, Sort.Direction sortDirection,
+            com.transportplatform.tms.features.riderguardianportal.api.PortalTripView view) {
         var scope = accessService.resolveCurrentScope();
         List<Long> riderIds = scope.linkedRiders().stream().map(Rider::getId).toList();
         LocalDateTime fromDateTime = fromDate == null ? null : fromDate.atStartOfDay();
         LocalDateTime toDateTime = toDate == null ? null : LocalDateTime.of(toDate, LocalTime.MAX);
         Sort.Direction resolvedSortDirection = Objects.requireNonNullElse(sortDirection, Sort.Direction.ASC);
-        var pageable = PageRequest.of(page, size, Sort.by(resolvedSortDirection, resolveRideSortField(sortBy)));
+        var pageable = PageRequest.of(page, size, Sort.by(resolvedSortDirection, resolveRideSortField(sortBy)).and(Sort.by(resolvedSortDirection, "id")));
         if (scope.scopeType() == PortalSubjectType.GUARDIAN && riderIds.isEmpty()) {
             return PageResponse.from(org.springframework.data.domain.Page.<PortalRideSummaryResponse>empty(pageable));
         }
-        var result = rideRepository.findAll((root, query, builder) -> buildRideScopePredicate(
+        var result = rideRepository.findAll((root, query, builder) -> {
+            var scoped = buildRideScopePredicate(
                 scope,
                 root,
                 query,
@@ -290,7 +298,13 @@ public class RiderGuardianPortalService {
                 status,
                 fromDateTime,
                 toDateTime,
-                riderIds), pageable);
+                riderIds);
+            if (view == null) return scoped;
+            var finished = root.get("status").in(java.util.Set.of(RideStatus.COMPLETED, RideStatus.CANCELLED,
+                    RideStatus.MISSED, RideStatus.FAILED, RideStatus.RIDER_NO_SHOW));
+            return builder.and(scoped, view == com.transportplatform.tms.features.riderguardianportal.api.PortalTripView.HISTORY
+                    ? finished : builder.not(finished));
+        }, pageable);
         return PageResponse.from(result.map(this::toRideSummary));
     }
 
@@ -580,7 +594,12 @@ public class RiderGuardianPortalService {
                 ride.getRecurrenceSchedule() == null ? null : ride.getRecurrenceSchedule().getId());
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.features.driver.domain.DriverRepository tripDriverRepository;
+
     private RiderGuardianPortalRideDetailResponse toRideDetail(Ride ride) {
+        var driver = ride.getDriverId() == null ? null : tripDriverRepository
+                .findByIdAndTenantId(ride.getDriverId(), ride.getTenantId()).orElse(null);
         return new RiderGuardianPortalRideDetailResponse(
                 ride.getId(),
                 ride.getRideNumber(),
@@ -599,7 +618,9 @@ public class RiderGuardianPortalService {
                         ride.getDropoffState(), ride.getDropoffZipCode()),
                 ride.getRouteId(),
                 ride.getRecurrenceSchedule() == null ? null : ride.getRecurrenceSchedule().getId(),
-                ride.getRecurrenceSchedule() != null, ride.getLinkedRideId(), ride.getJourneyLeg());
+                ride.getRecurrenceSchedule() != null, ride.getLinkedRideId(), ride.getJourneyLeg(),
+                driver == null ? null : displayName(driver.getFirstName(), driver.getLastName()),
+                driver == null ? null : driver.getPhone());
     }
 
     private boolean canAccessRide(RiderGuardianPortalAccessService.ResolvedRiderGuardianScope scope, Ride ride) {

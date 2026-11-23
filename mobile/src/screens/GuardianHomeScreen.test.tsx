@@ -2,7 +2,7 @@ import React from 'react';
 import { Text } from 'react-native';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { GuardianHomeScreen } from './GuardianHomeScreen';
+import { GuardianHomeScreen, PassengerTripHomeScreen } from './GuardianHomeScreen';
 import { riderPortalApi, type RiderPortalRideRecord } from '@api/riderPortalApi';
 
 const mockPush = jest.fn();
@@ -25,10 +25,10 @@ beforeEach(() => {
   }));
 });
 afterEach(() => { cleanup(); clients.splice(0).forEach(client => client.clear()); });
-function open() {
+function open(role?: 'rider') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   clients.push(client);
-  return render(<QueryClientProvider client={client}><GuardianHomeScreen /></QueryClientProvider>);
+  return render(<QueryClientProvider client={client}>{role ? <PassengerTripHomeScreen role={role} /> : <GuardianHomeScreen />}</QueryClientProvider>);
 }
 it('puts every active linked rider before upcoming trips with a direct live-map action', async () => {
   open();
@@ -80,4 +80,16 @@ it('keeps arrival confirmation separate from active tracking', async () => {
   fireEvent.press(await screen.findByRole('button', { name: 'Review delivery' }));
   expect(mockPush).toHaveBeenLastCalledWith('/(guardian)/rides/5');
   expect(screen.queryByRole('button', { name: 'Track Delivered rider trip TRIP-5' })).toBeNull();
+});
+
+it('gives riders direct tracking and arrival review without guardian-only actions', async () => {
+  const original = jest.mocked(riderPortalApi.searchRides).getMockImplementation()!;
+  jest.mocked(riderPortalApi.searchRides).mockImplementation(params => params?.status !== 'DROPPED_OFF' ? original(params) : Promise.resolve({ items: [ride(5, 'Taylor', 'DROPPED_OFF')], page: 0, totalPages: 1, totalElements: 1, size: 20 }));
+  open('rider');
+  fireEvent.press(await screen.findByRole('button', { name: 'Track Mariam trip TRIP-1' }));
+  expect(mockPush).toHaveBeenLastCalledWith('/(rider)/rides/1?track=1');
+  fireEvent.press(await screen.findByRole('button', { name: 'Review delivery' }));
+  expect(mockPush).toHaveBeenLastCalledWith('/(rider)/rides/5');
+  expect(screen.queryByText('Linked riders')).toBeNull();
+  expect(riderPortalApi.getDashboard).not.toHaveBeenCalled();
 });

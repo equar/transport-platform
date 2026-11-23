@@ -12,6 +12,8 @@ it('requires password replacement before entering a portal', () => {
   expect(mobileDefaultRoute(session('ROLE_DRIVER', true))).toBe('/(auth)/change-password');
   expect(mobileDefaultRoute(session('ROLE_DRIVER'))).toBe('/(driver)');
   expect(mobileDefaultRoute(session('ROLE_GUARDIAN'))).toBe('/(guardian)');
+  expect(mobileDefaultRoute(session('ROLE_RIDER'))).toBe('/(rider)');
+  expect(mobileDefaultRoute(session('ROLE_RIDER', true))).toBe('/(auth)/change-password');
 });
 
 it('routes signed-in web-only roles to a sign-out-capable support screen', () => {

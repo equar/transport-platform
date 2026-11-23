@@ -81,6 +81,8 @@ export interface RiderPortalRideRecord {
 }
 
 export interface RiderPortalRideDetailRecord extends RiderPortalRideRecord {
+  driverName?: string | null;
+  driverPhone?: string | null;
   recurringRide: boolean;
   wheelchairRequired?: boolean;
   escortRequired?: boolean;

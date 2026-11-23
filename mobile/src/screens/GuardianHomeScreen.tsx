@@ -18,7 +18,9 @@ import { requestErrorMessage } from '@utils/requestError';
 import { isFinishedTrip, isTrackableTrip, tripStatusLabel } from '@utils/tripPresentation';
 import type { BrandColors } from '@theme/branding';
 
-export function GuardianHomeScreen() {
+export function GuardianHomeScreen() { return <PassengerTripHomeScreen role="guardian" />; }
+
+export function PassengerTripHomeScreen({ role }: { role: 'rider' | 'guardian' }) {
   const { session } = useAuth();
   const router = useRouter();
   const visible = useTripScreenVisible();
@@ -26,7 +28,7 @@ export function GuardianHomeScreen() {
   const { width, fontScale } = useWindowDimensions();
   const stacked = width < 360 || fontScale > 1.3;
   const active = useInfiniteQuery({
-    queryKey: ['guardian-active-rides'],
+    queryKey: [`${role}-active-rides`],
     queryFn: ({ pageParam }) => guardianActiveRidesPage(pageParam),
     initialPageParam: 0,
     getNextPageParam: last => last.page + 1 < last.totalPages ? last.page + 1 : undefined,
@@ -35,7 +37,7 @@ export function GuardianHomeScreen() {
     staleTime: 0,
   });
   const trips = useQuery({
-    queryKey: ['guardian-next-rides'],
+    queryKey: [`${role}-next-rides`],
     queryFn: () => nextTripsPage(riderPortalApi.searchRides, passengerNextStatuses),
     enabled: visible,
     ...foregroundTripRefreshOptions,
@@ -47,7 +49,7 @@ export function GuardianHomeScreen() {
   const refresh = () => { void active.refetch(); void trips.refetch(); };
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content}
     refreshControl={<RefreshControl refreshing={active.isRefetching && !active.isFetchingNextPage || trips.isRefetching} onRefresh={refresh} />}>
-    <DashboardHeader name={session?.identity.firstName?.trim() || 'Guardian'} role="guardian" />
+    <DashboardHeader name={session?.identity.firstName?.trim() || (role === 'guardian' ? 'Guardian' : 'Rider')} role={role} />
     <SectionHeader title="Active rides" />
     {active.isPending ? <Text accessibilityLiveRegion="polite" style={styles.body}>Loading active rides…</Text> : active.isError ?
       <AppCard style={styles.card}><Text accessibilityRole="alert" style={styles.body}>{requestErrorMessage(active.error, 'Active rides couldn’t be loaded. Try again.')}</Text><AppButton label="Retry active rides" onPress={() => void active.refetch()} /></AppCard> : activeRides.length ?
@@ -55,7 +57,7 @@ export function GuardianHomeScreen() {
         <View style={[styles.row, stacked && styles.stacked]}>
           <View style={styles.rider}><Text style={styles.name}>{ride.riderName || 'Rider'}</Text><Text style={styles.status}>{tripStatusLabel(ride.status)}</Text></View>
           <AppButton label="Track" accessibilityLabel={`Track ${ride.riderName || 'rider'} trip ${ride.rideNumber}`} accessibilityHint="Opens the trip’s live map" leftIcon="map-marker-radius-outline" fullWidth={stacked}
-            onPress={() => router.push(`/(guardian)/rides/${ride.id}?track=1` as never)} />
+            onPress={() => router.push(`/(${role})/rides/${ride.id}?track=1` as never)} />
         </View>
       </AppCard>) : <AppCard><Text style={styles.body}>No active rides right now.</Text></AppCard>}
     {active.hasNextPage && !active.isError ? <AppButton label="Load more active rides" variant="ghost" loading={active.isFetchingNextPage} onPress={() => { if (!active.isFetchingNextPage) void active.fetchNextPage(); }} /> : null}
@@ -64,12 +66,12 @@ export function GuardianHomeScreen() {
       {trips.isPending ? <Text style={styles.body}>Loading your trips…</Text> : trips.isError ? <><Text accessibilityRole="alert" style={styles.body}>{requestErrorMessage(trips.error, 'Upcoming trips couldn’t be loaded.')}</Text><AppButton label="Retry trips" variant="ghost" onPress={() => void trips.refetch()} /></> : next ? <>
         <Text style={styles.name}>{next.riderName}</Text><AppBadge status={next.status} />
         <Text style={styles.body}>{formatShortDateTime(next.scheduledPickupAt)}</Text>
-        <AppButton label={next.status === 'DROPPED_OFF' ? 'Review delivery' : 'View trip details'} variant="ghost" onPress={() => router.push(`/(guardian)/rides/${next.id}` as never)} />
+        <AppButton label={next.status === 'DROPPED_OFF' ? 'Review delivery' : 'View trip details'} variant="ghost" onPress={() => router.push(`/(${role})/rides/${next.id}` as never)} />
       </> : <Text style={styles.body}>No upcoming trips.</Text>}
     </AppCard>
-    <ActionRow icon="car-outline" title="All trips" onPress={() => router.push('/(guardian)/rides')} />
-    <ActionRow icon="account-group-outline" title="Linked riders" onPress={() => router.push('/(guardian)/riders')} />
-    <ActionRow icon="receipt-text-outline" title="Invoices & payments" onPress={() => router.push('/(guardian)/billing')} />
+    <ActionRow icon="car-outline" title="All trips" onPress={() => router.push(`/(${role})/rides` as never)} />
+    {role === 'guardian' ? <ActionRow icon="account-group-outline" title="Linked riders" onPress={() => router.push('/(guardian)/riders')} /> : null}
+    <ActionRow icon="receipt-text-outline" title="Invoices & payments" onPress={() => router.push(`/(${role})/billing` as never)} />
   </ScrollView>;
 }
 const createStyles = (colors: BrandColors) => StyleSheet.create({

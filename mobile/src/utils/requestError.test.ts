@@ -16,3 +16,9 @@ it('shows field corrections and a server-provided retry delay', () => {
   expect(requestErrorMessage({ response: { status: 422, data: { error: { details: { fieldErrors: { phone: 'Enter a valid phone number.' } } } } } })).toBe('Enter a valid phone number.');
   expect(requestErrorMessage({ response: { status: 429, headers: { 'retry-after': '45' } } })).toContain('45 seconds');
 });
+
+it('distinguishes rejected sign-in details from an expired existing session', () => {
+  expect(requestErrorMessage({ config: { url: '/v1/auth/login' }, response: { status: 401, data: { error: { message: 'Enter a valid authenticator code.' } } } })).toBe('Enter a valid authenticator code.');
+  expect(requestErrorMessage({ config: { url: '/v1/auth/login' }, response: { status: 401 } })).toContain('email, password');
+  expect(requestErrorMessage({ config: { url: '/portal/rider/rides' }, response: { status: 401 } })).toContain('session has expired');
+});

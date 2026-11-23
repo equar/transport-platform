@@ -51,6 +51,80 @@ class ProductionWorkflowMySqlTest {
                 Map.of("X-Client-Platform",Set.of("driver","rider","guardian").contains(role)?"mobile":"web"));
         assertEquals(200,r.getStatusCode().value(),r.toString());return r.getBody().path("data").path("accessToken").asText();
     }
+    @Test void riderLoginListsOwnUpcomingTripsBeforePagingAndRejectsOtherRidersDetailsAndTracking() {
+        String token=login("rider");
+        long rider=jdbc.queryForObject("SELECT id FROM riders WHERE email='rider@demo.test'",Long.class);
+        long source=jdbc.queryForObject("SELECT id FROM rides WHERE rider_id=? ORDER BY id LIMIT 1",Long.class,rider);
+        String tenant=jdbc.queryForObject("SELECT tenant_id FROM riders WHERE id=?",String.class,rider);
+        long otherRider=jdbc.queryForObject("SELECT id FROM riders WHERE tenant_id=? AND id<>? ORDER BY id LIMIT 1",Long.class,tenant,rider);
+        String prefix="PORTAL-"+UUID.randomUUID().toString().substring(0,8)+"-";
+        java.util.List<String> columns=jdbc.queryForList("SELECT column_name FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='rides' AND column_name<>'id' AND generation_expression='' ORDER BY ordinal_position",String.class);
+        var ids=new java.util.ArrayList<Long>();
+        try {
+            for(int i=0;i<27;i++) {
+                int index=i;
+                var parameters=new java.util.ArrayList<Object>();
+                String expressions=columns.stream().map(column -> {
+                    Object value=switch(column) {
+                        case "ride_number" -> prefix+index;
+                        case "rider_id" -> index==26?otherRider:rider;
+                        case "status" -> index<25?"COMPLETED":"ASSIGNED";
+                        case "scheduled_pickup_at" -> java.time.LocalDateTime.of(2020,1,1,10,0).plusDays(index);
+                        case "scheduled_dropoff_at" -> java.time.LocalDateTime.of(2020,1,1,11,0).plusDays(index);
+                        default -> null;
+                    };
+                    if(value==null)return "`"+column+"`";
+                    parameters.add(value);return "?";
+                }).collect(java.util.stream.Collectors.joining(","));
+                parameters.add(source);
+                jdbc.update("INSERT INTO rides("+columns.stream().map(c->"`"+c+"`").collect(java.util.stream.Collectors.joining(","))+") SELECT "+expressions+" FROM rides WHERE id=?",parameters.toArray());
+                ids.add(jdbc.queryForObject("SELECT id FROM rides WHERE ride_number=? AND tenant_id=?",Long.class,prefix+i,tenant));
+            }
+            var upcoming=call(HttpMethod.GET,"/portal/rider/rides?view=UPCOMING&keyword="+prefix+"&size=1",null,token,Map.of());
+            assertEquals(200,upcoming.getStatusCode().value(),upcoming.toString());
+            assertEquals(1,upcoming.getBody().path("data").path("totalElements").asInt());
+            assertEquals(ids.get(25).longValue(),upcoming.getBody().path("data").path("items").get(0).path("id").asLong());
+            var history=call(HttpMethod.GET,"/portal/rider/rides?view=HISTORY&keyword="+prefix+"&size=3&sortDirection=DESC",null,token,Map.of());
+            assertEquals(25,history.getBody().path("data").path("totalElements").asInt());
+            assertEquals(3,history.getBody().path("data").path("items").size());
+            assertEquals(200,call(HttpMethod.GET,"/portal/rider/rides/"+ids.get(25),null,token,Map.of()).getStatusCode().value());
+            for(String suffix:java.util.List.of("","/location-snapshot","/location-history","/delivery-evidence")) {
+                int status=call(HttpMethod.GET,"/portal/rider/rides/"+ids.get(26)+suffix,null,token,Map.of()).getStatusCode().value();
+                assertTrue(status==403 || status==404,"Other rider data must remain inaccessible: "+suffix);
+            }
+            assertEquals(400,call(HttpMethod.GET,"/portal/rider/rides?view=INVALID",null,token,Map.of()).getStatusCode().value());
+        } finally { jdbc.update("DELETE FROM rides WHERE tenant_id=? AND ride_number LIKE ?",tenant,prefix+"%"); }
+    }
+
+    @Test void tripContactsAreSharedOnlyWithAuthorizedParticipants() {
+        String riderToken=login("rider"),guardianToken=login("guardian"),driverToken=login("driver");
+        long trip=jdbc.queryForObject("SELECT id FROM rides WHERE ride_number='RIDE-TODAY-001'",Long.class);
+        for(String token:java.util.List.of(riderToken,guardianToken)) {
+            var response=call(HttpMethod.GET,"/portal/rider/rides/"+trip,null,token,Map.of());
+            assertEquals(200,response.getStatusCode().value(),response.toString());
+            var data=response.getBody().path("data");
+            assertEquals("James Wilson",data.path("driverName").asText());
+            assertEquals("404-555-0111",data.path("driverPhone").asText());
+        }
+        var response=call(HttpMethod.GET,"/portal/driver/rides/"+trip,null,driverToken,Map.of());
+        assertEquals(200,response.getStatusCode().value(),response.toString());
+        var data=response.getBody().path("data");
+        assertEquals("Evelyn Carter",data.path("riderName").asText());
+        assertEquals("404-555-0121",data.path("riderPhone").asText());
+        assertEquals("Olivia Carter",data.path("guardianName").asText());
+        assertEquals("404-555-0122",data.path("guardianPhone").asText());
+        long other=jdbc.queryForObject("SELECT id FROM rides WHERE ride_number='RIDE-TODAY-002'",Long.class);
+        assertEquals(403,call(HttpMethod.GET,"/portal/driver/rides/"+other,null,driverToken,Map.of()).getStatusCode().value());
+        assertEquals(403,call(HttpMethod.GET,"/portal/rider/rides/"+other,null,riderToken,Map.of()).getStatusCode().value());
+        Long assigned=jdbc.queryForObject("SELECT driver_id FROM rides WHERE id=?",Long.class,trip);
+        try {
+            jdbc.update("UPDATE rides SET driver_id=NULL WHERE id=?",trip);
+            var unassigned=call(HttpMethod.GET,"/portal/rider/rides/"+trip,null,riderToken,Map.of()).getBody().path("data");
+            assertTrue(unassigned.path("driverName").isNull());
+            assertTrue(unassigned.path("driverPhone").isNull());
+        } finally { jdbc.update("UPDATE rides SET driver_id=? WHERE id=?",assigned,trip); }
+    }
+
     @Test void optionalMfaAllowsUnenrolledPlatformAdminToLoadSubscriptionPlans() {
         var signed=call(HttpMethod.POST,"/v1/auth/login",Map.of("email","platform.admin@demo.test","password","Password123"),null,Map.of("X-Client-Platform","web"));
         assertEquals(200,signed.getStatusCode().value(),signed.toString());
