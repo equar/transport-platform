@@ -103,3 +103,18 @@ class NginxTemplateTest(unittest.TestCase):
             finally:
                 process.terminate()
                 process.communicate(timeout=10)
+
+
+class DocumentPreviewPolicyTest(unittest.TestCase):
+    def test_admin_allows_blob_previews_without_opening_script_or_embedding_policy(self):
+        import re
+        template = (ROOT/'deployment/nginx-transport-platform.conf.template').read_text()
+        admin = template.split('server_name ${ADMIN_DOMAIN};', 1)[1]
+        policy = re.search(r'add_header Content-Security-Policy "([^"]+)"', admin).group(1)
+        directives = {parts[0]: parts[1:] for section in policy.split(';') if (parts := section.split())}
+        self.assertIn('blob:', directives['img-src'])
+        self.assertEqual(directives['frame-src'], ['blob:'])
+        self.assertEqual(directives['script-src'], ["'self'"])
+        self.assertEqual(directives['object-src'], ["'none'"])
+        self.assertEqual(directives['frame-ancestors'], ["'none'"])
+        self.assertIn('add_header X-Frame-Options "DENY" always;', admin)

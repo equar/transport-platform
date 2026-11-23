@@ -33,3 +33,37 @@ it('prevents verifying incomplete legacy metadata', async () => {
   expect(screen.getByText(/Required details are missing/)).toBeTruthy();
   expect((screen.getByRole('button', { name: 'Verify Document' }) as HTMLButtonElement).disabled).toBe(true);
 });
+it('embeds an authenticated PDF without the sandbox that blocks native viewers and provides fallbacks', async () => {
+  vi.mocked(driversApi.downloadDocument).mockResolvedValue(new Blob(['%PDF-test'], { type: 'application/pdf' }));
+  render(<DriverDocumentReviewDialog open mode="verify" document={{ ...document, contentType: 'application/pdf' }} loading={false} onClose={vi.fn()} onSubmit={vi.fn()} />);
+  const frame = await screen.findByTitle('Uploaded driver document');
+  expect(frame.getAttribute('sandbox')).toBeNull();
+  expect(frame.getAttribute('src')).toBe('blob:document');
+  expect(screen.getByRole('link', { name: 'Download document' })).toBeTruthy();
+  expect(screen.getByText(/If the preview is blank or blocked/)).toBeTruthy();
+});
+it('refuses HTML responses even if document metadata claims the file is a PDF', async () => {
+  vi.mocked(driversApi.downloadDocument).mockResolvedValue(new Blob(['<script>alert(1)</script>'], { type: 'text/html' }));
+  render(<DriverDocumentReviewDialog open mode="verify" document={{ ...document, contentType: 'application/pdf' }} loading={false} onClose={vi.fn()} onSubmit={vi.fn()} />);
+  await screen.findByRole('button', { name: 'Retry preview' });
+  expect(screen.queryByTitle('Uploaded driver document')).toBeNull();
+  expect(URL.createObjectURL).not.toHaveBeenCalled();
+  expect((screen.getByRole('checkbox') as HTMLInputElement).disabled).toBe(true);
+});
+it('shows a rendering failure and requires opening the fallback before confirming review', async () => {
+  render(<DriverDocumentReviewDialog open mode="verify" document={document} loading={false} onClose={vi.fn()} onSubmit={vi.fn()} />);
+  fireEvent.error(await screen.findByAltText('Uploaded driver document'));
+  expect(screen.getByText(/preview couldn’t be displayed/)).toBeTruthy();
+  expect((screen.getByRole('checkbox') as HTMLInputElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('link', { name: 'Open full document' }));
+  expect((screen.getByRole('checkbox') as HTMLInputElement).disabled).toBe(false);
+});
+it('retries failed downloads and releases the document URL on close', async () => {
+  vi.mocked(driversApi.downloadDocument).mockRejectedValueOnce(new Error('Network unavailable'));
+  const view = render(<DriverDocumentReviewDialog open mode="verify" document={document} loading={false} onClose={vi.fn()} onSubmit={vi.fn()} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry preview' }));
+  await screen.findByAltText('Uploaded driver document');
+  expect(driversApi.downloadDocument).toHaveBeenCalledTimes(2);
+  view.unmount();
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:document');
+});

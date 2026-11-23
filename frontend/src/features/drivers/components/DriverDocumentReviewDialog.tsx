@@ -36,6 +36,10 @@ export function DriverDocumentReviewDialog({
   const [checked, setChecked] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(false);
+  const [previewType, setPreviewType] = useState("");
+  const [renderError, setRenderError] = useState(false);
+  const [openedSeparately, setOpenedSeparately] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const isPhoto = document?.documentType === "PROFILE_PHOTO";
   const complete = isPhoto || Boolean(document?.documentNumber?.trim() && document?.issuingAuthority?.trim() && document?.issueDate && document?.expiryDate);
   const [error, setError] = useState<string | null>(null);
@@ -52,18 +56,29 @@ export function DriverDocumentReviewDialog({
   useEffect(() => {
     let active = true;
     let objectUrl: string | null = null;
-    setPreviewUrl(null); setPreviewError(false);
+    setPreviewUrl(null); setPreviewError(false); setPreviewType("");
+    setRenderError(false); setOpenedSeparately(false); setChecked(false);
     if (open && document?.storagePath) {
       void driversApi.downloadDocument(document.id).then(blob => {
+        if (!active) return;
+        // Use the authenticated response MIME type, never a filename or arbitrary
+        // metadata. In particular, never embed HTML in an unsandboxed frame.
+        const type = blob.type.split(";")[0].trim().toLowerCase();
+        if (!["application/pdf", "image/png", "image/jpeg"].includes(type)) {
+          throw new Error("Unsupported document preview type");
+        }
         objectUrl = URL.createObjectURL(blob);
-        if (active) setPreviewUrl(objectUrl); else URL.revokeObjectURL(objectUrl);
+        setPreviewType(type);
+        setPreviewUrl(objectUrl);
       }).catch(() => { if (active) setPreviewError(true); });
     }
     return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [open, document?.id, document?.updatedAt]);
+  }, [open, document?.id, document?.updatedAt, document?.storagePath, attempt]);
+
+  const reviewAvailable = Boolean(previewUrl) && (!renderError || openedSeparately);
 
   async function handleSubmit() {
-    if (mode === "verify" && (!complete || !checked || !previewUrl)) {
+    if (mode === "verify" && (!complete || !checked || !reviewAvailable)) {
       setError("Open the uploaded file and check all submitted details before verifying.");
       return;
     }
@@ -107,17 +122,31 @@ export function DriverDocumentReviewDialog({
             <Stack spacing={1}>
               <Typography variant="h6">Uploaded document</Typography>
               {previewUrl ? <>
-                {document?.contentType?.startsWith("image/")
-                  ? <Box component="img" src={previewUrl} alt="Uploaded driver document" sx={{ width: "100%", maxHeight: 420, objectFit: "contain" }} />
-                  : <Box component="iframe" src={previewUrl} title="Uploaded driver document" sandbox="" sx={{ width: "100%", height: 420, border: 1, borderColor: "divider" }} />}
-                <Button component="a" href={previewUrl} target="_blank" rel="noopener noreferrer">Open full document</Button>
+                {renderError ? <Alert severity="warning">The preview couldn’t be displayed. Open or download the document to review it, or retry.</Alert>
+                  : previewType.startsWith("image/")
+                    ? <Box component="img" src={previewUrl} alt="Uploaded driver document"
+                        onError={() => { setRenderError(true); setChecked(false); }}
+                        sx={{ width: "100%", maxHeight: 420, objectFit: "contain" }} />
+                    // An iframe sandbox disables native PDF viewers in some browsers.
+                    // Only authenticated application/pdf blobs can enter this frame.
+                    : <Box component="iframe" src={previewUrl} title="Uploaded driver document"
+                        referrerPolicy="no-referrer" onError={() => { setRenderError(true); setChecked(false); }}
+                        sx={{ width: "100%", height: 420, border: 1, borderColor: "divider" }} />}
+                {previewType === "application/pdf" && !renderError && <Typography variant="body2" color="text.secondary">
+                  If the preview is blank or blocked, open or download the document below.
+                </Typography>}
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                  <Button component="a" href={previewUrl} target="_blank" rel="noopener noreferrer" onClick={() => setOpenedSeparately(true)}>Open full document</Button>
+                  <Button component="a" href={previewUrl} download={document?.originalFileName || document?.fileName || "document"} onClick={() => setOpenedSeparately(true)}>Download document</Button>
+                </Stack>
               </> : <Alert severity={previewError || !document?.storagePath ? "warning" : "info"}>
-                {previewError ? "The uploaded file could not be loaded. Close and reopen this review to retry."
+                {previewError ? "The file couldn’t be loaded as a PDF, PNG, or JPEG. Retry, or ask the driver to upload it again."
                   : !document?.storagePath ? "No uploaded file is available." : "Loading document…"}
               </Alert>}
+              {(previewError || renderError) && <Button disabled={loading} onClick={() => setAttempt(value => value + 1)}>Retry preview</Button>}
             </Stack>
           </Box>
-          {mode === "verify" ? <FormControlLabel control={<Checkbox checked={checked} disabled={loading || !complete || !previewUrl}
+          {mode === "verify" ? <FormControlLabel control={<Checkbox checked={checked} disabled={loading || !complete || !reviewAvailable}
             onChange={event => setChecked(event.target.checked)} />}
             label={isPhoto ? "I checked the uploaded profile photo." : "I checked the document number, issuing authority, issue date, and expiry date against the uploaded file."} /> : null}
           <TextField
@@ -143,7 +172,7 @@ export function DriverDocumentReviewDialog({
           onClick={() => void handleSubmit()}
           variant="contained"
           color={mode === "verify" ? "success" : "error"}
-          disabled={loading || (mode === "verify" && (!complete || !checked || !previewUrl))}
+          disabled={loading || (mode === "verify" && (!complete || !checked || !reviewAvailable))}
         >
           {loading
             ? "Saving..."
