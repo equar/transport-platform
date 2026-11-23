@@ -43,9 +43,48 @@ class SelectionTests(unittest.TestCase):
             ('frontend/src/content.md', {'frontend'}), ('docs/review.md', set()),
             ('deployment/aws/activate-backend.sh', {'backend'}),
             ('deployment/aws/activate-frontend.sh', {'frontend'}),
-            ('.github/workflows/deploy.yml', {'backend', 'frontend'}),
+            ('.github/workflows/deploy.yml', set()),
+            ('deployment/nginx-transport-platform.conf.template', {'frontend'}),
+            ('deployment/aws/setup-web-host.sh', {'frontend'}),
+            ('deployment/aws/deploy-common.sh', {'backend', 'frontend'}),
         ]:
             self.assertEqual(changes.affected([path]), expected, path)
+
+    def test_merged_pr_selects_only_changed_applications(self):
+        cases = [
+            (["frontend/src/App.tsx"], {"frontend"}),
+            (["backend/src/main/java/example/Service.java"], {"backend"}),
+            (["frontend/src/App.tsx", "backend/src/main/java/example/Service.java"], {"frontend", "backend"}),
+            (["frontend/src/App.tsx", "deployment/nginx-transport-platform.conf.template", "deployment/aws/tests/test_nginx.py"], {"frontend"}),
+            (["frontend/src/App.tsx", ".github/workflows/deploy.yml"], {"frontend"}),
+            (["mobile/app/index.tsx", "README.md", ".gitignore"], set()),
+            (["deployment/aws/deploy-common.sh"], {"frontend", "backend"}),
+            (["backend/src/main/java/example/Response.java", "frontend/src/shared/api/generated/contracts.ts", "mobile/src/api/generated/contracts.ts"], {"frontend", "backend"}),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for number, (paths, expected) in enumerate(cases):
+                with self.subTest(paths=paths):
+                    source = root / f"pr-{number}.json"
+                    source.write_text(json.dumps([[{"filename": path} for path in paths]]))
+                    output = root / f"outputs-{number}"
+                    subprocess.run([sys.executable, str(AWS/'detect-deployment-changes.py'), '--target', 'auto', '--paths-json', str(source)],
+                        cwd=root, env=dict(os.environ, GITHUB_OUTPUT=str(output)), check=True, capture_output=True)
+                    flags = dict(line.split('=', 1) for line in output.read_text().splitlines())
+                    self.assertEqual(flags['backend'], str('backend' in expected).lower())
+                    self.assertEqual(flags['frontend'], str('frontend' in expected).lower())
+                    self.assertEqual(flags['any'], str(bool(expected)).lower())
+
+    def test_workflow_auto_selection_does_not_add_unrelated_frontend_releases(self):
+        workflow = (ROOT/'.github/workflows/deploy.yml').read_text()
+        selection = workflow.split('      - name: Detect affected applications', 1)[1].split('      - name: Set up Java', 1)[0]
+        self.assertNotIn('--frontend-release-url', selection)
+        self.assertIn('default: auto', workflow)
+        self.assertIn('arguments+=(--paths-json', selection)
+        for title, app in [('Set up Java', 'backend'), ('Verify and package backend', 'backend'),
+                           ('Verify and build frontend', 'frontend'), ('Deploy backend', 'backend'), ('Deploy frontend', 'frontend')]:
+            step = workflow.split(f'      - name: {title}', 1)[1].split('      - name:', 1)[0]
+            self.assertIn(f"if: steps.changes.outputs.{app} == 'true'", step)
 
     def test_manual_targets_without_git_history(self):
         with tempfile.TemporaryDirectory() as directory:

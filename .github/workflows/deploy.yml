@@ -1,13 +1,13 @@
-name: Deploy Transport Backend and Frontend to Lightsail
+name: Deploy Changed Applications to Lightsail
 
 on:
   workflow_dispatch:
     inputs:
       target:
-        description: Application to redeploy (also applies changed configuration)
+        description: Detect changed applications automatically, or explicitly redeploy a selected application
         type: choice
-        default: all
-        options: [all, backend, frontend]
+        default: auto
+        options: [auto, frontend, backend, all]
   pull_request:
     types: [closed]
     branches: [main]
@@ -94,7 +94,9 @@ jobs:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          arguments=(--target "$DEPLOY_TARGET" --frontend-release-url "$APP_ADMIN_URL/release.json")
+          # Merged PRs select only applications changed by this PR. Do not
+          # expand a backend-only release based on frontend reachability.
+          arguments=(--target "$DEPLOY_TARGET")
           if [[ "$EVENT_NAME" == pull_request ]]; then
             gh api --paginate --slurp "repos/$GH_REPO/pulls/$PR_NUMBER/files" > "$RUNNER_TEMP/transport-pr-files.json"
             arguments+=(--paths-json "$RUNNER_TEMP/transport-pr-files.json")

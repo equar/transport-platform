@@ -17,9 +17,9 @@ def affected(paths):
         for folder, target in [('backend/', 'backend'), ('frontend/', 'frontend')]:
             if path.startswith(folder):
                 selected.add(target)
-        if path == '.github/workflows/deploy.yml':
-            selected.update(('backend', 'frontend'))
-        elif path in ('deployment/transport-platform-backend.service', 'deployment/transport-platform-privacy-maintenance.service', 'deployment/deploy-backend-aws.sh'):
+        # Workflow edits change orchestration, not deployed application bytes.
+        # Operators can explicitly redeploy an application when required.
+        if path in ('deployment/transport-platform-backend.service', 'deployment/transport-platform-privacy-maintenance.service', 'deployment/deploy-backend-aws.sh'):
             selected.add('backend')
         elif path in ('deployment/nginx-transport-platform.conf.template', 'deployment/deploy-frontend-aws.sh'):
             selected.add('frontend')
@@ -28,7 +28,7 @@ def affected(paths):
         elif path.startswith('deployment/aws/'):
             if Path(path).name in ('deploy-backend.sh', 'activate-backend.sh', 'setup-rds-truststore.sh', 'sanitize-logs.py'):
                 selected.add('backend')
-            elif Path(path).name in ('deploy-frontend.sh', 'activate-frontend.sh'):
+            elif Path(path).name in ('deploy-frontend.sh', 'activate-frontend.sh', 'setup-web-host.sh'):
                 selected.add('frontend')
             else:
                 selected.update(('backend', 'frontend'))

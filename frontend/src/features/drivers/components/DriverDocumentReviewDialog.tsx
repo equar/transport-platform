@@ -12,6 +12,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { PdfDocumentPreview } from "./PdfDocumentPreview";
 import { useEffect, useState } from "react";
 import { driversApi, type DriverDocumentRecord } from "../api/driversApi";
 
@@ -37,6 +38,9 @@ export function DriverDocumentReviewDialog({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(false);
   const [previewType, setPreviewType] = useState("");
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [pdfReady, setPdfReady] = useState(false);
   const [renderError, setRenderError] = useState(false);
   const [openedSeparately, setOpenedSeparately] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -57,17 +61,28 @@ export function DriverDocumentReviewDialog({
     let active = true;
     let objectUrl: string | null = null;
     setPreviewUrl(null); setPreviewError(false); setPreviewType("");
-    setRenderError(false); setOpenedSeparately(false); setChecked(false);
+    setRenderError(false); setOpenedSeparately(false); setChecked(false); setPreviewBlob(null); setPdfReady(false); setImagePreviewUrl(null);
     if (open && document?.storagePath) {
-      void driversApi.downloadDocument(document.id).then(blob => {
+      void driversApi.downloadDocument(document.id).then(async blob => {
         if (!active) return;
         // Use the authenticated response MIME type, never a filename or arbitrary
-        // metadata. In particular, never embed HTML in an unsandboxed frame.
+        // metadata. Never accept HTML or executable document content.
         const type = blob.type.split(";")[0].trim().toLowerCase();
         if (!["application/pdf", "image/png", "image/jpeg"].includes(type)) {
           throw new Error("Unsupported document preview type");
         }
+        // Existing installations permit data: images but may still block blob:
+        // images. Keep blob URLs for downloads only; never use them in a frame.
+        const imageUrl = type.startsWith("image/") ? await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("Image could not be read"));
+          reader.readAsDataURL(blob);
+        }) : null;
+        if (!active) return;
         objectUrl = URL.createObjectURL(blob);
+        setImagePreviewUrl(imageUrl);
+        setPreviewBlob(blob);
         setPreviewType(type);
         setPreviewUrl(objectUrl);
       }).catch(() => { if (active) setPreviewError(true); });
@@ -75,7 +90,7 @@ export function DriverDocumentReviewDialog({
     return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [open, document?.id, document?.updatedAt, document?.storagePath, attempt]);
 
-  const reviewAvailable = Boolean(previewUrl) && (!renderError || openedSeparately);
+  const reviewAvailable = Boolean(previewUrl) && (!renderError || openedSeparately) && (previewType !== "application/pdf" || pdfReady || openedSeparately);
 
   async function handleSubmit() {
     if (mode === "verify" && (!complete || !checked || !reviewAvailable)) {
@@ -124,17 +139,13 @@ export function DriverDocumentReviewDialog({
               {previewUrl ? <>
                 {renderError ? <Alert severity="warning">The preview couldn’t be displayed. Open or download the document to review it, or retry.</Alert>
                   : previewType.startsWith("image/")
-                    ? <Box component="img" src={previewUrl} alt="Uploaded driver document"
+                    ? <Box component="img" src={imagePreviewUrl ?? undefined} alt="Uploaded driver document"
                         onError={() => { setRenderError(true); setChecked(false); }}
                         sx={{ width: "100%", maxHeight: 420, objectFit: "contain" }} />
-                    // An iframe sandbox disables native PDF viewers in some browsers.
-                    // Only authenticated application/pdf blobs can enter this frame.
-                    : <Box component="iframe" src={previewUrl} title="Uploaded driver document"
-                        referrerPolicy="no-referrer" onError={() => { setRenderError(true); setChecked(false); }}
-                        sx={{ width: "100%", height: 420, border: 1, borderColor: "divider" }} />}
-                {previewType === "application/pdf" && !renderError && <Typography variant="body2" color="text.secondary">
-                  If the preview is blank or blocked, open or download the document below.
-                </Typography>}
+                    : previewBlob && <PdfDocumentPreview blob={previewBlob}
+                        onReady={() => setPdfReady(true)}
+                        onError={() => { setRenderError(true); setPdfReady(false); setChecked(false); }} />}
+
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                   <Button component="a" href={previewUrl} target="_blank" rel="noopener noreferrer" onClick={() => setOpenedSeparately(true)}>Open full document</Button>
                   <Button component="a" href={previewUrl} download={document?.originalFileName || document?.fileName || "document"} onClick={() => setOpenedSeparately(true)}>Download document</Button>

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { DriverDocumentReviewDialog } from './DriverDocumentReviewDialog';
 import { driversApi, type DriverDocumentRecord } from '../api/driversApi';
+vi.mock('./PdfDocumentPreview', () => ({ PdfDocumentPreview: ({ onReady }: { onReady: () => void }) => <button onClick={onReady}>Render PDF test page</button> }));
 vi.mock('../api/driversApi', () => ({ driversApi: { downloadDocument: vi.fn() } }));
 const document = { id: 10, documentType: 'DRIVER_LICENSE', fileName: 'stored.jpg', originalFileName: 'license.jpg',
   contentType: 'image/jpeg', storagePath: 'tenant/driver/stored.jpg', documentNumber: 'DL-123', issuingAuthority: 'State DMV',
@@ -15,7 +16,8 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 it('shows submitted fields and the protected file, and requires a review confirmation', async () => {
   const submit = vi.fn().mockResolvedValue(undefined);
   render(<DriverDocumentReviewDialog open mode="verify" document={document} loading={false} onClose={vi.fn()} onSubmit={submit} />);
-  await screen.findByAltText('Uploaded driver document');
+  const image = await screen.findByAltText('Uploaded driver document');
+  expect(image.getAttribute('src')).toMatch(/^data:image\/jpeg;base64,/);
   expect(screen.getByText('Document number: DL-123')).toBeTruthy();
   expect(screen.getByText('Issuing authority: State DMV')).toBeTruthy();
   expect(screen.getByText('Issue date: 2026-11-08')).toBeTruthy();
@@ -33,14 +35,15 @@ it('prevents verifying incomplete legacy metadata', async () => {
   expect(screen.getByText(/Required details are missing/)).toBeTruthy();
   expect((screen.getByRole('button', { name: 'Verify Document' }) as HTMLButtonElement).disabled).toBe(true);
 });
-it('embeds an authenticated PDF without the sandbox that blocks native viewers and provides fallbacks', async () => {
+it('renders an authenticated PDF without a frame and waits for rendering before review', async () => {
   vi.mocked(driversApi.downloadDocument).mockResolvedValue(new Blob(['%PDF-test'], { type: 'application/pdf' }));
-  render(<DriverDocumentReviewDialog open mode="verify" document={{ ...document, contentType: 'application/pdf' }} loading={false} onClose={vi.fn()} onSubmit={vi.fn()} />);
-  const frame = await screen.findByTitle('Uploaded driver document');
-  expect(frame.getAttribute('sandbox')).toBeNull();
-  expect(frame.getAttribute('src')).toBe('blob:document');
+  const view = render(<DriverDocumentReviewDialog open mode="verify" document={{ ...document, contentType: 'application/pdf' }} loading={false} onClose={vi.fn()} onSubmit={vi.fn()} />);
+  const renderPage = await screen.findByRole('button', { name: 'Render PDF test page' });
+  expect(view.baseElement.querySelector('iframe')).toBeNull();
+  expect((screen.getByRole('checkbox') as HTMLInputElement).disabled).toBe(true);
+  fireEvent.click(renderPage);
+  expect((screen.getByRole('checkbox') as HTMLInputElement).disabled).toBe(false);
   expect(screen.getByRole('link', { name: 'Download document' })).toBeTruthy();
-  expect(screen.getByText(/If the preview is blank or blocked/)).toBeTruthy();
 });
 it('refuses HTML responses even if document metadata claims the file is a PDF', async () => {
   vi.mocked(driversApi.downloadDocument).mockResolvedValue(new Blob(['<script>alert(1)</script>'], { type: 'text/html' }));

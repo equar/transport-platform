@@ -113,7 +113,8 @@ class DocumentPreviewPolicyTest(unittest.TestCase):
         policy = re.search(r'add_header Content-Security-Policy "([^"]+)"', admin).group(1)
         directives = {parts[0]: parts[1:] for section in policy.split(';') if (parts := section.split())}
         self.assertIn('blob:', directives['img-src'])
-        self.assertEqual(directives['frame-src'], ['blob:'])
+        self.assertEqual(directives['frame-src'], ["'none'"])
+        self.assertEqual(directives['worker-src'], ["'self'"])
         self.assertEqual(directives['script-src'], ["'self'"])
         self.assertEqual(directives['object-src'], ["'none'"])
         self.assertEqual(directives['frame-ancestors'], ["'none'"])
