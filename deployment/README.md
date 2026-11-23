@@ -13,7 +13,7 @@ including deleted files and both names of renamed files. This covers merge,
 squash and rebase strategies; selection does not depend on just the last rebase
 commit. The standalone selector retains a first-parent Git fallback when no PR
 metadata is supplied. Direct pushes do not deploy. Manual dispatch is
-limited to `main` with `all`, `backend` or `frontend`. Runs serialize without
+limited to `main`, defaults to `auto`, and also supports explicit `all`, `backend` or `frontend` targets. Runs serialize without
 cancelling an in-flight release. Host activation also uses a shared lock to
 serialize direct operator deployments.
 
@@ -21,7 +21,8 @@ serialize direct operator deployments.
 | --- | --- |
 | `backend/**`, backend activation/service/truststore | Backend |
 | `frontend/**`, frontend activation/proxy template | Frontend |
-| Workflow or shared production configuration | Both |
+| Shared production configuration | Both |
+| Deployment workflow edits alone | None |
 | Documentation, deployment tests, mobile-only changes | None |
 
 Only backend and frontend are deployment targets. Mobile is never packaged,
@@ -356,7 +357,7 @@ The policy is installed by the next backend deployment. See the [systemd start-l
 
 ### Recover frontend changes missed by a failed rollout
 
-Automatic deployment compares the live admin `/release.json` commit with the current checkout, in addition to the current PR's changed files. Pending frontend changes are included even when they came from an earlier failed deployment. Checkout uses full history for this comparison. Missing, malformed or unavailable release metadata conservatively includes the frontend. Explicit manual `backend` / `frontend` targets retain their requested scope; choose `all` when recovering a mismatched release pair.
+Automatic deployments select applications strictly from the merged PR file list: frontend-only changes deploy only frontend, backend-only changes deploy only backend, and changes affecting both deploy both. Live frontend availability does not expand a release to an unrelated application. After a failed rollout, manually dispatch the current `main` with `frontend` or `backend` to recover that application; use `all` only when both need recovery. Manual `auto` uses the latest commit diff. The standalone selector still offers an explicit `--frontend-release-url` recovery option for operator use, but merge-triggered deployments do not enable it.
 
 A stale admin frontend can attempt subscription-plan requests without understanding the backend's mandatory authenticator enrollment. Deploy both current applications, reload the admin UI and sign in again. Production MFA enrollment defaults to required for platform, tenant, billing and compliance administrators. Unenrolled accounts can sign in to complete authenticator setup before accessing their workspace. Refresh uses its own cookie/mobile credential and browser-origin validation, without a stale access token or tenant header. Rejected restoration clears cached sessions; MFA/password setup denials return an actionable reason and trigger fresh sign-in. Ordinary permission-denied responses do not sign the user out.
 
