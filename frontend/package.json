@@ -14,7 +14,10 @@
     "build:admin": "vite build --mode admin --outDir dist/admin",
     "preview:admin": "vite preview --mode admin --outDir dist/admin",
     "check:sites": "node scripts/check-site-build.mjs",
-    "clean:build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\""
+    "clean:build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "contracts:sync": "node ../scripts/sync-api-contracts.mjs --clean",
+    "hooks:install": "node ../scripts/install-git-hooks.mjs",
+    "postinstall": "node ../scripts/install-git-hooks.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

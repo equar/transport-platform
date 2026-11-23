@@ -18,6 +18,11 @@ jobs:
           distribution: temurin
           java-version: "25"
           cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test API contract synchronization guard
+        run: node --test ../scripts/check-api-contracts.test.mjs
       - name: Build backend
         run: mvn -B verify
       - name: Scan production Java dependencies

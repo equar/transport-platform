@@ -184,3 +184,33 @@ can select `all`, `backend`, or `frontend`. Local development remains unchanged.
 - [docs/requirements.md](docs/requirements.md) for the delivered platform surface and deferred areas.
 - [backend/README.md](backend/README.md) for backend-focused development notes.
 - [frontend/README.md](frontend/README.md) for frontend-focused development notes.
+
+### Keeping API contracts synchronized
+
+Backend API schemas are the source of truth for both web and mobile contracts.
+Dependency installation in `frontend` or `mobile` installs a repository-local
+pre-commit hook. For an existing checkout, install it once:
+
+```sh
+node scripts/install-git-hooks.mjs
+```
+
+Commits containing backend Java changes, schema-generation changes, or generated
+contracts automatically regenerate and stage both client contract files. This
+requires Maven, the project's Java version, and Node. Unrelated UI commits skip
+this step. The hook refuses partially staged contract inputs or outputs and
+untracked backend Java sources, so unfinished changes cannot enter the generated
+contracts. Stage those changes together or stash unfinished work before retrying.
+Existing custom hooks are preserved; the installer explains how to integrate the
+check into them.
+
+To synchronize without committing, run from the repository root:
+
+```sh
+node scripts/sync-api-contracts.mjs --clean
+node --test scripts/check-api-contracts.test.mjs
+```
+
+Or run `npm run contracts:sync` in `frontend` or `mobile`. Clean generation also
+removes stale compiled DTO classes after deletions or renames. CI retains its
+contract drift check as a safeguard when hooks are bypassed.
