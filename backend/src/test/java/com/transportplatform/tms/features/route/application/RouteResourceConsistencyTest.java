@@ -36,9 +36,10 @@ class RouteResourceConsistencyTest {
     private final RideEventService rideEvents = mock(RideEventService.class);
     private final NotificationEventService notifications = mock(NotificationEventService.class);
     private final DriverComplianceSummaryService compliance = mock(DriverComplianceSummaryService.class, RETURNS_DEEP_STUBS);
+    private final com.transportplatform.tms.features.billing.application.RouteInvoiceService billing = mock(com.transportplatform.tms.features.billing.application.RouteInvoiceService.class);
     private final RouteService service = new RouteService(tenants, validation, routes, stops, rides, drivers,
             vehicles, access, mock(RideAccessService.class), mock(RouteMapper.class), mock(RouteCodeGenerator.class),
-            compliance, mock(VehicleComplianceSummaryService.class), rideEvents, mock(AuditLogService.class), notifications);
+            compliance, mock(VehicleComplianceSummaryService.class), rideEvents, mock(AuditLogService.class), notifications, billing);
     private Route route;
     private Ride ride;
     private RouteStop stop;
@@ -103,4 +104,14 @@ class RouteResourceConsistencyTest {
 
         verify(routes, never()).save(any());
     }
+    @Test void completingRouteCreatesDraftOnceAndRetryIsSafe() {
+        route.setStatus(RouteStatus.IN_PROGRESS);
+        ride.setStatus(RideStatus.COMPLETED);
+        service.completeCompanyRoute(1L);
+        assertEquals(RouteStatus.COMPLETED, route.getStatus());
+        verify(billing).createDraftOnCompletion(route);
+        service.completeCompanyRoute(1L);
+        verify(billing, times(1)).createDraftOnCompletion(route);
+    }
+
 }

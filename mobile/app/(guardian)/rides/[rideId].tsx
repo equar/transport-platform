@@ -103,10 +103,6 @@ export default function GuardianRideDetailPage() {
         onPress={() => setTrackingRideId(rideId)}
       /> : null}
 
-			<Text accessibilityRole="button" style={[styles.back, { minHeight: 48, paddingVertical: 12 }]} onPress={() => router.back()}>
-				← Riders’ Trips
-			</Text>
-
 			<AppCard style={styles.personCard}>
 				<Text style={styles.personTitle}>Rider & guardian</Text>
 				<Text style={styles.personText}>Rider: {ride.riderName ?? '—'}</Text>

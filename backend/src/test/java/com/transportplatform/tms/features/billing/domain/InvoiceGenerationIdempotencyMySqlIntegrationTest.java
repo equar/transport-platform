@@ -37,7 +37,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @DataJpaTest(properties = {"spring.flyway.enabled=true", "spring.jpa.hibernate.ddl-auto=validate"})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({JpaAuditConfig.class, InvoiceService.class, InvoiceMapper.class, InvoiceFinancialService.class,
-    InvoiceGenerationIdempotencyService.class, InvoiceGenerationIdempotencyMySqlIntegrationTest.Config.class})
+    InvoiceGenerationIdempotencyService.class, RouteInvoiceService.class,
+    com.transportplatform.tms.common.concurrency.WorkflowLockService.class, InvoiceGenerationIdempotencyMySqlIntegrationTest.Config.class})
 @Testcontainers
 class InvoiceGenerationIdempotencyMySqlIntegrationTest {
 
@@ -49,6 +50,9 @@ class InvoiceGenerationIdempotencyMySqlIntegrationTest {
         @org.springframework.context.annotation.Bean java.time.Clock clock() { return java.time.Clock.systemUTC(); }
     }
     @Autowired private InvoiceService service;
+    @Autowired private RouteInvoiceService routeBilling;
+    @Autowired private com.transportplatform.tms.features.route.domain.RouteRepository routes;
+    @MockBean private com.transportplatform.tms.features.saas.application.TenantModulePolicy modules;
     @Autowired private InvoiceRepository invoices;
     @Autowired private InvoiceLineItemRepository lines;
     @MockBean private BillingAccessService access;
@@ -241,6 +245,48 @@ class InvoiceGenerationIdempotencyMySqlIntegrationTest {
         var current=db.queryForList("SELECT id FROM invoice_line_items WHERE invoice_id=?",Long.class,active);
         assertThat(lines.findConflictingRideIds(tenant,java.util.List.of(10L,20L),current)).isEmpty();
         assertThat(lines.findConflictingRideIds("other",java.util.List.of(10L,20L),java.util.List.of(-1L))).isEmpty();
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void routeDraftAndCompletionPersistTogetherAndRollbackTogether() {
+        String tenant = UUID.randomUUID().toString();
+        saveUser(tenant, "route-billing@example.com");
+        when(references.resolveBillTo(tenant, BillToType.RIDER, 1L)).thenReturn(
+            new BillingReferenceValidationService.ResolvedBillTo(BillToType.RIDER, 1L, "Route payer", null, null, null, null));
+        when(time.today(tenant)).thenReturn(java.time.LocalDate.of(2026, 11, 23));
+        when(numbers.generate(tenant)).thenReturn("INV-ROUTE-TEST");
+        var tx = new TransactionTemplate(transactionManager);
+        java.util.function.Supplier<com.transportplatform.tms.features.route.domain.Route> newRoute = () -> {
+            var route = new com.transportplatform.tms.features.route.domain.Route();
+            route.setTenantId(tenant); route.setRouteCode("ROUTE-TEST"); route.setRouteName("School route");
+            route.setRouteDate(java.time.LocalDate.of(2026, 11, 23));
+            route.setServiceType(com.transportplatform.tms.features.organization.domain.ServiceType.GENERAL_TRANSPORT);
+            route.setStatus(com.transportplatform.tms.features.route.domain.RouteStatus.COMPLETED);
+            route.setBillingTripType(com.transportplatform.tms.features.ride.domain.RideTripType.ROUND_TRIP);
+            route.setRoundTripPrice(new java.math.BigDecimal("200.00"));
+            route.setBillToType(BillToType.RIDER); route.setBillToId(1L);
+            return routes.save(route);
+        };
+        tx.executeWithoutResult(status -> {
+            var route = newRoute.get(); routeBilling.createDraftOnCompletion(route); routes.saveAndFlush(route);
+            assertThat(invoices.countByTenantId(tenant)).isEqualTo(1);
+            status.setRollbackOnly();
+        });
+        assertThat(invoices.countByTenantId(tenant)).isZero();
+        Long id = tx.execute(status -> {
+            var route = newRoute.get(); routeBilling.createDraftOnCompletion(route); routes.saveAndFlush(route);
+            return route.getId();
+        });
+        tx.executeWithoutResult(status -> {
+            var saved = routes.findByIdAndTenantId(id, tenant).orElseThrow();
+            routeBilling.createDraftOnCompletion(saved);
+            var invoice = invoices.findByIdAndTenantId(saved.getAutoInvoiceId(), tenant).orElseThrow();
+            assertThat(invoice.getStatus()).isEqualTo(InvoiceStatus.DRAFT);
+            assertThat(invoice.getTotalAmount()).isEqualByComparingTo("200.00");
+            assertThat(lines.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(invoice.getId(), tenant)).hasSize(1);
+        });
+        assertThat(invoices.countByTenantId(tenant)).isEqualTo(1);
     }
 
     private boolean tryLine(String tenant, long invoice, int number, long ride) {

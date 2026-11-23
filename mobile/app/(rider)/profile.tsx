@@ -7,7 +7,6 @@ import { StyleSheet, ScrollView, View, Text, RefreshControl, useWindowDimensions
 import { useQuery } from '@tanstack/react-query';
 import { riderPortalApi } from '@api/riderPortalApi';
 import { LoadingState } from '@components/LoadingState';
-import { SectionHeader } from '@components/SectionHeader';
 import { EmptyState } from '@components/EmptyState';
 import { AppCard } from '@components/ui';
 import { Spacing, Typography } from '@theme/tokens';
@@ -43,8 +42,7 @@ export default function RiderProfilePage() {
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
       <View style={styles.hero}>
-        <Text style={styles.heroTitle}>Profile</Text>
-        <Text style={styles.heroName}>{profile ? `${profile.firstName} ${profile.lastName}` : 'Rider Account'}</Text>
+        <Text style={styles.heroName}>{profile ? `${profile.firstName} ${profile.lastName}` : 'Your account'}</Text>
       </View>
 
       {isError ? (
@@ -64,11 +62,9 @@ export default function RiderProfilePage() {
         </AppCard>
       ) : (
         <>
-          <SectionHeader title="Passenger Details" subtitle={profile.code ?? profile.scopeType} />
 
           <AppCard style={styles.section}>
-            <Text style={styles.sectionTitle}>Personal</Text>
-            <Row label="Name" value={`${profile.firstName} ${profile.lastName}`} />
+            <Text style={styles.sectionTitle}>Contact</Text>
             <Row label="Email" value={profile.email ?? '—'} />
             <Row label="Phone" value={profile.phone} />
             <Row label="Status" value={profile.status} />
@@ -113,11 +109,7 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.xs,
   },
-  heroTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: Typography.sizeSm,
-    color: colors.textPrimary,
-  },
+
   heroName: {
     fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXl,

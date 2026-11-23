@@ -19,6 +19,8 @@ class RouteMapperTest {
                 LocalDate.of(2026, 11, 16),
                 ServiceType.GENERAL_TRANSPORT,
                 new BigDecimal("125.50"),
+                new BigDecimal("220.00"),
+                null, null, null,
                 null,
                 null,
                 null,
@@ -28,5 +30,6 @@ class RouteMapperTest {
         new RouteMapper().apply(route, request);
 
         assertEquals(new BigDecimal("125.50"), route.getPrice());
+        assertEquals(new BigDecimal("220.00"), route.getRoundTripPrice());
     }
 }

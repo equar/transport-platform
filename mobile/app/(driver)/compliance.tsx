@@ -11,7 +11,6 @@ import * as DocumentPicker from 'expo-document-picker';
 import { driverPortalApi, type DriverPortalDocumentType } from '@api/driverPortalApi';
 import { AppBadge, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
-import { SectionHeader } from '@components/SectionHeader';
 import { MetricTile } from '@components/MetricTile';
 import { Radius, Spacing, Typography } from '@theme/tokens';
 import { formatDate } from '@utils/formatDate';
@@ -91,7 +90,6 @@ export default function DriverCompliancePage() {
       ]}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
-      <SectionHeader title="Compliance" subtitle="Documents and issues" />
 
       <View style={styles.uploadCard}>
         <Text style={styles.uploadTitle}>Submit a document</Text>

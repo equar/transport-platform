@@ -60,7 +60,6 @@ export default function RiderBillingPage() {
         />
       }
     >
-      <SectionHeader title="Billing & payments" subtitle="Invoices, balances and payment records." />
       <DetailSheet visible={selectedInvoice != null || selectedPayment != null} title={selectedInvoice != null ? 'Invoice details' : 'Payment record'} onClose={() => { setSelectedInvoice(null); setSelectedPayment(null); }}>
           {(selectedInvoice != null ? detail.isLoading : receipt.isLoading) ? <LoadingState /> : null}
           {(selectedInvoice != null ? detail.isError : receipt.isError) ? <AppButton label="Retry billing details" onPress={() => { if (selectedInvoice != null) void detail.refetch(); else void receipt.refetch(); }} /> : null}

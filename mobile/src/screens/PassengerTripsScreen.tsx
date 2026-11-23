@@ -12,7 +12,6 @@ import type { RiderPortalRideRecord } from '@api/riderPortalApi';
 import { AppBadge, AppCard, AppButton } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
-import { SectionHeader } from '@components/SectionHeader';
 import { Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
 
@@ -50,7 +49,6 @@ export function PassengerTripsScreen({ role }: { role: 'rider' | 'guardian' }) {
 	return (
 		<View style={styles.container}>
 			<View style={styles.headerCard}>
-				<SectionHeader title={role === 'guardian' ? "Riders’ Trips" : "My trips"} />
 				<View style={styles.segmentRow}>
 					<TouchableOpacity
 						style={[styles.segmentButton, segment === 'today' ? styles.segmentSelected : undefined]}

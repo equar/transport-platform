@@ -1,3 +1,4 @@
+import { RouteBillingFields } from "../components/RouteBillingFields";
 import { useUrlFilters } from "../../../shared/hooks/useUrlFilters";
 import {
   Alert,
@@ -66,6 +67,10 @@ function defaultPayload(): RoutePayload {
     routeDate: "",
     serviceType: "GENERAL_TRANSPORT",
     price: null,
+    roundTripPrice: null,
+    billingTripType: "ONE_WAY",
+    billToType: null,
+    billToId: null,
     startTime: "",
     endTime: "",
     manifestNotes: "",
@@ -144,6 +149,10 @@ export function RouteManagementPage() {
       routeDate: route.routeDate,
       serviceType: route.serviceType,
       price: route.price,
+      roundTripPrice: route.roundTripPrice,
+      billingTripType: route.billingTripType ?? "ONE_WAY",
+      billToType: route.billToType,
+      billToId: route.billToId,
       startTime: route.startTime,
       endTime: route.endTime,
       manifestNotes: route.manifestNotes ?? "",
@@ -154,6 +163,11 @@ export function RouteManagementPage() {
   }
 
   async function handleSubmit() {
+    const applicablePrice = payload.billingTripType === "ROUND_TRIP" ? payload.roundTripPrice : payload.price;
+    if (applicablePrice != null && (!payload.billToType || !payload.billToId)) {
+      showError(new Error("Select a billing account for this priced route, or clear its price for manual invoicing."));
+      return;
+    }
     setSaving(true);
     try {
       if (selectedRoute) {
@@ -307,7 +321,7 @@ export function RouteManagementPage() {
             <TableRow>
               <TableCell>Route</TableCell>
               <TableCell>Schedule</TableCell>
-              <TableCell>Price</TableCell>
+              <TableCell>Prices (USD)</TableCell>
               <TableCell>Assignments</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align="right">Actions</TableCell>
@@ -332,7 +346,8 @@ export function RouteManagementPage() {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  {route.price == null ? "Not set" : route.price.toFixed(2)}
+                  {route.price == null ? "One-way: manual" : `One-way: $${route.price.toFixed(2)}`}<br />
+                  {route.roundTripPrice == null ? "Round trip: manual" : `Round trip: $${route.roundTripPrice.toFixed(2)}`}
                 </TableCell>
                 <TableCell>
                   <Stack spacing={0.5}>
@@ -477,22 +492,7 @@ export function RouteManagementPage() {
                 </MenuItem>
               ))}
             </TextField>
-            <TextField
-              label="Route Price"
-              type="number"
-              value={payload.price ?? ""}
-              onChange={(event) =>
-                setPayload((current) => ({
-                  ...current,
-                  price:
-                    event.target.value === ""
-                      ? null
-                      : Number(event.target.value),
-                }))
-              }
-              inputProps={{ min: 0, step: 0.01 }}
-              helperText="Optional total for this route, in the tenant's billing currency."
-            />
+            <RouteBillingFields value={payload} onChange={setPayload} />
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
                 label="Start Time"

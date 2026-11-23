@@ -7,7 +7,6 @@ import { StyleSheet, ScrollView, Text, RefreshControl, useWindowDimensions } fro
 import { useQuery } from '@tanstack/react-query';
 import { riderPortalApi } from '@api/riderPortalApi';
 import { LoadingState } from '@components/LoadingState';
-import { SectionHeader } from '@components/SectionHeader';
 import { EmptyState } from '@components/EmptyState';
 import { AppCard } from '@components/ui';
 import { Spacing, Typography } from '@theme/tokens';
@@ -43,9 +42,7 @@ export default function GuardianProfilePage() {
 			refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
 		>
 			<AppCard style={styles.heroCard} noBorder>
-				<Text style={styles.heroTitle}>Guardian Profile</Text>
-				<Text style={styles.heroName}>{profile ? `${profile.firstName} ${profile.lastName}` : 'Guardian Account'}</Text>
-				<Text style={styles.heroMeta}>{profile?.email ?? profile?.phone ?? 'No email or phone on file'}</Text>
+				<Text style={styles.heroName}>{profile ? `${profile.firstName} ${profile.lastName}` : 'Your account'}</Text>
 			</AppCard>
 
 			{isError ? (
@@ -64,7 +61,6 @@ export default function GuardianProfilePage() {
 				</AppCard>
 			) : (
 				<>
-					<SectionHeader title="Guardian Details" subtitle={profile.code ?? profile.scopeType} />
 
 					<AppCard style={styles.section}>
 						<Text style={styles.sectionTitle}>Contact</Text>
@@ -111,9 +107,9 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
 		borderRadius: 16,
 		gap: Spacing.xs,
 	},
-	heroTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: colors.textPrimary },
+
 	heroName: { fontFamily: 'Manrope_700Bold', fontSize: Typography.sizeXl, color: colors.textPrimary },
-	heroMeta: { fontFamily: 'Inter_400Regular', fontSize: Typography.sizeSm, color: colors.textPrimary, opacity: 0.9 },
+
 	section: { gap: Spacing.xs },
 	sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: Typography.sizeSm, color: colors.textSecondary, textTransform: 'uppercase' },
 });

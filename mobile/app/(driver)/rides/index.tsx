@@ -8,7 +8,6 @@ import { useRouter } from 'expo-router';
 import { driverPortalApi, type DriverPortalRideSummaryRecord } from '@api/driverPortalApi';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
-import { SectionHeader } from '@components/SectionHeader';
 import { AppBadge, AppButton } from '@components/ui';
 import { Shadow, Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
@@ -49,7 +48,6 @@ export default function DriverRidesPage() {
     <View style={styles.container}>
       <View style={styles.headerShell}>
         <View style={styles.header}>
-          <SectionHeader title="Your trips" subtitle="Assignments, completed trips and cancellations" />
           <View style={styles.segmentRow}>
             <SegmentButton
               label="Assigned"
@@ -67,7 +65,6 @@ export default function DriverRidesPage() {
               onPress={() => setSegment('cancelled')}
             />
           </View>
-          <Text style={styles.headerMeta}>{filteredRides.length} dispatches in view</Text>
         </View>
       </View>
       <FlatList
@@ -76,7 +73,7 @@ export default function DriverRidesPage() {
         renderItem={({ item }) => <DispatchCard item={item} onPress={() => router.push(`/(driver)/rides/${item.id}`)} />}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
         ListEmptyComponent={
-          <EmptyState title="No dispatches" description="No matching trips in the loaded records. Load more below or pull down to refresh." />
+          <EmptyState title="No matching trips" description="No matching trips in the loaded records. Load more below or pull down to refresh." />
         }
         onEndReached={() => hasNextPage && fetchNextPage()}
         onEndReachedThreshold={0.3}
@@ -120,18 +117,14 @@ function DispatchCard({ item, onPress }: { item: DriverPortalRideSummaryRecord; 
   const styles = useThemedStyles(createStyles);
   return (
     <TouchableOpacity style={styles.dispatchCard} activeOpacity={0.88} onPress={onPress}>
-      <View style={styles.dispatchTopRow}>
-        <View style={styles.dispatchIdBlock}>
-          <Text style={styles.dispatchCode}>{item.rideNumber}</Text>
-          <Text style={styles.dispatchAddress} numberOfLines={2}>{item.pickupAddress ?? 'Pickup unavailable'}</Text>
-          <Text style={styles.dispatchAddress} numberOfLines={2}>{item.dropoffAddress ?? 'Drop-off unavailable'}</Text>
-        </View>
-        <View style={styles.dispatchMetaBlock}>
-          <Text style={styles.dispatchTime}>{formatShortDateTime(item.scheduledPickupAt)}</Text>
-          <AppBadge status={item.status} />
-        </View>
+      <Text style={styles.dispatchCode}>{item.rideNumber}</Text>
+      <Text style={styles.dispatchTime}>{formatShortDateTime(item.scheduledPickupAt)}</Text>
+      {item.status !== 'COMPLETED' && <AppBadge status={item.status} />}
+      <View style={styles.dispatchAddresses}>
+        <Text style={styles.dispatchAddress}>Pickup: {item.pickupAddress ?? 'Unavailable'}</Text>
+        <Text style={styles.dispatchAddress}>Drop-off: {item.dropoffAddress ?? 'Unavailable'}</Text>
       </View>
-      <Text style={styles.dispatchRider} numberOfLines={1}>{item.riderName}</Text>
+      <Text style={styles.dispatchRider}>{item.riderName}</Text>
     </TouchableOpacity>
   );
 }
@@ -174,12 +167,6 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
   segmentLabelSelected: {
     color: colors.onAccent,
   },
-  headerMeta: {
-    marginTop: Spacing.sm,
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: Typography.sizeSm,
-    color: colors.textSecondary,
-  },
   dispatchCard: {
     borderWidth: 0,
     borderColor: colors.border,
@@ -189,29 +176,18 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     gap: Spacing.sm,
     marginHorizontal: 0,
   },
-  dispatchTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: Spacing.md,
-  },
-  dispatchIdBlock: {
-    flex: 1,
-    gap: 2,
-  },
+  dispatchAddresses: { gap: Spacing.xs, alignSelf: 'stretch' },
   dispatchCode: {
     fontFamily: 'Inter_700Bold',
     fontSize: Typography.sizeMd,
     color: colors.textPrimary,
   },
   dispatchAddress: {
+    lineHeight: 22,
+    flexShrink: 1,
     fontFamily: 'Inter_400Regular',
     fontSize: Typography.sizeSm,
     color: colors.textSecondary,
-  },
-  dispatchMetaBlock: {
-    alignItems: 'flex-end',
-    gap: Spacing.xs,
   },
   dispatchTime: {
     fontFamily: 'Inter_600SemiBold',

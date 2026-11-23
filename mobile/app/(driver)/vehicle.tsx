@@ -6,5 +6,5 @@ import { Spacing } from '@theme/tokens';
 import { useThemedStyles } from '@theme/ThemeProvider';
 export default function DriverVehiclePage() {
   const styles = useThemedStyles(React.useCallback(colors => StyleSheet.create({screen:{flex:1,backgroundColor:colors.background},content:{padding:Spacing.md,gap:Spacing.lg,paddingBottom:Spacing.xxxl}}), []));
-  return <ScrollView style={styles.screen} contentContainerStyle={styles.content}><DriverVehicles/><SupportContact/></ScrollView>;
+  return <ScrollView style={styles.screen} contentContainerStyle={styles.content}><DriverVehicles showHeading={false}/><SupportContact/></ScrollView>;
 }

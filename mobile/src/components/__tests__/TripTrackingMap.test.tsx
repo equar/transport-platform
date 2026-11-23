@@ -52,7 +52,7 @@ it('draws the recorded travelled path inside the map without changing the driver
     { latitude: 35.4, longitude: -80.5 }, { latitude: 35.401, longitude: -80.501 },
   ]);
   expect(screen.UNSAFE_getByType(Marker).props.coordinate).toEqual({ latitude: 35.401, longitude: -80.501 });
-  expect(screen.getByText(/Recorded path travelled/)).toBeTruthy();
+  expect(screen.getByText(/Recorded route\. Gaps indicate missing location updates\./)).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Route to pickup' })).toBeNull();
 });
 it('shows a useful message instead of inventing a route if history is unavailable', () => {

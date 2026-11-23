@@ -17,7 +17,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { driverPortalApi } from '@api/driverPortalApi';
 import { LoadingState } from '@components/LoadingState';
-import { SectionHeader } from '@components/SectionHeader';
 import { EmptyState } from '@components/EmptyState';
 import { AppButton, AppCard } from '@components/ui';
 import { Spacing, Typography } from '@theme/tokens';
@@ -58,21 +57,19 @@ export default function DriverProfilePage() {
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
       <View style={styles.hero}>
-        <Text style={styles.heroTitle}>Profile</Text>
         <Text style={styles.heroName}>
-          {profile ? `${profile.firstName} ${profile.lastName}` : 'Driver Account'}
+          {profile ? `${profile.firstName} ${profile.lastName}` : 'Your account'}
         </Text>
-        <Text style={styles.heroMeta}>{profile?.email ?? 'No email on file'}</Text>
       </View>
 
       <View style={styles.tabRow}>
         <TabButton
-          label="Driver Details"
+          label="Details"
           active={tab === 'driver'}
           onPress={() => setTab('driver')}
         />
         <TabButton
-          label="Vehicle Details"
+          label="Vehicles"
           active={tab === 'vehicle'}
           onPress={() => setTab('vehicle')}
         />
@@ -99,11 +96,9 @@ export default function DriverProfilePage() {
         </AppCard>
       ) : tab === 'driver' ? (
         <>
-          <SectionHeader title="Driver Details" subtitle={profile.driverCode} />
 
           <AppCard style={styles.section}>
             <Text style={styles.sectionTitle}>Contact</Text>
-            <Row label="Name" value={`${profile.firstName} ${profile.lastName}`} />
             <Row label="Email" value={profile.email ?? '—'} />
             <Row label="Phone" value={profile.phone} />
             <Row label="Status" value={profile.status} />
@@ -142,11 +137,10 @@ export default function DriverProfilePage() {
         </>
       ) : (
         <>
-          <DriverVehicles />
+          <DriverVehicles showHeading={false} />
         </>
       )}
-    <AppearancePreferenceCard />
-    <AccountActions />
+    {tab === 'driver' && <><AppearancePreferenceCard /><AccountActions /></>}
     </ScrollView>
   );
 }
@@ -188,22 +182,13 @@ const createStyles = (colors: BrandColors) => StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.xs,
   },
-  heroTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: Typography.sizeSm,
-    color: colors.textPrimary,
-  },
+
   heroName: {
     fontFamily: 'Manrope_700Bold',
     fontSize: Typography.sizeXl,
     color: colors.textPrimary,
   },
-  heroMeta: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: Typography.sizeSm,
-    color: colors.textPrimary,
-    opacity: 0.9,
-  },
+
   tabRow: {
     flexDirection: 'row',
     gap: Spacing.sm,

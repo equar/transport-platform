@@ -32,9 +32,6 @@ export function AppearancePreferenceCard() {
   return (
     <AppCard style={{ gap: Spacing.sm }}>
       <Text variant="titleMedium">Appearance</Text>
-      <Text variant="bodySmall">
-        Choose light or dark, or follow your device setting with System.
-      </Text>
       {stacked ? <RadioButton.Group value={preference} onValueChange={value => void handlePreferenceChange(value)}>
         {options.map(option => <RadioButton.Item key={option.value} label={option.label} value={option.value} disabled={isLoading} style={{ minHeight: 48 }} />)}
       </RadioButton.Group> : <SegmentedButtons
@@ -45,9 +42,7 @@ export function AppearancePreferenceCard() {
           disabled: isLoading,
         }))}
       />}
-      <HelperText type={error ? 'error' : 'info'} visible>
-        {error ?? 'Saved on this device.'}
-      </HelperText>
+      {error && <HelperText type="error" visible>{error}</HelperText>}
     </AppCard>
   );
 }

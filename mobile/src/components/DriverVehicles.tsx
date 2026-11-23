@@ -10,7 +10,7 @@ import { useThemedStyles } from '@theme/ThemeProvider';
 import { formatDate } from '@utils/formatDate';
 import { requestErrorMessage } from '@utils/requestError';
 
-export function DriverVehicles() {
+export function DriverVehicles({ showHeading = true }: { showHeading?: boolean }) {
   const { width, fontScale } = useWindowDimensions();
   const stacked = width < 360 || fontScale > 1.3;
   const styles = useThemedStyles(React.useCallback(colors => StyleSheet.create({
@@ -40,7 +40,7 @@ export function DriverVehicles() {
   const vehicles = [...(query.data ?? [])].sort((a, b) => Number(b.assignedToCurrentDriver) - Number(a.assignedToCurrentDriver));
 
   return <View style={styles.section}>
-    <SectionHeader title="My vehicles" />
+    {showHeading && <SectionHeader title="My vehicles" />}
     {query.isLoading ? <AppCard><Text accessibilityLiveRegion="polite" style={styles.body}>Loading vehicles…</Text></AppCard>
       : query.isError ? <AppCard style={styles.details}>
         <Text accessibilityRole="alert" style={styles.body}>{requestErrorMessage(query.error, 'Vehicles couldn’t be loaded. Try again.')}</Text>
