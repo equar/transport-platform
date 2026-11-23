@@ -35,6 +35,11 @@ export interface RouteRecord {
   routeDate: string;
   serviceType: ServiceType;
   price: number | null;
+  roundTripPrice: number | null;
+  billingTripType: "ONE_WAY" | "ROUND_TRIP" | null;
+  billToType: import("../../billing/api/billingApi").BillToType | null;
+  billToId: number | null;
+  autoInvoiceId: number | null;
   assignedDriverId: number | null;
   assignedDriverName: string | null;
   assignedVehicleId: number | null;
@@ -70,6 +75,10 @@ export interface RoutePayload {
   routeDate: string;
   serviceType: ServiceType;
   price?: number | null;
+  roundTripPrice?: number | null;
+  billingTripType?: "ONE_WAY" | "ROUND_TRIP" | null;
+  billToType?: import("../../billing/api/billingApi").BillToType | null;
+  billToId?: number | null;
   startTime?: string | null;
   endTime?: string | null;
   manifestNotes?: string | null;

@@ -41,6 +41,23 @@ public class Route extends AuditableEntity {
     @Column(name = "price", precision = 12, scale = 2)
     private BigDecimal price;
 
+    @Column(name = "round_trip_price", precision = 12, scale = 2)
+    private BigDecimal roundTripPrice;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "billing_trip_type", length = 20)
+    private com.transportplatform.tms.features.ride.domain.RideTripType billingTripType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "bill_to_type", length = 20)
+    private com.transportplatform.tms.features.billing.domain.BillToType billToType;
+
+    @Column(name = "bill_to_id")
+    private Long billToId;
+
+    @Column(name = "auto_invoice_id")
+    private Long autoInvoiceId;
+
     @Column(name = "assigned_driver_id")
     private Long assignedDriverId;
 
@@ -115,6 +132,23 @@ public class Route extends AuditableEntity {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public BigDecimal getRoundTripPrice() { return roundTripPrice; }
+
+    public void setRoundTripPrice(BigDecimal roundTripPrice) { this.roundTripPrice = roundTripPrice; }
+
+    public com.transportplatform.tms.features.ride.domain.RideTripType getBillingTripType() { return billingTripType; }
+    public void setBillingTripType(com.transportplatform.tms.features.ride.domain.RideTripType value) { billingTripType = value; }
+    public com.transportplatform.tms.features.billing.domain.BillToType getBillToType() { return billToType; }
+    public void setBillToType(com.transportplatform.tms.features.billing.domain.BillToType value) { billToType = value; }
+    public Long getBillToId() { return billToId; }
+    public void setBillToId(Long value) { billToId = value; }
+    public Long getAutoInvoiceId() { return autoInvoiceId; }
+    public void setAutoInvoiceId(Long value) { autoInvoiceId = value; }
+    public BigDecimal getApplicablePrice() {
+        if (billingTripType == null) return null; // Existing routes retain manual invoicing until explicitly configured.
+        return billingTripType == com.transportplatform.tms.features.ride.domain.RideTripType.ROUND_TRIP ? roundTripPrice : price;
     }
 
     public Long getAssignedDriverId() {

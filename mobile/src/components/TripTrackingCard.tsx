@@ -120,7 +120,7 @@ export function TripTrackingCard({
         ) : null}
         {mapVisible ? <Text style={styles.emptyText}>
           {historyError ? 'The recorded path could not be loaded. Press Refresh to try again.'
-            : segments.length ? 'Recorded path travelled (up to the latest 1,000 GPS reports). Gaps indicate missing location reports.'
+            : segments.length ? 'Recorded route. Gaps indicate missing location updates.'
             : 'The travelled path will appear once enough reliable GPS reports are recorded.'}
         </Text> : null}
         {error ? <Text accessibilityRole="alert" style={styles.emptyText}>Location updates could not be loaded. Check your connection and refresh tracking.</Text> : null}

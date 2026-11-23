@@ -28,19 +28,19 @@ export default function DriverDashboard() {
   if (dashboard.isLoading) return <LoadingState />;
   if (dashboard.isError) return <RequestError error={dashboard.error} onRetry={() => void dashboard.refetch()} />;
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={dashboard.isRefetching || trips.isRefetching} onRefresh={() => { void dashboard.refetch(); void trips.refetch(); }} />}>
-    <DashboardHeader name={session?.identity.firstName?.trim() || 'Driver'} role="driver" />
+    <DashboardHeader name={session?.identity.firstName?.trim() || ''} />
     <StatsGrid items={[
       { label: 'Trips today', value: data?.ridesToday ?? '—', icon: 'calendar-today' },
       { label: 'Assigned trips', value: data?.assignedRides ?? '—', icon: 'car-outline' },
       { label: 'Active routes', value: data?.activeRoutesToday ?? '—', icon: 'map-marker-path' },
       { label: 'Compliance issues', value: data?.unresolvedComplianceIssues ?? '—', icon: 'shield-check-outline', warning: (data?.unresolvedComplianceIssues ?? 0)>0 },
     ]} />
-    <SectionHeader title="Your next trips" />
+    <SectionHeader title="Next trips" />
     {trips.isLoading ? <AppCard><Text style={styles.copy}>Loading your assignments…</Text></AppCard> : trips.isError ? <AppCard><Text style={styles.copy}>Assignments couldn’t be loaded.</Text><AppButton label="Retry assignments" variant="outlined" onPress={() => void trips.refetch()} /></AppCard> : upcoming.length ? upcoming.slice(0,3).map(ride => <RideCard key={ride.id} ride={ride} onPress={() => router.push(`/(driver)/rides/${ride.id}`)} />) : <AppCard><EmptyState title="No upcoming assignments" description="Your assigned trips will appear here. Pull down to refresh." /></AppCard>}
     <AppButton label="View all trips" variant="outlined" rightIcon="arrow-right" onPress={() => router.push('/(driver)/rides')} />
     <SectionHeader title="Manage" />
-    <ActionRow icon="car-outline" title="My vehicles" description="View your owned and assigned vehicles" onPress={() => router.push('/(driver)/vehicle')} />
-    <ActionRow icon="map-marker-path" title="Route manifests" description="View your assigned routes and stops" onPress={() => router.push('/(driver)/routes')} />
-    <ActionRow icon="file-document-outline" title="Documents & compliance" description="Review issues and upload required documents" onPress={() => router.push('/(driver)/compliance')} />
+    <ActionRow icon="car-outline" title="My vehicles" onPress={() => router.push('/(driver)/vehicle')} />
+    <ActionRow icon="map-marker-path" title="Route manifests" onPress={() => router.push('/(driver)/routes')} />
+    <ActionRow icon="file-document-outline" title="Documents & compliance" onPress={() => router.push('/(driver)/compliance')} />
   </ScrollView>;
 }

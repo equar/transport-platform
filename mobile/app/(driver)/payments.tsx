@@ -23,8 +23,6 @@ export default function DriverPaymentsPage() {
   const styles = useThemedStyles(React.useCallback(colors => StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing.xxxl },
-    heading: { fontFamily: Typography.fontHeading, color: colors.textPrimary, fontSize: 26 },
-    subtitle: { fontFamily: Typography.fontBody, color: colors.textSecondary, lineHeight: 22 },
     summary: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
     summaryCard: { flexGrow: 1, flexBasis: '45%', gap: Spacing.xs },
     label: { fontFamily: Typography.fontBody, color: colors.textSecondary, fontSize: Typography.sizeSm },
@@ -47,10 +45,6 @@ export default function DriverPaymentsPage() {
     contentContainerStyle={styles.content}
     refreshControl={<RefreshControl refreshing={payments.isRefetching} onRefresh={() => void payments.refetch()} />}
   >
-    <View>
-      <Text style={styles.heading}>Earnings</Text>
-      <Text style={styles.subtitle}>Your trip earnings and the review status of each record.</Text>
-    </View>
     <View style={styles.summary}>
       <AppCard style={styles.summaryCard}>
         <Text style={styles.label}>Approved earnings</Text>

@@ -19,6 +19,11 @@ public class RouteMapper {
         route.setRouteDate(request.routeDate());
         route.setServiceType(request.serviceType());
         route.setPrice(request.price());
+        route.setRoundTripPrice(request.roundTripPrice());
+        route.setBillingTripType(request.billingTripType() == null
+                ? com.transportplatform.tms.features.ride.domain.RideTripType.ONE_WAY : request.billingTripType());
+        route.setBillToType(request.billToType());
+        route.setBillToId(request.billToId());
         route.setStartTime(request.startTime());
         route.setEndTime(request.endTime());
         route.setManifestNotes(trimToNull(request.manifestNotes()));
@@ -36,6 +41,11 @@ public class RouteMapper {
                 route.getRouteDate(),
                 route.getServiceType(),
                 route.getPrice(),
+                route.getRoundTripPrice(),
+                route.getBillingTripType(),
+                route.getBillToType(),
+                route.getBillToId(),
+                route.getAutoInvoiceId(),
                 route.getAssignedDriverId(),
                 assignedDriver == null ? null : formatDriverName(assignedDriver),
                 route.getAssignedVehicleId(),
@@ -64,6 +74,11 @@ public class RouteMapper {
                 route.getRouteDate(),
                 route.getServiceType(),
                 route.getPrice(),
+                route.getRoundTripPrice(),
+                route.getBillingTripType(),
+                route.getBillToType(),
+                route.getBillToId(),
+                route.getAutoInvoiceId(),
                 route.getAssignedDriverId(),
                 assignedDriver == null ? null : formatDriverName(assignedDriver),
                 route.getAssignedVehicleId(),

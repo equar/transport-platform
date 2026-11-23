@@ -58,6 +58,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class RouteService {
 
+    private final com.transportplatform.tms.features.billing.application.RouteInvoiceService routeInvoices;
     private final TenantRepository dispatchTenants;
     private final DispatchAssignmentValidationService dispatchValidation;
     private final RouteRepository routeRepository;
@@ -90,7 +91,9 @@ public class RouteService {
             VehicleComplianceSummaryService vehicleComplianceSummaryService,
             RideEventService rideEventService,
             AuditLogService auditLogService,
-            NotificationEventService notifications) {
+            NotificationEventService notifications,
+            com.transportplatform.tms.features.billing.application.RouteInvoiceService routeInvoices) {
+        this.routeInvoices = routeInvoices;
         this.dispatchTenants=dispatchTenants;this.dispatchValidation=dispatchValidation;
         this.routeRepository = routeRepository;
         this.routeStopRepository = routeStopRepository;
@@ -162,6 +165,7 @@ public class RouteService {
         route.setStatus(RouteStatusWorkflow.resolveInitialStatus(request.status()));
         routeMapper.apply(route, request);
         validateRoute(route);
+        routeInvoices.validateBilling(route);
         Route saved = routeRepository.save(route);
         recordRouteAudit(saved, "CREATED", "Route " + saved.getRouteCode() + " was created.", null,
                 snapshot(saved));
@@ -176,6 +180,7 @@ public class RouteService {
         Object oldSnapshot = snapshot(route);
         routeMapper.apply(route, request);
         validateRoute(route);
+        routeInvoices.validateBilling(route);
         Route saved = routeRepository.save(route);
         recordRouteAudit(saved, "UPDATED", "Route " + saved.getRouteCode() + " was updated.", oldSnapshot,
                 snapshot(saved));
@@ -279,6 +284,7 @@ public class RouteService {
     public RouteResponse completeCompanyRoute(Long routeId) {
         dispatchTenants.lockForDispatch(routeAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Route route = routeAccessService.findRouteForCompanyScope(routeId);
+        if (route.getStatus() == RouteStatus.COMPLETED) return getCompanyRoute(routeId);
         RouteStatusWorkflow.ensureCanComplete(route.getStatus());
         List<RouteStop> stops = routeStopRepository.findAllByTenantIdAndRoute_IdOrderByStopSequenceAsc(
                 route.getTenantId(), route.getId());
@@ -503,6 +509,7 @@ public class RouteService {
     private RouteResponse updateRouteStatus(Route route, RouteStatus status, String action, String summary) {
         Object oldSnapshot = snapshot(route);
         route.setStatus(status);
+        if (status == RouteStatus.COMPLETED) routeInvoices.createDraftOnCompletion(route);
         Route saved = routeRepository.save(route);
         recordRouteAudit(saved, action, summary, oldSnapshot, snapshot(saved));
         return getCompanyRoute(saved.getId());
@@ -712,6 +719,12 @@ public class RouteService {
         values.put("routeName", route.getRouteName());
         values.put("routeDate", route.getRouteDate());
         values.put("serviceType", route.getServiceType() == null ? null : route.getServiceType().name());
+        values.put("price", route.getPrice());
+        values.put("roundTripPrice", route.getRoundTripPrice());
+        values.put("billingTripType", route.getBillingTripType());
+        values.put("billToType", route.getBillToType());
+        values.put("billToId", route.getBillToId());
+        values.put("autoInvoiceId", route.getAutoInvoiceId());
         values.put("assignedDriverId", route.getAssignedDriverId());
         values.put("assignedVehicleId", route.getAssignedVehicleId());
         values.put("startTime", route.getStartTime());

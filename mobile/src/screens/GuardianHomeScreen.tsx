@@ -49,7 +49,7 @@ export function PassengerTripHomeScreen({ role }: { role: 'rider' | 'guardian' }
   const refresh = () => { void active.refetch(); void trips.refetch(); };
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content}
     refreshControl={<RefreshControl refreshing={active.isRefetching && !active.isFetchingNextPage || trips.isRefetching} onRefresh={refresh} />}>
-    <DashboardHeader name={session?.identity.firstName?.trim() || (role === 'guardian' ? 'Guardian' : 'Rider')} role={role} />
+    <DashboardHeader name={session?.identity.firstName?.trim() || ''} />
     <SectionHeader title="Active rides" />
     {active.isPending ? <Text accessibilityLiveRegion="polite" style={styles.body}>Loading active rides…</Text> : active.isError ?
       <AppCard style={styles.card}><Text accessibilityRole="alert" style={styles.body}>{requestErrorMessage(active.error, 'Active rides couldn’t be loaded. Try again.')}</Text><AppButton label="Retry active rides" onPress={() => void active.refetch()} /></AppCard> : activeRides.length ?

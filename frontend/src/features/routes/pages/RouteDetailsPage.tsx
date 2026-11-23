@@ -322,9 +322,19 @@ export function RouteDetailsPage() {
             Date: {route.routeDate}
           </Typography>
           <Typography color="text.secondary">
-            Route price:{" "}
-            {route.price == null ? "Not set" : route.price.toFixed(2)}
+            One-way price:{" "}
+            {route.price == null ? "Manual invoicing" : `$${route.price.toFixed(2)} USD`}
           </Typography>
+          <Typography color="text.secondary">
+            Round-trip price: {route.roundTripPrice == null ? "Manual invoicing" : `$${route.roundTripPrice.toFixed(2)} USD`}
+          </Typography>
+          <Typography color="text.secondary">
+            Billing journey: {route.billingTripType === "ROUND_TRIP" ? "Round trip" : "One way"} · Entire route
+          </Typography>
+          {route.autoInvoiceId ? <Button component={RouterLink} to={`/company/invoices/${route.autoInvoiceId}`}>View route invoice</Button> :
+            <Typography color="text.secondary">{route.billingTripType == null || (route.billingTripType === "ROUND_TRIP" ? route.roundTripPrice : route.price) == null
+              ? "Tenant admin creates the invoice manually."
+              : "A draft invoice will be created when this route is completed."}</Typography>}
           <Typography color="text.secondary">
             Driver: {route.assignedDriverName ?? "Unassigned"}
           </Typography>

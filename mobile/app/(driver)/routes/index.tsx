@@ -9,7 +9,6 @@ import { driverPortalApi } from '@api/driverPortalApi';
 import { AppBadge } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
-import { SectionHeader } from '@components/SectionHeader';
 import { Spacing, Typography } from '@theme/tokens';
 import { formatDate } from '@utils/formatDate';
 
@@ -29,7 +28,6 @@ export default function DriverRoutesPage() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <SectionHeader title="Routes" subtitle="Your route manifests" />
       </View>
       <FlatList
         data={routes}

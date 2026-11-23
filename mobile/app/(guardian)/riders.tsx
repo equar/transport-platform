@@ -8,7 +8,6 @@ import { riderPortalApi } from '@api/riderPortalApi';
 import { AppBadge, AppCard } from '@components/ui';
 import { LoadingState } from '@components/LoadingState';
 import { EmptyState } from '@components/EmptyState';
-import { SectionHeader } from '@components/SectionHeader';
 import { Spacing, Typography } from '@theme/tokens';
 
 export default function GuardianRidersPage() {
@@ -28,7 +27,6 @@ export default function GuardianRidersPage() {
   return (
     <View style={styles.container}>
       <View style={styles.headerCard}>
-        <SectionHeader title="Linked Riders" subtitle="Riders you're authorised to monitor" />
       </View>
       <FlatList
         data={riders}
