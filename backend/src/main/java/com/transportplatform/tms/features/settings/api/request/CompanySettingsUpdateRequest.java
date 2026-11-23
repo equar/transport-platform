@@ -24,7 +24,7 @@ public record CompanySettingsUpdateRequest(
         @NotBlank(message = "ZIP code is required.") @Size(max = 30, message = "ZIP code must be 30 characters or fewer.") String zipCode,
         @NotBlank(message = "Country is required.") @Size(max = 100, message = "Country must be 100 characters or fewer.") String country,
         @NotBlank(message = "Timezone is required.") @Size(max = 80, message = "Timezone must be 80 characters or fewer.") String timezone,
-        @NotBlank(message = "Currency is required.") @Size(min = 3, max = 3, message = "Currency must be a 3-letter ISO code.") String currency,
+        @NotBlank(message = "Currency is required.") @jakarta.validation.constraints.Pattern(regexp = "USD", message = "Only USD is supported.") String currency,
         @NotBlank(message = "Date format is required.") @Size(max = 30, message = "Date format must be 30 characters or fewer.") String dateFormat,
         @NotNull(message = "Default ride lead time is required.") @Min(value = 0, message = "Default ride lead time must be zero or greater.") @Max(value = 1440, message = "Default ride lead time must be 1440 minutes or fewer.") Integer defaultRideLeadTimeMinutes,
         @NotNull(message = "Allow manual ride creation flag is required.") Boolean allowManualRideCreation,

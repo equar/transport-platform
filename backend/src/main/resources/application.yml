@@ -91,7 +91,7 @@ app:
     auth-rate-limit:
       enabled: true
       window: PT1M
-      login-max-requests: 10
+      login-max-requests: ${APP_SECURITY_LOGIN_IP_MAX_REQUESTS:100}
       refresh-max-requests: 30
       forgot-password-max-requests: 5
     jwt:

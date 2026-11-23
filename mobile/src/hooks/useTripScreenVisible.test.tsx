@@ -1,3 +1,4 @@
+import { foregroundTripRefreshOptions } from './useTripScreenVisible';
 import { act, renderHook } from '@testing-library/react-native';
 import { AppState, type AppStateStatus } from 'react-native';
 import { useTripScreenVisible } from './useTripScreenVisible';
@@ -20,4 +21,10 @@ it('enables fetching only while the route is focused and the app is active', () 
  act(() => { if (blur) blur(); });
  expect(view.result.current).toBe(false);
  view.unmount(); expect(remove).toHaveBeenCalled();
+});
+
+it('refreshes foreground trip queries without background polling', () => {
+  expect(foregroundTripRefreshOptions.refetchInterval).toBe(15000);
+  expect(foregroundTripRefreshOptions.refetchIntervalInBackground).toBe(false);
+  expect(foregroundTripRefreshOptions.refetchOnReconnect).toBe(true);
 });

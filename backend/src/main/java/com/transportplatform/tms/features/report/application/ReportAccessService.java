@@ -30,5 +30,29 @@ public class ReportAccessService {
         modules.requireEnabled(user.tenantId(), "REPORTS");
         return user;
     }
+    public boolean canAccess(AuthenticatedUser user, com.transportplatform.tms.features.report.domain.ReportType type) {
+        var roles = user.getAuthorities().stream().map(a -> a.getAuthority()).toList();
+        if (roles.contains("ROLE_TENANT_ADMIN")) return true;
+        return switch (type) {
+            case INVOICE, PAYMENT -> roles.contains("ROLE_BILLING_ADMIN");
+            case COMPLIANCE, INCIDENT -> roles.contains("ROLE_COMPLIANCE_ADMIN");
+            default -> false;
+        };
+    }
+    public AuthenticatedUser requireReport(com.transportplatform.tms.features.report.domain.ReportType type) {
+        var user = currentAuthenticatedUserService.requireCurrentUser();
+        if (user.tenantId() == null || user.tenantId().isBlank() || !canAccess(user, type))
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "Your account cannot access this report.");
+        modules.requireEnabled(user.tenantId(), "REPORTS");
+        return user;
+    }
+    public AuthenticatedUser requireReportUser() {
+        var user = currentAuthenticatedUserService.requireCurrentUser();
+        if (java.util.Arrays.stream(com.transportplatform.tms.features.report.domain.ReportType.values()).noneMatch(t -> canAccess(user, t))
+                || user.tenantId() == null || user.tenantId().isBlank())
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "Your account cannot access reports.");
+        modules.requireEnabled(user.tenantId(), "REPORTS");
+        return user;
+    }
     public void requireModule(String tenantId, String module) { modules.requireEnabled(tenantId, module); }
 }

@@ -28,6 +28,12 @@ public class TripEvidenceController {
     return ApiResponse.success(service.configure(id, request));
   }
 
+  @PostMapping("/company/rides/{id}/delivery-evidence/arrival-exception")
+  @PreAuthorize("hasRole('TENANT_ADMIN')")
+  public ApiResponse<Summary> exception(@PathVariable long id, @Valid @RequestBody ArrivalException request) {
+    return ApiResponse.success(service.confirmArrivalException(id, request));
+  }
+
   @GetMapping("/portal/driver/rides/{id}/delivery-evidence")
   @PreAuthorize("hasRole('DRIVER')")
   public ApiResponse<Summary> driver(@PathVariable long id) {

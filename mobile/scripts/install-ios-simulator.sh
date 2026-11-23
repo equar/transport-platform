@@ -58,7 +58,7 @@ if [[ -n "$API_URL" ]]; then
 elif [[ -z "${EXPO_PUBLIC_API_BASE_URL:-}" ]]; then
   export EXPO_PUBLIC_API_BASE_URL="$(resolve_api_base_url "$ENV_NAME" "ios-simulator")"
 fi
-export EXPO_PUBLIC_SIMULATOR_SESSION_STORAGE=true
+export EXPO_PUBLIC_SIMULATOR_SESSION_STORAGE="${EXPO_PUBLIC_SIMULATOR_SESSION_STORAGE:-false}"
 export NODE_ENV="${TRANSPORT_NODE_ENV:-production}"
 
 BUILD_CONFIGURATION="Release"
@@ -140,6 +140,8 @@ echo "API: $EXPO_PUBLIC_API_BASE_URL"
 echo "Expo project: $EXPO_PUBLIC_EAS_PROJECT_ID"
 echo "Booted simulators: ${BOOTED_SIMULATORS[*]}"
 pushd "$PROJECT_ROOT/ios" >/dev/null
+# Xcode must embed simulator Keychain entitlements at link time. An ad-hoc
+# identity works locally without a developer team or device provisioning profile.
 xcodebuild \
   -workspace "$WORKSPACE" \
   -scheme "$SCHEME" \
@@ -147,7 +149,12 @@ xcodebuild \
   -sdk iphonesimulator \
   -destination "id=${BOOTED_SIMULATORS[0]}" \
   -derivedDataPath "$DERIVED_DATA_PATH" \
-  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_ALLOWED=YES \
+  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=YES \
+  CODE_SIGN_IDENTITY=- \
+  CODE_SIGN_STYLE=Manual \
+  DEVELOPMENT_TEAM= \
+  PROVISIONING_PROFILE_SPECIFIER= \
   ONLY_ACTIVE_ARCH=YES \
   ARCHS="$SIMULATOR_ARCH" \
   build
@@ -158,6 +165,8 @@ if [[ ! -d "$APP_PATH" ]]; then
   echo "Built app not found: $APP_PATH" >&2
   exit 1
 fi
+
+python3 "$SCRIPT_DIR/verify-ios-simulator-keychain.py" "$APP_PATH"
 
 for simulator_udid in "${BOOTED_SIMULATORS[@]}"; do
   if ! xcrun simctl list devices available | grep -q "($simulator_udid) (Booted)"; then

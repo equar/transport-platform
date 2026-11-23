@@ -276,6 +276,15 @@ public class NotificationEventService {
         publishRideParticipantStatusChanged(ride, previousStatus, currentStatus);
     }
 
+    public void publishArrivalExceptionApproved(Ride ride) {
+        String title = "Arrival reviewed by your transport provider";
+        String message = "Arrival for trip " + ride.getRideNumber() + " was confirmed through an administrator review because app confirmation was unavailable.";
+        Map<String,Object> context = Map.of("rideNumber",ride.getRideNumber(),"confirmationType","ADMINISTRATOR_EXCEPTION");
+        notifyTenantAdmins(ride.getTenantId(), NotificationType.RIDE_STATUS_CHANGED, "RIDE", ride.getId(), title, message, context);
+        notifyRidePassengers(ride, NotificationType.RIDE_STATUS_CHANGED, title, message, context);
+        notifyRideDriver(ride, null, NotificationType.RIDE_STATUS_CHANGED, title, message, context);
+    }
+
     public void publishInvoiceIssued(Invoice invoice) {
         notifyTenantAdmins(
                 invoice.getTenantId(),

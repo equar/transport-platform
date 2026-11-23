@@ -222,6 +222,9 @@ export function PaymentUpsertDialog({
     if (!form.paymentDate) {
       nextErrors.paymentDate = "Payment date is required.";
     }
+    if (form.paymentMethod !== "CASH" && !form.externalTransactionId?.trim()) {
+      nextErrors.externalTransactionId = "Enter the original receipt or transaction ID.";
+    }
     if (form.amount <= 0) {
       nextErrors.amount = "Payment amount must be greater than zero.";
     }
@@ -254,12 +257,13 @@ export function PaymentUpsertDialog({
       fullWidth
       maxWidth="md"
     >
-      <DialogTitle>{payment ? "Update Payment" : "Record Payment"}</DialogTitle>
+      <DialogTitle>{payment ? "Update Payment" : "Record payment received"}</DialogTitle>
       <DialogContent>
         <Stack spacing={3} sx={{ mt: 1 }}>
+          <Typography variant="body2">Record funds already received outside this app. This action does not charge a card or move money. Use the original receipt reference to prevent duplicate entries.</Typography>
           <Stack spacing={2}>
             <Typography variant="overline" color="secondary.main">
-              Payment Context
+              Receipt details
             </Typography>
             <Autocomplete
               options={invoiceOptions}
@@ -361,7 +365,10 @@ export function PaymentUpsertDialog({
                 fullWidth
               />
               <TextField
-                label="External Transaction Id"
+                label="Original receipt / transaction ID"
+                required={form.paymentMethod !== "CASH"}
+                error={Boolean(errors.externalTransactionId)}
+                helperText={errors.externalTransactionId || "Use the same original ID when allocating one receipt across different invoices."}
                 value={form.externalTransactionId ?? ""}
                 onChange={(event) =>
                   updateField("externalTransactionId", event.target.value)
@@ -416,7 +423,7 @@ export function PaymentUpsertDialog({
             ? "Saving..."
             : payment
               ? "Update Payment"
-              : "Record Payment"}
+              : "Record payment received"}
         </Button>
       </DialogActions>
     </Dialog>

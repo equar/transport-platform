@@ -491,9 +491,7 @@ export function SubscriptionBillingPage() {
             </TextField>
             {!editing?.automaticAvailable ? (
               <Typography variant="body2">
-                Automatic collection is supported by the billing engine and
-                requires a configured payment-provider adapter. No provider is
-                currently configured.
+                Record subscription payments manually. Automatic collection is unavailable.
               </Typography>
             ) : null}
             <FormControlLabel

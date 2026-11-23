@@ -103,7 +103,7 @@ export function AppShell() {
     "Unknown user";
   const workspaceLabel =
     shellView.scope === "platform"
-      ? "Platform scope"
+      ? "Platform administration"
       : capabilities?.tenantProfile.companyName ||
         capabilities?.tenantProfile.legalName ||
         branding?.displayName ||

@@ -159,6 +159,11 @@ export function UserUpsertDialog({
       setValidationError("The password must contain at least 8 characters.");
       return;
     }
+    const mobileRoles = form.roles.filter(role => ["ROLE_DRIVER", "ROLE_RIDER", "ROLE_GUARDIAN"].includes(role));
+    if (mobileRoles.length && form.roles.length > 1) {
+      setValidationError("Use a separate account for each rider, guardian, driver or staff role.");
+      return;
+    }
     if (form.roles.length === 0) {
       setValidationError("Select at least one role.");
       return;

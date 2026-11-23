@@ -23,6 +23,10 @@ public final class TripEvidenceRecords {
       @DecimalMin("0") @Digits(integer = 8, fraction = 1) BigDecimal odometerMiles,
       @NotNull Boolean mockedLocation) {}
 
+  @Schema(name = "TripArrivalExceptionRequest")
+  public record ArrivalException(@NotNull @Positive Long dropoffEvidenceId,
+      @NotBlank @Size(min = 10, max = 1000) String reason) {}
+
   @Schema(name = "TripDeliveryConfirmationRequest")
   public record Confirmation(@NotNull @Positive Long dropoffEvidenceId, @AssertTrue boolean delivered,
       @Valid Signature signature) {
@@ -64,7 +68,10 @@ public final class TripEvidenceRecords {
       Instant consumedAt) {}
 
   @Schema(name = "TripDeliveryConfirmation")
-  public record Confirmed(String confirmerName, String subjectType, Instant confirmedAt, boolean signed) {
+  public record Confirmed(String confirmerName, String subjectType, Instant confirmedAt, boolean signed, String exceptionReason) {
+    public Confirmed(String confirmerName, String subjectType, Instant confirmedAt, boolean signed) {
+      this(confirmerName, subjectType, confirmedAt, signed, null);
+    }
     public Confirmed(String confirmerName, String subjectType, Instant confirmedAt) {
       this(confirmerName, subjectType, confirmedAt, false);
     }

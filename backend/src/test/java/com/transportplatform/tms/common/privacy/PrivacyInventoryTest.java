@@ -48,6 +48,7 @@ class PrivacyInventoryTest {
     expected.addAll(
         List.of(
             "trip_delivery_confirmations.signature_json",
+            "trip_delivery_confirmations.exception_reason",
             "trip_verified_stops.pickup_latitude",
             "trip_verified_stops.pickup_longitude",
             "trip_verified_stops.dropoff_latitude",

@@ -244,6 +244,13 @@ const reportColumns: Record<ReportType, ColumnDefinition[]> = {
           ? formatDateTime(String(row.scheduledPickupAt))
           : "-",
     },
+      { key: "actualPickupAt", header: "Actual pickup", render: row => row.actualPickupAt ? formatDateTime(String(row.actualPickupAt)) : "—" },
+    { key: "actualDropoffAt", header: "Actual drop-off", render: row => row.actualDropoffAt ? formatDateTime(String(row.actualDropoffAt)) : "—" },
+    { key: "pickupDelayMinutes", header: "Pickup delay (min)", render: row => String(row.pickupDelayMinutes ?? "—") },
+    { key: "dropoffDelayMinutes", header: "Drop-off delay (min)", render: row => String(row.dropoffDelayMinutes ?? "—") },
+    { key: "passengerMiles", header: "Passenger miles", render: row => String(row.passengerMiles ?? "—") },
+    { key: "passengerMinutes", header: "Passenger minutes", render: row => String(row.passengerMinutes ?? "—") },
+    { key: "cancellationReason", header: "Cancellation reason", render: row => String(row.cancellationReason ?? "—") },
   ],
   ROUTE: [
     {
@@ -504,10 +511,9 @@ export function CompanyReportsPage() {
     async function loadDefinitions() {
       setLoading(true);
       try {
-        const [reportDefinitions, refs] = await Promise.all([
-          reportsApi.listDefinitions(),
-          incidentsApi.getReferenceData(),
-        ]);
+        const reportDefinitions = await reportsApi.listDefinitions();
+        const refs = reportDefinitions.some(report => report.reportType === "INCIDENT")
+          ? await incidentsApi.getReferenceData() : null;
         setDefinitions(reportDefinitions);
         setReferenceData(refs);
         setSelectedReportType(reportDefinitions[0]?.reportType ?? "DRIVER");

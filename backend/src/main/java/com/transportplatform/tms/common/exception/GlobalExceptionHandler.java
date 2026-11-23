@@ -32,7 +32,11 @@ public class GlobalExceptionHandler {
                 exception.getErrorCode().name(),
                 exception.getMessage(),
                 exception.getDetails());
-        return ResponseEntity.status(exception.getStatus()).body(ApiResponse.failure(error));
+        var response = ResponseEntity.status(exception.getStatus());
+        if (exception.getStatus().value() == 429 && exception.getDetails() != null
+                && exception.getDetails().get("retryAfterSeconds") instanceof Number retry)
+            response.header("Retry-After", Long.toString(Math.max(1, retry.longValue())));
+        return response.body(ApiResponse.failure(error));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -1,3 +1,4 @@
+vi.mock("../../features/auth/context/AuthContext", () => ({ useAuth: () => ({ hasRole: () => true }) }));
 // Verified-stop requests are covered by TripEvidencePanel.test.tsx.
 vi.mock('../../features/rides/pages/TripEvidencePanel', () => ({ TripEvidencePanel: () => null }));
 import { vehiclesApi } from "../../features/vehicles/api/vehiclesApi";

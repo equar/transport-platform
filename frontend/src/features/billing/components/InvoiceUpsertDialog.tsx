@@ -44,7 +44,7 @@ function defaultForm(days = 30, currency = "USD", timezone = "UTC"): InvoicePayl
     dueDate: dueDate.toISOString().slice(0, 10),
     taxAmount: 0,
     discountAmount: 0,
-    currency,
+    currency: "USD",
     notes: "",
   };
 }
@@ -89,7 +89,7 @@ export function InvoiceUpsertDialog({
       dueDate: invoice.dueDate,
       taxAmount: invoice.taxAmount,
       discountAmount: invoice.discountAmount,
-      currency: invoice.currency,
+      currency: "USD",
       notes: invoice.notes ?? "",
     });
     const option = {
@@ -194,7 +194,7 @@ export function InvoiceUpsertDialog({
       billToId: selectedOption.id,
       billingPeriodStart: form.billingPeriodStart || null,
       billingPeriodEnd: form.billingPeriodEnd || null,
-      currency: form.currency.trim().toUpperCase(),
+      currency: "USD",
       notes: form.notes?.trim() || null,
     });
   }
@@ -345,7 +345,8 @@ export function InvoiceUpsertDialog({
               />
               <TextField
                 label="Currency"
-                value={form.currency}
+                value="USD"
+                disabled
                 onChange={(event) =>
                   updateField("currency", event.target.value)
                 }

@@ -1,3 +1,4 @@
+import { useAuth } from "../../auth/context/AuthContext";
 import {TripEvidencePanel} from "./TripEvidencePanel";
 import { driversApi } from "../../drivers/api/driversApi";
 import { vehiclesApi } from "../../vehicles/api/vehiclesApi";
@@ -95,6 +96,7 @@ function DetailField({ label, value }: { label: string; value: string }) {
 }
 
 export function RideDetailsPage() {
+  const { hasRole } = useAuth();
   const navigate = useNavigate();
   const { rideId } = useParams();
   const resolvedRideId = Number(rideId);
@@ -1180,7 +1182,7 @@ export function RideDetailsPage() {
         </Stack>
       </PageCard>
 
-      <TripEvidencePanel rideId={ride.id} status={ride.status} />
+      <TripEvidencePanel rideId={ride.id} status={ride.status} canApproveException={hasRole("ROLE_TENANT_ADMIN")} />
       <RecordHistoryPanel
         entityType="RIDE"
         entityId={ride.id}

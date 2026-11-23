@@ -17,9 +17,10 @@ export function useTripScreenVisible() {
   return focused && foreground;
 }
 
-export const manualTripRefreshOptions = {
-  refetchInterval: false,
-  refetchOnWindowFocus: false,
-  refetchOnReconnect: false,
+export const foregroundTripRefreshOptions = {
+  refetchInterval: 15000,
+  refetchIntervalInBackground: false,
+  refetchOnWindowFocus: true,
+  refetchOnReconnect: true,
   retry: false,
 } as const;

@@ -275,7 +275,7 @@ export function InvoiceDetailsPage() {
               startIcon={<PaymentsRoundedIcon />}
               onClick={() => setPaymentDialogOpen(true)}
             >
-              Record Payment
+              Record payment received
             </Button>
           )}
           {(invoice.status === "ISSUED" ||
@@ -535,7 +535,7 @@ export function InvoiceDetailsPage() {
                 startIcon={<PaymentsRoundedIcon />}
                 onClick={() => setPaymentDialogOpen(true)}
               >
-                Record Payment
+                Record payment received
               </Button>
             )}
           </Stack>

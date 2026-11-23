@@ -6,6 +6,7 @@ import { AppInput } from '../ui/AppInput';
 import { Pagination } from '../Pagination';
 import DriverDashboard from '../../../app/(driver)/index';
 import { PassengerHomeScreen } from '../../screens/PassengerHomeScreen';
+jest.mock('@hooks/useTripScreenVisible', () => ({ useTripScreenVisible: () => true, foregroundTripRefreshOptions: { retry: false, refetchInterval: false } }));
 const mockFetchNextPage = jest.fn();
 const mockSignIn = jest.fn(); const mockPush = jest.fn(); const mockReplace = jest.fn();
 const mockRiderItems = [
@@ -65,7 +66,7 @@ it('shows actual driver summary fields instead of estimated miles or completion 
 it('keeps guardian travel assignment-based and preserves linked rider access', () => {
   render(<PassengerHomeScreen guardian />);
   expect(screen.queryByRole('button', { name: 'Request a ride' })).toBeNull();
-  fireEvent.press(screen.getByRole('button', { name: 'Riders’ trips' })); expect(mockPush).toHaveBeenCalledWith('/(guardian)/rides');
+  fireEvent.press(screen.getByRole('button', { name: 'All trips' })); expect(mockPush).toHaveBeenCalledWith('/(guardian)/rides');
   expect(screen.queryByText('Your next trip')).toBeNull();
   fireEvent.press(screen.getByRole('button', { name: 'Linked riders' })); expect(mockPush).toHaveBeenCalledWith('/(guardian)/riders');
   expect(screen.queryByText('Check In')).toBeNull();
@@ -108,7 +109,7 @@ it('shows assigned travel and existing billing actions without a service catalog
 it('opens the live map from the guardian home Track action, prioritizing a trip in progress', () => {
   mockRides = [{ ...mockRiderItems[0], id: 3, rideNumber: 'UPCOMING', status: 'SCHEDULED' }, ...mockRiderItems];
   render(<PassengerHomeScreen guardian />);
-  fireEvent.press(screen.getByRole('button', { name: 'Track' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Track Taylor trip ACTIVE-TRIP' }));
   expect(mockPush).toHaveBeenCalledWith('/(guardian)/rides/1?track=1');
 });
 it('does not offer guardian tracking for finished trips', () => {

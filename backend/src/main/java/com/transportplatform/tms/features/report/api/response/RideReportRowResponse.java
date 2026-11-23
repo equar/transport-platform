@@ -16,5 +16,13 @@ public record RideReportRowResponse(
         String riderName,
         String driverCode,
         String vehicleCode,
-        String organizationName) {
+        String organizationName,
+        LocalDateTime scheduledDropoffAt,
+        java.time.Instant actualPickupAt,
+        java.time.Instant actualDropoffAt,
+        Long pickupDelayMinutes,
+        Long dropoffDelayMinutes,
+        java.math.BigDecimal passengerMiles,
+        Long passengerMinutes,
+        String cancellationReason) {
 }
