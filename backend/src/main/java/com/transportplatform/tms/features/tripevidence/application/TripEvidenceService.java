@@ -31,6 +31,7 @@ public class TripEvidenceService {
   private final RideRepository rides;
   private final CurrentAuthenticatedUserService users;
   private final AuditLogService audit;
+  @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.notification.application.NotificationEventService notifications;
 
   public TripEvidenceService(
       JdbcTemplate db,
@@ -328,7 +329,7 @@ public class TripEvidenceService {
             drop.get("id"))
         .isEmpty())
       throw invalid(
-          "The rider or an authorized guardian must confirm delivery in their own app before"
+          "The rider or guardian must confirm arrival, or a tenant administrator must review an arrival exception, before"
               + " completion and billing.");
   }
 
@@ -353,6 +354,30 @@ public class TripEvidenceService {
                             && l.getRider().getId().equals(r.getRider().getId()));
     if (!allowed) throw forbidden();
     return r;
+  }
+
+  @Transactional
+  public Summary confirmArrivalException(long id, ArrivalException request) {
+    var user = company.requireCompanyUser();
+    if (user.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_TENANT_ADMIN"))) throw forbidden();
+    Ride r = company.findRideForCompanyScope(id);
+    lock(r);
+    if (r.getStatus() != RideStatus.DROPPED_OFF) throw invalid("Record drop-off before reviewing an arrival exception.");
+    stops(r);
+    consumed(r, "ARRIVED");
+    consumed(r, "PICKED_UP");
+    var drop = consumed(r, "DROPPED_OFF");
+    if (!Objects.equals(((Number) drop.get("id")).longValue(), request.dropoffEvidenceId()))
+      throw invalid("The drop-off record changed. Refresh and review it before continuing.");
+    String reason = request.reason() == null ? "" : request.reason().trim();
+    if (reason.length() < 10 || reason.length() > 1000) throw invalid("Explain how arrival was verified and why app confirmation is unavailable (10–1000 characters).");
+    if (!db.queryForList("SELECT ride_id FROM trip_delivery_confirmations WHERE ride_id=? AND tenant_id=?", id, r.getTenantId()).isEmpty())
+      throw invalid("Arrival has already been confirmed. Refresh the trip.");
+    db.update("INSERT INTO trip_delivery_confirmations(ride_id,tenant_id,dropoff_evidence_id,confirmed_by,confirmer_name,subject_type,subject_id,confirmed_at,exception_reason) VALUES(?,?,?,?,?,?,?,?,?)",
+        id, r.getTenantId(), drop.get("id"), user.id(), user.displayName(), "TENANT_ADMIN", user.id(), now(), privacy.encrypt(reason, "text"));
+    record(r, "ARRIVAL_EXCEPTION_APPROVED", null, Map.of("dropoffEvidenceId", drop.get("id"), "reason", reason));
+    notifications.publishArrivalExceptionApproved(r);
+    return summary(r, false, true);
   }
 
   @Transactional
@@ -413,7 +438,7 @@ public class TripEvidenceService {
 
   @Transactional(readOnly = true)
   public Summary companySummary(long id) {
-    return summary(company.findRideForCompanyScope(id), false);
+    return summary(company.findRideForCompanyScope(id), false, true);
   }
 
   @Transactional(readOnly = true)
@@ -426,7 +451,9 @@ public class TripEvidenceService {
     return summary(passengerRide(id), true);
   }
 
-  private Summary summary(Ride r, boolean canConfirm) {
+  private Summary summary(Ride r, boolean canConfirm) { return summary(r, canConfirm, false); }
+
+  private Summary summary(Ride r, boolean canConfirm, boolean includeExceptionReason) {
     Stops stop = null;
     try {
       var s = stops(r);
@@ -457,13 +484,14 @@ public class TripEvidenceService {
             r.getTenantId());
     var confirmations =
         db.query(
-            "SELECT confirmer_name, subject_type, confirmed_at, signature_json IS NOT NULL AS signed FROM trip_delivery_confirmations WHERE ride_id=? AND tenant_id=?",
+            "SELECT confirmer_name, subject_type, confirmed_at, exception_reason, signature_json IS NOT NULL AS signed FROM trip_delivery_confirmations WHERE ride_id=? AND tenant_id=?",
             (rs, n) ->
                 new Confirmed(
                     rs.getString("confirmer_name"),
                     rs.getString("subject_type"),
                     rs.getObject("confirmed_at", LocalDateTime.class).toInstant(ZoneOffset.UTC),
-                    rs.getBoolean("signed")),
+                    rs.getBoolean("signed"),
+                    includeExceptionReason ? privacy.decrypt(rs.getString("exception_reason"), "text") : null),
             r.getId(),
             r.getTenantId());
     boolean ready = false;

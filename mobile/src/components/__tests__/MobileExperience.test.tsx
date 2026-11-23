@@ -6,7 +6,7 @@ import { AppInput } from '../ui/AppInput';
 import { Pagination } from '../Pagination';
 import DriverDashboard from '../../../app/(driver)/index';
 import { PassengerHomeScreen } from '../../screens/PassengerHomeScreen';
-jest.mock('@hooks/useTripScreenVisible', () => ({ useTripScreenVisible: () => true, manualTripRefreshOptions: { retry: false, refetchInterval: false } }));
+jest.mock('@hooks/useTripScreenVisible', () => ({ useTripScreenVisible: () => true, foregroundTripRefreshOptions: { retry: false, refetchInterval: false } }));
 const mockFetchNextPage = jest.fn();
 const mockSignIn = jest.fn(); const mockPush = jest.fn(); const mockReplace = jest.fn();
 const mockRiderItems = [

@@ -11,3 +11,8 @@ it('does not expose server internals for service failures', () => {
 it('preserves actionable server validation messages', () => {
   expect(requestErrorMessage({ response: { status: 400, data: { error: { message: 'Enter a valid pickup address.' } } } })).toBe('Enter a valid pickup address.');
 });
+
+it('shows field corrections and a server-provided retry delay', () => {
+  expect(requestErrorMessage({ response: { status: 422, data: { error: { details: { fieldErrors: { phone: 'Enter a valid phone number.' } } } } } })).toBe('Enter a valid phone number.');
+  expect(requestErrorMessage({ response: { status: 429, headers: { 'retry-after': '45' } } })).toContain('45 seconds');
+});

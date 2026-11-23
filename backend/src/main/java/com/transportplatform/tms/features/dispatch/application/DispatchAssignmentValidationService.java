@@ -27,8 +27,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class DispatchAssignmentValidationService {
 
-    @org.springframework.beans.factory.annotation.Value("${app.dispatch.turnaround-minutes:0}")
-    private long turnaroundMinutes;
+    @org.springframework.beans.factory.annotation.Value("${app.dispatch.turnaround-minutes:15}")
+    private long turnaroundMinutes = 15;
+    @org.springframework.beans.factory.annotation.Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.common.privacy.PhiCipher privacy;
+    @org.springframework.beans.factory.annotation.Value("${app.dispatch.transfer-average-mph:25}")
+    private double transferAverageMph = 25;
 
     private static final EnumSet<RideStatus> ACTIVE_ASSIGNMENT_STATUSES = EnumSet.of(
             RideStatus.SCHEDULED,
@@ -86,7 +90,7 @@ public class DispatchAssignmentValidationService {
             throw new ApiException(
                     ErrorCode.RESOURCE_CONFLICT,
                     HttpStatus.CONFLICT,
-                    "Driver already has an overlapping active ride assignment.");
+                    "Driver has a conflicting trip or insufficient turnaround / transfer time.");
         }
         return driver;
     }
@@ -133,7 +137,7 @@ public class DispatchAssignmentValidationService {
             throw new ApiException(
                     ErrorCode.RESOURCE_CONFLICT,
                     HttpStatus.CONFLICT,
-                    "Vehicle already has an overlapping active ride assignment.");
+                    "Vehicle has a conflicting trip or insufficient turnaround / transfer time.");
         }
         return vehicle;
     }
@@ -155,7 +159,7 @@ public class DispatchAssignmentValidationService {
             }
             if (hasDriverConflict(tenantId, ride, ride.getDriverId())) {
                 conflictWarning = true;
-                warningMessages.add("Assigned driver has an overlapping ride assignment.");
+                warningMessages.add("Assigned driver has a conflicting trip or insufficient turnaround / transfer time.");
             }
         }
 
@@ -171,7 +175,7 @@ public class DispatchAssignmentValidationService {
             }
             if (hasVehicleConflict(tenantId, ride, ride.getVehicleId())) {
                 conflictWarning = true;
-                warningMessages.add("Assigned vehicle has an overlapping ride assignment.");
+                warningMessages.add("Assigned vehicle has a conflicting trip or insufficient turnaround / transfer time.");
             }
         }
 
@@ -205,7 +209,7 @@ public class DispatchAssignmentValidationService {
                 if(java.util.Objects.equals(candidate.getId(),ride.getId()) || (ride.getRouteId()!=null && java.util.Objects.equals(ride.getRouteId(),candidate.getRouteId()))) continue;
                 boolean shared=(ride.getDriverId()!=null && java.util.Objects.equals(ride.getDriverId(),candidate.getDriverId()))
                         || (ride.getVehicleId()!=null && java.util.Objects.equals(ride.getVehicleId(),candidate.getVehicleId()));
-                if(shared && windowsOverlap(resolveRideWindowStart(ride),resolveRideWindowEnd(ride),resolveRideWindowStart(candidate),resolveRideWindowEnd(candidate))) {conflict=true;messages.add("Assigned resource has an overlapping ride assignment.");break;}
+                if(shared && windowsOverlap(resolveRideWindowStart(ride),resolveRideWindowEnd(ride),resolveRideWindowStart(candidate),resolveRideWindowEnd(candidate))) {conflict=true;messages.add("Assigned resource has a conflicting trip or insufficient turnaround / transfer time.");break;}
             }
             result.put(ride.getId(),new DispatchWarnings(compliance,conflict,java.util.List.copyOf(messages)));
         }
@@ -218,31 +222,42 @@ public class DispatchAssignmentValidationService {
     }
 
     private boolean hasDriverConflict(String tenantId, Ride ride, Long driverId) {
-        LocalDateTime rideStart = resolveRideWindowStart(ride);
-        LocalDateTime rideEnd = resolveRideWindowEnd(ride);
         return rideRepository.findAllByTenantIdAndDriverIdAndStatusInAndIdNot(
                 tenantId,
                 driverId,
                 ACTIVE_ASSIGNMENT_STATUSES,
                 ride.getId() == null ? -1L : ride.getId()).stream()
                 .filter(candidate -> ride.getRouteId() == null || !java.util.Objects.equals(ride.getRouteId(),candidate.getRouteId()))
-                .anyMatch(candidate -> windowsOverlap(rideStart, rideEnd,
-                        resolveRideWindowStart(candidate),
-                        resolveRideWindowEnd(candidate)));
+                .anyMatch(candidate -> assignmentWindowsOverlap(tenantId, ride, candidate));
     }
 
     private boolean hasVehicleConflict(String tenantId, Ride ride, Long vehicleId) {
-        LocalDateTime rideStart = resolveRideWindowStart(ride);
-        LocalDateTime rideEnd = resolveRideWindowEnd(ride);
         return rideRepository.findAllByTenantIdAndVehicleIdAndStatusInAndIdNot(
                 tenantId,
                 vehicleId,
                 ACTIVE_ASSIGNMENT_STATUSES,
                 ride.getId() == null ? -1L : ride.getId()).stream()
                 .filter(candidate -> ride.getRouteId() == null || !java.util.Objects.equals(ride.getRouteId(),candidate.getRouteId()))
-                .anyMatch(candidate -> windowsOverlap(rideStart, rideEnd,
-                        resolveRideWindowStart(candidate),
-                        resolveRideWindowEnd(candidate)));
+                .anyMatch(candidate -> assignmentWindowsOverlap(tenantId, ride, candidate));
+    }
+
+    boolean assignmentWindowsOverlap(String tenant, Ride first, Ride second) {
+        if (windowsOverlap(resolveRideWindowStart(first), resolveRideWindowEnd(first), resolveRideWindowStart(second), resolveRideWindowEnd(second))) return true;
+        Ride earlier = resolveRideWindowStart(first).isBefore(resolveRideWindowStart(second)) ? first : second;
+        Ride later = earlier == first ? second : first;
+        if (jdbc == null || privacy == null || earlier.getId() == null || later.getId() == null) return false;
+        var stops = jdbc.queryForList("SELECT ride_id,pickup_latitude,pickup_longitude,dropoff_latitude,dropoff_longitude FROM trip_verified_stops WHERE tenant_id=? AND ride_id IN (?,?)", tenant, earlier.getId(), later.getId());
+        var origin = stops.stream().filter(r -> ((Number)r.get("ride_id")).longValue() == earlier.getId()).findFirst();
+        var destination = stops.stream().filter(r -> ((Number)r.get("ride_id")).longValue() == later.getId()).findFirst();
+        if (origin.isEmpty() || destination.isEmpty()) return false;
+        double a = Math.toRadians(Double.parseDouble(privacy.decrypt(origin.get().get("dropoff_latitude").toString(), "coordinate")));
+        double b = Math.toRadians(Double.parseDouble(privacy.decrypt(destination.get().get("pickup_latitude").toString(), "coordinate")));
+        double longitude = Math.toRadians(Double.parseDouble(privacy.decrypt(destination.get().get("pickup_longitude").toString(), "coordinate")) - Double.parseDouble(privacy.decrypt(origin.get().get("dropoff_longitude").toString(), "coordinate")));
+        double haversine = Math.pow(Math.sin((b-a)/2), 2) + Math.cos(a)*Math.cos(b)*Math.pow(Math.sin(longitude/2), 2);
+        double miles = 3958.8 * 2 * Math.asin(Math.sqrt(Math.min(1, haversine)));
+        // Conservative planning allowance, not a traffic-aware road ETA. Include a 30% road-distance allowance.
+        long transfer = (long)Math.ceil(miles * 1.3 / Math.max(5, Math.min(65, transferAverageMph)) * 60);
+        return !resolveRideWindowEnd(earlier).plusMinutes(transfer + Math.max(0, Math.min(1440, turnaroundMinutes))).isBefore(resolveRideWindowStart(later));
     }
 
     private LocalDateTime resolveRideWindowStart(Ride ride) {
@@ -263,7 +278,7 @@ public class DispatchAssignmentValidationService {
             LocalDateTime firstEnd,
             LocalDateTime secondStart,
             LocalDateTime secondEnd) {
-        return !firstEnd.plusMinutes(turnaroundMinutes).isBefore(secondStart) && !secondEnd.plusMinutes(turnaroundMinutes).isBefore(firstStart);
+        return !firstEnd.plusMinutes(Math.max(0, Math.min(1440, turnaroundMinutes))).isBefore(secondStart) && !secondEnd.plusMinutes(Math.max(0, Math.min(1440, turnaroundMinutes))).isBefore(firstStart);
     }
 
     public record DispatchWarnings(

@@ -15,5 +15,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
 
     List<Payment> findAllByInvoiceIdAndTenantIdOrderByPaymentDateDescCreatedAtDesc(Long invoiceId, String tenantId);
 
+    boolean existsByTenantIdAndInvoiceIdAndExternalTransactionIdIgnoreCaseAndIdNot(String tenantId, Long invoiceId, String externalTransactionId, Long id);
+
     long countByTenantId(String tenantId);
 }

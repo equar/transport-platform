@@ -102,6 +102,17 @@ class AuthFacadeTest {
     }
 
     @Test
+    void accountBudgetAppliesBeforeCredentialLookupAcrossClientAddresses() {
+        var budget=org.mockito.Mockito.mock(com.transportplatform.tms.common.security.DistributedAuthRateLimit.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(authFacade,"accountRateLimit",budget);
+        when(budget.retryAfter(org.mockito.ArgumentMatchers.eq("login-account::ops@example.com"),org.mockito.ArgumentMatchers.eq(20),org.mockito.ArgumentMatchers.eq(java.time.Duration.ofMinutes(5)),org.mockito.ArgumentMatchers.any())).thenReturn(42L);
+        ApiException error=assertThrows(ApiException.class,()->authFacade.login(new LoginRequest("OPS@example.com","secret123"),"web"));
+        assertEquals(429,error.getStatus().value());
+        assertEquals(42L,error.getDetails().get("retryAfterSeconds"));
+        org.mockito.Mockito.verifyNoInteractions(appUserRepository);
+    }
+
+    @Test
     void addingAnAdminRoleDoesNotEnableWebLoginForAMobileAccount() {
         AppUser user = activeTenantUser(RoleName.ROLE_DRIVER);
         user.setRoles(Set.of(RoleName.ROLE_DRIVER, RoleName.ROLE_TENANT_ADMIN));

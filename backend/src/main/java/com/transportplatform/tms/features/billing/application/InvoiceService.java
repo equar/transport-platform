@@ -413,7 +413,8 @@ public class InvoiceService {
         invoice.setBillingPeriodEnd(request.billingPeriodEnd());
         invoice.setTaxAmount(zeroIfNull(request.taxAmount()));
         invoice.setDiscountAmount(zeroIfNull(request.discountAmount()));
-        invoice.setCurrency(request.currency().trim().toUpperCase());
+        if (!"USD".equals(request.currency())) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Only USD is supported.");
+        invoice.setCurrency("USD");
         invoice.setNotes(trimToNull(request.notes()));
         invoice.setAmountPaid(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
         invoice.setStatus(InvoiceStatus.DRAFT);

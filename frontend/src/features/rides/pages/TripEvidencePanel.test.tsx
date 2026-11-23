@@ -165,3 +165,16 @@ it("does not carry verified coordinates into another ride", async () => {
     ).toBe(""),
   );
 });
+
+it("allows an administrator to review an arrival exception without impersonating a passenger", async () => {
+  const drop = { id: 71, milestone: "DROPPED_OFF", distanceMeters: 5, accuracyMeters: 4, odometerMiles: 110, recordedAt: "2026-11-22T12:00:00Z", consumedAt: "2026-11-22T12:00:01Z" };
+  vi.mocked(apiClient.get).mockResolvedValue({ data: { data: { ...data, milestones: [drop] } } });
+  vi.mocked(apiClient.post).mockResolvedValue({ data: { data: { ...data, readyToComplete: true, milestones: [drop], confirmation: { confirmerName: "Tenant Admin", subjectType: "TENANT_ADMIN", confirmedAt: "2026-11-22T12:00:05Z", exceptionReason: "Guardian phone unavailable; arrival verified by telephone." } } } });
+  render(<TripEvidencePanel rideId={12} status="DROPPED_OFF" canApproveException />);
+  const approve = await screen.findByRole("button", { name: "Approve verified arrival exception" });
+  expect((approve as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText("Arrival exception reason"), { target: { value: "Guardian phone unavailable; arrival verified by telephone." } });
+  fireEvent.click(approve);
+  await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith("/company/rides/12/delivery-evidence/arrival-exception", { dropoffEvidenceId: 71, reason: "Guardian phone unavailable; arrival verified by telephone." }));
+  expect(await screen.findByText(/Administrator review:/)).toBeTruthy();
+});

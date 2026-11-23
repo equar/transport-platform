@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from "react";
 import { Paper } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { shadowTokens, spacingTokens } from "../theme/tokens";
+import { spacingTokens } from "../theme/tokens";
 
 interface PageCardProps extends PropsWithChildren {
   variant?: "default" | "outlined" | "elevated";
@@ -11,9 +11,8 @@ interface PageCardProps extends PropsWithChildren {
 export function PageCard({ children, sx, variant = "default" }: PageCardProps) {
   const variantSx: Record<NonNullable<PageCardProps["variant"]>, Record<string, unknown>> = {
     default: {
-      border: "1px solid",
-      borderColor: "rgba(23,43,64,.07)",
-      boxShadow: shadowTokens.card,
+      border: 0,
+      boxShadow: "none",
     },
     outlined: {
       border: "1px solid",
@@ -21,8 +20,8 @@ export function PageCard({ children, sx, variant = "default" }: PageCardProps) {
       boxShadow: "none",
     },
     elevated: {
-      border: "1px solid rgba(23,43,64,.07)",
-      boxShadow: shadowTokens.tableCard,
+      border: 0,
+      boxShadow: "none",
     },
   };
 

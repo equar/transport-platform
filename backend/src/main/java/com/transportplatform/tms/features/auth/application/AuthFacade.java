@@ -80,8 +80,19 @@ public class AuthFacade {
         this.onboarding = onboarding;
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.common.security.DistributedAuthRateLimit accountRateLimit;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.common.security.SecurityProperties securityProperties;
+
     @Transactional
     public AuthTokensResponse login(LoginRequest request, String clientType) {
+        if (accountRateLimit != null && (securityProperties == null || securityProperties.getAuthRateLimit().isEnabled())) {
+            long retry = accountRateLimit.retryAfter("login-account::" + request.email().strip().toLowerCase(java.util.Locale.ROOT),
+                    20, java.time.Duration.ofMinutes(5), clock.instant());
+            if (retry > 0) throw new ApiException(ErrorCode.TOO_MANY_REQUESTS, HttpStatus.TOO_MANY_REQUESTS,
+                    "Too many sign-in attempts. Wait before trying again.", java.util.Map.of("retryAfterSeconds", retry));
+        }
         AppUser user = appUserRepository.findForAuthenticationByEmail(request.email())
                 .orElseThrow(this::invalidCredentials);
         if (!com.transportplatform.tms.common.security.PasswordEncoding.matches(passwordEncoder, request.password(), user.getPasswordHash())) {

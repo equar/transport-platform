@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
 import { TripTrackingCard } from '../TripTrackingCard';
 
@@ -59,4 +59,15 @@ it('shows a useful message instead of inventing a route if history is unavailabl
   render(<TripTrackingCard autoShowMap snapshot={null} historyError />);
   expect(screen.UNSAFE_queryAllByType(Polyline)).toHaveLength(0);
   expect(screen.getByText(/recorded path could not be loaded/)).toBeTruthy();
+});
+
+it('ages an unchanged location while the map stays open and clears its timer on unmount', () => {
+  jest.useFakeTimers();
+  try {
+    const view = render(<TripTrackingCard autoShowMap snapshot={{ latitude: 35, longitude: -80, capturedAt: new Date().toISOString() }} />);
+    expect(screen.getByText('Latest reported location')).toBeTruthy();
+    act(() => jest.advanceTimersByTime(120000));
+    expect(screen.getByText('Location may be stale (2 minutes ago).')).toBeTruthy();
+    view.unmount();
+  } finally { jest.useRealTimers(); }
 });

@@ -21,7 +21,7 @@ export function DriverPortalPaymentsPage() {
 
   return (
     <Stack spacing={2.5}>
-      <PageHero eyebrow="Driver payments" title="Your earnings" description="Completed-trip earnings and ledger adjustments." />
+      <PageHero eyebrow="Driver earnings" title="Your earnings" description="Completed-trip earnings and ledger adjustments." />
       {error ? <Alert severity="error">{error}</Alert> : null}
       {data ? (
         <>

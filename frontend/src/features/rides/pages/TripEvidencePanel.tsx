@@ -40,6 +40,7 @@ export interface Evidence {
     confirmerName: string;
     subjectType: string;
     confirmedAt: string;
+    exceptionReason?: string | null;
   } | null;
   readyToComplete: boolean;
 }
@@ -52,9 +53,11 @@ const labels = {
 export function TripEvidencePanel({
   rideId,
   status,
+  canApproveException = false,
 }: {
   rideId: number;
   status: string;
+  canApproveException?: boolean;
 }) {
   const [data, setData] = useState<Evidence | null>(null),
     [error, setError] = useState<string | null>(null),
@@ -67,6 +70,7 @@ export function TripEvidencePanel({
     dropoffLatitude: "",
     dropoffLongitude: "",
   });
+  const [exceptionReason, setExceptionReason] = useState("");
   const base = `/company/rides/${rideId}/delivery-evidence`;
   useEffect(() => {
     let active = true;
@@ -96,7 +100,7 @@ export function TripEvidencePanel({
       .catch((e) => {
         if (active)
           setError(
-            getApiErrorMessage(e, "Delivery evidence could not be loaded."),
+            getApiErrorMessage(e, "Trip confirmation could not be loaded."),
           );
       })
       .finally(() => {
@@ -141,6 +145,16 @@ export function TripEvidencePanel({
       setBusy(false);
     }
   }
+  async function approveException() {
+    const drop = data?.milestones.find(m => m.milestone === "DROPPED_OFF" && m.consumedAt);
+    if (!drop || exceptionReason.trim().length < 10) return;
+    setBusy(true); setError(null);
+    try {
+      const response = await apiClient.post(base + "/arrival-exception", { dropoffEvidenceId: drop.id, reason: exceptionReason.trim() });
+      setData(unwrapResponse<Evidence>(response.data)); setExceptionReason("");
+    } catch (e) { setError(getApiErrorMessage(e, "The arrival exception could not be saved.")); }
+    finally { setBusy(false); }
+  }
   return (
     <PageCard>
       <Stack spacing={2}>
@@ -149,7 +163,7 @@ export function TripEvidencePanel({
           justifyContent="space-between"
           alignItems="center"
         >
-          <Typography variant="h5">Delivery evidence</Typography>
+          <Typography variant="h5">Trip confirmation</Typography>
           <Button
             disabled={loading || busy}
             onClick={() => setRefresh((v) => v + 1)}
@@ -159,13 +173,13 @@ export function TripEvidencePanel({
         </Stack>
         {error ? <Alert severity="error">{error}</Alert> : null}
         {loading ? (
-          <Typography role="status">Loading delivery evidence…</Typography>
+          <Typography role="status">Loading trip confirmation…</Typography>
         ) : data ? (
           <>
             <Alert severity={data.readyToComplete ? "success" : "info"}>
               {data.readyToComplete
-                ? "Milestone evidence and passenger delivery confirmation are recorded."
-                : "Completion, ride billing and earnings require verified milestones and confirmation in the rider or authorized guardian’s own app."}
+                ? "Required trip evidence and arrival confirmation are recorded."
+                : "Arrival confirmation is pending. A tenant administrator can review an exception if the rider or guardian cannot confirm."}
             </Alert>
             <Typography variant="body2">
               Verify these coordinates against the booked pickup and drop-off
@@ -256,11 +270,18 @@ export function TripEvidencePanel({
             {!data.milestones.length ? (
               <Typography>No location milestones recorded.</Typography>
             ) : null}
+            {canApproveException && status === "DROPPED_OFF" && !data.confirmation && data.milestones.some(m => m.milestone === "DROPPED_OFF" && m.consumedAt) ? <Stack spacing={2}>
+              <TextField label="Arrival exception reason" multiline minRows={2} value={exceptionReason}
+                onChange={event => setExceptionReason(event.target.value)} disabled={busy}
+                inputProps={{ maxLength: 1000 }} helperText="Explain how arrival was verified and why app confirmation is unavailable. This approval is audited." />
+              <Button disabled={busy || exceptionReason.trim().length < 10} onClick={() => void approveException()}>Approve verified arrival exception</Button>
+            </Stack> : null}
             <Typography>
               {data.confirmation
-                ? `Delivery confirmed by ${data.confirmation.confirmerName} (${data.confirmation.subjectType.toLowerCase()}) at ${formatDateTime(data.confirmation.confirmedAt)}.`
-                : "No rider or guardian delivery confirmation recorded. Dispatch cannot confirm on their behalf."}
+                ? `Arrival confirmed by ${data.confirmation.confirmerName} (${data.confirmation.subjectType.toLowerCase()}) at ${formatDateTime(data.confirmation.confirmedAt)}.`
+                : "No arrival confirmation recorded."}
             </Typography>
+            {data.confirmation?.exceptionReason ? <Typography variant="body2">Administrator review: {data.confirmation.exceptionReason}</Typography> : null}
           </>
         ) : null}
       </Stack>

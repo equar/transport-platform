@@ -35,7 +35,9 @@ public class InvoiceMapper {
         invoice.setDueDate(request.dueDate());
         invoice.setTaxAmount(zeroIfNull(request.taxAmount()));
         invoice.setDiscountAmount(zeroIfNull(request.discountAmount()));
-        invoice.setCurrency(request.currency().trim().toUpperCase());
+        if (!"USD".equals(request.currency())) throw new com.transportplatform.tms.common.exception.ApiException(
+                com.transportplatform.tms.common.exception.ErrorCode.VALIDATION_FAILED, org.springframework.http.HttpStatus.BAD_REQUEST, "Only USD is supported.");
+        invoice.setCurrency("USD");
         invoice.setNotes(trimToNull(request.notes()));
     }
 

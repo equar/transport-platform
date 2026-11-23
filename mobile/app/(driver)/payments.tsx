@@ -48,7 +48,7 @@ export default function DriverPaymentsPage() {
     refreshControl={<RefreshControl refreshing={payments.isRefetching} onRefresh={() => void payments.refetch()} />}
   >
     <View>
-      <Text style={styles.heading}>Payments</Text>
+      <Text style={styles.heading}>Earnings</Text>
       <Text style={styles.subtitle}>Your trip earnings and the review status of each record.</Text>
     </View>
     <View style={styles.summary}>
@@ -72,7 +72,7 @@ export default function DriverPaymentsPage() {
           <View style={styles.item}>
             <View style={styles.itemRow}>
               <Text style={styles.itemTitle}>
-                {entry.rideNumber ?? (entry.rideId ? `Trip #${entry.rideId}` : 'Payment adjustment')}
+                {entry.rideNumber ?? (entry.rideId ? `Trip #${entry.rideId}` : 'Earnings adjustment')}
               </Text>
               <Text style={styles.itemAmount}>
                 {entry.amount == null ? 'Pending' : formatCurrency(entry.amount, currency)}

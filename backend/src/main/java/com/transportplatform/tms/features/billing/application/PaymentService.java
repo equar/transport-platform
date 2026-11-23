@@ -138,6 +138,7 @@ public class PaymentService {
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(request.invoiceId());
         validateInvoiceAcceptsPayment(invoice, request.amount(), tenantTime.today(billingAccessService.requireCompanyTenantId()));
 
+        validateReceiptReference(tenantId, invoice.getId(), request, -1L);
         Payment payment = new Payment();
         payment.setTenantId(tenantId);
         payment.setInvoice(invoice);
@@ -172,6 +173,15 @@ public class PaymentService {
                 InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId())));
     }
 
+    private void validateReceiptReference(String tenant, Long invoice, PaymentUpsertRequest request, Long excludedId) {
+        String reference = request.externalTransactionId();
+        if ((reference == null || reference.isBlank()) && request.paymentMethod() != com.transportplatform.tms.features.billing.domain.PaymentMethod.CASH)
+            throw validationFailure("Enter the original receipt or transaction ID for this payment method.");
+        if (reference != null && !reference.isBlank() && paymentRepository
+                .existsByTenantIdAndInvoiceIdAndExternalTransactionIdIgnoreCaseAndIdNot(tenant, invoice, reference.trim(), excludedId))
+            throw validationFailure("This receipt reference is already recorded for this invoice. Review the existing payment before recording it again.");
+    }
+
     @Transactional
     public PaymentDetailResponse updateCompanyPayment(Long paymentId, PaymentUpsertRequest request) {
         billingAccessService.lockFinancialWrites();
@@ -180,6 +190,7 @@ public class PaymentService {
         if(request.paymentMethod()==com.transportplatform.tms.features.billing.domain.PaymentMethod.CREDIT_NOTE)throw validationFailure("Apply an issued credit note through the credit-note workflow.");
         Invoice invoice = billingAccessService.findInvoiceForCompanyScope(request.invoiceId());
         validateInvoiceAcceptsPayment(invoice, request.amount(), tenantTime.today(billingAccessService.requireCompanyTenantId()));
+        validateReceiptReference(payment.getTenantId(), invoice.getId(), request, paymentId);
         Object oldSnapshot = snapshot(payment);
         payment.setInvoice(invoice);
         paymentMapper.apply(payment, request);

@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 
 @RestController
 @RequestMapping("/company/report-exports")
-@PreAuthorize("hasRole('TENANT_ADMIN')")
+@PreAuthorize("hasAnyRole('TENANT_ADMIN','BILLING_ADMIN','COMPLIANCE_ADMIN')")
 public class ReportExportController {
     private final ReportExportService exports;
     public ReportExportController(ReportExportService exports) { this.exports=exports; }

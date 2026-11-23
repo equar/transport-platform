@@ -74,9 +74,8 @@ public class CompanySettingsService {
         try { java.time.ZoneId.of(request.timezone().trim()); }
         catch (java.time.DateTimeException ex) { throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Choose a valid IANA timezone."); }
         settings.setTimezone(request.timezone().trim());
-        try { java.util.Currency.getInstance(request.currency().trim().toUpperCase(java.util.Locale.ROOT)); }
-        catch (IllegalArgumentException ex) { throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Choose a valid ISO currency code."); }
-        settings.setCurrency(request.currency().trim().toUpperCase(java.util.Locale.ROOT));
+        if (!"USD".equals(request.currency())) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Only USD is supported.");
+        settings.setCurrency("USD");
         settings.setDateFormat(request.dateFormat().trim());
         settings.setDefaultRideLeadTimeMinutes(request.defaultRideLeadTimeMinutes());
         settings.setAllowManualRideCreation(request.allowManualRideCreation());

@@ -21,7 +21,9 @@ public class PricingRuleMapper {
         pricingRule.setContractType(request.contractType());
         pricingRule.setTripType(request.tripType());
         pricingRule.setAmount(request.amount());
-        pricingRule.setCurrency(request.currency().trim().toUpperCase());
+        if (!"USD".equals(request.currency())) throw new com.transportplatform.tms.common.exception.ApiException(
+                com.transportplatform.tms.common.exception.ErrorCode.VALIDATION_FAILED, org.springframework.http.HttpStatus.BAD_REQUEST, "Only USD is supported.");
+        pricingRule.setCurrency("USD");
         pricingRule.setEffectiveStartDate(request.effectiveStartDate());
         pricingRule.setEffectiveEndDate(request.effectiveEndDate());
         pricingRule.setPriorityOrder(request.priorityOrder());

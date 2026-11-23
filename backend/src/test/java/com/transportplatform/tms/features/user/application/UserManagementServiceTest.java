@@ -68,6 +68,17 @@ class UserManagementServiceTest {
     private UserManagementService userManagementService;
 
     @Test
+    void rejectsMixedMobileAndStaffRolesBeforeCreatingAnUnusableAccount() {
+        when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
+        for (Set<RoleName> roles : List.of(Set.of(RoleName.ROLE_DRIVER, RoleName.ROLE_RIDER), Set.of(RoleName.ROLE_GUARDIAN, RoleName.ROLE_TENANT_ADMIN))) {
+            ApiException error = assertThrows(ApiException.class, () -> userManagementService.createCompanyUser(
+                new UserUpsertRequest(null,"Taylor","User","mixed@example.com","secret123",UserStatus.ACTIVE,roles,null,null)));
+            assertEquals("VALIDATION_FAILED", error.getErrorCode().name());
+        }
+        org.mockito.Mockito.verify(appUserRepository, org.mockito.Mockito.never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
     void reservedViewerRoleCannotCreateAnUnusableAccount() {
         when(currentAuthenticatedUserService.requireCurrentUser()).thenReturn(companyAdmin());
         ApiException error = assertThrows(ApiException.class, () -> userManagementService.createCompanyUser(

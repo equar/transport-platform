@@ -45,6 +45,7 @@ public class ReportExportService {
             AppUserRepository users,TenantRepository tenants,ReportService reports,Clock clock) {
         this.jdbc=jdbc;this.mapper=mapper;this.current=current;this.users=users;this.tenants=tenants;this.reports=reports;this.clock=clock;
     }
+    @org.springframework.beans.factory.annotation.Autowired private ReportAccessService access;
     @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.common.concurrency.WorkflowLockService locks;
 
     @org.springframework.transaction.annotation.Transactional
@@ -53,6 +54,7 @@ public class ReportExportService {
         if(request.reportType()==null || request.filters()==null) throw invalid("Choose a report and a date range.");
         LocalDate from=date(request.filters(),"fromDate"), to=date(request.filters(),"toDate");
         if(from==null || to==null || to.isBefore(from) || from.plusDays(366).isBefore(to)) throw invalid("Choose a date range of up to 366 days.");
+        access.requireReport(request.reportType());
         validateFilters(request);
         locks.lock(owner.tenantId(), "REPORT_EXPORT", owner.id());
         Long pending=jdbc.queryForObject("SELECT COUNT(*) FROM report_export_jobs WHERE tenant_id=? AND user_id=? AND status IN ('PENDING','RUNNING')",Long.class,owner.tenantId(),owner.id());
@@ -83,8 +85,12 @@ public class ReportExportService {
     }
     private Map<String,Object> owned(String id) {
         var owner=current.requireCurrentUser();
+        access.requireReportUser();
         var rows=jdbc.queryForList("SELECT id,status,progress,error_message,expires_at FROM report_export_jobs WHERE id=? AND tenant_id=? AND user_id=? AND expires_at>?",id,owner.tenantId(),owner.id(),Timestamp.from(clock.instant()));
         if(rows.isEmpty()) throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Export not found or expired.");
+        String payload=jdbc.queryForObject("SELECT request_json FROM report_export_jobs WHERE id=? AND tenant_id=? AND user_id=?",String.class,id,owner.tenantId(),owner.id());
+        try { access.requireReport(mapper.readValue(privacy.decrypt(payload,"text"),Request.class).reportType()); }
+        catch(com.fasterxml.jackson.core.JsonProcessingException ex) { throw invalid("Export request could not be read."); }
         return rows.getFirst();
     }
     public Job status(String id) { var r=owned(id);return new Job(id,(String)r.get("status"),((Number)r.get("progress")).intValue(),(String)r.get("error_message"),((Timestamp)r.get("expires_at")).toInstant()); }
@@ -105,6 +111,13 @@ public class ReportExportService {
             try {
                 authenticate(row);
                 Request request=mapper.readValue(privacy.decrypt((String)row.get("request_json"),"text"),Request.class);
+                access.requireReport(request.reportType());
+                String table = switch(request.reportType()) {
+                    case DRIVER -> "drivers"; case VEHICLE -> "vehicles"; case RIDER -> "riders"; case RIDE -> "rides";
+                    case ROUTE -> "routes"; case INVOICE -> "invoices"; case PAYMENT -> "payments";
+                    case COMPLIANCE -> "compliance_issues"; case INCIDENT -> "incidents";
+                };
+                Long upperId = jdbc.queryForObject("SELECT COALESCE(MAX(id),0) FROM " + table + " WHERE tenant_id=?", Long.class, row.get("tenant_id"));
                 var filters=new HashMap<>(request.filters());
                 LocalDate from=date(filters,"fromDate"),to=date(filters,"toDate");
                 StringBuilder csv=new StringBuilder(); boolean header=false;int records=0;
@@ -113,12 +126,23 @@ public class ReportExportService {
                     if(!"RUNNING".equals(jdbc.queryForObject("SELECT status FROM report_export_jobs WHERE id=?",String.class,id))) break;
                     authenticate(row); // Recheck role, user and tenant for every partition.
                     filters.put("fromDate",day.toString());filters.put("toDate",day.toString());
-                    CompanyReportResponse<?> report=run(request.reportType(),filters);
-                    for(Object record:report.rows()) {
-                        @SuppressWarnings("unchecked") Map<String,Object> values=mapper.convertValue(record,LinkedHashMap.class);
-                        if(!header) { append(csv,values.keySet());header=true; }
-                        append(csv,values.values());
-                        if(++records>100000 || csv.length()>4000000) throw invalid("Export is too large. Choose a shorter date range.");
+                    long afterId = 0;
+                    while (true) {
+                        authenticate(row);
+                        if (!"RUNNING".equals(jdbc.queryForObject("SELECT status FROM report_export_jobs WHERE id=?",String.class,id))) break;
+                        long cursor = afterId;
+                        CompanyReportResponse<?> report=ReportQueryLimits.exportPage(cursor, upperId == null ? 0 : upperId, () -> run(request.reportType(),filters));
+                        for(Object record:report.rows()) {
+                            @SuppressWarnings("unchecked") Map<String,Object> values=mapper.convertValue(record,LinkedHashMap.class);
+                            Object rowId = values.get("id");
+                            if (!(rowId instanceof Number number) || number.longValue() <= afterId) throw new IllegalStateException("Invalid export cursor");
+                            afterId = number.longValue();
+                            if(!header) { append(csv,values.keySet());header=true; }
+                            append(csv,values.values());
+                            if(++records>100000 || csv.length()>4000000) throw invalid("Export is too large. Choose a shorter date range.");
+                        }
+                        jdbc.update("UPDATE report_export_jobs SET lease_until=? WHERE id=? AND status='RUNNING'",Timestamp.from(clock.instant().plusSeconds(300)),id);
+                        if (report.rows().size() < ReportQueryLimits.EXPORT_PAGE_SIZE) break;
                     }
                     int progress=(int)(100*(java.time.temporal.ChronoUnit.DAYS.between(from,day)+1)/days);
                     jdbc.update("UPDATE report_export_jobs SET progress=?,lease_until=? WHERE id=? AND status='RUNNING'",progress,Timestamp.from(clock.instant().plusSeconds(300)),id);
@@ -133,7 +157,7 @@ public class ReportExportService {
         var user=users.findById(((Number)row.get("user_id")).longValue()).orElseThrow(() -> invalid("Export owner unavailable."));
         String tenant=(String)row.get("tenant_id");
         entitlements.requireOperational(tenant);
-        if(!user.isActiveForLogin() || !Objects.equals(tenant,user.getTenantId()) || !user.getRoles().contains(RoleName.ROLE_TENANT_ADMIN)
+        if(!user.isActiveForLogin() || !Objects.equals(tenant,user.getTenantId()) || user.getRoles().stream().noneMatch(r -> Set.of(RoleName.ROLE_TENANT_ADMIN,RoleName.ROLE_BILLING_ADMIN,RoleName.ROLE_COMPLIANCE_ADMIN).contains(r))
             || tenants.findById(tenant).map(t->t.getStatus()!=TenantStatus.ACTIVE).orElse(true)) throw invalid("Export access is no longer available.");
         var authorities=user.getRoles().stream().map(role->new SimpleGrantedAuthority(role.name())).toList();
         var principal=new AuthenticatedUser(user.getId(),tenant,user.getEmail(),user.getFirstName(),user.getLastName(),"",true,true,user.isMustChangePassword(),authorities);

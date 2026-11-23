@@ -11,7 +11,7 @@ function resolveSimulatorFallbackFlag() {
 }
 
 function storageUnavailable(): Error {
-  return new Error('Secure sign-in storage is unavailable. Reinstall the app and try again. If this continues, contact your transport provider.');
+  return new Error('We couldn’t securely save your sign-in. Try again. If this continues, contact your transport provider.');
 }
 
 const allowSimulatorFallback = __DEV__ && resolveSimulatorFallbackFlag();

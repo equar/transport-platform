@@ -46,7 +46,7 @@ public class SecurityProperties {
 
         private boolean enabled = true;
         private Duration window = Duration.ofMinutes(1);
-        private int loginMaxRequests = 10;
+        private int loginMaxRequests = 100;
         private int refreshMaxRequests = 30;
         private int forgotPasswordMaxRequests = 5;
 

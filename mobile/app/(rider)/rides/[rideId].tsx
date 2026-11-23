@@ -1,5 +1,5 @@
 import {TripDeliveryEvidence} from '@components/TripDeliveryEvidence';
-import { useTripScreenVisible, manualTripRefreshOptions } from '@hooks/useTripScreenVisible';
+import { useTripScreenVisible, foregroundTripRefreshOptions } from '@hooks/useTripScreenVisible';
 import { FormScrollView } from '@components/FormScrollView';
 import { isTrackableTrip } from '@utils/tripPresentation';
 import { useThemedStyles } from '@theme/ThemeProvider';
@@ -30,7 +30,7 @@ export default function RiderRideDetailPage() {
 
   const { data: ride, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['rider-ride', rideId],
-    ...manualTripRefreshOptions,
+    ...foregroundTripRefreshOptions,
     queryFn: () => riderPortalApi.getRide(Number(rideId)),
     enabled: screenVisible && validRideId,
   });
@@ -44,14 +44,14 @@ export default function RiderRideDetailPage() {
     queryKey: ['rider-ride-location', rideId],
     queryFn: () => riderPortalApi.getRideLocationSnapshot(Number(rideId)),
     enabled: screenVisible && !!ride && !isError && isTrackableTrip(ride.status),
-    ...manualTripRefreshOptions,
+    ...foregroundTripRefreshOptions,
   });
 
   const { data: locationHistory, refetch: refetchHistory, isFetching: historyRefreshing, isError: historyError } = useQuery({
     queryKey: ['rider-ride-location-history', rideId],
     queryFn: () => riderPortalApi.getRideLocationHistory(Number(rideId)),
     enabled: screenVisible && !!ride && !isError && isTrackableTrip(ride.status),
-    ...manualTripRefreshOptions,
+    ...foregroundTripRefreshOptions,
   });
 
   async function refreshTrip() {

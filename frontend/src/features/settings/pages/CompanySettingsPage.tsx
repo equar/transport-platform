@@ -42,7 +42,7 @@ function toPayload(settings: CompanySettingsRecord): CompanySettingsPayload {
     zipCode: settings.zipCode,
     country: settings.country,
     timezone: settings.timezone,
-    currency: settings.currency,
+    currency: "USD",
     dateFormat: settings.dateFormat,
     defaultRideLeadTimeMinutes: settings.defaultRideLeadTimeMinutes,
     allowManualRideCreation: settings.allowManualRideCreation,
@@ -559,7 +559,8 @@ export function CompanySettingsPage() {
               <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                 <TextField
                   label="Currency"
-                  value={settings.currency}
+                  value="USD"
+                  disabled
                   onChange={(event) => setValue("currency", event.target.value)}
                   fullWidth
                 />

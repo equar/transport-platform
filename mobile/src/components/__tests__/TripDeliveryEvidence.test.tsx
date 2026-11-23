@@ -15,7 +15,7 @@ import { tripEvidenceApi } from "@api/tripEvidenceApi";
 let mockVisible = true;
 jest.mock("@hooks/useTripScreenVisible", () => ({
   useTripScreenVisible: () => mockVisible,
-  manualTripRefreshOptions: { retry: false, refetchInterval: false },
+  foregroundTripRefreshOptions: { retry: false, refetchInterval: false },
 }));
 jest.mock("@api/tripEvidenceApi", () => ({
   tripEvidenceApi: { get: jest.fn(), confirm: jest.fn() },

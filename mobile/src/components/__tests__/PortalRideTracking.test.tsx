@@ -8,7 +8,7 @@ import { Marker, Polyline } from 'react-native-maps';
 import { riderPortalApi } from '@api/riderPortalApi';
 
 let mockVisible = true;
-jest.mock('@hooks/useTripScreenVisible', () => ({ useTripScreenVisible: () => mockVisible, manualTripRefreshOptions: { refetchInterval: false, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: false } }));
+jest.mock('@hooks/useTripScreenVisible', () => ({ useTripScreenVisible: () => mockVisible, foregroundTripRefreshOptions: jest.requireActual('@hooks/useTripScreenVisible').foregroundTripRefreshOptions }));
 let mockParams: { rideId: string; track?: string } = { rideId: '10' };
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams, useRouter: () => ({ back: jest.fn(), push: jest.fn(), replace: jest.fn() }) }));
 jest.mock('@components/SupportContact', () => ({ SupportContact: () => null }));
@@ -76,7 +76,7 @@ it('fetches and shows the assigned driver location map when a guardian taps Trac
   expect(screen.getByText(/The rider is on board/)).toBeTruthy();
 });
 
-it('refreshes only on request or returning to view, without polling, and stops after completion', async () => {
+it('refreshes active tracking automatically, pauses while hidden, and stops after completion', async () => {
   jest.useFakeTimers(); mockParams = { rideId: '10', track: '1' };
   const ride = { id: 10, rideNumber: 'TRIP-10', status: 'PICKED_UP', scheduledPickupAt: '2026-11-13T12:00:00' };
   jest.mocked(riderPortalApi.getRide).mockResolvedValue(ride as never);
@@ -88,8 +88,8 @@ it('refreshes only on request or returning to view, without polling, and stops a
   await screen.findByLabelText('Rider and assigned driver');
   expect(view.UNSAFE_getByType(Marker).props.coordinate).toEqual({ latitude: 38.9, longitude: -77 });
   await act(async () => { await jest.advanceTimersByTimeAsync(90000); });
-  expect(riderPortalApi.getRideLocationSnapshot).toHaveBeenCalledTimes(1);
-  expect(riderPortalApi.getRide).toHaveBeenCalledTimes(1);
+  expect(jest.mocked(riderPortalApi.getRideLocationSnapshot).mock.calls.length).toBeGreaterThan(1);
+  expect(jest.mocked(riderPortalApi.getRide).mock.calls.length).toBeGreaterThan(1);
   fireEvent.press(screen.getByRole('button', { name: 'Refresh Tracking' }));
   await waitFor(() => expect(view.UNSAFE_getByType(Marker).props.coordinate).toEqual({ latitude: 38.91, longitude: -77.01 }));
   mockVisible = false;

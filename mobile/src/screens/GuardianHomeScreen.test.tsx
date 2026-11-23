@@ -8,7 +8,7 @@ import { riderPortalApi, type RiderPortalRideRecord } from '@api/riderPortalApi'
 const mockPush = jest.fn();
 let mockVisible = true;
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
-jest.mock('@hooks/useTripScreenVisible', () => ({ useTripScreenVisible: () => mockVisible, manualTripRefreshOptions: { retry: false, refetchInterval: false } }));
+jest.mock('@hooks/useTripScreenVisible', () => ({ useTripScreenVisible: () => mockVisible, foregroundTripRefreshOptions: { retry: false, refetchInterval: false } }));
 jest.mock('@auth/AuthContext', () => ({ useAuth: () => ({ session: { identity: { firstName: 'Taylor' } } }) }));
 jest.mock('@expo/vector-icons', () => ({ MaterialCommunityIcons: 'Icon' }));
 jest.mock('@api/riderPortalApi', () => ({ riderPortalApi: { searchRides: jest.fn(), getDashboard: jest.fn() } }));
@@ -56,7 +56,7 @@ it('loads additional active pages and deduplicates trips that move between statu
 });
 it('keeps tracking available when the separate upcoming-trip request fails', async () => {
   const original = jest.mocked(riderPortalApi.searchRides).getMockImplementation()!;
-  jest.mocked(riderPortalApi.searchRides).mockImplementation(params => params?.status ? original(params) : Promise.reject(new Error('Unavailable')));
+  jest.mocked(riderPortalApi.searchRides).mockImplementation(params => ['DRIVER_EN_ROUTE','ARRIVED','PICKED_UP'].includes(String(params?.status)) ? original(params) : Promise.reject(new Error('Unavailable')));
   open();
   await screen.findByRole('button', { name: 'Track Mariam trip TRIP-1' });
   expect(await screen.findByRole('button', { name: 'Retry trips' })).toBeTruthy();
@@ -75,7 +75,7 @@ it('does not query rides while the guardian home screen is out of view', async (
 });
 it('keeps arrival confirmation separate from active tracking', async () => {
   const original = jest.mocked(riderPortalApi.searchRides).getMockImplementation()!;
-  jest.mocked(riderPortalApi.searchRides).mockImplementation(params => params?.status ? original(params) : Promise.resolve({ items: [ride(5, 'Delivered rider', 'DROPPED_OFF')], page: 0, totalPages: 1, totalElements: 1, size: 20 }));
+  jest.mocked(riderPortalApi.searchRides).mockImplementation(params => params?.status !== 'DROPPED_OFF' ? original(params) : Promise.resolve({ items: [ride(5, 'Delivered rider', 'DROPPED_OFF')], page: 0, totalPages: 1, totalElements: 1, size: 20 }));
   open();
   fireEvent.press(await screen.findByRole('button', { name: 'Review delivery' }));
   expect(mockPush).toHaveBeenLastCalledWith('/(guardian)/rides/5');

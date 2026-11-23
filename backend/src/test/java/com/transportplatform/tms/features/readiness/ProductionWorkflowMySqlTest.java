@@ -81,7 +81,7 @@ class ProductionWorkflowMySqlTest {
     @Test void ledgerAggregatesAllInvoicesSeparatelyByCurrencyAndScope() {
         String tenant=jdbc.queryForObject("SELECT tenant_id FROM invoices WHERE id=1",String.class);
         var rows=new ArrayList<Object[]>();
-        for(int i=0;i<1002;i++) rows.add(new Object[]{tenant,"AGG-"+i,i==1001?"CAD":"USD"});
+        for(int i=0;i<1002;i++) rows.add(new Object[]{tenant,"AGG-"+i,"USD"});
         jdbc.batchUpdate("""
             INSERT INTO invoices (tenant_id,invoice_number,bill_to_type,bill_to_id,bill_to_name_snapshot,rider_id,
                 invoice_date,due_date,subtotal,tax_amount,discount_amount,total_amount,amount_paid,balance_due,
@@ -91,9 +91,9 @@ class ProductionWorkflowMySqlTest {
         try {
             var result=totals.calculate(tenant,1L,null,List.of(),null);
             assertTrue(result.count()>=1002);
-            assertTrue(result.balances().get("USD").compareTo(BigDecimal.valueOf(1001))>=0);
-            assertTrue(result.balances().get("CAD").compareTo(BigDecimal.ONE)>=0);
-            assertEquals(BigDecimal.ZERO,result.singleCurrencyBalance());
+            assertTrue(result.balances().get("USD").compareTo(BigDecimal.valueOf(1002))>=0);
+            assertFalse(result.balances().containsKey("CAD"));
+            assertTrue(result.singleCurrencyBalance().compareTo(BigDecimal.valueOf(1002))>=0);
             assertEquals(0,totals.calculate(tenant,999999L,null,List.of(),null).count());
         } finally { jdbc.update("DELETE FROM invoices WHERE tenant_id=? AND invoice_number LIKE 'AGG-%'",tenant); }
     }

@@ -22,10 +22,10 @@ it('orders a late refresh write, logout removal and new-account write determinis
 it('does not expose native Keychain details or write credentials to plain storage on failure', async () => {
   const nativeError = new Error("KeyChainException: A required entitlement isn’t present (SecureStoreModule.swift:123)");
   jest.mocked(SecureStore.setItemAsync).mockRejectedValueOnce(nativeError);
-  await expect(setSessionValue('auth_session', 'private-token')).rejects.toThrow('Secure sign-in storage is unavailable.');
+  await expect(setSessionValue('auth_session', 'private-token')).rejects.toThrow('We couldn’t securely save your sign-in.');
   expect(storage.setItem).not.toHaveBeenCalled();
   jest.mocked(SecureStore.getItemAsync).mockRejectedValueOnce(nativeError);
   await expect(getSessionValue('auth_session')).rejects.not.toThrow('SecureStoreModule.swift');
   jest.mocked(SecureStore.deleteItemAsync).mockRejectedValueOnce(nativeError);
-  await expect(deleteSessionValue('auth_session')).rejects.toThrow('Secure sign-in storage is unavailable.');
+  await expect(deleteSessionValue('auth_session')).rejects.toThrow('We couldn’t securely save your sign-in.');
 });

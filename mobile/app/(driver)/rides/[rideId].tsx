@@ -1,7 +1,7 @@
 import * as Location from 'expo-location';
 import {tripEvidenceApi} from '@api/tripEvidenceApi';
 import {TripDeliveryEvidence} from '@components/TripDeliveryEvidence';
-import { useTripScreenVisible, manualTripRefreshOptions } from '@hooks/useTripScreenVisible';
+import { useTripScreenVisible, foregroundTripRefreshOptions } from '@hooks/useTripScreenVisible';
 import { FormScrollView } from '@components/FormScrollView';
 import { isTrackableTrip } from '@utils/tripPresentation';
 import { useBrandingColors } from '@theme/BrandingContext';
@@ -70,7 +70,7 @@ export default function DriverRideDetailPage() {
 
   const { data: serverRide, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['driver-ride', rideId],
-    ...manualTripRefreshOptions,
+    ...foregroundTripRefreshOptions,
     queryFn: () => driverPortalApi.getRide(Number(rideId)),
     enabled: screenVisible && validRideId,
   });
@@ -96,14 +96,14 @@ export default function DriverRideDetailPage() {
     queryKey: ['driver-ride-location', rideId],
     queryFn: () => driverPortalApi.getRideLocationSnapshot(Number(rideId)),
     enabled: screenVisible && !!ride && !isError && isTrackableTrip(ride.status),
-    ...manualTripRefreshOptions,
+    ...foregroundTripRefreshOptions,
   });
 
   const { data: locationHistory, refetch: refetchHistory, isFetching: historyRefreshing, isError: historyError } = useQuery({
     queryKey: ['driver-ride-location-history', rideId],
     queryFn: () => driverPortalApi.getRideLocationHistory(Number(rideId)),
     enabled: screenVisible && !!ride && !isError && isTrackableTrip(ride.status),
-    ...manualTripRefreshOptions,
+    ...foregroundTripRefreshOptions,
   });
 
   async function refreshTrip() {

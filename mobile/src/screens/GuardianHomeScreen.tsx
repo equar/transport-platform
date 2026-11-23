@@ -1,3 +1,4 @@
+import { nextTripsPage, passengerNextStatuses } from '@api/nextTrips';
 import React from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -9,7 +10,7 @@ import { ActionRow } from '@components/ActionRow';
 import { DashboardHeader } from '@components/DashboardHeader';
 import { SectionHeader } from '@components/SectionHeader';
 import { AppBadge, AppButton, AppCard } from '@components/ui';
-import { manualTripRefreshOptions, useTripScreenVisible } from '@hooks/useTripScreenVisible';
+import { foregroundTripRefreshOptions, useTripScreenVisible } from '@hooks/useTripScreenVisible';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import { Spacing, Typography } from '@theme/tokens';
 import { formatShortDateTime } from '@utils/formatDate';
@@ -30,14 +31,14 @@ export function GuardianHomeScreen() {
     initialPageParam: 0,
     getNextPageParam: last => last.page + 1 < last.totalPages ? last.page + 1 : undefined,
     enabled: visible,
-    ...manualTripRefreshOptions,
+    ...foregroundTripRefreshOptions,
     staleTime: 0,
   });
   const trips = useQuery({
     queryKey: ['guardian-next-rides'],
-    queryFn: () => riderPortalApi.searchRides({ page: 0, size: 20, fromDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10), sortBy: 'scheduledPickupAt', sortDirection: 'ASC' }),
+    queryFn: () => nextTripsPage(riderPortalApi.searchRides, passengerNextStatuses),
     enabled: visible,
-    ...manualTripRefreshOptions,
+    ...foregroundTripRefreshOptions,
   });
   const activeRides = [...new Map((active.data?.pages.flatMap(page => page.items) ?? [])
     .filter(ride => isTrackableTrip(ride.status)).map(ride => [ride.id, ride])).values()];

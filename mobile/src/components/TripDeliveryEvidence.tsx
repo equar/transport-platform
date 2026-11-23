@@ -7,7 +7,7 @@ import { tripEvidenceApi, type DeliverySignature } from "@api/tripEvidenceApi";
 import { AppButton } from "@components/ui";
 import {
   useTripScreenVisible,
-  manualTripRefreshOptions,
+  foregroundTripRefreshOptions,
 } from "@hooks/useTripScreenVisible";
 import { useBrandingColors } from "@theme/BrandingContext";
 export function TripDeliveryEvidence({
@@ -33,7 +33,7 @@ export function TripDeliveryEvidence({
     queryKey: ["trip-delivery-evidence", rideId, driver, status],
     queryFn: () => tripEvidenceApi.get(rideId, driver),
     enabled: visible && (driver || ["DROPPED_OFF", "COMPLETED"].includes(status)) && Number.isSafeInteger(rideId) && rideId > 0,
-    ...manualTripRefreshOptions,
+    ...foregroundTripRefreshOptions,
   });
   React.useEffect(() => {
     onReadinessChange?.(!query.isError && query.data?.readyToComplete === true);

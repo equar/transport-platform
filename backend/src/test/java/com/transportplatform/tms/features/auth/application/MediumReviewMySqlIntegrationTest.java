@@ -197,6 +197,37 @@ class MediumReviewMySqlIntegrationTest {
         return result.id();
     }
 
+    @Test
+    void repeatedManualReceiptCannotBeAppliedAgainWithANewRequestKey() {
+        long id = invoice("100.00", "USD");
+        var receipt = new PaymentUpsertRequest(id,time.today(TENANT),money("10.00"),PaymentMethod.BANK_TRANSFER,"bank receipt",null,null,"receipt-unique-123",null,true);
+        var unreferenced = new PaymentUpsertRequest(id,time.today(TENANT),money("10.00"),PaymentMethod.BANK_TRANSFER,null,null,null,null,null,true);
+        assertThatThrownBy(() -> payments.createCompanyPayment(unreferenced,UUID.randomUUID().toString())).isInstanceOf(ApiException.class);
+        payments.createCompanyPayment(receipt,UUID.randomUUID().toString());
+        assertThatThrownBy(() -> payments.createCompanyPayment(receipt,UUID.randomUUID().toString())).isInstanceOf(ApiException.class);
+        assertThat(invoices.getCompanyInvoice(id).balanceDue()).isEqualByComparingTo("90.00");
+    }
+
+    @Autowired com.transportplatform.tms.features.report.application.ReportExportService exports;
+
+    @Test
+    void exportsMoreThanFiveThousandInvoicesOnTheSameDayWithoutSkippingRows() {
+        String prefix="EXPORT-" + UUID.randomUUID().toString().substring(0,8) + "-";
+        java.util.List<Object[]> rows=new java.util.ArrayList<>();
+        for(int i=0;i<5002;i++) rows.add(new Object[]{TENANT,prefix+i,time.today(TENANT),time.today(TENANT)});
+        db.batchUpdate("INSERT INTO invoices(tenant_id,invoice_number,bill_to_type,bill_to_id,bill_to_name_snapshot,invoice_date,due_date,subtotal,tax_amount,discount_amount,total_amount,amount_paid,balance_due,currency,status,created_by,created_at,updated_by,updated_at) VALUES(?,?,'RIDER',1,'Export test',?,?,1,0,0,1,0,1,'USD','ISSUED','test',UTC_TIMESTAMP(),'test',UTC_TIMESTAMP())",rows);
+        try {
+            var job=exports.create(new com.transportplatform.tms.features.report.application.ReportExportService.Request(
+                com.transportplatform.tms.features.report.domain.ReportType.INVOICE,
+                Map.of("keyword",prefix,"fromDate",time.today(TENANT).toString(),"toDate",time.today(TENANT).toString())));
+            exports.runDue();
+            assertThat(exports.status(job.id()).status()).isEqualTo("COMPLETED");
+            String csv=exports.download(job.id());
+            assertThat(csv.lines().count()).isEqualTo(5003);
+            assertThat(csv.lines().skip(1).distinct().count()).isEqualTo(5002);
+        } finally { db.update("DELETE FROM invoices WHERE tenant_id=? AND invoice_number LIKE ?",TENANT,prefix+"%"); }
+    }
+
     private long cash(long invoice, String amount) {
         return payments.createCompanyPayment(
                         new PaymentUpsertRequest(
@@ -277,22 +308,15 @@ class MediumReviewMySqlIntegrationTest {
     }
 
     @Test
-    void creditsCannotBeOverspentReusedForAnotherCurrencyOrCountedAsCash() {
+    void creditsCannotBeOverspentOrCountedAsCashAndCurrencyIsUsdOnly() {
         long source = invoice("100.00", "USD"),
-                target = invoice("50.00", "USD"),
-                foreign = invoice("50.00", "EUR");
+                target = invoice("50.00", "USD");
+        assertThatThrownBy(() -> invoice("50.00", "EUR")).isInstanceOf(ApiException.class);
         var note =
                 adjustments.createCredit(
                         source,
                         new CreditRequest(money("30.00"), "Future service goodwill"),
                         UUID.randomUUID().toString());
-        assertThatThrownBy(
-                        () ->
-                                adjustments.applyCredit(
-                                        note.id(),
-                                        new ApplyCreditRequest(foreign, money("10.00")),
-                                        UUID.randomUUID().toString()))
-                .isInstanceOf(ApiException.class);
         String key = UUID.randomUUID().toString();
         var application =
                 adjustments.applyCredit(

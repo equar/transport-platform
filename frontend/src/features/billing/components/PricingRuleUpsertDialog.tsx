@@ -84,7 +84,7 @@ export function PricingRuleUpsertDialog({
       contractType: pricingRule.contractType,
       tripType: pricingRule.tripType,
       amount: pricingRule.amount,
-      currency: pricingRule.currency,
+      currency: "USD",
       effectiveStartDate: pricingRule.effectiveStartDate,
       effectiveEndDate: pricingRule.effectiveEndDate ?? "",
       priorityOrder: pricingRule.priorityOrder,
@@ -144,7 +144,7 @@ export function PricingRuleUpsertDialog({
       ...form,
       name: form.name.trim(),
       description: form.description?.trim() || null,
-      currency: form.currency.trim().toUpperCase(),
+      currency: "USD",
       effectiveEndDate: form.effectiveEndDate || null,
       notes: form.notes?.trim() || null,
     });
@@ -352,7 +352,8 @@ export function PricingRuleUpsertDialog({
               />
               <TextField
                 label="Currency"
-                value={form.currency}
+                value="USD"
+                disabled
                 onChange={(event) =>
                   updateField("currency", event.target.value)
                 }

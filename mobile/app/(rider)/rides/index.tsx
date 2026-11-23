@@ -40,7 +40,7 @@ export default function RiderRidesPage() {
   return (
     <View style={styles.container}>
       <View style={styles.headerCard}>
-        <SectionHeader title="My Rides" subtitle="Track upcoming and past trips" />
+        <SectionHeader title="My trips" subtitle="Track upcoming and past trips" />
         <View style={styles.segmentRow}>
           <TouchableOpacity
             style={[styles.segmentButton, segment === 'upcoming' && styles.segmentSelected]}

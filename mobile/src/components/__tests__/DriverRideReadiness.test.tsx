@@ -1,5 +1,5 @@
 jest.mock('@components/TripDeliveryEvidence', () => ({TripDeliveryEvidence: () => null}));
-jest.mock('@hooks/useTripScreenVisible', () => ({ useTripScreenVisible: () => true, manualTripRefreshOptions: { refetchInterval: false, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: false } }));
+jest.mock('@hooks/useTripScreenVisible', () => ({ useTripScreenVisible: () => true, foregroundTripRefreshOptions: { refetchInterval: false, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: false } }));
 import React from 'react';
 import { Alert } from 'react-native';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';

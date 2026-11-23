@@ -2,6 +2,7 @@ package com.transportplatform.tms.common.exception;
 
 public enum ErrorCode {
     BAD_REQUEST,
+    TOO_MANY_REQUESTS,
     VALIDATION_FAILED,
     UNAUTHORIZED,
     FORBIDDEN,

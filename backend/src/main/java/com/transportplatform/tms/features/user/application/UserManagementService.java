@@ -451,6 +451,11 @@ public class UserManagementService {
                     "Tenant users cannot be assigned platform administrator privileges.");
         }
 
+        long mobileRoles = roles.stream().filter(role -> Set.of(RoleName.ROLE_DRIVER, RoleName.ROLE_RIDER, RoleName.ROLE_GUARDIAN).contains(role)).count();
+        if (mobileRoles > 1 || (mobileRoles == 1 && roles.size() > 1)) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
+                    "Use a separate account for each rider, guardian, driver or staff role.");
+        }
         return roles;
     }
 

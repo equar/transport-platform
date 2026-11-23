@@ -1,3 +1,5 @@
+import { nextTripsPage, passengerNextStatuses, driverNextStatuses } from '@api/nextTrips';
+import { useTripScreenVisible, foregroundTripRefreshOptions } from '@hooks/useTripScreenVisible';
 import { GuardianHomeScreen } from './GuardianHomeScreen';
 import { ScrollView, StyleSheet, Text, RefreshControl } from 'react-native';
 import { useThemedStyles } from '@theme/ThemeProvider';
@@ -23,8 +25,9 @@ export function PassengerHomeScreen({ guardian = false }: { guardian?: boolean }
 function PassengerHomeContent() {
   const styles = useThemedStyles(createStyles);
   const role = 'rider'; const router = useRouter(); const { session } = useAuth();
-  const dashboard = useQuery({ queryKey: [`${role}-dashboard`], queryFn: riderPortalApi.getDashboard });
-  const trips = useQuery({ queryKey: [`${role}-next-rides`], queryFn: () => riderPortalApi.searchRides({ page: 0, size: 20, fromDate: new Date(Date.now()-86400000).toISOString().slice(0,10), sortBy: 'scheduledPickupAt', sortDirection: 'ASC' }) });
+  const visible = useTripScreenVisible();
+  const dashboard = useQuery({ queryKey: [`${role}-dashboard`], queryFn: riderPortalApi.getDashboard, enabled: visible, ...foregroundTripRefreshOptions });
+  const trips = useQuery({ queryKey: [`${role}-next-rides`], queryFn: () => nextTripsPage(riderPortalApi.searchRides, [...passengerNextStatuses, ...driverNextStatuses]), enabled: visible, ...foregroundTripRefreshOptions });
   const next = trips.data?.items.find(ride => isTrackableTrip(ride.status)) ?? trips.data?.items.find(ride => ride.status === 'DROPPED_OFF') ?? trips.data?.items.find(ride => !isFinishedTrip(ride.status)); const data = dashboard.data;
   if (dashboard.isLoading) return <LoadingState />;
   if (dashboard.isError) return <RequestError error={dashboard.error} onRetry={() => void dashboard.refetch()} />;

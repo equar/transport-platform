@@ -1,5 +1,5 @@
 import { travelledPathSegments, travelledPathRegion, type TravelledPoint } from '@utils/travelledPath';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
 import { StyleSheet, Text, View } from 'react-native';
@@ -57,7 +57,12 @@ export function TripTrackingCard({
   const styles = useThemedStyles(createStyles);
   const [showMap, setShowMap] = useState(false);
   const [details, setDetails] = useState(false);
-  const ageMinutes = snapshot ? Math.max(0, Math.floor((Date.now() - Date.parse(snapshot.capturedAt)) / 60000)) : null;
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(timer);
+  }, []);
+  const ageMinutes = snapshot ? Math.max(0, Math.floor((now - Date.parse(snapshot.capturedAt)) / 60000)) : null;
   const validLocation = snapshot != null && isValidLocation(snapshot);
   const mapVisible = autoShowMap || showMap;
   const riderPickedUp = rideStatus === 'PICKED_UP';

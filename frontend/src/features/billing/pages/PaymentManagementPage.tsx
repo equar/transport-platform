@@ -153,7 +153,7 @@ export function PaymentManagementPage() {
             setDialogOpen(true);
           }}
         >
-          Record Payment
+          Record payment received
         </Button>
       </SectionHeader>
 

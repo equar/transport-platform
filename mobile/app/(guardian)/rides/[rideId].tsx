@@ -1,5 +1,5 @@
 import {TripDeliveryEvidence} from '@components/TripDeliveryEvidence';
-import { useTripScreenVisible, manualTripRefreshOptions } from '@hooks/useTripScreenVisible';
+import { useTripScreenVisible, foregroundTripRefreshOptions } from '@hooks/useTripScreenVisible';
 import { isTrackableTrip } from '@utils/tripPresentation';
 import { useThemedStyles } from '@theme/ThemeProvider';
 import type { BrandColors } from '@theme/branding';
@@ -27,7 +27,7 @@ export default function GuardianRideDetailPage() {
 
 	const { data: ride, isLoading, isError, error, refetch, isRefetching } = useQuery({
 		queryKey: ['guardian-ride-detail', rideId],
-    ...manualTripRefreshOptions,
+    ...foregroundTripRefreshOptions,
 		queryFn: () => riderPortalApi.getRide(Number(rideId)),
 		enabled: screenVisible && validRideId,
 	});
@@ -43,14 +43,14 @@ export default function GuardianRideDetailPage() {
 		queryKey: ['guardian-ride-location', rideId],
 		queryFn: () => riderPortalApi.getRideLocationSnapshot(Number(rideId)),
 		enabled: screenVisible && trackingActive,
-    ...manualTripRefreshOptions,
+    ...foregroundTripRefreshOptions,
 	});
 
   const { data: locationHistory, refetch: refetchHistory, isFetching: historyRefreshing, isError: historyError } = useQuery({
     queryKey: ['guardian-ride-location-history', rideId],
     queryFn: () => riderPortalApi.getRideLocationHistory(Number(rideId)),
     enabled: screenVisible && trackingActive,
-    ...manualTripRefreshOptions,
+    ...foregroundTripRefreshOptions,
   });
 
   async function refreshTrip() {

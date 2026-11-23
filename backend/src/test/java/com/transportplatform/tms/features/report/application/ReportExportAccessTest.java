@@ -15,6 +15,7 @@ class ReportExportAccessTest {
         var jdbc=mock(JdbcTemplate.class);var current=mock(CurrentAuthenticatedUserService.class);
         when(current.requireCurrentUser()).thenReturn(new AuthenticatedUser(7L,"tenant-a","a@example.com","A","User","",true,true,false,List.of()));
         var service=new ReportExportService(jdbc,new ObjectMapper(),current,mock(AppUserRepository.class),mock(TenantRepository.class),mock(ReportService.class),Clock.fixed(Instant.parse("2026-11-06T12:00:00Z"),ZoneOffset.UTC));
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"access",mock(ReportAccessService.class));
         ApiException error=assertThrows(ApiException.class,()->service.download("other-export"));
         assertEquals("RESOURCE_NOT_FOUND",error.getErrorCode().name());
         verify(jdbc).queryForList("SELECT id,status,progress,error_message,expires_at FROM report_export_jobs WHERE id=? AND tenant_id=? AND user_id=? AND expires_at>?","other-export","tenant-a",7L,java.sql.Timestamp.from(Instant.parse("2026-11-06T12:00:00Z")));

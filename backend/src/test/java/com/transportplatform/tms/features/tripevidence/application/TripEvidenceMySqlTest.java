@@ -117,6 +117,7 @@ class TripEvidenceMySqlTest {
   @MockBean RiderGuardianPortalAccessService passenger;
   @MockBean CurrentAuthenticatedUserService users;
   @MockBean AuditLogService audit;
+  @MockBean com.transportplatform.tms.features.notification.application.NotificationEventService notifications;
   Ride ride;
   Driver driver;
   AuthenticatedUser user;
@@ -178,6 +179,62 @@ class TripEvidenceMySqlTest {
     service.requireMilestone(ride, milestone);
     ride.setStatus(RideStatus.valueOf(milestone));
     rideRepository.saveAndFlush(ride);
+  }
+
+  @Test
+  void arrivalExceptionRequiresTenantAdminAndAppliedEvidenceAndKeepsItsOwnIdentity() {
+    when(company.requireCompanyUser()).thenReturn(user);
+    assertThatThrownBy(() -> service.confirmArrivalException(ride.getId(), new ArrivalException(1L, "Guardian phone unavailable; arrival verified by dispatch."))).isInstanceOf(ApiException.class);
+    var admin = new AuthenticatedUser(102L, ride.getTenantId(), "admin@example.test", "Tenant", "Admin", "", true, true, false, List.of(new SimpleGrantedAuthority("ROLE_TENANT_ADMIN")));
+    when(company.requireCompanyUser()).thenReturn(admin);
+    stops(); stage("ARRIVED", null); stage("PICKED_UP", "100"); stage("DROPPED_OFF", "110");
+    long drop = service.companySummary(ride.getId()).milestones().stream().filter(m -> m.milestone().equals("DROPPED_OFF")).findFirst().orElseThrow().id();
+    assertThatThrownBy(() -> service.confirmArrivalException(ride.getId(), new ArrivalException(drop + 1, "Guardian unavailable; arrival verified by telephone."))).isInstanceOf(ApiException.class);
+    var result = service.confirmArrivalException(ride.getId(), new ArrivalException(drop, "Guardian unavailable; arrival verified by telephone."));
+    assertThat(result.readyToComplete()).isTrue();
+    assertThat(result.confirmation().subjectType()).isEqualTo("TENANT_ADMIN");
+    assertThat(result.confirmation().signed()).isFalse();
+    assertThat(service.companySummary(ride.getId()).confirmation().exceptionReason()).contains("arrival verified by telephone");
+    assertThat(service.passengerSummary(ride.getId()).confirmation().exceptionReason()).isNull();
+    assertThat(db.queryForObject("SELECT exception_reason FROM trip_delivery_confirmations WHERE ride_id=?",String.class,ride.getId())).doesNotContain("Guardian unavailable");
+    service.requireComplete(ride);
+    verify(notifications).publishArrivalExceptionApproved(ride);
+  }
+
+  @Test
+  void databaseRejectsEvidenceLinkedAcrossTenants() {
+    stops();
+    assertThatThrownBy(() -> db.update("UPDATE trip_verified_stops SET tenant_id=? WHERE ride_id=?", UUID.randomUUID().toString(), ride.getId()))
+        .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+  }
+
+  @Test
+  void operationalReportUsesAppliedMilestonesAndDoesNotInventOnTimeMeasurements() {
+    var access=mock(com.transportplatform.tms.features.report.application.ReportAccessService.class);
+    when(access.requireReport(com.transportplatform.tms.features.report.domain.ReportType.RIDE)).thenReturn(user);
+    var reports=new com.transportplatform.tms.features.report.application.ReportService(access,audit,driverRepository,vehicles,riderRepository,rideRepository,null,null,null,null,null,null,null,clock,mock(com.transportplatform.tms.features.settings.domain.TenantSettingsRepository.class));
+    org.springframework.test.util.ReflectionTestUtils.setField(reports,"jdbc",db);
+    ride.setScheduledPickupAt(LocalDateTime.ofInstant(clock.instant().minusSeconds(600),ZoneOffset.UTC));
+    ride.setScheduledDropoffAt(LocalDateTime.ofInstant(clock.instant().plusSeconds(3000),ZoneOffset.UTC));
+    rideRepository.saveAndFlush(ride);
+    var missing=reports.runRideReport("",null,null,null,null,null,null);
+    assertThat(missing.rows().getFirst().actualPickupAt()).isNull();
+    assertThat(missing.summary().stream().filter(m -> m.key().equals("onTimePickupPercent")).findFirst().orElseThrow().value()).isEqualTo("N/A");
+    stops();stage("ARRIVED",null);stage("PICKED_UP","100");
+    clock.time=clock.time.plusSeconds(3600);
+    var dropFix = gps(42.01, -71.01, 10.0, clock.instant());
+    // JPA auditing uses wall time; simulate the server receiving this fix at the advanced test clock.
+    db.update("UPDATE driver_location_snapshots SET created_at=? WHERE id=?", LocalDateTime.ofInstant(clock.instant(),ZoneOffset.UTC), dropFix.getId());
+    service.capture(ride.getId(),new Capture("DROPPED_OFF",new BigDecimal("110"),false));
+    service.requireMilestone(ride,"DROPPED_OFF");
+    ride.setStatus(RideStatus.DROPPED_OFF);rideRepository.saveAndFlush(ride);
+    var report=reports.runRideReport("",null,null,null,null,null,null);
+    var row=report.rows().getFirst();
+    assertThat(row.pickupDelayMinutes()).isEqualTo(10);
+    assertThat(row.dropoffDelayMinutes()).isEqualTo(10);
+    assertThat(row.passengerMiles()).isEqualByComparingTo("10");
+    assertThat(row.passengerMinutes()).isEqualTo(60);
+    assertThat(report.summary().stream().filter(m -> m.key().equals("onTimePickupPercent")).findFirst().orElseThrow().value()).isEqualTo("0.0");
   }
 
   @Test

@@ -25,7 +25,7 @@ public record PricingRuleUpsertRequest(
         ContractType contractType,
         RideTripType tripType,
         @NotNull(message = "Amount is required.") @DecimalMin(value = "0.00", inclusive = false, message = "Amount must be greater than zero.") BigDecimal amount,
-        @NotBlank(message = "Currency is required.") @Size(min = 3, max = 3, message = "Currency must be a 3-letter ISO code.") String currency,
+        @NotBlank(message = "Currency is required.") @jakarta.validation.constraints.Pattern(regexp = "USD", message = "Only USD is supported.") String currency,
         @NotNull(message = "Effective start date is required.") LocalDate effectiveStartDate,
         LocalDate effectiveEndDate,
         @NotNull(message = "Priority order is required.") Integer priorityOrder,

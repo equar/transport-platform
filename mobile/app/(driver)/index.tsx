@@ -1,3 +1,5 @@
+import { nextTripsPage, driverNextStatuses } from '@api/nextTrips';
+import { useTripScreenVisible, foregroundTripRefreshOptions } from '@hooks/useTripScreenVisible';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -18,8 +20,9 @@ import { useThemedStyles } from '@theme/ThemeProvider';
 export default function DriverDashboard() {
   const { session } = useAuth(); const router = useRouter();
   const styles = useThemedStyles(React.useCallback(colors => StyleSheet.create({ screen: { flex: 1, backgroundColor: colors.background }, content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing.xxxl }, copy: { fontFamily: Typography.fontBody, color: colors.textSecondary, lineHeight: 23 } }), []));
-  const dashboard = useQuery({ queryKey: ['driver-dashboard'], queryFn: driverPortalApi.getDashboard });
-  const trips = useQuery({ queryKey: ['driver-rides-next-assigned'], queryFn: () => driverPortalApi.searchRides({ page: 0, size: 20, fromDate: new Date(Date.now()-86400000).toISOString().slice(0,10), sortBy: 'scheduledPickupAt', sortDirection: 'ASC' }) });
+  const visible = useTripScreenVisible();
+  const dashboard = useQuery({ queryKey: ['driver-dashboard'], queryFn: driverPortalApi.getDashboard, enabled: visible, ...foregroundTripRefreshOptions });
+  const trips = useQuery({ queryKey: ['driver-rides-next-assigned'], queryFn: () => nextTripsPage(driverPortalApi.searchRides, driverNextStatuses), enabled: visible, ...foregroundTripRefreshOptions });
   const upcoming = (trips.data?.items ?? []).filter(ride => ['ASSIGNED','DRIVER_EN_ROUTE','ARRIVED','PICKED_UP','DROPPED_OFF'].includes(ride.status));
   const data = dashboard.data;
   if (dashboard.isLoading) return <LoadingState />;
