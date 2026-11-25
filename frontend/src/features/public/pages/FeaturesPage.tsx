@@ -1,4 +1,5 @@
 import { Box, Stack, Typography } from "@mui/material";
+import { PlatformImage } from "../components/PlatformImage";
 import { PublicCtaBand } from "../components/PublicCtaBand";
 import { PublicSection } from "../components/PublicSection";
 import { PageCard } from "../../../shared/components/PageCard";
@@ -80,9 +81,9 @@ const featureModules = [
       "Provide drivers, riders, guardians, and organizations with secure, role-appropriate self-service access.",
   },
   {
-    name: "SaaS features",
+    name: "Workspace administration",
     description:
-      "Manage subscription plans, feature flags, and tenant provisioning from the platform administration layer.",
+      "Keep company workspaces separate, manage team access, and configure the tools available to each operation.",
   },
 ];
 
@@ -90,10 +91,11 @@ export function FeaturesPage() {
   return (
     <Stack spacing={{ xs: 5, md: 7 }}>
       <PublicSection
-        eyebrow="Feature architecture"
-        title="Everything you need to run a modern transportation operation, from onboarding to invoicing."
-        description="Transport Platform covers the full operational stack. Here is a breakdown of the major modules your team will work with every day."
+        eyebrow="The platform"
+        title="One clear view. A more connected operation."
+        description="Bring scheduling, dispatch, people, vehicles, and billing into a shared workspace with access tailored to each role."
       >
+        <Box sx={{ mb: { xs: 4, md: 6 } }}><PlatformImage name="platform" priority /></Box>
         <Box
           sx={{
             display: "grid",
@@ -114,19 +116,18 @@ export function FeaturesPage() {
         </Box>
       </PublicSection>
 
-      <PublicSection
-        eyebrow="Why it matters"
-        title="One system. Every workflow your team needs."
-        description="From rider onboarding to driver compliance, billing to reporting, every module is purpose-built for transportation operations and designed to work together out of the box."
-      >
-        <PageCard>
-          <Typography color="text.secondary">
-            Instead of assembling a patchwork of admin portals, dispatch tools,
-            and finance systems, your team gets a single platform where every
-            role has the right surface, every workflow connects, and leadership
-            maintains full operational visibility.
-          </Typography>
-        </PageCard>
+      <PublicSection eyebrow="A simpler working day" title="Move the work forward, without losing the details."
+        description="Replace disconnected schedules and repeated follow-ups with a workflow your team can follow from booking to completion.">
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: { xs: 4, md: 6 }, alignItems: 'center' }}>
+          <PlatformImage name="transformation" />
+          <Stack spacing={3}>
+            {[['01', 'Plan the service', 'Create trips and recurring schedules with pickup, drop-off, and rider requirements together.'],
+              ['02', 'Coordinate the team', 'Assign available drivers and vehicles, and review readiness before departure.'],
+              ['03', 'Follow the journey', 'See trip milestones and shared location updates, with clear communication when plans change.'],
+              ['04', 'Review the outcome', 'Keep completion evidence, invoices, recorded payments, and reports connected to the service.']].map(([number, title, text]) =>
+              <Stack direction="row" spacing={2} key={number}><Typography sx={{ color: '#b45408', fontWeight: 700 }}>{number}</Typography><Box><Typography variant="h6" mb={1}>{title}</Typography><Typography color="text.secondary">{text}</Typography></Box></Stack>)}
+          </Stack>
+        </Box>
       </PublicSection>
 
       <PublicCtaBand
