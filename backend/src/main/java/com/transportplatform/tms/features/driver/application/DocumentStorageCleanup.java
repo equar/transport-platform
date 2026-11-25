@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DocumentStorageCleanup {
     private final Path root;
+    @org.springframework.beans.factory.annotation.Value("${app.vehicle-document-storage.root:./var/vehicle-documents}") private String vehicleRoot;
     private final JdbcTemplate db;
     private final Clock clock;
     public DocumentStorageCleanup(@Value("${app.driver-document-storage.root:./var/driver-documents}") String root, JdbcTemplate db, Clock clock) {
@@ -18,6 +19,10 @@ public class DocumentStorageCleanup {
     }
     @Scheduled(fixedDelayString="${app.driver-document-storage.cleanup-delay:PT6H}")
     public void removeOrphans() throws IOException {
+        clean(root, "driver_documents");
+        clean(Path.of(vehicleRoot).toAbsolutePath().normalize(), "vehicle_documents");
+    }
+    private void clean(Path root, String table) throws IOException {
         if (!Files.isDirectory(root)) return;
         var cutoff=clock.instant().minus(Duration.ofHours(24));
         try(var files=Files.walk(root,3)) {
@@ -28,7 +33,7 @@ public class DocumentStorageCleanup {
                 String name=path.getFileName().toString();
                 if (!name.matches("[0-9a-fA-F-]{36}\\.(pdf|jpg|png)") && !name.startsWith(".protect-")) continue;
                 String relative=root.relativize(path).toString().replace('\\','/');
-                if (db.queryForObject("SELECT COUNT(*) FROM driver_documents WHERE storage_path=?",Long.class,relative)==0)
+                if (db.queryForObject("SELECT COUNT(*) FROM " + table + " WHERE storage_path=?",Long.class,relative)==0)
                     Files.deleteIfExists(path);
             }
         }

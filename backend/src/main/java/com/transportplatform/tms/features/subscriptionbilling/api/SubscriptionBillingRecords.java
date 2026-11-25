@@ -58,7 +58,7 @@ public final class SubscriptionBillingRecords {
       String collectionMode,
       String collectionState,
       String status,
-      Instant createdAt) {}
+      Instant createdAt, BigDecimal creditedAmount, BigDecimal originalAmount) {}
 
   @Schema(name = "PlatformSubscriptionPayment")
   public record Payment(
@@ -76,6 +76,13 @@ public final class SubscriptionBillingRecords {
           BigDecimal amount,
       @NotBlank @Size(max = 150) String reference) {}
 
+  public record Adjustment(long id, Long paymentId, String kind, BigDecimal amount, String reference,
+          String reason, Instant createdAt) {}
+
+  public record AdjustmentRequest(@NotBlank @Pattern(regexp="REFUND|PAYMENT_REVERSAL|CREDIT|CREDIT_REVERSAL") String kind,
+          Long paymentId, @NotNull @DecimalMin("0.01") @Digits(integer=12,fraction=2) BigDecimal amount,
+          @NotBlank @Size(max=150) String reference, @NotBlank @Size(max=2000) String reason) {}
+
   @Schema(name = "PlatformSubscriptionInvoiceDetail")
-  public record InvoiceDetail(Invoice invoice, List<Payment> payments) {}
+  public record InvoiceDetail(Invoice invoice, List<Payment> payments, List<Adjustment> adjustments) {}
 }

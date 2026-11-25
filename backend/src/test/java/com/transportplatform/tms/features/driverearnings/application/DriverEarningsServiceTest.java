@@ -49,6 +49,7 @@ class DriverEarningsServiceTest {
 
     @BeforeEach
     void returnSavedLedgerEntryFromRepository() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"financialLocks",mock(com.transportplatform.tms.common.concurrency.WorkflowLockService.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service,"db",mock(org.springframework.jdbc.core.JdbcTemplate.class));
         when(ledger.save(any(DriverEarningsLedger.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));

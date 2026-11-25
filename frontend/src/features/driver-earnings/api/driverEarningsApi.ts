@@ -1,3 +1,4 @@
+import { postFinancialIntent } from "../../../shared/api/financialRequests";
 import { apiClient, unwrapResponse } from "../../../shared/api/client";
 
 export type DriverEarningsStatus = "PENDING_CALCULATION" | "PENDING_REVIEW" | "APPROVED";
@@ -42,8 +43,6 @@ export const driverEarningsApi = {
     );
   },
   async adjust(driverId: number, amount: number, reason: string) {
-    return unwrapResponse<DriverEarningsEntry>(
-      (await apiClient.post("/company/driver-earnings/adjustments", { driverId, amount, reason })).data,
-    );
+    return postFinancialIntent<DriverEarningsEntry>("/company/driver-earnings/adjustments", { driverId, amount, reason });
   },
 };

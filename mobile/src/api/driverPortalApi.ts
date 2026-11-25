@@ -245,6 +245,10 @@ export const driverPortalApi = {
     const r = await apiClient.get(`${base}/dashboard`);
     return unwrapResponse<DriverPortalDashboardRecord>(r.data);
   },
+  async getPayouts() {
+    return unwrapResponse<{ approvedEarnings: number; paidAmount: number; outstanding: number; currency: string;
+      payouts: { id: number; amount: number; paidOn: string; reference: string; reversed: boolean }[] }>((await apiClient.get('/portal/driver/payouts')).data);
+  },
   async getPayments() {
     const r = await apiClient.get(`${base}/payments`);
     return unwrapResponse<DriverEarningsSummaryRecord>(r.data);

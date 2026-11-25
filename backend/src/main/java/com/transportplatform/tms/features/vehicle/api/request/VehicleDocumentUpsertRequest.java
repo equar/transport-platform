@@ -16,5 +16,5 @@ public record VehicleDocumentUpsertRequest(
         @Size(max = 150, message = "Issuing authority must be 150 characters or fewer.") String issuingAuthority,
         LocalDate issueDate,
         LocalDate expiryDate,
-        @Size(max = 2000, message = "Notes must be 2000 characters or fewer.") String notes) {
+        @Size(max = 2000, message = "Notes must be 2000 characters or fewer.") String notes, Long version) {
 }

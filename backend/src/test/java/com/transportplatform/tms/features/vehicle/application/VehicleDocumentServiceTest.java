@@ -68,7 +68,7 @@ class VehicleDocumentServiceTest {
 
         ApiException exception = assertThrows(ApiException.class,
                 () -> vehicleDocumentService.rejectCompanyVehicleDocument(20L,
-                        new VehicleDocumentReviewRequest("   ")));
+                        new VehicleDocumentReviewRequest("   ", 0L)));
 
         assertEquals("VALIDATION_FAILED", exception.getErrorCode().name());
     }

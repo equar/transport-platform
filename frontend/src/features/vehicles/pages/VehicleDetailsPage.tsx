@@ -233,7 +233,7 @@ export function VehicleDetailsPage() {
     }
   }
 
-  async function handleDocumentSubmit(payload: VehicleDocumentPayload) {
+  async function handleDocumentSubmit(payload: VehicleDocumentPayload, file: File | null) {
     if (!vehicle) {
       return;
     }
@@ -243,7 +243,8 @@ export function VehicleDetailsPage() {
         await vehiclesApi.updateDocument(selectedDocument.id, payload);
         showSuccess("Vehicle document updated successfully.");
       } else {
-        await vehiclesApi.createDocument(vehicle.id, payload);
+        if (!file) return;
+        await vehiclesApi.uploadDocument(vehicle.id, payload, file);
         showSuccess("Vehicle document added successfully.");
       }
       setDocumentDialogOpen(false);
@@ -263,10 +264,10 @@ export function VehicleDetailsPage() {
     setReviewLoading(true);
     try {
       if (reviewState.mode === "verify") {
-        await vehiclesApi.verifyDocument(reviewState.document.id, { notes });
+        await vehiclesApi.verifyDocument(reviewState.document.id, { notes, version: reviewState.document.version ?? 0 });
         showSuccess("Vehicle document verified successfully.");
       } else {
-        await vehiclesApi.rejectDocument(reviewState.document.id, { notes });
+        await vehiclesApi.rejectDocument(reviewState.document.id, { notes, version: reviewState.document.version ?? 0 });
         showSuccess("Vehicle document rejected successfully.");
       }
       setReviewState(null);

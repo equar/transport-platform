@@ -27,8 +27,26 @@ import org.testcontainers.junit.jupiter.*;
 @Testcontainers
 @Sql("/review/compliance-fixture.sql")
 class ProductionWorkflowMySqlTest {
+    static final java.nio.file.Path DRIVER_FILES=tempFiles("driver");
+    static final java.nio.file.Path VEHICLE_FILES=tempFiles("vehicle");
+    static java.nio.file.Path tempFiles(String kind) { try { return java.nio.file.Files.createTempDirectory("bakaroo-workflow-"+kind); } catch(java.io.IOException e) { throw new RuntimeException(e); } }
+    @Autowired com.transportplatform.tms.features.driver.application.DriverDocumentStorageService driverFiles;
+    @Autowired com.transportplatform.tms.features.vehicle.application.VehicleDocumentStorageService vehicleFiles;
+    @BeforeEach void attachSyntheticComplianceEvidence() {
+        for(String kind:List.of("driver","vehicle")) {
+            for(var row:jdbc.queryForList("SELECT id,tenant_id,"+kind+"_id AS owner_id FROM "+kind+"_documents WHERE verification_status='VERIFIED' AND storage_path IS NULL")) {
+                String tenant=(String)row.get("tenant_id");Long owner=((Number)row.get("owner_id")).longValue();
+                var file=new org.springframework.mock.web.MockMultipartFile("file","synthetic-fixture.pdf","application/pdf","%PDF-1.4\nSYNTHETIC TEST EVIDENCE".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+                String path=kind.equals("driver")?driverFiles.store(tenant,owner,file):vehicleFiles.store(tenant,owner,file);
+                jdbc.update("UPDATE "+kind+"_documents SET storage_path=?,file_name=?,original_file_name='synthetic-fixture.pdf',content_type='application/pdf',document_number='TEST',issuing_authority='Test fixture',issue_date='2026-01-01' WHERE id=?",path,java.nio.file.Path.of(path).getFileName().toString(),row.get("id"));
+            }
+        }
+    }
+    @AfterAll static void removeEvidence() throws java.io.IOException { for(var root:List.of(DRIVER_FILES,VEHICLE_FILES)) try(var paths=java.nio.file.Files.walk(root)) { for(var path:paths.sorted(java.util.Comparator.reverseOrder()).toList()) java.nio.file.Files.deleteIfExists(path); } }
+
     @Container static final MySQLContainer<?> MYSQL=new MySQLContainer<>("mysql:8.0.45").withUrlParam("connectTimeout", "10000").withUrlParam("socketTimeout", "15000");
     @DynamicPropertySource static void database(DynamicPropertyRegistry r) {
+        r.add("app.driver-document-storage.root",DRIVER_FILES::toString);r.add("app.vehicle-document-storage.root",VEHICLE_FILES::toString);
         r.add("spring.datasource.url",MYSQL::getJdbcUrl);r.add("spring.datasource.username",MYSQL::getUsername);r.add("spring.datasource.password",MYSQL::getPassword);
     }
     @Autowired TestRestTemplate http;

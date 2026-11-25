@@ -42,7 +42,9 @@ public class TenantModuleAccessFilter extends OncePerRequestFilter {
             if (path.startsWith("/company/incidents") || path.startsWith("/company/reports/incidents")) modules.add("INCIDENTS");
             if (path.startsWith("/notifications") || path.startsWith("/company/notification-templates") || path.startsWith("/portal/push-token")) modules.add("NOTIFICATIONS");
             if (path.matches("/(company|portal/rider|portal/organization)/(invoices|invoice-line-items|payments|receivables|pricing-rules|collections|billing|credit-notes)(/.*)?")
-                    || path.matches("/company/reports/(invoices|payments)(/.*)?")) modules.add("BILLING");
+                    || path.matches("/company/reports/(invoices|payments)(/.*)?")
+                    || path.matches("/company/(driver-earnings|driver-payouts)(/.*)?")
+                    || path.matches("/company/drivers/[^/]+/payouts")) modules.add("BILLING");
             if (!modules.isEmpty()) {
                 try { policy.requireEnabled(user.tenantId(), modules.toArray(String[]::new)); }
                 catch (ApiException unavailable) { denied.handle(request, response, new AccessDeniedException("Disabled module")); return; }

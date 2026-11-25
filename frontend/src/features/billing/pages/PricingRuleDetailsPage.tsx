@@ -1,3 +1,4 @@
+import { formatServiceDateTime } from "../../../shared/utils/serviceTime";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
@@ -39,9 +40,7 @@ function renderDate(value?: string | null) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-    new Date(value),
-  );
+  return formatServiceDateTime(value, { dateStyle: "medium" });
 }
 
 export function PricingRuleDetailsPage() {

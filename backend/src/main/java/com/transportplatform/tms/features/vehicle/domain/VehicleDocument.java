@@ -19,6 +19,17 @@ import java.time.LocalDate;
 @Table(name = "vehicle_documents")
 public class VehicleDocument extends AuditableEntity {
 
+    @jakarta.persistence.Version
+    @Column(name = "version", nullable = false)
+    private long version;
+
+    @Column(name = "verified_file_sha256", length = 64)
+    private String verifiedFileSha256;
+    public String getVerifiedFileSha256() { return verifiedFileSha256; }
+    public void setVerifiedFileSha256(String hash) { verifiedFileSha256 = hash; }
+
+    public long getVersion() { return version; }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

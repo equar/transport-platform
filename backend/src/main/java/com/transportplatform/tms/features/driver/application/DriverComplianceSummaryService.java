@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class DriverComplianceSummaryService {
+    @org.springframework.beans.factory.annotation.Autowired private DriverDocumentStorageService evidenceStorage;
 
     private static final Set<DriverDocumentType> REQUIRED_DOCUMENT_TYPES =
             EnumSet.of(
@@ -67,7 +68,9 @@ public class DriverComplianceSummaryService {
         Map<Long, DriverComplianceSummaryResponse> summaries = new LinkedHashMap<>();
         for (Driver driver : drivers) {
             List<DriverDocument> documents =
-                    documentsByDriverId.getOrDefault(driver.getId(), List.of());
+                    documentsByDriverId.getOrDefault(driver.getId(), List.of()).stream()
+                            .filter(doc -> doc.getVerificationStatus() != DriverDocumentVerificationStatus.VERIFIED
+                                    || evidenceStorage.present(tenantId, driver.getId(), doc.getStoragePath())).toList();
             var summary = buildSummary(tenantId, documents);
             Set<String> issues = qualificationIssues(driver, documents, tenantTime.today(tenantId));
             summaries.put(

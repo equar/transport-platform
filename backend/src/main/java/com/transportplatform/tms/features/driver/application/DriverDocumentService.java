@@ -33,6 +33,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class DriverDocumentService {
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.settings.application.TenantTimeService tenantTime;
+
 
     private final DriverDocumentRepository driverDocumentRepository;
     private final DriverAccessService driverAccessService;
@@ -110,6 +112,7 @@ public class DriverDocumentService {
         Driver driver = driverAccessService.findDriverForCompanyScope(driverId);
         validateRequest(request);
         DriverDocument document = new DriverDocument();
+        document.setFileName("Awaiting upload");
         driverDocumentMapper.apply(document, request);
         document.setDriver(driver);
         document.setTenantId(driver.getTenantId());
@@ -117,7 +120,7 @@ public class DriverDocumentService {
         document.setVerificationStatus(resolveStoredVerificationStatus(request.expiryDate()));
         document.setUploadedBy(currentAuthenticatedUserService.requireCurrentUser().username());
         document.setUploadedAt(Instant.now(clock));
-        DriverDocument saved = driverDocumentRepository.save(document);
+        DriverDocument saved = driverDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "CREATED", "Driver document " + saved.getDocumentType().name() + " was created.", null,
                 snapshot(saved));
         return driverDocumentMapper.toResponse(saved);
@@ -133,6 +136,8 @@ public class DriverDocumentService {
             String notes,
             MultipartFile file) {
         Driver driver = driverAccessService.findDriverForCompanyScope(driverId);
+        if (issueDate != null && issueDate.isAfter(tenantTime.today(driver.getTenantId())))
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Issue date cannot be in the future.");
         if (issueDate != null && expiryDate != null && expiryDate.isBefore(issueDate)) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
                     "Document expiry date cannot be earlier than the issue date.");
@@ -156,7 +161,7 @@ public class DriverDocumentService {
         document.setVerificationStatus(resolveStoredVerificationStatus(expiryDate));
         document.setUploadedBy(currentAuthenticatedUserService.requireCurrentUser().username());
         document.setUploadedAt(Instant.now(clock));
-        DriverDocument saved = driverDocumentRepository.save(document);
+        DriverDocument saved = driverDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "UPLOADED", "Driver document " + saved.getDocumentType().name()
                 + " was uploaded for review.", null, snapshot(saved));
         complianceIssueSyncService.synchronizeDriver(saved.getTenantId(), saved.getDriver().getId());
@@ -166,11 +171,13 @@ public class DriverDocumentService {
     @Transactional
     public DriverDocumentResponse updateCompanyDriverDocument(Long documentId, DriverDocumentUpsertRequest request) {
         DriverDocument document = findDocument(documentId);
+        requireVersion(document, request.version());
         validateRequest(request);
         Object oldSnapshot = snapshot(document);
         driverDocumentMapper.apply(document, request);
+        document.setVerifiedFileSha256(null);
         document.setVerificationStatus(resolveStoredVerificationStatus(request.expiryDate()));
-        DriverDocument saved = driverDocumentRepository.save(document);
+        DriverDocument saved = driverDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "UPDATED", "Driver document " + saved.getDocumentType().name() + " was updated.",
                 oldSnapshot, snapshot(saved));
         return driverDocumentMapper.toResponse(saved);
@@ -179,12 +186,18 @@ public class DriverDocumentService {
     @Transactional
     public DriverDocumentResponse verifyCompanyDriverDocument(Long documentId, DriverDocumentReviewRequest request) {
         DriverDocument document = findDocument(documentId);
+        requireVersion(document, request.version());
         if (document.getDocumentType() != com.transportplatform.tms.features.driver.domain.DriverDocumentType.PROFILE_PHOTO) {
             DriverDocumentMetadata.requireComplete(document.getDocumentNumber(), document.getIssuingAuthority(),
                     document.getIssueDate(), document.getExpiryDate());
         }
-        DriverDocumentStatusWorkflow.ensureCanVerify(document, LocalDate.now(clock));
+        String evidenceHash = com.transportplatform.tms.features.driver.application.DocumentReviewEvidence.hash(driverDocumentStorageService.load(document.getTenantId(), document.getDriver().getId(),
+                document.getStoragePath(), document.getOriginalFileName(), document.getContentType()));
+        if (document.getIssueDate() != null && document.getIssueDate().isAfter(tenantTime.today(document.getTenantId())))
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Issue date cannot be in the future.");
+        DriverDocumentStatusWorkflow.ensureCanVerify(document, tenantTime.today(currentAuthenticatedUserService.requireCurrentUser().tenantId()));
         Object oldSnapshot = snapshot(document);
+        document.setVerifiedFileSha256(evidenceHash);
         document.setVerificationStatus(DriverDocumentVerificationStatus.VERIFIED);
         var driver=document.getDriver();
         switch(document.getDocumentType()) {
@@ -196,7 +209,7 @@ public class DriverDocumentService {
         if (request.notes() != null && !request.notes().isBlank()) {
             document.setNotes(request.notes().trim());
         }
-        DriverDocument saved = driverDocumentRepository.save(document);
+        DriverDocument saved = driverDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "VERIFIED", "Driver document " + saved.getDocumentType().name() + " was verified.",
                 oldSnapshot, snapshot(saved));
         notificationEventService.publishDriverDocumentVerified(saved);
@@ -207,6 +220,7 @@ public class DriverDocumentService {
     @Transactional
     public DriverDocumentResponse rejectCompanyDriverDocument(Long documentId, DriverDocumentReviewRequest request) {
         DriverDocument document = findDocument(documentId);
+        requireVersion(document, request.version());
         DriverDocumentStatusWorkflow.ensureCanReject(document);
         if (request.notes() == null || request.notes().isBlank()) {
             throw new ApiException(
@@ -217,7 +231,7 @@ public class DriverDocumentService {
         Object oldSnapshot = snapshot(document);
         document.setVerificationStatus(DriverDocumentVerificationStatus.REJECTED);
         document.setNotes(request.notes().trim());
-        DriverDocument saved = driverDocumentRepository.save(document);
+        DriverDocument saved = driverDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "REJECTED", "Driver document " + saved.getDocumentType().name() + " was rejected.",
                 oldSnapshot, snapshot(saved));
         notificationEventService.publishDriverDocumentRejected(saved);
@@ -231,10 +245,10 @@ public class DriverDocumentService {
         DriverDocumentStatusWorkflow.ensureCanActivate(document);
         Object oldSnapshot = snapshot(document);
         document.setStatus(DriverDocumentStatus.ACTIVE);
-        if (document.getExpiryDate() != null && document.getExpiryDate().isBefore(LocalDate.now(clock))) {
+        if (document.getExpiryDate() != null && document.getExpiryDate().isBefore(tenantTime.today(currentAuthenticatedUserService.requireCurrentUser().tenantId()))) {
             document.setVerificationStatus(DriverDocumentVerificationStatus.EXPIRED);
         }
-        DriverDocument saved = driverDocumentRepository.save(document);
+        DriverDocument saved = driverDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "ACTIVATED", "Driver document " + saved.getDocumentType().name() + " was activated.",
                 oldSnapshot, snapshot(saved));
         return driverDocumentMapper.toResponse(saved);
@@ -246,7 +260,7 @@ public class DriverDocumentService {
         DriverDocumentStatusWorkflow.ensureCanArchive(document);
         Object oldSnapshot = snapshot(document);
         document.setStatus(DriverDocumentStatus.ARCHIVED);
-        DriverDocument saved = driverDocumentRepository.save(document);
+        DriverDocument saved = driverDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "ARCHIVED", "Driver document " + saved.getDocumentType().name() + " was archived.",
                 oldSnapshot, snapshot(saved));
         return driverDocumentMapper.toResponse(saved);
@@ -261,7 +275,15 @@ public class DriverDocumentService {
                         "Driver document was not found."));
     }
 
+    private void requireVersion(DriverDocument document, Long expected) {
+        if (expected == null || expected != document.getVersion())
+            throw new ApiException(ErrorCode.RESOURCE_CONFLICT, HttpStatus.CONFLICT,
+                    "This document changed. Refresh it and review the latest attachment before saving.");
+    }
+
     private void validateRequest(DriverDocumentUpsertRequest request) {
+        if (request.issueDate() != null && request.issueDate().isAfter(tenantTime.today(currentAuthenticatedUserService.requireCurrentUser().tenantId())))
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Issue date cannot be in the future.");
         if (request.issueDate() != null && request.expiryDate() != null
                 && request.expiryDate().isBefore(request.issueDate())) {
             throw new ApiException(
@@ -272,7 +294,7 @@ public class DriverDocumentService {
     }
 
     private DriverDocumentVerificationStatus resolveStoredVerificationStatus(LocalDate expiryDate) {
-        if (expiryDate != null && expiryDate.isBefore(LocalDate.now(clock))) {
+        if (expiryDate != null && expiryDate.isBefore(tenantTime.today(currentAuthenticatedUserService.requireCurrentUser().tenantId()))) {
             return DriverDocumentVerificationStatus.EXPIRED;
         }
         return DriverDocumentVerificationStatus.PENDING;
@@ -312,6 +334,8 @@ public class DriverDocumentService {
     private Object snapshot(DriverDocument document) {
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("id", document.getId());
+        values.put("version", document.getVersion());
+        values.put("verifiedFileSha256", document.getVerifiedFileSha256());
         values.put("driverId", document.getDriver().getId());
         values.put("tenantId", document.getTenantId());
         values.put("documentType", document.getDocumentType() == null ? null : document.getDocumentType().name());

@@ -26,5 +26,5 @@ public record VehicleDocumentResponse(
         String createdBy,
         Instant createdAt,
         String updatedBy,
-        Instant updatedAt) {
+        Instant updatedAt, long version) {
 }

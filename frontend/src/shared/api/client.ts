@@ -40,6 +40,12 @@ export function captureTenantRequestScope() {
   };
 }
 
+export function captureAuthenticatedRequestScope() {
+  const identity = currentSession?.identity;
+  if (!currentSession?.accessToken || identity?.id == null) throw new axios.CanceledError('Sign in before making a financial request.');
+  return { key: JSON.stringify([identity.tenantId ?? 'platform', identity.id]), config: { _sessionGeneration: sessionGeneration } as import('axios').AxiosRequestConfig };
+}
+
 function readSession() { return currentSession; }
 
 let refreshPromise: Promise<string | null> | null = null;

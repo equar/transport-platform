@@ -43,9 +43,13 @@ import java.util.Optional;
 public class DriverEarningsService {
     @org.springframework.beans.factory.annotation.Autowired
     private org.springframework.jdbc.core.JdbcTemplate db;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.transportplatform.tms.common.concurrency.WorkflowLockService financialLocks;
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.billing.application.FinancialRequestService requests;
 
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public DriverEarningsEntryResponse recalculate(Long id) {
+        financialLocks.lock(requireAdminTenant(), "FINANCE", 0);
         String tenant = requireAdminTenant();
         var entry = findEntryForTenant(id, tenant);
         if (entry.getEntryType() != DriverEarningsEntryType.EARNED)
@@ -88,8 +92,9 @@ public class DriverEarningsService {
         this.audit = audit;
     }
 
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public void createForCompletedRide(Ride ride) {
+        financialLocks.lock(ride.getTenantId(), "FINANCE", 0);
         evidence.requireBillable(ride);
         if (ride.getDriverId() == null
                 || ledger.existsByRideIdAndEntryType(
@@ -124,13 +129,14 @@ public class DriverEarningsService {
                 null);
     }
 
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public void calculatePendingForIssuedRide(String tenantId, Long rideId) {
         reconcileRide(tenantId, rideId);
     }
 
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public void reconcileRide(String tenantId, Long rideId) {
+        financialLocks.lock(tenantId, "FINANCE", 0);
         var basis = findBillableRideAmount(tenantId, rideId);
         var tenantSettings = settings.findById(tenantId).orElse(null);
         for (var entry :
@@ -184,8 +190,9 @@ public class DriverEarningsService {
                 .toList();
     }
 
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public BigDecimal updateRate(DriverEarningsRateRequest request) {
+        financialLocks.lock(requireAdminTenant(), "FINANCE", 0);
         String tenantId = requireAdminTenant();
         TenantSettings tenantSettings =
                 settings.findById(tenantId)
@@ -219,9 +226,10 @@ public class DriverEarningsService {
                 .orElse(null);
     }
 
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public DriverEarningsEntryResponse updateEntry(
             Long entryId, DriverEarningsReviewRequest request) {
+        financialLocks.lock(requireAdminTenant(), "FINANCE", 0);
         String tenantId = requireAdminTenant();
         DriverEarningsLedger entry = findEntryForTenant(entryId, tenantId);
         if (entry.getStatus() == DriverEarningsStatus.APPROVED) {
@@ -243,8 +251,9 @@ public class DriverEarningsService {
         return map(saved, true);
     }
 
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public DriverEarningsEntryResponse approve(Long entryId) {
+        financialLocks.lock(requireAdminTenant(), "FINANCE", 0);
         String tenantId = requireAdminTenant();
         DriverEarningsLedger entry = findEntryForTenant(entryId, tenantId);
         if (entry.getStatus() != DriverEarningsStatus.PENDING_REVIEW || entry.getAmount() == null) {
@@ -281,10 +290,17 @@ public class DriverEarningsService {
         return map(saved, true);
     }
 
-    @Transactional
-    public DriverEarningsEntryResponse adjust(DriverEarningsAdjustmentRequest request) {
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    public DriverEarningsEntryResponse adjust(DriverEarningsAdjustmentRequest request, String key) {
+        String tenant = requireAdminTenant();
+        long id = requests.execute(tenant, key, "EARNINGS_ADJUSTMENT", request, () -> createAdjustment(request).id());
+        return map(findEntryForTenant(id, tenant), true);
+    }
+
+    private DriverEarningsEntryResponse createAdjustment(DriverEarningsAdjustmentRequest request) {
+        financialLocks.lock(requireAdminTenant(), "FINANCE", 0);
         String tenantId = requireAdminTenant();
-        if (request.amount().signum() == 0) {
+        if (request.amount().setScale(2, RoundingMode.HALF_UP).signum() == 0) {
             throw new ApiException(
                     ErrorCode.VALIDATION_FAILED,
                     HttpStatus.BAD_REQUEST,
@@ -323,6 +339,11 @@ public class DriverEarningsService {
     private Optional<BillableRideAmount> findBillableRideAmount(String tenantId, Long rideId) {
         if (rideId == null) {
             return Optional.empty();
+        }
+        var allocations = db.queryForList("SELECT a.amount,i.id AS invoice_id,i.currency FROM invoice_ride_allocations a JOIN invoices i ON i.tenant_id=a.tenant_id AND i.id=a.invoice_id WHERE a.tenant_id=? AND a.ride_id=? AND a.claim_active=TRUE AND i.status NOT IN ('DRAFT','VOID') ORDER BY a.id DESC", tenantId, rideId);
+        if (!allocations.isEmpty()) {
+            var row=allocations.getFirst();
+            return Optional.of(new BillableRideAmount((BigDecimal)row.get("amount"),(String)row.get("currency"),((Number)row.get("invoice_id")).longValue()));
         }
         List<InvoiceLineItem> rideLineItems =
                 invoiceLineItems

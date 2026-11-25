@@ -30,6 +30,27 @@ public class VehicleDocumentController {
         this.vehicleDocumentService = vehicleDocumentService;
     }
 
+    @PostMapping(value="/company/vehicles/{vehicleId}/documents/upload", consumes="multipart/form-data")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
+    public ApiResponse<VehicleDocumentResponse> upload(@PathVariable Long vehicleId,
+            @RequestParam VehicleDocumentType documentType,
+            @RequestParam(required=false) String documentNumber, @RequestParam(required=false) String issuingAuthority,
+            @RequestParam(required=false) java.time.LocalDate issueDate, @RequestParam(required=false) java.time.LocalDate expiryDate,
+            @RequestParam(required=false) String notes, @RequestParam org.springframework.web.multipart.MultipartFile file) {
+        return ApiResponse.success(vehicleDocumentService.uploadCompanyVehicleDocument(vehicleId, documentType,
+                documentNumber, issuingAuthority, issueDate, expiryDate, notes, file));
+    }
+
+    @GetMapping("/company/vehicle-documents/{documentId}/file")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
+    public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> file(@PathVariable Long documentId) {
+        var stored = vehicleDocumentService.loadCompanyVehicleDocumentFile(documentId);
+        return org.springframework.http.ResponseEntity.ok().header("Cache-Control", "no-store")
+                .contentType(org.springframework.http.MediaType.parseMediaType(stored.contentType()))
+                .header("Content-Disposition", "inline; filename*=UTF-8''" + java.net.URLEncoder.encode(stored.fileName(), java.nio.charset.StandardCharsets.UTF_8))
+                .body(stored.resource());
+    }
+
     @GetMapping("/company/vehicles/{vehicleId}/documents")
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'DISPATCHER', 'COMPLIANCE_ADMIN')")
     public ApiResponse<PageResponse<VehicleDocumentResponse>> searchCompanyVehicleDocuments(

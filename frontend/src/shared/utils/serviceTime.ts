@@ -12,9 +12,10 @@ export function formatServiceDateTime(value: string, options: Intl.DateTimeForma
   }
   const date = new Date(value.length === 10 ? `${value}T12:00:00Z` : value);
   if (!Number.isFinite(date.getTime())) return '—';
-  return new Intl.DateTimeFormat('en-US', {
-    ...options, ...(value.length === 10 ? { timeZone: 'UTC' } : serviceTimezone ? { timeZone: serviceTimezone } : {}),
+  const formatted = new Intl.DateTimeFormat('en-US', {
+    ...options, timeZone: value.length === 10 ? 'UTC' : serviceTimezone ?? 'UTC',
   }).format(date);
+  return value.length !== 10 && !serviceTimezone ? `${formatted} (UTC)` : formatted;
 }
 export function scheduleEpoch(value: string): number | null {
   if (!localSchedule.test(value)) {
@@ -34,4 +35,16 @@ export function scheduleEpoch(value: string): number | null {
     epoch += delta;
   }
   return null;
+}
+
+/** A service calendar date, independent of the administrator's device timezone. */
+export function serviceToday(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: serviceTimezone ?? 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+  const part = (name: string) => parts.find(p => p.type === name)!.value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+export function addCalendarDays(date: string, days: number): string {
+  const value = new Date(`${date}T12:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
 }

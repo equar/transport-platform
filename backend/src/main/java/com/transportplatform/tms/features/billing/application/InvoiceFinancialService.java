@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 public class InvoiceFinancialService {
 
     public void recalculateTotals(Invoice invoice, List<InvoiceLineItem> lineItems, LocalDate today) {
+        // Round each persisted line, never only the aggregate.
+        lineItems.forEach(line -> line.setLineAmount(line.getLineAmount().setScale(2, RoundingMode.HALF_UP)));
         BigDecimal subtotal = lineItems.stream()
                 .map(InvoiceLineItem::getLineAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
@@ -23,6 +25,13 @@ public class InvoiceFinancialService {
         BigDecimal discountAmount = zeroIfNull(invoice.getDiscountAmount()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal amountPaid = zeroIfNull(invoice.getAmountPaid()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal totalAmount = subtotal.add(taxAmount).subtract(discountAmount).setScale(2, RoundingMode.HALF_UP);
+        if (totalAmount.compareTo(new BigDecimal("9999999999.99")) > 0 || totalAmount.signum() < 0 || taxAmount.signum() < 0 || discountAmount.signum() < 0
+                || amountPaid.signum() < 0 || amountPaid.compareTo(totalAmount) > 0) {
+            throw new com.transportplatform.tms.common.exception.ApiException(
+                    com.transportplatform.tms.common.exception.ErrorCode.VALIDATION_FAILED,
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Invoice discounts cannot exceed charges plus tax, and totals must cover applied payments.");
+        }
         BigDecimal balanceDue = totalAmount.subtract(amountPaid).setScale(2, RoundingMode.HALF_UP);
         invoice.setSubtotal(subtotal);
         invoice.setTaxAmount(taxAmount);

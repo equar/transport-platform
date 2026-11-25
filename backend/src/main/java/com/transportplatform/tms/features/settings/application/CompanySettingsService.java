@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CompanySettingsService {
+    @org.springframework.beans.factory.annotation.Autowired private org.springframework.jdbc.core.JdbcTemplate timeDb;
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.common.concurrency.WorkflowLockService financialLocks;
 
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final TenantRepository tenantRepository;
@@ -46,10 +48,11 @@ public class CompanySettingsService {
         return toResponse(tenant, settings);
     }
 
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public CompanySettingsResponse updateCompanySettings(CompanySettingsUpdateRequest request) {
         Tenant tenant = requireCompanyTenant();
         tenantRepository.lockForDispatch(tenant.getId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Tenant was not found."));
+        financialLocks.lock(tenant.getId(), "FINANCE", 0);
         TenantSettings settings = getOrCreateDefaults(tenant.getId());
         if (!java.util.Objects.equals(trimToNull(request.primaryColor()), settings.getPrimaryColor())
                 || !java.util.Objects.equals(trimToNull(request.secondaryColor()), settings.getSecondaryColor())
@@ -71,8 +74,13 @@ public class CompanySettingsService {
         tenant.setCountry(request.country().trim());
 
         settings.setTenantId(tenant.getId());
-        try { java.time.ZoneId.of(request.timezone().trim()); }
+        try { if (!java.time.ZoneId.getAvailableZoneIds().contains(request.timezone().trim())) throw new java.time.DateTimeException("Use an IANA timezone"); java.time.ZoneId.of(request.timezone().trim()); }
         catch (java.time.DateTimeException ex) { throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Choose a valid IANA timezone."); }
+        if (!java.util.Objects.equals(settings.getTimezone(), request.timezone().trim())
+                && timeDb.queryForObject("SELECT (SELECT COUNT(*) FROM rides WHERE tenant_id=?) + (SELECT COUNT(*) FROM routes WHERE tenant_id=?) + (SELECT COUNT(*) FROM recurring_ride_schedules WHERE tenant_id=?)", Long.class,
+                        tenant.getId(), tenant.getId(), tenant.getId()) > 0)
+            throw new ApiException(ErrorCode.RESOURCE_CONFLICT, HttpStatus.CONFLICT,
+                    "The service timezone cannot change after trips, routes or recurring schedules exist. Contact support for a planned schedule migration.");
         settings.setTimezone(request.timezone().trim());
         if (!"USD".equals(request.currency())) throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Only USD is supported.");
         settings.setCurrency("USD");

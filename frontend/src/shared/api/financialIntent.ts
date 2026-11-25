@@ -1,11 +1,11 @@
-import { apiClient, captureTenantRequestScope, unwrapResponse } from "./client";
+import { apiClient, captureAuthenticatedRequestScope, unwrapResponse } from "./client";
 const pending = new Map<string, string>();
 /** Account-scoped, durable retry identity; no financial field values are persisted. */
 export async function postFinancialAdjustment<T>(
   path: string,
   payload: unknown,
 ): Promise<T> {
-  const scope = captureTenantRequestScope();
+  const scope = captureAuthenticatedRequestScope();
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(JSON.stringify([path, payload])),
@@ -31,6 +31,7 @@ export async function postFinancialAdjustment<T>(
     ...scope.config,
     headers: { "Idempotency-Key": key },
   });
+  const result = unwrapResponse<T>(response.data);
   if (pending.get(storageKey) === key) pending.delete(storageKey);
   try {
     if (sessionStorage.getItem(storageKey) === key)
@@ -38,5 +39,5 @@ export async function postFinancialAdjustment<T>(
   } catch {
     /* Memory fallback. */
   }
-  return unwrapResponse<T>(response.data);
+  return result;
 }

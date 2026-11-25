@@ -10,7 +10,7 @@ const account = vi.hoisted(() => ({
 vi.mock("./client", () => ({
   apiClient: { post: vi.fn() },
   unwrapResponse: (body: { data: unknown }) => body.data,
-  captureTenantRequestScope: () => ({
+  captureAuthenticatedRequestScope: () => ({
     key: JSON.stringify([account.tenant, account.user]),
     config: { _sessionGeneration: account.generation },
   }),
@@ -50,4 +50,12 @@ it("preserves an uncertain refund intent across account switches without storing
     vi.mocked(apiClient.post).mock.calls[2][2]?.headers?.["Idempotency-Key"],
   ).toBe(first);
   expect(sessionStorage.length).toBe(0);
+});
+
+it("keeps a confirmed financial operation separate from a subsequent intentional operation", async () => {
+  vi.mocked(apiClient.post).mockResolvedValue({ data: { data: { id: 1 } } });
+  await postFinancialAdjustment('/company/driver-payouts', { amount: 10, reference: 'A' });
+  await postFinancialAdjustment('/company/driver-payouts', { amount: 10, reference: 'A' });
+  expect(vi.mocked(apiClient.post).mock.calls[0][2]?.headers?.['Idempotency-Key'])
+    .not.toBe(vi.mocked(apiClient.post).mock.calls[1][2]?.headers?.['Idempotency-Key']);
 });

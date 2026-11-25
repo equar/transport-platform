@@ -100,6 +100,7 @@ export interface DriverRecord {
 }
 
 export interface DriverDocumentRecord {
+  version?: number;
   id: number;
   driverId: number;
   documentType: DriverDocumentType;
@@ -174,6 +175,7 @@ export interface DriverPayload {
 }
 
 export interface DriverDocumentPayload {
+  version?: number;
   documentType: DriverDocumentType;
   fileName: string;
   originalFileName?: string | null;
@@ -187,6 +189,7 @@ export interface DriverDocumentPayload {
 }
 
 export interface DriverDocumentReviewPayload {
+  version?: number;
   notes?: string | null;
 }
 

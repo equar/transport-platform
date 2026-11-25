@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RideService {
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.route.application.AutomaticRouteCompletionService routeCompletion;
     private final com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence;
     @org.springframework.beans.factory.annotation.Autowired
     private RideJourneyService journeys;
@@ -141,6 +142,7 @@ public class RideService {
 
     @Transactional
     public RideResponse createCompanyRide(RideUpsertRequest request) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         String tenantId = rideAccessService.requireCompanyTenantId();
         RideReferenceValidationService.ResolvedReferences references = rideReferenceValidationService.resolve(
                 tenantId,
@@ -167,11 +169,13 @@ public class RideService {
 
     @Transactional
     public RideResponse updateCompanyRide(Long rideId, RideUpsertRequest request) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         return updateCompanyRide(rideId, request, null);
     }
 
     @Transactional
     public RideResponse updateCompanyRide(Long rideId, RideUpsertRequest request, Long expectedVersion) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND,HttpStatus.NOT_FOUND,"Company not found."));
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         if (expectedVersion != null && ride.getVersion() != expectedVersion) {
@@ -212,6 +216,7 @@ public class RideService {
     @Transactional
     public RideResponse splitCompanyRoundTrip(Long rideId) {
         dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanEdit(ride.getStatus());
         journeys.split(ride);
@@ -220,6 +225,7 @@ public class RideService {
 
     @Transactional
     public RideResponse requestCompanyRide(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanRequest(ride.getStatus());
         return updateStatus(ride, RideStatus.REQUESTED, "REQUESTED",
@@ -228,6 +234,7 @@ public class RideService {
 
     @Transactional
     public RideResponse reviewCompanyRide(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanReview(ride.getStatus());
         return updateStatus(ride, RideStatus.PENDING_REVIEW, "UNDER_REVIEW",
@@ -236,6 +243,7 @@ public class RideService {
 
     @Transactional
     public RideResponse scheduleCompanyRide(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanSchedule(ride.getStatus());
         return updateStatus(ride, RideStatus.SCHEDULED, "SCHEDULED",
@@ -244,6 +252,7 @@ public class RideService {
 
     @Transactional
     public RideResponse markCompanyRideAssigned(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkAssigned(ride.getStatus());
         if (ride.getDriverId() == null || ride.getVehicleId() == null) {
@@ -255,6 +264,7 @@ public class RideService {
 
     @Transactional
     public RideResponse markCompanyRideDriverEnRoute(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         if (ride.getTripType() == com.transportplatform.tms.features.ride.domain.RideTripType.ROUND_TRIP) throw new ApiException(
                 ErrorCode.RESOURCE_CONFLICT,HttpStatus.CONFLICT,"Dispatch must split this existing round trip into outbound and return journeys before departure.");
@@ -271,6 +281,7 @@ public class RideService {
 
     @Transactional
     public RideResponse markCompanyRideArrived(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkArrived(ride.getStatus());
         evidence.requireMilestone(ride,"ARRIVED");
@@ -280,6 +291,7 @@ public class RideService {
 
     @Transactional
     public RideResponse markCompanyRidePickedUp(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkPickedUp(ride.getStatus());
         evidence.requireMilestone(ride,"PICKED_UP");
@@ -289,6 +301,7 @@ public class RideService {
 
     @Transactional
     public RideResponse markCompanyRideDroppedOff(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkDroppedOff(ride.getStatus());
         evidence.requireMilestone(ride,"DROPPED_OFF");
@@ -298,6 +311,7 @@ public class RideService {
 
     @Transactional
     public RideResponse completeCompanyRide(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkCompleted(ride.getStatus());
         evidence.requireComplete(ride);
@@ -309,6 +323,7 @@ public class RideService {
 
     @Transactional
     public RideResponse markCompanyRideNoShow(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkNoShow(ride.getStatus());
         return updateStatus(ride, RideStatus.RIDER_NO_SHOW, "NO_SHOW",
@@ -317,6 +332,7 @@ public class RideService {
 
     @Transactional
     public RideResponse markCompanyRideMissed(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkMissed(ride.getStatus());
         return updateStatus(ride, RideStatus.MISSED, "MISSED",
@@ -325,6 +341,7 @@ public class RideService {
 
     @Transactional
     public RideResponse markCompanyRideFailed(Long rideId) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanMarkFailed(ride.getStatus());
         return updateStatus(ride, RideStatus.FAILED, "FAILED",
@@ -333,6 +350,7 @@ public class RideService {
 
     @Transactional
     public RideResponse addCompanyRideNote(Long rideId, String note) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         String trimmedNote = trimToNull(note);
         if (trimmedNote == null) {
@@ -350,6 +368,7 @@ public class RideService {
 
     @Transactional
     public RideResponse cancelCompanyRide(Long rideId, CancelRideRequest request) {
+        dispatchTenants.lockForDispatch(rideAccessService.requireCompanyTenantId()).orElseThrow();
         Ride ride = rideAccessService.findRideForCompanyScope(rideId);
         RideStatusWorkflow.ensureCanCancel(ride.getStatus());
         Object oldSnapshot = snapshot(ride);
@@ -365,6 +384,7 @@ public class RideService {
         recordAudit(saved, "CANCELLED", "Ride " + saved.getRideNumber() + " was cancelled.", oldSnapshot,
                 snapshot(saved));
         notificationEventService.publishRideStatusChanged(saved, previousStatus, saved.getStatus());
+        routeCompletion.afterTripChanged(saved);
         return rideMapper.toResponse(saved);
     }
 
@@ -382,6 +402,7 @@ public class RideService {
         rideEventService.recordStatusChanged(saved, previousStatus, targetStatus, summary);
         recordAudit(saved, action, summary, oldSnapshot, snapshot(saved));
         notificationEventService.publishRideStatusChanged(saved, previousStatus, saved.getStatus());
+        routeCompletion.afterTripChanged(saved);
         return rideMapper.toResponse(saved);
     }
 

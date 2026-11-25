@@ -31,7 +31,7 @@ public class PaymentCreationIdempotencyService {
 
     public Claim claim(String idempotencyKey, PaymentUpsertRequest request) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            return null;
+            throw validationFailure("An Idempotency-Key is required when recording a payment.");
         }
         if (idempotencyKey.length() > 120) {
             throw validationFailure("Idempotency-Key must be 120 characters or fewer.");

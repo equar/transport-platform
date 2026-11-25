@@ -38,6 +38,7 @@ class TripFinancialGuardsTest {
         new RideService(
             rides, access, null, null, null, null, null, null, null, null, null, earnings,
             evidence);
+    org.springframework.test.util.ReflectionTestUtils.setField(service, "dispatchTenants", tenants());
     assertThatThrownBy(() -> service.completeCompanyRide(1L)).isInstanceOf(ApiException.class);
     verifyNoInteractions(earnings);
     verify(rides, never()).save(any());
@@ -56,6 +57,11 @@ class TripFinancialGuardsTest {
         new DriverPortalService(
             access, null, null, null, null, null, null, null, null, null, null, null, null, null,
             null, null, null, null, earnings, evidence);
+    org.springframework.test.util.ReflectionTestUtils.setField(service, "mutationTenants", tenants());
+    var users=mock(CurrentAuthenticatedUserService.class);
+    var user=mock(com.transportplatform.tms.common.security.AuthenticatedUser.class);
+    when(user.tenantId()).thenReturn("tenant"); when(users.requireCurrentUser()).thenReturn(user);
+    org.springframework.test.util.ReflectionTestUtils.setField(service, "currentAuthenticatedUserService", users);
     assertThatThrownBy(() -> service.completeRide(1L)).isInstanceOf(ApiException.class);
     verifyNoInteractions(earnings);
   }
@@ -77,6 +83,7 @@ class TripFinancialGuardsTest {
             mock(RideRepository.class),
             mock(AuditLogService.class),
             evidence);
+    org.springframework.test.util.ReflectionTestUtils.setField(service,"financialLocks",mock(com.transportplatform.tms.common.concurrency.WorkflowLockService.class));
     assertThatThrownBy(() -> service.createForCompletedRide(r)).isInstanceOf(ApiException.class);
     verifyNoInteractions(ledger);
     var rides = mock(RideRepository.class);
@@ -87,5 +94,10 @@ class TripFinancialGuardsTest {
         .isSameAs(r); // Draft estimates may precede delivery.
     assertThatThrownBy(() -> billing.resolveBillableRide("tenant", 1L))
         .isInstanceOf(ApiException.class);
+  }
+  private com.transportplatform.tms.features.tenant.domain.TenantRepository tenants() {
+    var repository=mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class);
+    when(repository.lockForDispatch(any())).thenReturn(java.util.Optional.of(new com.transportplatform.tms.features.tenant.domain.Tenant()));
+    return repository;
   }
 }

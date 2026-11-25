@@ -8,6 +8,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public record DriverEarningsReviewRequest(
-        @NotNull @DecimalMin("0.00") @DecimalMax("999999.99") BigDecimal amount,
+        @NotNull @DecimalMin("0.00") @DecimalMax("999999.99") @jakarta.validation.constraints.Digits(integer=6,fraction=2) BigDecimal amount,
         @NotBlank @Size(max = 1000) String reason) {
 }

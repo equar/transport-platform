@@ -1,3 +1,5 @@
+import { SubscriptionAdjustments } from "../components/SubscriptionAdjustments";
+import type { SubscriptionAdjustment } from "../api/subscriptionBillingApi";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -62,6 +64,7 @@ export function SubscriptionBillingPage() {
   const [detail, setDetail] = useState<{
     invoice: SubscriptionInvoice;
     payments: BillingPayment[];
+    adjustments?: SubscriptionAdjustment[];
   } | null>(null);
   const [paying, setPaying] = useState<SubscriptionInvoice | null>(null),
     [amount, setAmount] = useState(""),
@@ -588,7 +591,7 @@ export function SubscriptionBillingPage() {
                 Metered at {formatDateTime(detail.invoice.meteredAt)}:{" "}
                 {detail.invoice.driverCount} active drivers ×{" "}
                 {money(detail.invoice.monthlyDriverRate)} ={" "}
-                {money(detail.invoice.amount)}
+                {money(detail.invoice.originalAmount ?? detail.invoice.amount)}
               </Typography>
               <Typography>
                 Driver record IDs counted: {detail.invoice.driverIdsJson}
@@ -599,6 +602,8 @@ export function SubscriptionBillingPage() {
                 Due: {detail.invoice.dueDate}
               </Typography>
               <StatusChip value={detail.invoice.status} />
+              <SubscriptionAdjustments key={detail.invoice.id} invoice={detail.invoice} payments={detail.payments} adjustments={detail.adjustments}
+                editable={platform} onChanged={async () => { await viewInvoice(detail.invoice.id); setRefresh(v => v + 1); }} />
               <Typography variant="h6">Payment history</Typography>
               {detail.payments.length ? (
                 detail.payments.map((p) => (

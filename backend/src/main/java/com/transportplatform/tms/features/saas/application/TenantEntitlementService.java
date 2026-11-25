@@ -61,7 +61,7 @@ public class TenantEntitlementService {
     }
     public boolean hasOverdueBalance(String tenant) { return hasOverdueBalance(tenant, true); }
     private boolean hasOverdueBalance(String tenant, boolean lock) {
-        return db.queryForObject("SELECT COUNT(*) FROM platform_subscription_invoices WHERE tenant_id=? AND status='ISSUED' AND paid_amount<amount AND due_date<?" + (lock ? " FOR SHARE" : ""), Long.class, tenant, today()) > 0;
+        return db.queryForObject("SELECT COUNT(*) FROM platform_subscription_invoices WHERE tenant_id=? AND status='ISSUED' AND paid_amount+credited_amount<amount AND due_date<?" + (lock ? " FOR SHARE" : ""), Long.class, tenant, today()) > 0;
     }
     public void requireOperational(String tenant) {
         // HTTP authorization is evaluated before domain transactions by the request filter.

@@ -67,6 +67,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class DriverPortalService {
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.route.application.AutomaticRouteCompletionService routeCompletion;
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.tenant.domain.TenantRepository mutationTenants;
     @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.saas.application.TenantEntitlementService subscriptions;
     private final com.transportplatform.tms.features.tripevidence.application.TripEvidenceService evidence;
 
@@ -246,8 +248,11 @@ public class DriverPortalService {
         if (issueDate != null && expiryDate != null && expiryDate.isBefore(issueDate)) {
             throw validationFailure("Document expiry date cannot be earlier than the issue date.");
         }
-        com.transportplatform.tms.features.driver.application.DriverDocumentMetadata.requireComplete(
-                documentNumber, issuingAuthority, issueDate, expiryDate);
+        if (documentType != DriverDocumentType.PROFILE_PHOTO)
+            com.transportplatform.tms.features.driver.application.DriverDocumentMetadata.requireComplete(
+                    documentNumber, issuingAuthority, issueDate, expiryDate);
+        if (issueDate != null && issueDate.isAfter(tenantTime.today(driver.getTenantId())))
+            throw validationFailure("Issue date cannot be in the future.");
         if (notes != null && notes.length() > 2000) throw validationFailure("Notes must be 2000 characters or fewer.");
         String storagePath = driverDocumentStorageService.store(driver.getTenantId(), driver.getId(), file);
         String originalName = DriverDocumentStorageService.safeOriginalName(file.getOriginalFilename());
@@ -316,6 +321,7 @@ public class DriverPortalService {
 
     @Transactional
     public DriverPortalRideDetailResponse getMyRide(Long rideId) {
+        mutationTenants.lockForDispatch(currentAuthenticatedUserService.requireCurrentUser().tenantId()).orElseThrow();
         return driverPortalMapper.toRideDetailResponse(driverPortalAccessService.requireAssignedRide(rideId));
     }
 
@@ -352,6 +358,7 @@ public class DriverPortalService {
 
     @Transactional
     public DriverPortalRideDetailResponse markRideDriverEnRoute(Long rideId) {
+        mutationTenants.lockForDispatch(currentAuthenticatedUserService.requireCurrentUser().tenantId()).orElseThrow();
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         if (ride.getTripType() == com.transportplatform.tms.features.ride.domain.RideTripType.ROUND_TRIP) throw new ApiException(
                 ErrorCode.RESOURCE_CONFLICT,HttpStatus.CONFLICT,"Dispatch must split this existing round trip into outbound and return journeys before departure.");
@@ -372,6 +379,7 @@ public class DriverPortalService {
 
     @Transactional
     public DriverPortalRideDetailResponse markRideArrived(Long rideId) {
+        mutationTenants.lockForDispatch(currentAuthenticatedUserService.requireCurrentUser().tenantId()).orElseThrow();
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         RideStatusWorkflow.ensureCanMarkArrived(ride.getStatus());
         evidence.requireMilestone(ride,"ARRIVED");
@@ -385,6 +393,7 @@ public class DriverPortalService {
 
     @Transactional
     public DriverPortalRideDetailResponse markRidePickedUp(Long rideId) {
+        mutationTenants.lockForDispatch(currentAuthenticatedUserService.requireCurrentUser().tenantId()).orElseThrow();
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         RideStatusWorkflow.ensureCanMarkPickedUp(ride.getStatus());
         evidence.requireMilestone(ride,"PICKED_UP");
@@ -398,6 +407,7 @@ public class DriverPortalService {
 
     @Transactional
     public DriverPortalRideDetailResponse markRideDroppedOff(Long rideId) {
+        mutationTenants.lockForDispatch(currentAuthenticatedUserService.requireCurrentUser().tenantId()).orElseThrow();
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         RideStatusWorkflow.ensureCanMarkDroppedOff(ride.getStatus());
         evidence.requireMilestone(ride,"DROPPED_OFF");
@@ -411,6 +421,7 @@ public class DriverPortalService {
 
     @Transactional
     public DriverPortalRideDetailResponse completeRide(Long rideId) {
+        mutationTenants.lockForDispatch(currentAuthenticatedUserService.requireCurrentUser().tenantId()).orElseThrow();
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         RideStatusWorkflow.ensureCanMarkCompleted(ride.getStatus());
         evidence.requireComplete(ride);
@@ -421,6 +432,7 @@ public class DriverPortalService {
 
     @Transactional
     public DriverPortalRideDetailResponse markRideNoShow(Long rideId) {
+        mutationTenants.lockForDispatch(currentAuthenticatedUserService.requireCurrentUser().tenantId()).orElseThrow();
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         RideStatusWorkflow.ensureCanMarkNoShow(ride.getStatus());
         return driverPortalMapper.toRideDetailResponse(updateRideStatus(
@@ -433,6 +445,7 @@ public class DriverPortalService {
 
     @Transactional
     public DriverPortalRideDetailResponse markRideFailed(Long rideId) {
+        mutationTenants.lockForDispatch(currentAuthenticatedUserService.requireCurrentUser().tenantId()).orElseThrow();
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         RideStatusWorkflow.ensureCanMarkFailed(ride.getStatus());
         return driverPortalMapper.toRideDetailResponse(updateRideStatus(
@@ -445,6 +458,7 @@ public class DriverPortalService {
 
     @Transactional
     public DriverPortalRideDetailResponse addRideNote(Long rideId, String note) {
+        mutationTenants.lockForDispatch(currentAuthenticatedUserService.requireCurrentUser().tenantId()).orElseThrow();
         Ride ride = driverPortalAccessService.requireAssignedRide(rideId);
         String trimmedNote = trimToNull(note);
         if (trimmedNote == null) {
@@ -477,6 +491,7 @@ public class DriverPortalService {
         persistRideEvent(saved, eventType, previousStatus, targetStatus, summary);
         recordRideAudit(saved, auditAction, summary, oldSnapshot, snapshotRide(saved));
         notificationEventService.publishRideStatusChanged(saved, previousStatus, targetStatus);
+        routeCompletion.afterTripChanged(saved);
         return saved;
     }
 

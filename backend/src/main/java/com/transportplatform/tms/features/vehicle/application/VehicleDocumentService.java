@@ -29,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class VehicleDocumentService {
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.settings.application.TenantTimeService tenantTime;
+
 
     private final VehicleDocumentRepository vehicleDocumentRepository;
     private final VehicleAccessService vehicleAccessService;
@@ -36,6 +38,7 @@ public class VehicleDocumentService {
     private final CurrentAuthenticatedUserService currentAuthenticatedUserService;
     private final AuditLogService auditLogService;
     private final NotificationEventService notificationEventService;
+    @org.springframework.beans.factory.annotation.Autowired private VehicleDocumentStorageService storage;
     private final Clock clock;
 
     public VehicleDocumentService(VehicleDocumentRepository vehicleDocumentRepository,
@@ -80,6 +83,7 @@ public class VehicleDocumentService {
         Vehicle vehicle = vehicleAccessService.findVehicleForCompanyScope(vehicleId);
         validateRequest(request);
         VehicleDocument document = new VehicleDocument();
+        document.setFileName("Awaiting upload");
         vehicleDocumentMapper.apply(document, request);
         document.setVehicle(vehicle);
         document.setTenantId(vehicle.getTenantId());
@@ -87,20 +91,54 @@ public class VehicleDocumentService {
         document.setVerificationStatus(resolveStoredVerificationStatus(request.expiryDate()));
         document.setUploadedBy(currentAuthenticatedUserService.requireCurrentUser().username());
         document.setUploadedAt(Instant.now(clock));
-        VehicleDocument saved = vehicleDocumentRepository.save(document);
+        VehicleDocument saved = vehicleDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "CREATED", "Vehicle document " + saved.getDocumentType().name() + " was created.", null,
                 snapshot(saved));
         return vehicleDocumentMapper.toResponse(saved);
     }
 
     @Transactional
+    public VehicleDocumentResponse uploadCompanyVehicleDocument(Long vehicleId, VehicleDocumentType type,
+            String number, String authority, LocalDate issued, LocalDate expires, String notes,
+            org.springframework.web.multipart.MultipartFile file) {
+        Vehicle vehicle = vehicleAccessService.findVehicleForCompanyScope(vehicleId);
+        if (type != VehicleDocumentType.VEHICLE_PHOTO)
+            com.transportplatform.tms.features.driver.application.DriverDocumentMetadata.requireComplete(number, authority, issued, expires);
+        if (issued != null && issued.isAfter(tenantTime.today(vehicle.getTenantId())))
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Issue date cannot be in the future.");
+        String path = storage.store(vehicle.getTenantId(), vehicleId, file);
+        VehicleDocument document = new VehicleDocument();
+        document.setTenantId(vehicle.getTenantId()); document.setVehicle(vehicle); document.setDocumentType(type);
+        document.setFileName(java.nio.file.Path.of(path).getFileName().toString());
+        document.setOriginalFileName(com.transportplatform.tms.features.driver.application.DriverDocumentStorageService.safeOriginalName(file.getOriginalFilename()));
+        document.setContentType(file.getContentType()); document.setStoragePath(path);
+        document.setDocumentNumber(number); document.setIssuingAuthority(authority);
+        document.setIssueDate(issued); document.setExpiryDate(expires); document.setNotes(notes);
+        document.setStatus(VehicleDocumentStatus.ACTIVE);
+        document.setVerificationStatus(resolveStoredVerificationStatus(expires));
+        document.setUploadedBy(currentAuthenticatedUserService.requireCurrentUser().username()); document.setUploadedAt(clock.instant());
+        var saved = vehicleDocumentRepository.saveAndFlush(document);
+        recordAudit(saved, "UPLOADED", "Vehicle document uploaded for review.", null, snapshot(saved));
+        return vehicleDocumentMapper.toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public com.transportplatform.tms.features.driver.application.StoredDriverDocumentFile loadCompanyVehicleDocumentFile(Long id) {
+        var document = findDocument(id);
+        return storage.load(document.getTenantId(), document.getVehicle().getId(), document.getStoragePath(),
+                document.getOriginalFileName(), document.getContentType());
+    }
+
+    @Transactional
     public VehicleDocumentResponse updateCompanyVehicleDocument(Long documentId, VehicleDocumentUpsertRequest request) {
         VehicleDocument document = findDocument(documentId);
+        requireVersion(document, request.version());
         validateRequest(request);
         Object oldSnapshot = snapshot(document);
         vehicleDocumentMapper.apply(document, request);
+        document.setVerifiedFileSha256(null);
         document.setVerificationStatus(resolveStoredVerificationStatus(request.expiryDate()));
-        VehicleDocument saved = vehicleDocumentRepository.save(document);
+        VehicleDocument saved = vehicleDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "UPDATED", "Vehicle document " + saved.getDocumentType().name() + " was updated.",
                 oldSnapshot, snapshot(saved));
         return vehicleDocumentMapper.toResponse(saved);
@@ -109,13 +147,22 @@ public class VehicleDocumentService {
     @Transactional
     public VehicleDocumentResponse verifyCompanyVehicleDocument(Long documentId, VehicleDocumentReviewRequest request) {
         VehicleDocument document = findDocument(documentId);
-        VehicleDocumentStatusWorkflow.ensureCanVerify(document, LocalDate.now(clock));
+        requireVersion(document, request.version());
+        if (document.getDocumentType() != VehicleDocumentType.VEHICLE_PHOTO)
+            com.transportplatform.tms.features.driver.application.DriverDocumentMetadata.requireComplete(
+                document.getDocumentNumber(), document.getIssuingAuthority(), document.getIssueDate(), document.getExpiryDate());
+        String evidenceHash = com.transportplatform.tms.features.driver.application.DocumentReviewEvidence.hash(storage.load(document.getTenantId(), document.getVehicle().getId(), document.getStoragePath(),
+                document.getOriginalFileName(), document.getContentType()));
+        if (document.getIssueDate() != null && document.getIssueDate().isAfter(tenantTime.today(document.getTenantId())))
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Issue date cannot be in the future.");
+        VehicleDocumentStatusWorkflow.ensureCanVerify(document, tenantTime.today(currentAuthenticatedUserService.requireCurrentUser().tenantId()));
         Object oldSnapshot = snapshot(document);
+        document.setVerifiedFileSha256(evidenceHash);
         document.setVerificationStatus(VehicleDocumentVerificationStatus.VERIFIED);
         if (request.notes() != null && !request.notes().isBlank()) {
             document.setNotes(request.notes().trim());
         }
-        VehicleDocument saved = vehicleDocumentRepository.save(document);
+        VehicleDocument saved = vehicleDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "VERIFIED", "Vehicle document " + saved.getDocumentType().name() + " was verified.",
                 oldSnapshot, snapshot(saved));
         notificationEventService.publishVehicleDocumentVerified(saved);
@@ -125,6 +172,7 @@ public class VehicleDocumentService {
     @Transactional
     public VehicleDocumentResponse rejectCompanyVehicleDocument(Long documentId, VehicleDocumentReviewRequest request) {
         VehicleDocument document = findDocument(documentId);
+        requireVersion(document, request.version());
         VehicleDocumentStatusWorkflow.ensureCanReject(document);
         if (request.notes() == null || request.notes().isBlank()) {
             throw new ApiException(
@@ -135,7 +183,7 @@ public class VehicleDocumentService {
         Object oldSnapshot = snapshot(document);
         document.setVerificationStatus(VehicleDocumentVerificationStatus.REJECTED);
         document.setNotes(request.notes().trim());
-        VehicleDocument saved = vehicleDocumentRepository.save(document);
+        VehicleDocument saved = vehicleDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "REJECTED", "Vehicle document " + saved.getDocumentType().name() + " was rejected.",
                 oldSnapshot, snapshot(saved));
         notificationEventService.publishVehicleDocumentRejected(saved);
@@ -148,10 +196,10 @@ public class VehicleDocumentService {
         VehicleDocumentStatusWorkflow.ensureCanActivate(document);
         Object oldSnapshot = snapshot(document);
         document.setStatus(VehicleDocumentStatus.ACTIVE);
-        if (document.getExpiryDate() != null && document.getExpiryDate().isBefore(LocalDate.now(clock))) {
+        if (document.getExpiryDate() != null && document.getExpiryDate().isBefore(tenantTime.today(currentAuthenticatedUserService.requireCurrentUser().tenantId()))) {
             document.setVerificationStatus(VehicleDocumentVerificationStatus.EXPIRED);
         }
-        VehicleDocument saved = vehicleDocumentRepository.save(document);
+        VehicleDocument saved = vehicleDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "ACTIVATED", "Vehicle document " + saved.getDocumentType().name() + " was activated.",
                 oldSnapshot, snapshot(saved));
         return vehicleDocumentMapper.toResponse(saved);
@@ -163,7 +211,7 @@ public class VehicleDocumentService {
         VehicleDocumentStatusWorkflow.ensureCanArchive(document);
         Object oldSnapshot = snapshot(document);
         document.setStatus(VehicleDocumentStatus.ARCHIVED);
-        VehicleDocument saved = vehicleDocumentRepository.save(document);
+        VehicleDocument saved = vehicleDocumentRepository.saveAndFlush(document);
         recordAudit(saved, "ARCHIVED", "Vehicle document " + saved.getDocumentType().name() + " was archived.",
                 oldSnapshot, snapshot(saved));
         return vehicleDocumentMapper.toResponse(saved);
@@ -178,7 +226,15 @@ public class VehicleDocumentService {
                         "Vehicle document was not found."));
     }
 
+    private void requireVersion(VehicleDocument document, Long expected) {
+        if (expected == null || expected != document.getVersion())
+            throw new ApiException(ErrorCode.RESOURCE_CONFLICT, HttpStatus.CONFLICT,
+                    "This document changed. Refresh it and review the latest attachment before saving.");
+    }
+
     private void validateRequest(VehicleDocumentUpsertRequest request) {
+        if (request.issueDate() != null && request.issueDate().isAfter(tenantTime.today(currentAuthenticatedUserService.requireCurrentUser().tenantId())))
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, "Issue date cannot be in the future.");
         if (request.issueDate() != null && request.expiryDate() != null
                 && request.expiryDate().isBefore(request.issueDate())) {
             throw new ApiException(
@@ -189,7 +245,7 @@ public class VehicleDocumentService {
     }
 
     private VehicleDocumentVerificationStatus resolveStoredVerificationStatus(LocalDate expiryDate) {
-        if (expiryDate != null && expiryDate.isBefore(LocalDate.now(clock))) {
+        if (expiryDate != null && expiryDate.isBefore(tenantTime.today(currentAuthenticatedUserService.requireCurrentUser().tenantId()))) {
             return VehicleDocumentVerificationStatus.EXPIRED;
         }
         return VehicleDocumentVerificationStatus.PENDING;
@@ -219,6 +275,8 @@ public class VehicleDocumentService {
     private Object snapshot(VehicleDocument document) {
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("id", document.getId());
+        values.put("version", document.getVersion());
+        values.put("verifiedFileSha256", document.getVerifiedFileSha256());
         values.put("vehicleId", document.getVehicle().getId());
         values.put("tenantId", document.getTenantId());
         values.put("documentType", document.getDocumentType() == null ? null : document.getDocumentType().name());

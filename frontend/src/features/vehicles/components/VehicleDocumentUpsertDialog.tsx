@@ -16,6 +16,14 @@ import type {
   VehicleDocumentType,
 } from "../api/vehiclesApi";
 
+interface VehicleDocumentUpsertDialogProps {
+  open: boolean;
+  document: VehicleDocumentRecord | null;
+  loading: boolean;
+  onClose: () => void;
+  onSubmit: (payload: VehicleDocumentPayload, file: File | null) => Promise<void>;
+}
+
 const documentTypes: VehicleDocumentType[] = [
   "VEHICLE_REGISTRATION",
   "VEHICLE_INSURANCE",
@@ -27,14 +35,6 @@ const documentTypes: VehicleDocumentType[] = [
   "VEHICLE_PHOTO",
   "OTHER",
 ];
-
-interface VehicleDocumentUpsertDialogProps {
-  open: boolean;
-  document: VehicleDocumentRecord | null;
-  loading: boolean;
-  onClose: () => void;
-  onSubmit: (payload: VehicleDocumentPayload) => Promise<void>;
-}
 
 function emptyForm(): VehicleDocumentPayload {
   return {
@@ -63,6 +63,7 @@ export function VehicleDocumentUpsertDialog({
   onSubmit,
 }: VehicleDocumentUpsertDialogProps) {
   const [form, setForm] = useState<VehicleDocumentPayload>(emptyForm());
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -71,12 +72,14 @@ export function VehicleDocumentUpsertDialog({
     }
 
     setErrors({});
+    setSelectedFile(null);
     if (!document) {
       setForm(emptyForm());
       return;
     }
 
     setForm({
+      version: document.version ?? 0,
       documentType: document.documentType,
       fileName: document.fileName,
       originalFileName: toFormValue(document.originalFileName),
@@ -104,8 +107,11 @@ export function VehicleDocumentUpsertDialog({
 
   function validate() {
     const nextErrors: Record<string, string> = {};
-    if (!form.fileName.trim()) {
+    if (document && !form.fileName.trim()) {
       nextErrors.fileName = "File name is required.";
+    }
+    if (!document && !selectedFile) {
+      nextErrors.file = "Select a PDF, JPEG, or PNG file to upload.";
     }
     if (form.issueDate && form.expiryDate && form.expiryDate < form.issueDate) {
       nextErrors.expiryDate =
@@ -119,7 +125,7 @@ export function VehicleDocumentUpsertDialog({
     if (!validate()) {
       return;
     }
-    await onSubmit(form);
+    await onSubmit(form, selectedFile);
   }
 
   return (
@@ -167,7 +173,7 @@ export function VehicleDocumentUpsertDialog({
             variant="outlined"
             sx={{ alignSelf: "flex-start" }}
           >
-            Select File Metadata
+            {selectedFile ? "Replace Selected File" : "Select File"}
             <input
               hidden
               type="file"
@@ -176,6 +182,7 @@ export function VehicleDocumentUpsertDialog({
                 if (!file) {
                   return;
                 }
+                setSelectedFile(file);
                 setForm((current) => ({
                   ...current,
                   fileName: file.name,
@@ -185,35 +192,18 @@ export function VehicleDocumentUpsertDialog({
               }}
             />
           </Button>
+          {errors.file ? (
+            <Typography variant="caption" color="error">
+              {errors.file}
+            </Typography>
+          ) : null}
           <Typography variant="caption" color="text.secondary">
-            Selecting a file fills in the document metadata so your team can
-            complete the record even if the file is stored outside the platform.
+            {document
+              ? "Document metadata can be updated here. To replace the stored file, archive this record and upload a new document."
+              : "Uploads are limited to PDF, JPEG, and PNG files up to 10 MB and are submitted for compliance review."}
           </Typography>
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-            <TextField
-              label="Original File Name"
-              value={form.originalFileName ?? ""}
-              onChange={(event) =>
-                updateField("originalFileName", event.target.value)
-              }
-              fullWidth
-            />
-            <TextField
-              label="Content Type"
-              value={form.contentType ?? ""}
-              onChange={(event) =>
-                updateField("contentType", event.target.value)
-              }
-              fullWidth
-            />
-          </Stack>
-          <TextField
-            label="Storage Path"
-            value={form.storagePath ?? ""}
-            onChange={(event) => updateField("storagePath", event.target.value)}
-            helperText="Optional storage reference for an attached file or external document system."
-            fullWidth
-          />
+              </Stack>
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <TextField
               label="Document Number"

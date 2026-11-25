@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class VehicleComplianceSummaryService {
+    @org.springframework.beans.factory.annotation.Autowired private VehicleDocumentStorageService evidenceStorage;
 
     private static final Set<VehicleDocumentType> REQUIRED_DOCUMENT_TYPES = EnumSet.of(
             VehicleDocumentType.VEHICLE_REGISTRATION,
@@ -55,7 +56,9 @@ public class VehicleComplianceSummaryService {
 
         Map<Long, VehicleComplianceSummaryResponse> summaries = new LinkedHashMap<>();
         for (Vehicle vehicle : vehicles) {
-            List<VehicleDocument> documents = documentsByVehicleId.getOrDefault(vehicle.getId(), List.of());
+            List<VehicleDocument> documents = documentsByVehicleId.getOrDefault(vehicle.getId(), List.of()).stream()
+                    .filter(doc -> doc.getVerificationStatus() != VehicleDocumentVerificationStatus.VERIFIED
+                            || evidenceStorage.present(tenantId, vehicle.getId(), doc.getStoragePath())).toList();
             summaries.put(vehicle.getId(), buildSummary(tenantId, documents));
         }
         return summaries;

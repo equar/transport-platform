@@ -1,3 +1,4 @@
+import { formatDate } from '../../src/utils/formatDate';
 import React from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -34,6 +35,7 @@ export default function DriverPaymentsPage() {
     itemDetail: { fontFamily: Typography.fontBody, color: colors.textSecondary, fontSize: Typography.sizeSm, lineHeight: 20 },
     divider: { height: 1, backgroundColor: colors.border },
   }), []));
+  const payouts = useQuery({ queryKey: ['driver-payouts'], queryFn: driverPortalApi.getPayouts });
   const payments = useQuery({ queryKey: ['driver-payments'], queryFn: driverPortalApi.getPayments });
 
   if (payments.isLoading) return <LoadingState />;
@@ -43,7 +45,7 @@ export default function DriverPaymentsPage() {
   return <ScrollView
     style={styles.screen}
     contentContainerStyle={styles.content}
-    refreshControl={<RefreshControl refreshing={payments.isRefetching} onRefresh={() => void payments.refetch()} />}
+    refreshControl={<RefreshControl refreshing={payments.isRefetching} onRefresh={() => { void payments.refetch(); void payouts.refetch(); }} />}
   >
     <View style={styles.summary}>
       <AppCard style={styles.summaryCard}>
@@ -59,6 +61,17 @@ export default function DriverPaymentsPage() {
         <Text style={styles.amount}>{pendingTotal}</Text>
       </AppCard>
     </View>
+    {payouts.isError ? <RequestError error={payouts.error} onRetry={() => void payouts.refetch()} /> : null}
+    {payouts.data && <AppCard>
+      <Text style={styles.itemTitle}>Payouts</Text>
+      <Text style={styles.itemDetail}>Paid: {formatCurrency(payouts.data.paidAmount, currency)}</Text>
+      <Text style={styles.itemDetail}>Outstanding: {formatCurrency(payouts.data.outstanding, currency)}</Text>
+      {payouts.data.payouts.map(p => <View key={p.id} style={styles.item}>
+        <Text style={styles.itemTitle}>{formatCurrency(p.amount, currency)} · {p.reversed ? 'Reversed' : 'Paid'}</Text>
+        <Text style={styles.itemDetail}>{p.paidOn} · {p.reference}</Text>
+      </View>)}
+      {!payouts.data.payouts.length && <Text style={styles.itemDetail}>No payouts recorded.</Text>}
+    </AppCard>}
     <AppCard>
       {entries.length === 0 ? <EmptyState title="No payment records yet" description="Completed-trip earnings will appear here." /> : entries.map((entry, index) => (
         <React.Fragment key={entry.id}>
@@ -74,7 +87,7 @@ export default function DriverPaymentsPage() {
             </View>
             <Text style={styles.itemDetail}>{statusLabel(entry.status)}</Text>
             {entry.reason ? <Text style={styles.itemDetail}>{entry.reason}</Text> : null}
-            <Text style={styles.itemDetail}>{new Date(entry.createdAt).toLocaleDateString()}</Text>
+            <Text style={styles.itemDetail}>{formatDate(entry.createdAt)}</Text>
           </View>
         </React.Fragment>
       ))}

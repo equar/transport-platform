@@ -70,6 +70,9 @@ import com.transportplatform.tms.features.riderguardianportal.api.response.Rider
 
 @Service
 public class RiderGuardianPortalService {
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.common.security.CurrentAuthenticatedUserService mutationUsers;
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.tenant.domain.TenantRepository mutationTenants;
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.route.application.AutomaticRouteCompletionService routeCompletion;
     @org.springframework.beans.factory.annotation.Autowired
     private com.transportplatform.tms.features.billing.application.PortalInvoiceTotals portalTotals;
 
@@ -375,8 +378,9 @@ public class RiderGuardianPortalService {
                 .orElse(null);
     }
 
-            @Transactional
+            @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
             public RiderGuardianPortalRideDetailResponse cancelRide(Long rideId, CancelRideRequest request) {
+            mutationTenants.lockForDispatch(mutationUsers.requireCurrentUser().tenantId()).orElseThrow();
             var scope = accessService.resolveCurrentScope();
                 requireRiderScopeForMutation(scope, "Contact the transport provider to change or cancel a guardian booking.");
             Ride ride = rideRepository.findByIdAndTenantId(rideId, scope.user().tenantId())
@@ -399,6 +403,7 @@ public class RiderGuardianPortalService {
                 "Ride " + saved.getRideNumber() + " was cancelled via rider portal.", oldSnapshot,
                 snapshotRide(saved));
             notificationEventService.publishRideStatusChanged(saved, previousStatus, saved.getStatus());
+            routeCompletion.afterTripChanged(saved);
             return toRideDetail(saved);
             }
 

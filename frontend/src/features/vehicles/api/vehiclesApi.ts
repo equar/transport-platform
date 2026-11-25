@@ -100,6 +100,7 @@ export interface VehicleRecord {
 }
 
 export interface VehicleDocumentRecord {
+  version?: number;
   id: number;
   vehicleId: number;
   documentType: VehicleDocumentType;
@@ -165,6 +166,7 @@ export interface VehiclePayload {
 }
 
 export interface VehicleDocumentPayload {
+  version?: number;
   documentType: VehicleDocumentType;
   fileName: string;
   originalFileName?: string | null;
@@ -178,6 +180,7 @@ export interface VehicleDocumentPayload {
 }
 
 export interface VehicleDocumentReviewPayload {
+  version?: number;
   notes?: string | null;
 }
 
@@ -242,6 +245,17 @@ export const vehiclesApi = {
       },
     });
     return unwrapResponse<PageResponse<VehicleDocumentRecord>>(response.data);
+  },
+  async uploadDocument(vehicleId: number, payload: VehicleDocumentPayload, file: File) {
+    const form = new FormData();
+    form.append("file", file); form.append("documentType", payload.documentType);
+    for (const field of ["documentNumber", "issuingAuthority", "issueDate", "expiryDate", "notes"] as const) {
+      if (payload[field]) form.append(field, payload[field]!);
+    }
+    return unwrapResponse<VehicleDocumentRecord>((await apiClient.post(`/company/vehicles/${vehicleId}/documents/upload`, form)).data);
+  },
+  async downloadDocument(id: number) {
+    return (await apiClient.get(`/company/vehicle-documents/${id}/file`, { responseType: "blob" })).data as Blob;
   },
   async createDocument(vehicleId: number, payload: VehicleDocumentPayload) {
     const response = await apiClient.post(

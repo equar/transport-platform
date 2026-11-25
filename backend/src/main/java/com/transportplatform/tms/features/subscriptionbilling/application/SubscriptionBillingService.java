@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SubscriptionBillingService {
+  @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.common.privacy.PhiCipher privacy;
   private final JdbcTemplate db;
   private final Clock clock;
   private final CurrentAuthenticatedUserService users;
@@ -85,12 +86,12 @@ public class SubscriptionBillingService {
               r.getString("driver_ids_json"),
               r.getBigDecimal("monthly_driver_rate"),
               r.getString("currency"),
-              r.getBigDecimal("amount"),
+              r.getBigDecimal("amount").subtract(r.getBigDecimal("credited_amount")),
               r.getBigDecimal("paid_amount"),
               r.getString("collection_mode"),
               r.getString("collection_state"),
               r.getString("status"),
-              instant(r, "created_at"));
+              instant(r, "created_at"), r.getBigDecimal("credited_amount"), r.getBigDecimal("amount"));
 
   private boolean automaticAvailable() {
     return collectors.stream().anyMatch(SubscriptionPaymentCollector::available);
@@ -427,7 +428,7 @@ public class SubscriptionBillingService {
           i.collectionMode(),
           i.collectionState(),
           "OVERDUE",
-          i.createdAt());
+          i.createdAt(), i.creditedAmount(), i.originalAmount());
     return i;
   }
 
@@ -481,7 +482,9 @@ public class SubscriptionBillingService {
                     r.getString("recorded_by"),
                     instant(r, "recorded_at")),
             id);
-    return new InvoiceDetail(i, payments);
+    var adjustments = db.query("SELECT * FROM platform_subscription_adjustments WHERE tenant_id=? AND invoice_id=? ORDER BY id",
+            (r,n) -> new Adjustment(r.getLong("id"),r.getObject("payment_id")==null?null:r.getLong("payment_id"),r.getString("kind"),r.getBigDecimal("amount"),r.getString("reference"),privacy.decrypt(r.getString("reason"),"text"),instant(r,"created_at")),i.tenantId(),id);
+    return new InvoiceDetail(i, payments, adjustments);
   }
 
   @Transactional

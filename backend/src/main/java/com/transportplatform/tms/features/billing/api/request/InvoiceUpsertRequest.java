@@ -15,8 +15,8 @@ public record InvoiceUpsertRequest(
         LocalDate billingPeriodEnd,
         @NotNull(message = "Invoice date is required.") LocalDate invoiceDate,
         @NotNull(message = "Due date is required.") LocalDate dueDate,
-        @DecimalMin(value = "0.00", message = "Tax amount cannot be negative.") BigDecimal taxAmount,
-        @DecimalMin(value = "0.00", message = "Discount amount cannot be negative.") BigDecimal discountAmount,
+        @DecimalMin(value = "0.00", message = "Tax amount cannot be negative.") @jakarta.validation.constraints.Digits(integer = 10, fraction = 2) BigDecimal taxAmount,
+        @DecimalMin(value = "0.00", message = "Discount amount cannot be negative.") @jakarta.validation.constraints.Digits(integer = 10, fraction = 2) BigDecimal discountAmount,
         @NotBlank(message = "Currency is required.") @jakarta.validation.constraints.Pattern(regexp = "USD", message = "Only USD is supported.") String currency,
         @Size(max = 2000, message = "Notes must be 2000 characters or fewer.") String notes) {
 }

@@ -36,6 +36,34 @@ if [[ -d "$web" && ! -L "$web" ]]; then
   mv "$web" "$releases/legacy-$release_id"
   ln -s "$releases/legacy-$release_id" "$web"
 fi
+# Roll back proxy and assets together if activation fails. TLS issuance remains in setup-web-host.
+config=/etc/nginx/sites-available/transport-platform
+config_changed=false
+web_changed=false
+previous=''
+rollback_activation() {
+  status=$?
+  trap - EXIT
+  if [[ "$status" -ne 0 ]]; then
+    if [[ "$web_changed" == true && -n "$previous" ]]; then
+      ln -s "$previous" "$web.rollback"
+      mv -Tf "$web.rollback" "$web"
+    fi
+    if [[ "$config_changed" == true ]]; then
+      install -m 644 "$incoming/nginx.previous.conf" "$config"
+      nginx -t && systemctl reload nginx
+    fi
+  fi
+  exit "$status"
+}
+trap rollback_activation EXIT
+if [[ -s "$incoming/nginx.conf" ]]; then
+  [[ -s "$config" && -L /etc/nginx/sites-enabled/transport-platform ]] || { echo 'Initialize the web host before releasing proxy configuration.' >&2; exit 1; }
+  cp "$config" "$incoming/nginx.previous.conf"
+  config_changed=true
+  install -m 644 "$incoming/nginx.conf" "$config"
+  nginx -t
+fi
 previous=''
 if [[ -e "$web" || -L "$web" ]]; then
   previous="$(readlink -f "$web")"
@@ -45,4 +73,6 @@ if [[ -e "$web" || -L "$web" ]]; then
 fi
 ln -s "$release" "$web.next"
 mv -Tf "$web.next" "$web"
+web_changed=true
+if [[ "$config_changed" == true ]]; then systemctl reload nginx; fi
 echo "Frontend release $release_id activated."

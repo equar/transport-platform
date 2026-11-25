@@ -16,6 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class InvoiceRideIntegrityTest {
+    @org.mockito.Mock BillingSourceService sources;
+    @org.mockito.Mock InvoicePolicyService invoicePolicy;
     @Mock InvoiceRepository invoices;
     @Mock InvoiceLineItemRepository lines;
     @Mock BillingAccessService access;
@@ -39,6 +41,8 @@ class InvoiceRideIntegrityTest {
     @InjectMocks InvoiceService service;
 
     @org.junit.jupiter.api.BeforeEach void injectFieldDependencies() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "sources", sources);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "invoicePolicy", invoicePolicy);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "invoiceGenerationIdempotencyService", invoiceGenerationIdempotencyService);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "invoiceSettings", invoiceSettings);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "driverEarningsService", driverEarningsService);

@@ -13,6 +13,13 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/platform/subscription-billing")
 @PreAuthorize("hasRole('PLATFORM_ADMIN')")
 public class PlatformSubscriptionBillingController {
+  @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.subscriptionbilling.application.SubscriptionAdjustmentService adjustments;
+  @PostMapping("/invoices/{id}/adjustments")
+  public ApiResponse<InvoiceDetail> adjust(@PathVariable long id,@Valid @RequestBody AdjustmentRequest request,
+          @RequestHeader("Idempotency-Key") String key) {
+    return ApiResponse.success(adjustments.adjust(id,request,key));
+  }
+
   private final SubscriptionBillingService service;
   private final SubscriptionAutomaticCollectionService automatic;
 

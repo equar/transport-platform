@@ -244,10 +244,10 @@ export function DriverDetailsPage() {
     setReviewLoading(true);
     try {
       if (reviewState.mode === "verify") {
-        await driversApi.verifyDocument(reviewState.document.id, { notes });
+        await driversApi.verifyDocument(reviewState.document.id, { notes, version: reviewState.document.version ?? 0 });
         showSuccess("Driver document verified successfully.");
       } else {
-        await driversApi.rejectDocument(reviewState.document.id, { notes });
+        await driversApi.rejectDocument(reviewState.document.id, { notes, version: reviewState.document.version ?? 0 });
         showSuccess("Driver document rejected successfully.");
       }
       setReviewState(null);

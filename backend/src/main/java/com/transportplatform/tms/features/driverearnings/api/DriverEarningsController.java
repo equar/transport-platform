@@ -72,7 +72,7 @@ public class DriverEarningsController {
     @PostMapping("/company/driver-earnings/adjustments")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ApiResponse<DriverEarningsEntryResponse> adjust(
-            @Valid @RequestBody DriverEarningsAdjustmentRequest request) {
-        return ApiResponse.success(service.adjust(request));
+            @Valid @RequestBody DriverEarningsAdjustmentRequest request, @org.springframework.web.bind.annotation.RequestHeader("Idempotency-Key") String key) {
+        return ApiResponse.success(service.adjust(request, key));
     }
 }

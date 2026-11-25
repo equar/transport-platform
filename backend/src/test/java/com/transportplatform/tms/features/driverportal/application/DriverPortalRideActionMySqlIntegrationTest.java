@@ -82,6 +82,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 })
 @Testcontainers
 class DriverPortalRideActionMySqlIntegrationTest {
+    @MockBean private com.transportplatform.tms.features.route.application.AutomaticRouteCompletionService routeCompletion;
     @org.springframework.boot.test.mock.mockito.MockBean
     com.transportplatform.tms.features.saas.application.TenantEntitlementService entitlements;
 

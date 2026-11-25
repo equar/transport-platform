@@ -33,6 +33,18 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class InvoiceManagementController {
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.billing.application.BillingReconciliationService reconciliation;
+    @GetMapping("/company/billing/reconciliation")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
+    public ApiResponse<java.util.Map<String, java.util.List<java.util.Map<String,Object>>>> reconciliation() {
+        return ApiResponse.success(reconciliation.report());
+    }
+    @PostMapping("/company/invoices/{invoiceId}/reconcile-allocations")
+    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'BILLING_ADMIN')")
+    public ApiResponse<InvoiceDetailResponse> reconcileAllocations(@PathVariable Long invoiceId) {
+        return ApiResponse.success(invoiceService.reconcileAllocations(invoiceId));
+    }
+
 
     private final InvoiceService invoiceService;
 
