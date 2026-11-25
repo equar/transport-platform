@@ -1,4 +1,5 @@
 import { Box, Stack, Typography } from "@mui/material";
+import { PlatformImage } from "../components/PlatformImage";
 import { PublicCtaBand } from "../components/PublicCtaBand";
 import { PublicSection } from "../components/PublicSection";
 import { PageCard } from "../../../shared/components/PageCard";
@@ -10,7 +11,7 @@ const solutions = [
       "Coordinate riders, guardians, recurring routes, driver readiness, and day-of-service changes while maintaining operational accountability.",
   },
   {
-    title: "Elderly transportation",
+    title: "Senior & community transportation",
     description:
       "Support care-oriented transportation programs that require clear communication, reliable scheduling, and strong visibility into service delivery.",
   },
@@ -36,8 +37,8 @@ export function SolutionsPage() {
     <Stack spacing={{ xs: 5, md: 7 }}>
       <PublicSection
         eyebrow="Solutions"
-        title="Position the platform for real operating models across transportation segments."
-        description="This page now speaks directly to the program types most likely to evaluate the platform, using language that maps to real service environments instead of generic SaaS categories."
+        title="Different journeys. The same attention to people."
+        description="Give schools, care programs, and transportation providers the tools to coordinate reliable service around the people they serve."
       >
         <Box
           sx={{
@@ -59,24 +60,20 @@ export function SolutionsPage() {
         </Box>
       </PublicSection>
 
-      <PublicSection
-        eyebrow="Operating context"
-        title="The product story changes by service model, but the platform stays consistent."
-        description="Whether the customer is transporting students, elderly passengers, medical riders, contracted rosters, or private scheduled trips, the platform still needs to connect users, vehicles, schedules, dispatching, communications, and billing inside one governed workflow."
-      >
-        <PageCard>
-          <Typography color="text.secondary">
-            That consistency is the point. Buyers can see how the platform
-            adapts to different transportation programs without requiring a
-            different system for every line of business.
-          </Typography>
-        </PageCard>
+      <PublicSection eyebrow="Built around your service" title="Keep every team connected to the journey."
+        description="Bring program coordinators, dispatchers, drivers, riders, and guardians together with separate workspaces and relevant trip information.">
+        <PlatformImage name="platform" />
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 3, mt: 4 }}>
+          {[['Know the rider', 'Keep pickup instructions, guardian contacts, and recorded accessibility needs available to the people delivering the trip.'],
+            ['Coordinate the service', 'Organize repeat schedules, route stops, and driver and vehicle assignments from a shared operational view.'],
+            ['Keep people informed', 'Help riders and guardians find active trips, follow shared locations, and reach their assigned driver.']].map(([title, text]) => <Box key={title}><Typography variant="h6" mb={1}>{title}</Typography><Typography color="text.secondary">{text}</Typography></Box>)}
+        </Box>
       </PublicSection>
 
       <PublicCtaBand
         eyebrow="Discuss your program"
         title="Map the platform to your transportation model before rollout begins."
-        description="Use the solutions page as the bridge from general interest to a targeted evaluation conversation."
+        description="Tell us who you serve and how you operate. We’ll walk through the workflows that fit your program."
         primaryLabel="Request Demo"
         primaryTo="/contact#request-demo"
         secondaryLabel="Apply to Join"
