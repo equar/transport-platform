@@ -31,7 +31,7 @@ python3 "$incoming/check-document-scanner.py" --env-file "$incoming/backend.env"
 bash "$incoming/setup-rds-truststore.sh"
 id transport >/dev/null 2>&1 || useradd --system --home "$app" --shell /usr/sbin/nologin transport
 install -d -o root -g root -m 755 "$app" "$app/runtime"
-install -d -o transport -g transport -m 750 "$app/logs" "$app/documents" "$app/documents/driver-documents"
+install -d -o transport -g transport -m 750 "$app/logs" "$app/documents" "$app/documents/driver-documents" "$app/documents/vehicle-documents"
 maintenance_started=false
 previous_healthy=false
 healthy() {

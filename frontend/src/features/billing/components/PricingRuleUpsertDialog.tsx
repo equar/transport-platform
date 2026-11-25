@@ -1,3 +1,4 @@
+import { serviceToday } from "../../../shared/utils/serviceTime";
 import {
   Button,
   Dialog,
@@ -45,7 +46,7 @@ function defaultForm(): PricingRulePayload {
     tripType: null,
     amount: 0,
     currency: "USD",
-    effectiveStartDate: new Date().toISOString().slice(0, 10),
+    effectiveStartDate: serviceToday(),
     effectiveEndDate: "",
     priorityOrder: 1,
     notes: "",

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 @Entity @Table(name="driver_earnings_ledger")
 public class DriverEarningsLedger extends AuditableEntity {
+ @Version @Column(name="version",nullable=false) private long version;
  @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
  @Column(name="tenant_id",nullable=false,length=36) private String tenantId;
  @Column(name="driver_id",nullable=false) private Long driverId;

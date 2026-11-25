@@ -73,6 +73,18 @@ class InvoiceFinancialServiceTest {
         assertNull(service.resolveAgingBucket(voidInvoice, LocalDate.of(2026, 3, 31)));
     }
 
+    @Test
+    void roundsEachLineBeforeSummingAndRejectsExcessiveDiscounts() {
+        Invoice invoice = new Invoice(); invoice.setStatus(InvoiceStatus.DRAFT);
+        var a = lineItem("0.005"); var b = lineItem("0.005");
+        service.recalculateTotals(invoice, List.of(a,b), LocalDate.of(2026,11,25));
+        assertEquals(new BigDecimal("0.01"), a.getLineAmount());
+        assertEquals(new BigDecimal("0.02"), invoice.getSubtotal());
+        invoice.setDiscountAmount(new BigDecimal("0.03"));
+        org.junit.jupiter.api.Assertions.assertThrows(com.transportplatform.tms.common.exception.ApiException.class,
+                () -> service.recalculateTotals(invoice,List.of(a,b),LocalDate.of(2026,11,25)));
+    }
+
     private InvoiceLineItem lineItem(String amount) {
         InvoiceLineItem lineItem = new InvoiceLineItem();
         lineItem.setLineAmount(new BigDecimal(amount));

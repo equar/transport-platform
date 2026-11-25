@@ -1,3 +1,4 @@
+import { DriverPayouts } from "../components/DriverPayouts";
 import {
   Alert,
   Box,
@@ -149,6 +150,7 @@ export function DriverEarningsManagementPage() {
         description="Set earnings, resolve items awaiting calculation, and approve driver pay. Customer invoice payments are separate."
       />
       {error && <Alert severity="error">{error}</Alert>}
+      <DriverPayouts entries={records} />
       {notice && <Alert severity="success" onClose={() => setNotice(null)}>{notice}</Alert>}
       <Box
         sx={{

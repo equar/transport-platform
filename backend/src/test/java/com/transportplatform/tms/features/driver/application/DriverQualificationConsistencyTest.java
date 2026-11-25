@@ -20,6 +20,9 @@ class DriverQualificationConsistencyTest {
         var today = LocalDate.of(2026, 11, 20);
         when(time.today("tenant")).thenReturn(today);
         var service = new DriverComplianceSummaryService(repository, Clock.systemUTC(), time);
+        var storage=mock(DriverDocumentStorageService.class);
+        when(storage.present(any(),any(),any())).thenReturn(true);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"evidenceStorage",storage);
         var driver = new Driver();
         ReflectionTestUtils.setField(driver, "id", 1L);
         driver.setLicenseExpiryDate(today.plusYears(1));

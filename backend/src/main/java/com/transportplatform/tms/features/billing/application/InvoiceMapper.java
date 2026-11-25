@@ -56,7 +56,11 @@ public class InvoiceMapper {
         lineItem.setPricingRuleId(request.pricingRuleId());
         lineItem.setQuantity(request.quantity());
         lineItem.setUnitPrice(request.unitPrice());
-        lineItem.setLineAmount(request.quantity().multiply(request.unitPrice()));
+        BigDecimal amount = request.quantity().multiply(request.unitPrice()).setScale(2, java.math.RoundingMode.HALF_UP);
+        if (amount.signum() < 0 || amount.compareTo(new BigDecimal("9999999999.99")) > 0)
+            throw new com.transportplatform.tms.common.exception.ApiException(com.transportplatform.tms.common.exception.ErrorCode.VALIDATION_FAILED,
+                    org.springframework.http.HttpStatus.BAD_REQUEST,"Invoice line amount exceeds the supported USD range.");
+        lineItem.setLineAmount(amount);
         lineItem.setServiceDate(request.serviceDate());
         lineItem.setServicePeriodLabel(trimToNull(request.servicePeriodLabel()));
         lineItem.setNotes(trimToNull(request.notes()));

@@ -37,7 +37,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @DataJpaTest(properties = {"spring.flyway.enabled=true", "spring.jpa.hibernate.ddl-auto=validate"})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({JpaAuditConfig.class, InvoiceService.class, InvoiceMapper.class, InvoiceFinancialService.class,
-    InvoiceGenerationIdempotencyService.class, RouteInvoiceService.class,
+    InvoiceGenerationIdempotencyService.class, RouteInvoiceService.class, InvoicePolicyService.class,
     com.transportplatform.tms.common.concurrency.WorkflowLockService.class, InvoiceGenerationIdempotencyMySqlIntegrationTest.Config.class})
 @Testcontainers
 class InvoiceGenerationIdempotencyMySqlIntegrationTest {
@@ -49,7 +49,9 @@ class InvoiceGenerationIdempotencyMySqlIntegrationTest {
     static class Config {
         @org.springframework.context.annotation.Bean java.time.Clock clock() { return java.time.Clock.systemUTC(); }
     }
+    @MockBean private BillingSourceService sources;
     @Autowired private InvoiceService service;
+    @Autowired private jakarta.persistence.EntityManager em;
     @Autowired private RouteInvoiceService routeBilling;
     @Autowired private com.transportplatform.tms.features.route.domain.RouteRepository routes;
     @MockBean private com.transportplatform.tms.features.saas.application.TenantModulePolicy modules;
@@ -266,7 +268,14 @@ class InvoiceGenerationIdempotencyMySqlIntegrationTest {
             route.setBillingTripType(com.transportplatform.tms.features.ride.domain.RideTripType.ROUND_TRIP);
             route.setRoundTripPrice(new java.math.BigDecimal("200.00"));
             route.setBillToType(BillToType.RIDER); route.setBillToId(1L);
-            return routes.save(route);
+            route = routes.saveAndFlush(route);
+            var rider=new com.transportplatform.tms.features.rider.domain.Rider(); rider.setTenantId(tenant); rider.setRiderCode("RIDER-ROUTE"); rider.setFirstName("Test"); rider.setLastName("Rider"); rider.setPrimaryPhone("5551234567"); rider.setRiderType(com.transportplatform.tms.features.rider.domain.RiderType.STUDENT); rider.setStatus(com.transportplatform.tms.features.rider.domain.RiderStatus.ACTIVE); em.persist(rider);
+            var ride=new com.transportplatform.tms.features.ride.domain.Ride(); ride.setTenantId(tenant); ride.setRideNumber("TRIP-ROUTE"); ride.setRider(rider); ride.setServiceType(com.transportplatform.tms.features.organization.domain.ServiceType.GENERAL_TRANSPORT); ride.setTripType(com.transportplatform.tms.features.ride.domain.RideTripType.ONE_WAY); ride.setStatus(com.transportplatform.tms.features.ride.domain.RideStatus.COMPLETED);
+            ride.setPickupAddressLine1("1 Main St"); ride.setPickupCity("Boston"); ride.setPickupState("MA"); ride.setPickupZipCode("02110"); ride.setPickupCountry("US"); ride.setDropoffAddressLine1("2 Main St"); ride.setDropoffCity("Boston"); ride.setDropoffState("MA"); ride.setDropoffZipCode("02110"); ride.setDropoffCountry("US"); ride.setScheduledPickupAt(java.time.LocalDateTime.of(2026,11,23,9,0)); em.persist(ride);
+            var stop=new com.transportplatform.tms.features.route.domain.RouteStop(); stop.setTenantId(tenant); stop.setRoute(route); stop.setRide(ride); stop.setStopSequence(1); stop.setStatus(com.transportplatform.tms.features.route.domain.RouteStopStatus.COMPLETED); em.persist(stop); em.flush();
+            when(references.resolveRoute(tenant,route.getId())).thenReturn(route);
+            when(references.resolveRide(tenant,ride.getId())).thenReturn(ride);
+            return route;
         };
         tx.executeWithoutResult(status -> {
             var route = newRoute.get(); routeBilling.createDraftOnCompletion(route); routes.saveAndFlush(route);

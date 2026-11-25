@@ -273,9 +273,16 @@ class DeploymentScriptTests(unittest.TestCase):
             root = Path(directory).resolve()
             incoming = root/'incoming'; incoming.mkdir()
             binaries = root/'bin'; binaries.mkdir()
-            for name in ('nginx', 'flock', 'chown'):
+            for name in ('nginx', 'flock', 'chown', 'systemctl'):
                 path = binaries/name
                 path.write_text('#!/bin/sh\nexit 0\n'); path.chmod(0o755)
+            (root/'nginx/sites-available').mkdir(parents=True)
+            (root/'nginx/sites-enabled').mkdir(parents=True)
+            proxy = root/'nginx/sites-available/transport-platform'
+            proxy.write_text('proxy original')
+            (root/'nginx/sites-enabled/transport-platform').symlink_to(proxy)
+            checker = binaries/'nginx'
+            checker.write_text(f'#!{sys.executable}\nfrom pathlib import Path\nimport sys\nsys.exit(1 if "broken" in Path({str(proxy)!r}).read_text() else 0)\n')
             # Exercise GNU mv's atomic rename on macOS too.
             path = binaries/'mv'
             path.write_text(f'#!{sys.executable}\nimport os,sys\nos.replace(sys.argv[-2],sys.argv[-1])\n')
@@ -286,9 +293,11 @@ class DeploymentScriptTests(unittest.TestCase):
                 '^/home/[a-z_][a-z0-9_-]*/\\.cache/transport-platform-deploy/transport-frontend\\.[a-zA-Z0-9]+$',
                 '^'+str(incoming)+'$')
             script = script.replace('/var/www/', str(root)+'/')
+            script = script.replace('/etc/nginx/', str(root/'nginx')+'/')
             script = script.replace('/var/lock/transport-platform-deploy.lock', str(root/'deploy.lock'))
             activation = root/'activate.sh'; activation.write_text(script)
             for release in ('first', 'second'):
+                (incoming/'nginx.conf').write_text('proxy '+release)
                 for site in ('public', 'admin'):
                     (incoming/site).mkdir(exist_ok=True)
                     (incoming/site/'index.html').write_text('<html>'+site+release+'</html>')
@@ -302,11 +311,19 @@ class DeploymentScriptTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual((root/'transport-platform').resolve(), root/'transport-platform-releases'/release)
             self.assertEqual((root/'transport-platform.previous').resolve(), root/'transport-platform-releases/first')
+            self.assertEqual(proxy.read_text(), 'proxy second')
+            (incoming/'nginx.conf').write_text('broken proxy')
+            failed = subprocess.run(['bash', str(activation), str(incoming), 'invalid-proxy'],
+                env=dict(os.environ, PATH=str(binaries)+os.pathsep+os.environ['PATH']), capture_output=True, text=True)
+            self.assertNotEqual(failed.returncode, 0)
+            self.assertEqual(proxy.read_text(), 'proxy second')
+            self.assertEqual((root/'transport-platform').resolve(), root/'transport-platform-releases/second')
 
     def fixture(self, directory):
         root = Path(directory); aws = root/'deployment/aws'; aws.mkdir(parents=True)
         for name in ('deploy-common.sh', 'deploy-frontend.sh', 'activate-frontend.sh', 'validate-config.py', 'production_config.py'):
             shutil.copy(AWS/name, aws/name)
+        shutil.copy(ROOT/'deployment/nginx-transport-platform.conf.template', root/'deployment/nginx-transport-platform.conf.template')
         dist = root/'frontend/dist'; dist.mkdir(parents=True)
         for site in ('public', 'admin'):
             (dist/site).mkdir(); (dist/site/'index.html').write_text('<html>'+site+'</html>')
@@ -355,7 +372,7 @@ esac
             result = subprocess.run(['bash', str(root/'deployment/aws/deploy-frontend.sh')], env=env, text=True, capture_output=True)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('verification failed', result.stderr)
-            self.assertIn('Previous frontend restored', payload.read_text())
+            self.assertIn('Previous frontend and proxy configuration restored', payload.read_text())
 
     def test_all_local_and_remote_scripts_parse(self):
         for path in (ROOT/'deployment').rglob('*.sh'):

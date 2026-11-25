@@ -1,3 +1,4 @@
+import { postFinancialIntent } from "../../../shared/api/financialRequests";
 import { apiClient, unwrapResponse } from "../../../shared/api/client";
 import type { PageResponse } from "../../../shared/api/types";
 export interface BillingAccount {
@@ -35,6 +36,8 @@ export interface SubscriptionInvoice {
   currency: "USD";
   amount: number;
   paidAmount: number;
+  creditedAmount?: number;
+  originalAmount?: number;
   collectionMode: string;
   collectionState: string;
   status: string;
@@ -49,6 +52,8 @@ export interface BillingPayment {
   recordedBy: string;
   recordedAt: string;
 }
+export interface SubscriptionAdjustment { id: number; paymentId: number | null; kind: string; amount: number; reference: string; reason: string; createdAt: string }
+export interface SubscriptionAdjustmentRequest { kind: string; paymentId: number | null; amount: number; reference: string; reason: string }
 export interface BillingConfiguration {
   monthlyDriverRate: number;
   firstRenewalDate: string;
@@ -83,6 +88,7 @@ export const subscriptionBillingApi = {
     return unwrapResponse<{
       invoice: SubscriptionInvoice;
       payments: BillingPayment[];
+      adjustments?: SubscriptionAdjustment[];
     }>(r.data);
   },
   async configure(id: number, payload: BillingConfiguration) {
@@ -101,6 +107,9 @@ export const subscriptionBillingApi = {
   async reconcile(id: number) {
     const response = await apiClient.post(`/platform/subscription-billing/invoices/${id}/reconcile`);
     return unwrapResponse<SubscriptionInvoice>(response.data);
+  },
+  async adjust(id: number, payload: SubscriptionAdjustmentRequest) {
+    return postFinancialIntent(`/platform/subscription-billing/invoices/${id}/adjustments`, payload);
   },
   async payment(id: number, amount: number, reference: string) {
     const r = await apiClient.post(

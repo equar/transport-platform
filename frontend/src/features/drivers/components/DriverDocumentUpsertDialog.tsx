@@ -81,6 +81,7 @@ export function DriverDocumentUpsertDialog({
     }
 
     setForm({
+      version: document.version ?? 0,
       documentType: document.documentType,
       fileName: document.fileName,
       originalFileName: toFormValue(document.originalFileName),
@@ -204,30 +205,7 @@ export function DriverDocumentUpsertDialog({
               : "Uploads are limited to PDF, JPEG, and PNG files up to 10 MB and are submitted for compliance review."}
           </Typography>
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-            <TextField
-              label="Original File Name"
-              value={form.originalFileName ?? ""}
-              onChange={(event) =>
-                updateField("originalFileName", event.target.value)
-              }
-              fullWidth
-            />
-            <TextField
-              label="Content Type"
-              value={form.contentType ?? ""}
-              onChange={(event) =>
-                updateField("contentType", event.target.value)
-              }
-              fullWidth
-            />
-          </Stack>
-          <TextField
-            label="Storage Path"
-            value={form.storagePath ?? ""}
-            onChange={(event) => updateField("storagePath", event.target.value)}
-            helperText="Optional storage reference for an attached file or external document system."
-            fullWidth
-          />
+              </Stack>
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <TextField
               label="Document Number"

@@ -1,3 +1,4 @@
+import { formatServiceDateTime } from "../../../shared/utils/serviceTime";
 import { getApiErrorMessage } from '../../../shared/api/client';
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
@@ -50,9 +51,7 @@ function formatDate(value?: string | null) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-    new Date(value),
-  );
+  return formatServiceDateTime(value, { dateStyle: "medium" });
 }
 
 export function PaymentManagementPage() {

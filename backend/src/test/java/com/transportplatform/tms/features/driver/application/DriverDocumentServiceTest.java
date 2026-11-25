@@ -58,7 +58,7 @@ class DriverDocumentServiceTest {
         document.setStatus(DriverDocumentStatus.ACTIVE); document.setVerificationStatus(DriverDocumentVerificationStatus.PENDING);
         when(driverAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
         when(driverDocumentRepository.findByIdAndTenantId(20L, "tenant-123")).thenReturn(Optional.of(document));
-        assertThrows(ApiException.class, () -> service.verifyCompanyDriverDocument(20L, new DriverDocumentReviewRequest(null)));
+        assertThrows(ApiException.class, () -> service.verifyCompanyDriverDocument(20L, new DriverDocumentReviewRequest(null, 0L)));
         org.mockito.Mockito.verify(driverDocumentRepository, org.mockito.Mockito.never()).save(org.mockito.ArgumentMatchers.any());
     }
 
@@ -89,8 +89,27 @@ class DriverDocumentServiceTest {
         when(driverDocumentRepository.findByIdAndTenantId(20L, "tenant-123")).thenReturn(Optional.of(document));
 
         ApiException exception = assertThrows(ApiException.class,
-                () -> driverDocumentService.rejectCompanyDriverDocument(20L, new DriverDocumentReviewRequest("   ")));
+                () -> driverDocumentService.rejectCompanyDriverDocument(20L, new DriverDocumentReviewRequest("   ", 0L)));
 
         assertEquals("VALIDATION_FAILED", exception.getErrorCode().name());
+    }
+    @Test void staleReviewCannotApproveNewMetadata() {
+        var service = new DriverDocumentService(driverDocumentRepository,driverAccessService,new DriverDocumentMapper(Clock.systemUTC()),currentAuthenticatedUserService,auditLogService,notificationEventService,driverDocumentStorageService,complianceIssueSyncService,Clock.systemUTC());
+        var document = new DriverDocument(); document.setTenantId("tenant");
+        when(driverAccessService.requireCompanyTenantId()).thenReturn("tenant");
+        when(driverDocumentRepository.findByIdAndTenantId(20L,"tenant")).thenReturn(Optional.of(document));
+        var error = assertThrows(ApiException.class,()->service.verifyCompanyDriverDocument(20L,new DriverDocumentReviewRequest(null,1L)));
+        assertEquals("RESOURCE_CONFLICT",error.getErrorCode().name());
+        org.mockito.Mockito.verifyNoInteractions(driverDocumentStorageService);
+    }
+    @Test void completeMetadataWithoutReadableEvidenceCannotClearQualification() {
+        var service = new DriverDocumentService(driverDocumentRepository,driverAccessService,new DriverDocumentMapper(Clock.systemUTC()),currentAuthenticatedUserService,auditLogService,notificationEventService,driverDocumentStorageService,complianceIssueSyncService,Clock.systemUTC());
+        var driver = new Driver(); org.springframework.test.util.ReflectionTestUtils.setField(driver,"id",1L);driver.setBackgroundCheckStatus(com.transportplatform.tms.features.driver.domain.DriverQualificationStatus.PENDING);
+        var document = new DriverDocument();document.setTenantId("tenant");document.setDriver(driver);document.setDocumentType(DriverDocumentType.BACKGROUND_CHECK);document.setDocumentNumber("TEST");document.setIssuingAuthority("Test issuer");document.setIssueDate(java.time.LocalDate.of(2026,1,1));document.setExpiryDate(java.time.LocalDate.of(2027,1,1));document.setStatus(DriverDocumentStatus.ACTIVE);document.setVerificationStatus(DriverDocumentVerificationStatus.PENDING);
+        when(driverAccessService.requireCompanyTenantId()).thenReturn("tenant");when(driverDocumentRepository.findByIdAndTenantId(20L,"tenant")).thenReturn(Optional.of(document));
+        when(driverDocumentStorageService.load("tenant",1L,null,null,null)).thenThrow(new ApiException(com.transportplatform.tms.common.exception.ErrorCode.RESOURCE_NOT_FOUND,org.springframework.http.HttpStatus.NOT_FOUND,"No uploaded file is attached"));
+        assertThrows(ApiException.class,()->service.verifyCompanyDriverDocument(20L,new DriverDocumentReviewRequest(null,0L)));
+        assertEquals(com.transportplatform.tms.features.driver.domain.DriverQualificationStatus.PENDING,driver.getBackgroundCheckStatus());
+        org.mockito.Mockito.verify(driverDocumentRepository,org.mockito.Mockito.never()).saveAndFlush(org.mockito.ArgumentMatchers.any());
     }
 }

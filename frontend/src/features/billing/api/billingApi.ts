@@ -1,3 +1,4 @@
+import { formatServiceDateTime } from "../../../shared/utils/serviceTime";
 import { apiClient, unwrapResponse, captureTenantRequestScope } from "../../../shared/api/client";
 import type { PageResponse } from "../../../shared/api/types";
 import type { RideTripType, ServiceType } from "../../rides/api/ridesApi";
@@ -744,7 +745,7 @@ export const billingApi = {
     return page.items.map((item) => ({
       id: item.id,
       label: `${item.rideNumber} • ${item.riderName}`,
-      secondaryLabel: `${item.serviceType.replaceAll("_", " ")} • ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.scheduledPickupAt))}`,
+      secondaryLabel: `${item.serviceType.replaceAll("_", " ")} • ${formatServiceDateTime(item.scheduledPickupAt, { dateStyle: "medium", timeStyle: "short" })}`,
     }));
   },
 };

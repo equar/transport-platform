@@ -7,7 +7,8 @@ import { setServiceTimezone } from '../src/utils/serviceTime';
 import { mobileRoleGroup } from "@auth/access";
 import { LoadingState } from "@components/LoadingState";
 import { OfflineSyncStatus } from '@components/OfflineSyncStatus';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { getSessionValue, setSessionValue } from '../src/auth/sessionStorage';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
@@ -48,6 +49,7 @@ function SessionQueries({ children }: { children: React.ReactNode }) {
 
 function AuthGate() {
   const client = useQueryClient();
+  const [settingsOwner, setSettingsOwner] = useState<string | null>(null);
   const { isAuthenticated, isLoading, getDefaultRoute, session } = useAuth();
   const segments: readonly string[] = useSegments();
   const router = useRouter();
@@ -56,11 +58,24 @@ function AuthGate() {
 
   useEffect(() => {
     let cancelled = false;
-    setServiceTimezone(null);
-    if (session?.identity.tenantId) {
+    setServiceTimezone(null); setSettingsOwner(null);
+    const tenant = session?.identity.tenantId;
+    const owner = `${tenant}:${session?.identity.id}`;
+    let fresh = false;
+    if (tenant) {
+      const key = `service_timezone_${tenant}`;
+      const cached = getSessionValue(key).then(zone => {
+        if (!cancelled && !fresh && zone) {
+          new Intl.DateTimeFormat('en-US', { timeZone: zone });
+          setServiceTimezone(zone); setSettingsOwner(owner);
+        }
+      }).catch(() => { /* Online settings still establish the service timezone. */ });
       void runtimeApi.capabilities().then(result => {
-        if (!cancelled) setServiceTimezone(result.operationalSettings.timezone);
-      }).catch(() => { /* Wall-clock labels remain explicit when settings are unavailable. */ });
+        if (!cancelled) {
+          fresh = true; setServiceTimezone(result.operationalSettings.timezone); setSettingsOwner(owner);
+          void setSessionValue(key, result.operationalSettings.timezone).catch(() => { /* Offline cache is optional. */ });
+        }
+      }).catch(() => { void cached.finally(() => { if (!cancelled) setSettingsOwner(owner); }); /* Unknown-zone labels remain explicit. */ });
     }
     return () => { cancelled = true; setServiceTimezone(null); };
   }, [session?.identity.id, session?.identity.tenantId]);
@@ -103,7 +118,7 @@ function AuthGate() {
   useEffect(() => {
     if (!isLoading && !authorized) router.replace(getDefaultRoute() as never);
   }, [isLoading, authorized, session, segments]);
-  if (isLoading || !authorized) return <LoadingState message="Preparing your account…" />;
+  if (isLoading || (session?.identity.tenantId && settingsOwner !== `${session.identity.tenantId}:${session.identity.id}`) || !authorized) return <LoadingState message="Preparing your account…" />;
 
   return (
     <>

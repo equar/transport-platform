@@ -1,3 +1,4 @@
+import { formatServiceDateTime } from "../../../shared/utils/serviceTime";
 import { FinancialAdjustmentsPanel } from "../components/FinancialAdjustmentsPanel";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
@@ -60,9 +61,7 @@ function renderDate(value?: string | null) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-    new Date(value),
-  );
+  return formatServiceDateTime(value, { dateStyle: "medium" });
 }
 
 export function InvoiceDetailsPage() {

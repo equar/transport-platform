@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DriverDocumentMapper {
 
+    @org.springframework.beans.factory.annotation.Autowired private com.transportplatform.tms.features.settings.application.TenantTimeService tenantTime;
     private final Clock clock;
 
     public DriverDocumentMapper(Clock clock) {
@@ -18,10 +19,7 @@ public class DriverDocumentMapper {
 
     public void apply(DriverDocument document, DriverDocumentUpsertRequest request) {
         document.setDocumentType(request.documentType());
-        document.setFileName(request.fileName().trim());
-        document.setOriginalFileName(trimToNull(request.originalFileName()));
-        document.setContentType(trimToNull(request.contentType()));
-        document.setStoragePath(trimToNull(request.storagePath()));
+        // Attachment identity is assigned exclusively by the upload workflow.
         document.setDocumentNumber(trimToNull(request.documentNumber()));
         document.setIssuingAuthority(trimToNull(request.issuingAuthority()));
         document.setIssueDate(request.issueDate());
@@ -42,7 +40,7 @@ public class DriverDocumentMapper {
                 document.getIssuingAuthority(),
                 document.getIssueDate(),
                 document.getExpiryDate(),
-                DriverDocumentStatusWorkflow.resolveEffectiveVerificationStatus(document, LocalDate.now(clock)),
+                DriverDocumentStatusWorkflow.resolveEffectiveVerificationStatus(document, tenantTime.today(document.getTenantId())),
                 document.getStatus(),
                 document.getNotes(),
                 document.getUploadedBy(),
@@ -50,7 +48,7 @@ public class DriverDocumentMapper {
                 document.getCreatedBy(),
                 document.getCreatedAt(),
                 document.getUpdatedBy(),
-                document.getUpdatedAt());
+                document.getUpdatedAt(), document.getVersion());
     }
 
     private String trimToNull(String value) {

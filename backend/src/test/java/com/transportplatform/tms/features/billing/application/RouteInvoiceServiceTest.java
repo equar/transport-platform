@@ -34,6 +34,12 @@ class RouteInvoiceServiceTest {
 
     @BeforeEach
     void setup() {
+        var db = mock(org.springframework.jdbc.core.JdbcTemplate.class);
+        when(db.queryForObject(anyString(), eq(Long.class), any(Object[].class))).thenReturn(1L);
+        ReflectionTestUtils.setField(service, "db", db);
+        ReflectionTestUtils.setField(service, "sources", mock(BillingSourceService.class));
+        ReflectionTestUtils.setField(service, "policy", new InvoicePolicyService(mock(com.transportplatform.tms.features.settings.domain.TenantSettingsRepository.class)));
+
         route = new Route(); ReflectionTestUtils.setField(route, "id", 15L);
         route.setTenantId("tenant-a"); route.setRouteCode("ROUTE-15");
         route.setRouteDate(LocalDate.of(2026, 11, 23)); route.setStatus(RouteStatus.COMPLETED);
@@ -62,7 +68,7 @@ class RouteInvoiceServiceTest {
         assertEquals(LocalDate.of(2026, 12, 24), saved.getValue().getDueDate());
         assertEquals(30L, route.getAutoInvoiceId());
         var line = ArgumentCaptor.forClass(InvoiceLineItem.class);
-        verify(lines).save(line.capture());
+        verify(lines).saveAndFlush(line.capture());
         assertEquals(BigDecimal.ONE, line.getValue().getQuantity());
         assertEquals(ChargeSourceType.ROUTE, line.getValue().getChargeSourceType());
         assertEquals(15L, line.getValue().getSourceReferenceId());
@@ -106,5 +112,22 @@ class RouteInvoiceServiceTest {
                 org.springframework.http.HttpStatus.FORBIDDEN, "Billing disabled")).when(modules).requireEnabled("tenant-a", "BILLING");
         assertThrows(ApiException.class, () -> service.createDraftOnCompletion(route));
         verifyNoInteractions(invoices, lines);
+    }
+    @Test void noCompletedTripMeansNoAutomaticCharge() {
+        var db = (org.springframework.jdbc.core.JdbcTemplate)ReflectionTestUtils.getField(service,"db");
+        when(db.queryForObject(anyString(),eq(Long.class),any(Object[].class))).thenReturn(0L);
+        service.createDraftOnCompletion(route);
+        verifyNoInteractions(invoices,lines);
+    }
+    @Test void automaticInvoiceUsesConfiguredTaxAndDueDays() {
+        var settings=com.transportplatform.tms.features.settings.application.CompanySettingsService.defaultSettings("tenant-a");
+        settings.setTaxEnabled(true);settings.setDefaultTaxRate(new BigDecimal("10.00"));settings.setDefaultInvoiceDueDays(14);
+        var repository=mock(com.transportplatform.tms.features.settings.domain.TenantSettingsRepository.class);
+        when(repository.findById("tenant-a")).thenReturn(java.util.Optional.of(settings));
+        ReflectionTestUtils.setField(service,"policy",new InvoicePolicyService(repository));
+        service.createDraftOnCompletion(route);
+        var saved=ArgumentCaptor.forClass(Invoice.class);verify(invoices).save(saved.capture());
+        assertEquals(new BigDecimal("137.50"),saved.getValue().getTotalAmount());
+        assertEquals(LocalDate.of(2026,12,8),saved.getValue().getDueDate());
     }
 }

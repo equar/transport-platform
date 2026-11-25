@@ -1,3 +1,5 @@
+import { useRuntimeCapabilities } from "../../runtime/context/RuntimeCapabilitiesContext";
+import { serviceToday, addCalendarDays } from "../../../shared/utils/serviceTime";
 import {
   Alert,
   Autocomplete,
@@ -41,10 +43,9 @@ interface InvoiceGenerationDialogProps {
   onGenerated: (invoiceId: number) => void;
 }
 
-function createDefaultPayload(): InvoiceGenerationPayload {
-  const today = new Date();
-  const dueDate = new Date(today);
-  dueDate.setDate(dueDate.getDate() + 30);
+function createDefaultPayload(days = 30): InvoiceGenerationPayload {
+  const today = serviceToday();
+  const dueDate = addCalendarDays(today, days);
 
   return {
     billToType: "RIDER",
@@ -54,13 +55,13 @@ function createDefaultPayload(): InvoiceGenerationPayload {
     rideIds: [],
     serviceType: null,
     tripType: null,
-    billingPeriodStart: today.toISOString().slice(0, 10),
-    billingPeriodEnd: today.toISOString().slice(0, 10),
+    billingPeriodStart: today,
+    billingPeriodEnd: today,
     quantity: null,
     tripCount: null,
     riderCount: null,
-    invoiceDate: today.toISOString().slice(0, 10),
-    dueDate: dueDate.toISOString().slice(0, 10),
+    invoiceDate: today,
+    dueDate: dueDate,
     currency: "USD",
     taxAmount: 0,
     discountAmount: 0,
@@ -84,6 +85,7 @@ export function InvoiceGenerationDialog({
   onClose,
   onGenerated,
 }: InvoiceGenerationDialogProps) {
+  const { capabilities } = useRuntimeCapabilities();
   const [form, setForm] = useState<InvoiceGenerationPayload>(
     createDefaultPayload(),
   );
@@ -114,7 +116,7 @@ export function InvoiceGenerationDialog({
       return;
     }
 
-    setForm(createDefaultPayload());
+    setForm(createDefaultPayload(capabilities?.operationalSettings.defaultInvoiceDueDays));
     setErrors({});
     setPreview(null);
     setSelectedBillTo(null);

@@ -1,3 +1,4 @@
+import { serviceToday } from "../../../shared/utils/serviceTime";
 import {
   Alert,
   Autocomplete,
@@ -38,7 +39,7 @@ interface PaymentUpsertDialogProps {
 function defaultForm(invoiceId?: number | null): PaymentPayload {
   return {
     invoiceId: invoiceId ?? 0,
-    paymentDate: new Date().toISOString().slice(0, 10),
+    paymentDate: serviceToday(),
     amount: 0,
     paymentMethod: "ACH",
     referenceNumber: "",

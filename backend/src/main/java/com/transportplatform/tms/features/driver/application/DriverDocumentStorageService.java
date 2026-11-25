@@ -86,6 +86,16 @@ public class DriverDocumentStorageService {
         }
     }
 
+    public boolean present(String tenant, Long owner, String storagePath) {
+        if (tenant == null || owner == null || storagePath == null || !storagePath.startsWith(tenant + "/" + owner + "/")) return false;
+        try {
+            Path file = root.resolve(storagePath).normalize();
+            Path ownerRoot = root.resolve(tenant).resolve(owner.toString());
+            return file.startsWith(ownerRoot) && Files.isRegularFile(file) && Files.isReadable(file)
+                    && file.toRealPath().startsWith(ownerRoot.toRealPath());
+        } catch (IOException | RuntimeException failure) { return false; }
+    }
+
     public StoredDriverDocumentFile load(String tenantId, Long driverId, String storagePath, String originalName, String contentType) {
         if (storagePath == null || storagePath.isBlank()) {
             throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND,

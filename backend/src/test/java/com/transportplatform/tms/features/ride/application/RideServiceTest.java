@@ -74,10 +74,11 @@ class RideServiceTest {
                                 auditLogService,
                                 notificationEventService,
                                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC),
-                                org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class),
+                                mutationTenants(),
                                 org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class),
                                 driverEarningsService, org.mockito.Mockito.mock(com.transportplatform.tms.features.tripevidence.application.TripEvidenceService.class));
 
+                org.springframework.test.util.ReflectionTestUtils.setField(rideService, "routeCompletion", org.mockito.Mockito.mock(com.transportplatform.tms.features.route.application.AutomaticRouteCompletionService.class));
                 Rider rider = buildRider();
 
                 when(rideAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
@@ -108,10 +109,11 @@ class RideServiceTest {
                                 auditLogService,
                                 notificationEventService,
                                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC),
-                                org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class),
+                                mutationTenants(),
                                 org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class),
                                 driverEarningsService, org.mockito.Mockito.mock(com.transportplatform.tms.features.tripevidence.application.TripEvidenceService.class));
 
+                org.springframework.test.util.ReflectionTestUtils.setField(rideService, "routeCompletion", org.mockito.Mockito.mock(com.transportplatform.tms.features.route.application.AutomaticRouteCompletionService.class));
                 Rider rider = buildRider();
 
                 when(rideAccessService.requireCompanyTenantId()).thenReturn("tenant-123");
@@ -138,10 +140,11 @@ class RideServiceTest {
                                 auditLogService,
                                 notificationEventService,
                                 Clock.fixed(Instant.parse("2026-03-31T12:00:00Z"), ZoneOffset.UTC),
-                                org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class),
+                                mutationTenants(),
                                 org.mockito.Mockito.mock(com.transportplatform.tms.features.dispatch.application.DispatchAssignmentValidationService.class),
                                 driverEarningsService, org.mockito.Mockito.mock(com.transportplatform.tms.features.tripevidence.application.TripEvidenceService.class));
 
+                org.springframework.test.util.ReflectionTestUtils.setField(rideService, "routeCompletion", org.mockito.Mockito.mock(com.transportplatform.tms.features.route.application.AutomaticRouteCompletionService.class));
                 Ride ride = new Ride();
                 ride.setTenantId("tenant-123");
                 ride.setRideNumber("TRIP-000123");
@@ -181,6 +184,12 @@ class RideServiceTest {
                 assertEquals("Rider no longer needs transport.", ride.getCancellationReason());
                 assertEquals("Jamie Planner", ride.getCancelledBy());
                 assertEquals(Instant.parse("2026-03-31T12:00:00Z"), ride.getCancelledAt());
+        }
+
+        private com.transportplatform.tms.features.tenant.domain.TenantRepository mutationTenants() {
+            var tenants=org.mockito.Mockito.mock(com.transportplatform.tms.features.tenant.domain.TenantRepository.class);
+            org.mockito.Mockito.lenient().when(tenants.lockForDispatch(org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Optional.of(new com.transportplatform.tms.features.tenant.domain.Tenant()));
+            return tenants;
         }
 
         private Rider buildRider() {

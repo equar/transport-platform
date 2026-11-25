@@ -21,7 +21,9 @@ class ThemeSettingsBoundaryTest {
         when(tenants.findById("tenant")).thenReturn(Optional.of(tenant)); when(tenants.lockForDispatch("tenant")).thenReturn(Optional.of(tenant));
         when(settings.findById("tenant")).thenReturn(Optional.of(CompanySettingsService.defaultSettings("tenant")));
         var request = mock(CompanySettingsUpdateRequest.class); when(request.primaryColor()).thenReturn("#276442");
-        assertThrows(ApiException.class, () -> new CompanySettingsService(current, tenants, settings, mock(AuditLogService.class)).updateCompanySettings(request));
+        var service = new CompanySettingsService(current, tenants, settings, mock(AuditLogService.class));
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"financialLocks",mock(com.transportplatform.tms.common.concurrency.WorkflowLockService.class));
+        assertThrows(ApiException.class, () -> service.updateCompanySettings(request));
         verify(settings, never()).save(any()); verify(tenants, never()).save(any());
     }
 }

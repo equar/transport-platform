@@ -54,6 +54,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class InvoiceService {
+    @org.springframework.beans.factory.annotation.Autowired private InvoicePolicyService invoicePolicy;
+    @org.springframework.beans.factory.annotation.Autowired private BillingSourceService sources;
     @org.springframework.beans.factory.annotation.Autowired private org.springframework.jdbc.core.JdbcTemplate adjustmentDb;
     @org.springframework.beans.factory.annotation.Autowired
     private com.transportplatform.tms.features.settings.domain.TenantSettingsRepository invoiceSettings;
@@ -192,6 +194,7 @@ public class InvoiceService {
                 request.billToId());
         invoiceMapper.apply(invoice, request, billTo);
         validateInvoice(invoice);
+        sources.validate(invoice, invoiceLineItemRepository.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(invoice.getId(), invoice.getTenantId()));
         recalculateTotals(invoice, invoiceLineItemRepository.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(
                 invoice.getId(), invoice.getTenantId()));
         Invoice saved = invoiceRepository.save(invoice);
@@ -210,6 +213,9 @@ public class InvoiceService {
                         invoice.getId(),
                         invoice.getTenantId());
         InvoiceLineItem lineItem = invoiceMapper.toLineItem(invoice, request);
+        var validationLines = new ArrayList<>(invoiceLineItemRepository.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(invoice.getId(), invoice.getTenantId()));
+        if (lineItem.getId() == null) validationLines.add(lineItem);
+        sources.validate(invoice, validationLines);
         validateRideSource(invoice.getTenantId(), lineItem);
         lineItem.setLineNumber(existingItems.size() + 1);
         InvoiceLineItem saved = invoiceLineItemRepository.save(lineItem);
@@ -229,6 +235,9 @@ public class InvoiceService {
         InvoiceStatusWorkflow.ensureDraftEditable(invoice, tenantTime.today(billingAccessService.requireCompanyTenantId()));
         Object oldSnapshot = snapshot(lineItem);
         invoiceMapper.apply(lineItem, request);
+        var validationLines = new ArrayList<>(invoiceLineItemRepository.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(invoice.getId(), invoice.getTenantId()));
+        if (lineItem.getId() == null) validationLines.add(lineItem);
+        sources.validate(invoice, validationLines);
         validateRideSource(invoice.getTenantId(), lineItem);
         InvoiceLineItem saved = invoiceLineItemRepository.save(lineItem);
         recalculateAndSaveInvoice(invoice,
@@ -280,21 +289,35 @@ public class InvoiceService {
                 billingReferenceValidationService.resolveBillableRide(invoice.getTenantId(), item.getSourceReferenceId());
             }
         }
+        sources.validate(invoice, lineItems);
+        sources.requireDeliveredEvidence(invoice, lineItems);
+        sources.sync(invoice, lineItems);
         validateRideSources(invoice.getTenantId(), lineItems);
         Object oldSnapshot = snapshot(invoice);
-        invoice.setStatus(InvoiceStatus.ISSUED);
+        invoice.setStatus(invoice.getTotalAmount().signum() == 0 ? InvoiceStatus.PAID : InvoiceStatus.ISSUED);
         invoice.setStatus(InvoiceStatusWorkflow.resolveEffectiveStatus(invoice, tenantTime.today(invoice.getTenantId())));
         Invoice saved = invoiceRepository.save(invoice);
         recordInvoiceAudit(saved, "ISSUED", "Invoice " + saved.getInvoiceNumber() + " was issued.", oldSnapshot,
                 snapshot(saved));
-        lineItems.stream()
-                .filter(lineItem -> lineItem.getChargeSourceType() == ChargeSourceType.RIDE)
-                .map(InvoiceLineItem::getSourceReferenceId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .forEach(rideId -> driverEarningsService.calculatePendingForIssuedRide(saved.getTenantId(), rideId));
+        sources.invoiceRideIds(saved.getTenantId(), saved.getId()).forEach(rideId ->
+                driverEarningsService.calculatePendingForIssuedRide(saved.getTenantId(), rideId));
         notificationEventService.publishInvoiceIssued(saved);
         return toDetail(saved);
+    }
+
+    @Transactional
+    public InvoiceDetailResponse reconcileAllocations(Long invoiceId) {
+        billingAccessService.lockFinancialWrites();
+        var invoice = billingAccessService.findInvoiceForCompanyScope(invoiceId);
+        if (invoice.getStatus() == InvoiceStatus.VOID || invoice.getStatus() == InvoiceStatus.DRAFT)
+            throw validationFailure("Reconcile allocations only for an issued, non-void invoice.");
+        var lines = invoiceLineItemRepository.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(invoiceId, invoice.getTenantId());
+        sources.validate(invoice, lines);
+        sources.requireDeliveredEvidence(invoice, lines);
+        sources.sync(invoice, lines);
+        sources.invoiceRideIds(invoice.getTenantId(), invoiceId).forEach(id -> driverEarningsService.reconcileRide(invoice.getTenantId(), id));
+        recordInvoiceAudit(invoice,"ALLOCATIONS_RECONCILED","Invoice service allocations reconciled without changing charges.",null,snapshot(invoice));
+        return toDetail(invoice);
     }
 
     @Transactional
@@ -310,10 +333,10 @@ public class InvoiceService {
         invoice.setStatus(InvoiceStatus.VOID);
         invoice.setVoidReason(request.reason().trim());
         invoiceLineItemRepository.releaseRideClaims(invoice.getId(), invoice.getTenantId());
+        adjustmentDb.update("DELETE c FROM invoice_route_claims c JOIN invoice_line_items li ON li.id=c.line_item_id WHERE c.tenant_id=? AND li.invoice_id=?",invoice.getTenantId(),invoice.getId());
+        adjustmentDb.update("UPDATE invoice_ride_allocations SET claim_active=FALSE WHERE tenant_id=? AND invoice_id=?", invoice.getTenantId(), invoice.getId());
         Invoice saved = invoiceRepository.save(invoice);
-        invoiceLineItemRepository.findAllByInvoiceIdAndTenantIdOrderByLineNumberAsc(saved.getId(), saved.getTenantId()).stream()
-            .filter(item -> item.getChargeSourceType()==ChargeSourceType.RIDE).map(InvoiceLineItem::getSourceReferenceId).filter(Objects::nonNull).distinct()
-            .forEach(rideId -> driverEarningsService.reconcileRide(saved.getTenantId(),rideId));
+        sources.invoiceRideIds(saved.getTenantId(), saved.getId()).forEach(rideId -> driverEarningsService.reconcileRide(saved.getTenantId(), rideId));
         recordInvoiceAudit(saved, "VOIDED", "Invoice " + saved.getInvoiceNumber() + " was voided.", oldSnapshot,
                 snapshot(saved));
         return toDetail(saved);
@@ -435,6 +458,7 @@ public class InvoiceService {
             lineItems.add(buildCalculatedLineItem(invoice, request, pricingRule));
         }
 
+        sources.validate(invoice, lineItems);
         validateRideSources(tenantId, lineItems);
         recalculateTotals(invoice, lineItems);
         return new PreviewContext(invoice, lineItems, billTo, pricingRule);
@@ -660,16 +684,10 @@ public class InvoiceService {
     }
 
     private void recalculateTotals(Invoice invoice, List<InvoiceLineItem> lineItems) {
-        var settings = invoiceSettings.findById(invoice.getTenantId()).orElseGet(() ->
-                com.transportplatform.tms.features.settings.application.CompanySettingsService.defaultSettings(invoice.getTenantId()));
-        if (!settings.isAllowManualInvoiceOverrides()) {
-            var subtotal = lineItems.stream().map(InvoiceLineItem::getLineAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-            invoice.setTaxAmount(settings.isTaxEnabled() ? subtotal.multiply(settings.getDefaultTaxRate())
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP) : BigDecimal.ZERO);
-            if (zeroIfNull(invoice.getDiscountAmount()).signum() != 0) throw validationFailure("Manual discounts require invoice override permission in company settings.");
-        }
-
+        sources.validate(invoice, lineItems);
+        invoicePolicy.apply(invoice, lineItems, false);
         invoiceFinancialService.recalculateTotals(invoice, lineItems, tenantTime.today(billingAccessService.requireCompanyTenantId()));
+        if (invoice.getId() != null) sources.sync(invoice, lineItems);
     }
 
     private InvoiceDetailResponse toDetail(Invoice invoice) {

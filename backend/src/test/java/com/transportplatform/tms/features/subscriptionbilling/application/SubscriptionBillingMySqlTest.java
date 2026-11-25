@@ -40,6 +40,9 @@ import org.testcontainers.junit.jupiter.*;
   com.transportplatform.tms.features.saas.application.SubscriptionLifecycleService.class,
   com.transportplatform.tms.features.saas.application.TenantEntitlementService.class,
   SubscriptionBillingService.class,
+  SubscriptionAdjustmentService.class,
+  com.transportplatform.tms.features.billing.application.FinancialRequestService.class,
+  com.transportplatform.tms.common.concurrency.WorkflowLockService.class,
   SubscriptionAutomaticCollectionService.class,
   SubscriptionProvisioningService.class,
   AuditLogService.class,
@@ -93,9 +96,11 @@ class SubscriptionBillingMySqlTest {
   }
 
   @Autowired SubscriptionBillingService billing;
+  @Autowired SubscriptionAdjustmentService adjustments;
   @Autowired SubscriptionAutomaticCollectionService automatic;
   @Autowired SubscriptionProvisioningService provisioning;
   @Autowired TenantRepository tenants;
+  @Autowired com.transportplatform.tms.features.auth.domain.AppUserRepository appUsers;
   @Autowired SubscriptionPlanRepository plans;
   @Autowired TenantSubscriptionRepository subscriptions;
   @Autowired DriverRepository drivers;
@@ -114,9 +119,13 @@ class SubscriptionBillingMySqlTest {
     when(provider.providerId()).thenReturn("test-provider");
     when(provider.available()).thenReturn(false);
     clock.value = Instant.now().plusSeconds(2);
+    var actor=new com.transportplatform.tms.features.auth.domain.AppUser();
+    actor.setEmail("platform-"+UUID.randomUUID()+"@example.test"); actor.setPasswordHash("unused");
+    actor.setStatus(com.transportplatform.tms.features.auth.domain.UserStatus.ACTIVE);
+    actor=appUsers.saveAndFlush(actor);
     var user =
         new AuthenticatedUser(
-            null,
+            actor.getId(),
             null,
             "billing-admin@example.test",
             "Billing",
@@ -204,6 +213,22 @@ class SubscriptionBillingMySqlTest {
     assertThat(a.enabled()).isFalse();
     assertThat(a.monthlyDriverRate()).isNull();
     assertThat(billing.generateRenewal(subscription.getId())).isNull();
+  }
+
+  @Test
+  void manualRefundCreditAndCreditReversalPreserveOriginalReceiptAndRetryIdentity() {
+    configure();long id=billing.generateRenewal(subscription.getId());
+    billing.recordManualPayment(id,new PaymentRequest(new BigDecimal("10.00"),"BANK-CORRECT"));
+    long payment=billing.detail(id,tenant.getId()).payments().getFirst().id();
+    var refund=new AdjustmentRequest("REFUND",payment,new BigDecimal("4.00"),"REFUND-1","Returned funds");
+    assertThat(adjustments.adjust(id,refund,"refund-1").invoice().paidAmount()).isEqualByComparingTo("6.00");
+    assertThat(adjustments.adjust(id,refund,"refund-1").adjustments()).hasSize(1);
+    var credit=new AdjustmentRequest("CREDIT",null,new BigDecimal("19.00"),"CREDIT-1","Cancelled charge");
+    var credited=adjustments.adjust(id,credit,"credit-1");
+    assertThat(credited.invoice().status()).isEqualTo("PAID");
+    assertThat(credited.invoice().originalAmount()).isEqualByComparingTo("25.00");
+    assertThat(credited.payments().getFirst().amount()).isEqualByComparingTo("10.00");
+    assertThat(adjustments.adjust(id,new AdjustmentRequest("CREDIT_REVERSAL",null,new BigDecimal("1.00"),"UNDO-1","Correction"),"undo-1").invoice().status()).isEqualTo("ISSUED");
   }
 
   @Test

@@ -6,7 +6,7 @@ python3 "$ROOT/deployment/aws/validate-config.py" --target frontend
 public_url="${APP_PUBLIC_URL:-https://transport.bakaroo.com}"
 admin_url="${APP_ADMIN_URL:-https://admin.transport.bakaroo.com}"
 [[ -s "$ROOT/frontend/dist/public/index.html" && -s "$ROOT/frontend/dist/admin/index.html" ]] || { echo 'Build the frontend before deployment.' >&2; exit 1; }
-# Host routing and TLS are explicit one-time prerequisites, not mutated by each release.
+# TLS provisioning is a one-time prerequisite; each release applies the reviewed proxy template.
 for url in "$public_url" "$admin_url"; do curl -fsS --max-time 20 "$url/health" >/dev/null; done
 health_check "$public_url/api/actuator/health"
 work="$(mktemp -d)"
@@ -25,9 +25,18 @@ import json,sys
 from pathlib import Path
 Path(sys.argv[1]).write_text(json.dumps({'release': sys.argv[2]})+'\n')
 PY
+python3 - "$ROOT/deployment/nginx-transport-platform.conf.template" "$work/nginx.conf" "$public_url" "$admin_url" <<'PYCONFIG'
+import re,sys
+from pathlib import Path
+from urllib.parse import urlparse
+public,admin=(urlparse(value).hostname for value in sys.argv[3:5])
+if not all(value and re.fullmatch(r'[A-Za-z0-9.-]+',value) for value in (public,admin)):
+    raise SystemExit('Invalid public/admin hostname')
+Path(sys.argv[2]).write_text(Path(sys.argv[1]).read_text().replace('${APP_DOMAIN}',public).replace('${ADMIN_DOMAIN}',admin))
+PYCONFIG
 COPYFILE_DISABLE=1 tar -czf "$work/frontend.tar.gz" -C "$work/site" .
 remote="$(new_remote_directory frontend)"
-scp "${SSH_OPTIONS[@]}" "$work/frontend.tar.gz" "$ROOT/deployment/aws/activate-frontend.sh" "$SERVER:$remote/"
+scp "${SSH_OPTIONS[@]}" "$work/frontend.tar.gz" "$work/nginx.conf" "$ROOT/deployment/aws/activate-frontend.sh" "$SERVER:$remote/"
 ssh "${SSH_OPTIONS[@]}" "$SERVER" "sudo -n bash '$remote/activate-frontend.sh' '$remote' '$DEPLOY_ID'"
 verified=false
 for _ in $(seq 1 5); do
@@ -44,7 +53,7 @@ for _ in $(seq 1 5); do
 done
 if [[ "$verified" != true ]]; then
   echo 'Public frontend verification failed; restoring the previous web root if present.' >&2
-  ssh "${SSH_OPTIONS[@]}" "$SERVER" sudo -n bash -s -- "$DEPLOY_ID" <<'REMOTE'
+  ssh "${SSH_OPTIONS[@]}" "$SERVER" sudo -n bash -s -- "$DEPLOY_ID" "$remote" <<'REMOTE'
 set -euo pipefail
 web=/var/www/transport-platform
 expected="/var/www/transport-platform-releases/$1"
@@ -54,7 +63,12 @@ if [[ "$(readlink -f "$web")" == "$expected" && -L "$web.previous" ]]; then
   [[ "$previous" == /var/www/transport-platform-releases/* && -s "$previous/index.html" ]]
   ln -s "$previous" "$web.rollback"
   mv -Tf "$web.rollback" "$web"
-  echo 'Previous frontend restored.'
+  if [[ -s "$2/nginx.previous.conf" ]]; then
+    install -m 644 "$2/nginx.previous.conf" /etc/nginx/sites-available/transport-platform
+    nginx -t
+    systemctl reload nginx
+  fi
+  echo 'Previous frontend and proxy configuration restored.'
 else
   echo 'No previous frontend to restore, or active release changed.' >&2
 fi

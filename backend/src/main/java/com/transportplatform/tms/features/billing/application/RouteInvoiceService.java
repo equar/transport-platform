@@ -22,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 /** Called only by the tenant-scoped route workflow, inside its dispatch transaction. */
 @Service
 public class RouteInvoiceService {
+    @org.springframework.beans.factory.annotation.Autowired private InvoicePolicyService policy;
+    @org.springframework.beans.factory.annotation.Autowired private BillingSourceService sources;
+    @org.springframework.beans.factory.annotation.Autowired private org.springframework.jdbc.core.JdbcTemplate db;
     private final BillingReferenceValidationService references;
     private final InvoiceRepository invoices;
     private final InvoiceLineItemRepository lines;
@@ -59,6 +62,8 @@ public class RouteInvoiceService {
     public void createDraftOnCompletion(Route route) {
         if (route.getStatus() != RouteStatus.COMPLETED) throw invalid("Complete the route before generating its invoice.");
         if (route.getAutoInvoiceId() != null || route.getApplicablePrice() == null) return;
+        locks.lock(route.getTenantId(), "FINANCE", 0);
+        if (db.queryForObject("SELECT COUNT(DISTINCT r.id) FROM route_stops s JOIN rides r ON r.tenant_id=s.tenant_id AND r.id=s.ride_id WHERE s.tenant_id=? AND s.route_id=? AND r.status='COMPLETED'", Long.class, route.getTenantId(), route.getId()) == 0) return;
         validateBilling(route);
         locks.lock(route.getTenantId(), "FINANCE", 0);
         var billTo = references.resolveBillTo(route.getTenantId(), route.getBillToType(), route.getBillToId());
@@ -69,7 +74,7 @@ public class RouteInvoiceService {
         invoice.setStatus(InvoiceStatus.DRAFT);
         invoice.setAmountPaid(BigDecimal.ZERO);
         mapper.apply(invoice, new InvoiceUpsertRequest(route.getBillToType(), route.getBillToId(),
-                route.getRouteDate(), route.getRouteDate(), today, today.plusDays(30),
+                route.getRouteDate(), route.getRouteDate(), today, today.plusDays(policy.settings(route.getTenantId()).getDefaultInvoiceDueDays()),
                 BigDecimal.ZERO, BigDecimal.ZERO, "USD", "Automatically generated for route " + route.getRouteCode() + "."), billTo);
         String journey = route.getBillingTripType() == com.transportplatform.tms.features.ride.domain.RideTripType.ROUND_TRIP
                 ? "Round trip" : "One way";
@@ -77,9 +82,12 @@ public class RouteInvoiceService {
                 "Route " + route.getRouteCode() + " · " + journey + " (entire route)", ChargeSourceType.ROUTE,
                 route.getId(), null, BigDecimal.ONE, route.getApplicablePrice(), route.getRouteDate(), journey, null));
         line.setLineNumber(1);
+        policy.apply(invoice, List.of(line), true);
         financials.recalculateTotals(invoice, List.of(line), today);
+        sources.validate(invoice, List.of(line));
         Invoice saved = invoices.save(invoice);
-        lines.save(line);
+        lines.saveAndFlush(line);
+        sources.sync(saved, List.of(line));
         route.setAutoInvoiceId(saved.getId());
         audit.record(new AuditLogCommand(null, route.getTenantId(), "BILLING", "CREATED", "INVOICE",
                 saved.getId().toString(), "Draft invoice " + saved.getInvoiceNumber() + " created for route "

@@ -31,7 +31,7 @@ class TenantModuleAccessFilterTest {
     }
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings={"/company/%69nvoices/9", "/company/credit-notes/9/apply", "/company/credit-notes/9/void"})
+    @org.junit.jupiter.params.provider.ValueSource(strings={"/company/%69nvoices/9", "/company/credit-notes/9/apply", "/company/credit-notes/9/void", "/company/driver-payouts", "/company/drivers/9/payouts", "/company/driver-earnings/9/approve"})
     void encodedApiPathAndFinancialAdjustmentsEnforceModulePolicy(String path) throws Exception {
         var policy = mock(TenantModulePolicy.class);
         doThrow(new ApiException(ErrorCode.FORBIDDEN,HttpStatus.FORBIDDEN,"disabled")).when(policy).requireEnabled("tenant-a","BILLING");

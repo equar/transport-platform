@@ -13,8 +13,8 @@ public record InvoiceLineItemUpsertRequest(
         @NotNull(message = "Charge source type is required.") ChargeSourceType chargeSourceType,
         Long sourceReferenceId,
         Long pricingRuleId,
-        @NotNull(message = "Quantity is required.") @DecimalMin(value = "0.01", message = "Quantity must be greater than zero.") BigDecimal quantity,
-        @NotNull(message = "Unit price is required.") @DecimalMin(value = "0.00", message = "Unit price cannot be negative.") BigDecimal unitPrice,
+        @NotNull(message = "Quantity is required.") @DecimalMin(value = "0.01", message = "Quantity must be greater than zero.") @jakarta.validation.constraints.Digits(integer = 10, fraction = 2) BigDecimal quantity,
+        @NotNull(message = "Unit price is required.") @DecimalMin(value = "0.00", message = "Unit price cannot be negative.") @jakarta.validation.constraints.Digits(integer = 10, fraction = 2) BigDecimal unitPrice,
         LocalDate serviceDate,
         @Size(max = 120, message = "Service period label must be 120 characters or fewer.") String servicePeriodLabel,
         @Size(max = 2000, message = "Notes must be 2000 characters or fewer.") String notes) {

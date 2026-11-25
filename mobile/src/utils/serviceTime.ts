@@ -12,9 +12,10 @@ export function formatServiceDateTime(value: string, options: Intl.DateTimeForma
   }
   const date = new Date(value.length === 10 ? `${value}T12:00:00Z` : value);
   if (!Number.isFinite(date.getTime())) return '—';
-  return new Intl.DateTimeFormat('en-US', {
-    ...options, ...(value.length === 10 ? { timeZone: 'UTC' } : serviceTimezone ? { timeZone: serviceTimezone } : {}),
+  const formatted = new Intl.DateTimeFormat('en-US', {
+    ...options, timeZone: value.length === 10 ? 'UTC' : serviceTimezone ?? 'UTC',
   }).format(date);
+  return value.length !== 10 && !serviceTimezone ? `${formatted} (UTC)` : formatted;
 }
 export function scheduleEpoch(value: string): number | null {
   if (!localSchedule.test(value)) {

@@ -1,3 +1,5 @@
+import { FinancialReconciliation } from "../components/FinancialReconciliation";
+import { formatServiceDateTime } from "../../../shared/utils/serviceTime";
 import AttachMoneyRoundedIcon from "@mui/icons-material/AttachMoneyRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
@@ -47,9 +49,7 @@ function formatDate(value?: string | null) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-    new Date(value),
-  );
+  return formatServiceDateTime(value, { dateStyle: "medium" });
 }
 
 export function ReceivablesManagementPage() {
@@ -105,6 +105,7 @@ export function ReceivablesManagementPage() {
 
   return (
     <Stack spacing={3}>
+      <FinancialReconciliation />
       <SectionHeader
         eyebrow="Billing"
         title="Receivables and Aging"

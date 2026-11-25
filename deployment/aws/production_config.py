@@ -39,6 +39,7 @@ FIXED = {
     'SPRING_JPA_SHOW_SQL': 'false', 'SPRING_FLYWAY_ENABLED': 'true',
     'SPRING_FLYWAY_LOCATIONS': 'classpath:db/migration',
     'APP_DRIVER_DOCUMENT_STORAGE_ROOT': '/opt/transport-platform/documents/driver-documents',
+    'APP_VEHICLE_DOCUMENT_STORAGE_ROOT': '/opt/transport-platform/documents/vehicle-documents',
     'APP_SECURITY_REFRESH_COOKIE_SECURE': 'true', 'APP_SECURITY_REFRESH_COOKIE_SAME_SITE': 'Lax',
     'APP_SECURITY_REFRESH_COOKIE_PATH': '/api/v1/auth',
 }
