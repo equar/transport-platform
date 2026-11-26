@@ -58,8 +58,11 @@ it('shows a rendering failure and requires opening the fallback before confirmin
   fireEvent.error(await screen.findByAltText('Uploaded driver document'));
   expect(screen.getByText(/preview couldn’t be displayed/)).toBeTruthy();
   expect((screen.getByRole('checkbox') as HTMLInputElement).disabled).toBe(true);
-  fireEvent.click(screen.getByRole('link', { name: 'Open full document' }));
-  expect((screen.getByRole('checkbox') as HTMLInputElement).disabled).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: 'Open full document' }));
+  expect((screen.getByRole('checkbox', { hidden: true }) as HTMLInputElement).disabled).toBe(true);
+  fireEvent.load(screen.getByAltText('Full uploaded document'));
+  fireEvent.click(screen.getByRole('button', { name: 'Close document' }));
+  expect(((await screen.findByRole('checkbox')) as HTMLInputElement).disabled).toBe(false);
 });
 it('retries failed downloads and releases the document URL on close', async () => {
   vi.mocked(driversApi.downloadDocument).mockRejectedValueOnce(new Error('Network unavailable'));

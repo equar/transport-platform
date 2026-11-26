@@ -12,9 +12,11 @@ API_URL=""
 PROFILE="prod"
 apply_runtime_profile "$PROFILE"
 BUILD_CONFIGURATION="Release"
+LIST_DEVICES=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --list-devices) LIST_DEVICES=true ;;
     --dev)
       PROFILE="dev"
       apply_runtime_profile "$PROFILE"
@@ -46,6 +48,43 @@ require_command node
 require_command npm
 require_command xcodebuild
 require_command xcrun
+require_command python3
+DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-}"
+DEVICE_UDID="${IOS_DEVICE_UDID:-}"
+WORKSPACE="${WORKSPACE:-TransportPlatform.xcworkspace}"
+SCHEME="${SCHEME:-TransportPlatform}"
+APP_ID="${APP_ID:-com.bakaroo.transport.app}"
+DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PROJECT_ROOT/.build/ios-device}"
+TARGET_DEVICE_UDIDS=()
+
+if [[ -n "$DEVICE_UDID" ]]; then
+  TARGET_DEVICE_UDIDS=("$DEVICE_UDID")
+else
+  DEVICE_JSON="$(mktemp -t bakaroo-ios-devices)"
+  trap 'rm -f "$DEVICE_JSON"' EXIT
+  xcrun devicectl list devices --json-output "$DEVICE_JSON" --timeout 20 >/dev/null
+  DEVICE_IDS="$(python3 "$SCRIPT_DIR/connected-ios-devices.py" < "$DEVICE_JSON")"
+  while IFS= read -r udid; do
+    [[ -n "$udid" ]] && TARGET_DEVICE_UDIDS+=("$udid")
+  done <<< "$DEVICE_IDS"
+fi
+
+if [[ ${#TARGET_DEVICE_UDIDS[@]} -eq 0 ]]; then
+  echo "No connected iOS device found. Unlock it, trust this Mac, and enable Developer Mode." >&2
+  exit 1
+fi
+
+printf 'Detected physical iOS device: %s\n' "${TARGET_DEVICE_UDIDS[@]}"
+if [[ "$LIST_DEVICES" == true ]]; then
+  exit 0
+fi
+
+if [[ -z "$DEVELOPMENT_TEAM" ]]; then
+  echo "DEVELOPMENT_TEAM is required for physical iOS signing." >&2
+  echo "Find the 10-character Team ID in Apple Developer membership or Xcode account settings." >&2
+  exit 1
+fi
+
 configure_push_runtime_env
 ensure_node_modules
 
@@ -64,40 +103,15 @@ if [[ "${TRANSPORT_RUNTIME_PROFILE:-}" == "dev" ]]; then
   BUILD_CONFIGURATION="Debug"
 fi
 
-DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-}"
-DEVICE_UDID="${IOS_DEVICE_UDID:-}"
-WORKSPACE="${WORKSPACE:-TransportPlatform.xcworkspace}"
-SCHEME="${SCHEME:-TransportPlatform}"
-APP_ID="${APP_ID:-com.bakaroo.transport.app}"
-DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PROJECT_ROOT/.build/ios-device}"
-TARGET_DEVICE_UDIDS=()
+# Apply config plugins to existing native projects as well as fresh checkouts.
+(cd "$PROJECT_ROOT" && npx expo prebuild --platform ios --no-install)
 
-if [[ -z "$DEVELOPMENT_TEAM" ]]; then
-  echo "DEVELOPMENT_TEAM is required for physical iOS signing." >&2
-  echo "Find the 10-character Team ID in Apple Developer membership or Xcode account settings." >&2
-  exit 1
-fi
-
-if [[ -n "$DEVICE_UDID" ]]; then
-  TARGET_DEVICE_UDIDS=("$DEVICE_UDID")
-else
-  while IFS= read -r udid; do
-    [[ -n "$udid" ]] && TARGET_DEVICE_UDIDS+=("$udid")
-  done < <(
-    xcrun devicectl list devices 2>/dev/null \
-      | sed -n 's/.*identifier: \([A-Za-z0-9.-]\+\).*(transport: local).*/\1/p'
-  )
-fi
-
-if [[ ${#TARGET_DEVICE_UDIDS[@]} -eq 0 ]]; then
-  echo "No connected iOS device found. Unlock it, trust this Mac, and enable Developer Mode." >&2
-  exit 1
-fi
-
-if [[ ! -d "$PROJECT_ROOT/ios/Pods" ]]; then
+if [[ ! -f "$PROJECT_ROOT/ios/Pods/Manifest.lock" ]] ||
+  ! cmp -s "$PROJECT_ROOT/ios/Podfile.lock" "$PROJECT_ROOT/ios/Pods/Manifest.lock"; then
   "$SCRIPT_DIR/setup-ios.sh"
 fi
 
+echo "If macOS requests Keychain access for codesign, approve it locally to complete signing."
 echo "Building signed iOS app for ${#TARGET_DEVICE_UDIDS[@]} connected device(s)"
 echo "API: $EXPO_PUBLIC_API_BASE_URL"
 echo "Expo project: $EXPO_PUBLIC_EAS_PROJECT_ID"
@@ -108,8 +122,12 @@ echo "Expo project: $EXPO_PUBLIC_EAS_PROJECT_ID"
   -destination "id=${TARGET_DEVICE_UDIDS[0]}" \
   -derivedDataPath "$DERIVED_DATA_PATH" \
   -allowProvisioningUpdates \
+  -allowProvisioningDeviceRegistration \
   DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
   CODE_SIGN_STYLE=Automatic \
+  CODE_SIGN_IDENTITY="Apple Development" \
+  PROVISIONING_PROFILE= \
+  PROVISIONING_PROFILE_SPECIFIER= \
   build)
 
 APP_PATH="$DERIVED_DATA_PATH/Build/Products/${BUILD_CONFIGURATION}-iphoneos/TransportPlatform.app"
@@ -121,6 +139,6 @@ fi
 for device_udid in "${TARGET_DEVICE_UDIDS[@]}"; do
   echo "Installing on iOS device $device_udid..."
   xcrun devicectl device install app --device "$device_udid" "$APP_PATH"
-  xcrun devicectl device process launch --device "$device_udid" --terminate-existing "$APP_ID" || true
+  xcrun devicectl device process launch --device "$device_udid" --terminate-existing "$APP_ID"
   echo "Installed Transport Platform on iOS device $device_udid."
 done

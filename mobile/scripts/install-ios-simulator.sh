@@ -70,6 +70,7 @@ SCHEME="${SCHEME:-TransportPlatform}"
 APP_ID="${APP_ID:-com.bakaroo.transport.app}"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PROJECT_ROOT/.build/ios-simulator}"
 SIMULATOR_UDID="${SIMULATOR_UDID:-}"
+(cd "$PROJECT_ROOT" && npx expo prebuild --platform ios --no-install)
 AVAILABLE_SIMULATORS="$(xcrun simctl list devices available)"
 XCODE_DESTINATIONS="$(xcodebuild -workspace "$PROJECT_ROOT/ios/$WORKSPACE" -scheme "$SCHEME" -sdk iphonesimulator -showdestinations)"
 BOOTED_SIMULATORS=()
@@ -130,7 +131,8 @@ if [[ ${#BOOTED_SIMULATORS[@]} -eq 0 ]]; then
   BOOTED_SIMULATORS=("$SIMULATOR_UDID")
 fi
 
-if [[ ! -d "$PROJECT_ROOT/ios/Pods" ]]; then
+if [[ ! -f "$PROJECT_ROOT/ios/Pods/Manifest.lock" ]] ||
+  ! cmp -s "$PROJECT_ROOT/ios/Podfile.lock" "$PROJECT_ROOT/ios/Pods/Manifest.lock"; then
   echo "CocoaPods are not installed. Running iOS setup..."
   "$SCRIPT_DIR/setup-ios.sh"
 fi
