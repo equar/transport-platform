@@ -51,6 +51,8 @@ export NODE_ENV=production
 android_devices=()
 android_device_types=()
 ios_devices=()
+ios_physical_devices=()
+ios_physical_count=0
 android_device_count=0
 ios_device_count=0
 
@@ -87,6 +89,26 @@ if [[ "$install_ios" == true ]]; then
   require_command xcodebuild
   require_command xcrun
 
+  require_command python3
+  device_json="$(mktemp -t bakaroo-local-ios-devices)"
+  trap 'rm -f "$device_json"' EXIT
+  xcrun devicectl list devices --json-output "$device_json" --timeout 20 >/dev/null
+  physical_ids="$(python3 "$APP_DIR/scripts/connected-ios-devices.py" < "$device_json")"
+  while IFS= read -r identifier; do
+    [[ -n "$identifier" ]] || continue
+    if [[ -n "${IOS_DEVICE_UDID:-}" && "$identifier" != "$IOS_DEVICE_UDID" ]]; then continue; fi
+    ios_physical_devices+=("$identifier")
+    ((ios_physical_count += 1))
+  done <<< "$physical_ids"
+  if [[ -n "${IOS_DEVICE_UDID:-}" && $ios_physical_count -eq 0 ]]; then
+    echo "ERROR: Requested iPhone is not connected and paired: $IOS_DEVICE_UDID" >&2
+    exit 1
+  fi
+  if (( ios_physical_count > 0 )) && [[ -z "${DEVELOPMENT_TEAM:-}" ]]; then
+    echo "ERROR: Set DEVELOPMENT_TEAM to your Apple Team ID for physical iPhone signing." >&2
+    exit 1
+  fi
+
   while IFS= read -r identifier; do
     ios_devices+=("$identifier")
     ((ios_device_count += 1))
@@ -104,20 +126,20 @@ if [[ "$install_android" == true && $android_device_count -eq 0 ]]; then
     exit 1
   fi
 fi
-if [[ "$install_ios" == true && $ios_device_count -eq 0 ]]; then
+if [[ "$install_ios" == true && $ios_device_count -eq 0 && $ios_physical_count -eq 0 ]]; then
   if [[ "$TARGET_PLATFORM" == auto ]]; then
     install_ios=false
   else
-    echo "ERROR: No booted iOS simulators were found." >&2
+    echo "ERROR: No connected iPhones/iPads or booted iOS simulators were found. Unlock and trust the phone, and enable Developer Mode." >&2
     exit 1
   fi
 fi
 
 if [[ "$install_android" == false && "$install_ios" == false ]]; then
-  echo "ERROR: No ready Android phones/emulators or booted iOS simulators found. Connect and authorize an Android phone, or start a simulator." >&2
+  echo "ERROR: No ready Android phones/emulators or connected iPhones/iPads or booted iOS simulators found. Connect and authorize a phone, or start a simulator." >&2
   exit 1
 fi
-echo "Installing for $TARGET_PLATFORM: discovered $android_device_count ready Android device(s) and $ios_device_count booted iOS simulator(s)."
+echo "Installing for $TARGET_PLATFORM: discovered $android_device_count ready Android device(s) and $ios_physical_count physical iOS device(s), $ios_device_count booted iOS simulator(s)."
 if [[ "$install_android" == true ]]; then
   for index in "${!android_devices[@]}"; do
     echo "  Android (${android_device_types[$index]}): ${android_devices[$index]}"
@@ -127,6 +149,10 @@ if [[ "$install_ios" == true ]]; then
   for identifier in "${ios_devices[@]}"; do
     echo "  iOS: $identifier"
   done
+fi
+
+if (( ios_physical_count > 0 )); then
+  printf '  iOS (physical): %s\n' "${ios_physical_devices[@]}"
 fi
 
 failures=()
@@ -184,10 +210,12 @@ if [[ "$install_android" == true ]]; then
   done
 fi
 
-if [[ "$install_ios" == true ]]; then
-  if [[ ! -d "$APP_DIR/ios/Pods" ]]; then
-    echo "ERROR: CocoaPods are not installed. Run: cd mobile && ./scripts/setup-ios.sh" >&2
-    exit 1
+if [[ "$install_ios" == true && $ios_device_count -gt 0 ]]; then
+  (cd "$APP_DIR" && npx expo prebuild --platform ios --no-install)
+  if [[ ! -f "$APP_DIR/ios/Pods/Manifest.lock" ]] ||
+    ! cmp -s "$APP_DIR/ios/Podfile.lock" "$APP_DIR/ios/Pods/Manifest.lock"; then
+    echo "Installing missing or outdated iOS CocoaPods dependencies..."
+    "$APP_DIR/scripts/setup-ios.sh"
   fi
 
   DERIVED_DATA_PATH="$APP_DIR/.build/local-release-install"
@@ -228,7 +256,25 @@ if [[ "$install_ios" == true ]]; then
   done
 fi
 
-echo "Installed production-configured builds on $installed_android Android device(s) and $installed_ios iOS simulator(s)."
+installed_ios_physical=0
+if [[ "$install_ios" == true && $ios_physical_count -gt 0 ]]; then
+  # Use the shared physical-device installer for automatic development signing.
+  for identifier in "${ios_physical_devices[@]}"; do
+    log_dir="$APP_DIR/.build/install-logs"
+    mkdir -p "$log_dir"
+    install_log="$log_dir/ios-$identifier-$(date +%Y%m%d-%H%M%S).log"
+    echo "Physical iOS build/install log: $install_log"
+    if IOS_DEVICE_UDID="$identifier" "$APP_DIR/scripts/install-ios-device.sh" --prod 2>&1 | tee "$install_log"; then
+      ((installed_ios_physical += 1))
+    else
+      echo "Recent build/install errors:" >&2
+      grep -E 'error:|Error:|ERROR:|BUILD FAILED|INSTALL FAILED|Signing|provisioning' "$install_log" | tail -20 >&2 || true
+      failures+=("iOS physical $identifier: build or installation failed; log: $install_log")
+    fi
+  done
+fi
+
+echo "Installed production-configured builds on $installed_android Android device(s) and $installed_ios_physical physical iOS device(s), $installed_ios iOS simulator(s)."
 if (( ${#failures[@]} > 0 )); then
   printf 'ERROR: Installation failed on %d device(s):\n' "${#failures[@]}" >&2
   printf '  - %s\n' "${failures[@]}" >&2

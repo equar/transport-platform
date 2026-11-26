@@ -126,6 +126,7 @@ module.exports = () => {
         : {}),
     },
     plugins: [
+      ['expo-build-properties', { ios: { enableSceneSupport: true } }],
       ...(expo.plugins || []),
       ...(googleMapsApiKey
         ? [[

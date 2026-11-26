@@ -2,8 +2,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { PdfDocumentPreview } from './PdfDocumentPreview';
 const mocks = vi.hoisted(() => ({ getDocument: vi.fn(), getPage: vi.fn(), render: vi.fn(), destroy: vi.fn(), cancel: vi.fn() }));
-vi.mock('pdfjs-dist', () => ({ GlobalWorkerOptions: {}, getDocument: mocks.getDocument }));
-vi.mock('pdfjs-dist/build/pdf.worker.min.mjs?worker&url', () => ({ default: '/assets/pdf-worker.js' }));
+vi.mock('pdfjs-dist/legacy/build/pdf.mjs', () => ({ GlobalWorkerOptions: {}, getDocument: mocks.getDocument }));
+vi.mock('pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker&url', () => ({ default: '/assets/pdf-worker.js' }));
 beforeEach(() => {
   mocks.destroy.mockResolvedValue(undefined);
   mocks.render.mockReturnValue({ promise: Promise.resolve(), cancel: mocks.cancel });

@@ -1,3 +1,4 @@
+import { DocumentFullView } from "./DocumentFullView";
 import {
   Alert,
   Box,
@@ -43,6 +44,7 @@ export function DriverDocumentReviewDialog({
   const [pdfReady, setPdfReady] = useState(false);
   const [renderError, setRenderError] = useState(false);
   const [openedSeparately, setOpenedSeparately] = useState(false);
+  const [fullView, setFullView] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const isPhoto = document?.documentType === "PROFILE_PHOTO";
   const complete = isPhoto || Boolean(document?.documentNumber?.trim() && document?.issuingAuthority?.trim() && document?.issueDate && document?.expiryDate);
@@ -61,7 +63,7 @@ export function DriverDocumentReviewDialog({
     let active = true;
     let objectUrl: string | null = null;
     setPreviewUrl(null); setPreviewError(false); setPreviewType("");
-    setRenderError(false); setOpenedSeparately(false); setChecked(false); setPreviewBlob(null); setPdfReady(false); setImagePreviewUrl(null);
+    setRenderError(false); setOpenedSeparately(false); setFullView(false); setChecked(false); setPreviewBlob(null); setPdfReady(false); setImagePreviewUrl(null);
     if (open && document?.storagePath) {
       void driversApi.downloadDocument(document.id).then(async blob => {
         if (!active) return;
@@ -147,7 +149,7 @@ export function DriverDocumentReviewDialog({
                         onError={() => { setRenderError(true); setPdfReady(false); setChecked(false); }} />}
 
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                  <Button component="a" href={previewUrl} target="_blank" rel="noopener noreferrer" onClick={() => setOpenedSeparately(true)}>Open full document</Button>
+                  <Button onClick={() => setFullView(true)}>Open full document</Button>
                   <Button component="a" href={previewUrl} download={document?.originalFileName || document?.fileName || "document"} onClick={() => setOpenedSeparately(true)}>Download document</Button>
                 </Stack>
               </> : <Alert severity={previewError || !document?.storagePath ? "warning" : "info"}>
@@ -175,6 +177,10 @@ export function DriverDocumentReviewDialog({
           />
         </Stack>
       </DialogContent>
+      <DocumentFullView open={fullView} blob={previewBlob} imageUrl={imagePreviewUrl}
+        fileName={document?.originalFileName || document?.fileName || "Uploaded document"}
+        onClose={() => setFullView(false)} onReady={() => setOpenedSeparately(true)}
+        onError={() => { setOpenedSeparately(false); setChecked(false); }} />
       <DialogActions sx={{ px: 3, pb: 3 }}>
         <Button onClick={onClose} color="inherit" disabled={loading}>
           Cancel

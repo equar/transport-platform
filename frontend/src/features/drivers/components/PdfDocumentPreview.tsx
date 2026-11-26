@@ -1,7 +1,7 @@
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from "pdfjs-dist";
-import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?worker&url";
+import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker&url";
 
 /** Render file bytes as pixels; never navigate a frame to uploaded content. */
 export function PdfDocumentPreview({ blob, onReady, onError }: {
@@ -19,7 +19,7 @@ export function PdfDocumentPreview({ blob, onReady, onError }: {
     let task: PDFDocumentLoadingTask | undefined;
     setPdf(null); setPage(1); setBusy(true); setFailed(false);
     void (async () => {
-      const library = await import("pdfjs-dist");
+      const library = await import("pdfjs-dist/legacy/build/pdf.mjs");
       if (!active) return;
       library.GlobalWorkerOptions.workerSrc = workerUrl;
       const data = new Uint8Array(await blob.arrayBuffer());

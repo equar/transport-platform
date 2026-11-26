@@ -18,3 +18,19 @@ npm run android:device -- --env aws
 npm run ios:device -- --env aws
 npm run android:device:prod
 npm run ios:device:prod
+# Detect connected physical iPhones/iPads without building or installing:
+npm run ios:device -- --list-devices
+# Physical iOS installation requires your Apple signing team:
+DEVELOPMENT_TEAM=YOUR_TEAM_ID npm run ios:device:prod
+# Optionally select one device explicitly:
+# IOS_DEVICE_UDID=YOUR_DEVICE_UDID DEVELOPMENT_TEAM=YOUR_TEAM_ID npm run ios:device:prod
+
+# From the repository root: install release builds on connected devices and booted simulators.
+# Apple Team ID is required when a physical iPhone/iPad is detected:
+# DEVELOPMENT_TEAM=5YW3888543 ./localReleaseInstall.sh ios
+# DEVELOPMENT_TEAM=5YW3888543 ./localReleaseInstall.sh
+
+# One-command preparation for Xcode Archive (run from repository root):
+# ./prepareIosArchive.sh
+# Closes Xcode gracefully, installs locked dependencies, prebuilds, installs Pods,
+# verifies the workspace, then opens Xcode. Choose Product > Archive afterward.
