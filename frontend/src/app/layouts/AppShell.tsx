@@ -162,8 +162,8 @@ export function AppShell() {
 
   const drawer = (
     <Stack sx={{ height: "100%", bgcolor: sidebar.background, color: sidebar.text, backgroundImage: "none" }}>
-      <Box sx={{ px: 2.5, height: 72, display: "flex", alignItems: "center", bgcolor: sidebar.background, borderBottom: `1px solid ${sidebar.border}` }}>
-        <Box component={RouterLink} to={workspaceHomePath} aria-label="Bakaroo Transport dashboard" sx={{ display: "inline-flex", textDecoration: "none", maxWidth: "100%" }}>
+      <Box sx={{ height: 72, flexShrink: 0, display: "flex", alignItems: "center", bgcolor: "#fff", borderBottom: "1px solid", borderColor: "divider" }}>
+        <Box component={RouterLink} to={workspaceHomePath} aria-label="Bakaroo Transport dashboard" sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", textDecoration: "none" }}>
           <BrandMark compact inverse usePlatformLogo />
         </Box>
       </Box>
